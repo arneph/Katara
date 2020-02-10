@@ -1,0 +1,21 @@
+graph: { title: "Graph"
+node: {
+title: "0"
+color: white
+label: 
+"%1"
+}
+node: {
+title: "1"
+color: red
+label: 
+"%0"
+}
+node: {
+title: "2"
+color: white
+label: 
+"%2"
+}
+edge: { sourcename: "1" targetname: "0" arrowstyle: none}
+}

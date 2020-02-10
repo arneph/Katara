@@ -1,0 +1,20 @@
+graph: { title: "Graph"
+node: {
+title: "0"
+color: white
+label: 
+"%2"
+}
+node: {
+title: "1"
+color: white
+label: 
+"%1"
+}
+node: {
+title: "2"
+color: white
+label: 
+"%0"
+}
+}

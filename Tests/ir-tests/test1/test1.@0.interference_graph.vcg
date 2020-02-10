@@ -1,0 +1,50 @@
+graph: { title: "Graph"
+node: {
+title: "0"
+color: white
+label: 
+"%0"
+}
+node: {
+title: "1"
+color: red
+label: 
+"%5"
+}
+node: {
+title: "2"
+color: yellow
+label: 
+"%2"
+}
+node: {
+title: "3"
+color: green
+label: 
+"%1"
+}
+node: {
+title: "4"
+color: red
+label: 
+"%4"
+}
+node: {
+title: "5"
+color: yellow
+label: 
+"%3"
+}
+edge: { sourcename: "1" targetname: "0" arrowstyle: none}
+edge: { sourcename: "2" targetname: "0" arrowstyle: none}
+edge: { sourcename: "2" targetname: "1" arrowstyle: none}
+edge: { sourcename: "3" targetname: "0" arrowstyle: none}
+edge: { sourcename: "3" targetname: "2" arrowstyle: none}
+edge: { sourcename: "3" targetname: "1" arrowstyle: none}
+edge: { sourcename: "4" targetname: "0" arrowstyle: none}
+edge: { sourcename: "4" targetname: "2" arrowstyle: none}
+edge: { sourcename: "4" targetname: "3" arrowstyle: none}
+edge: { sourcename: "5" targetname: "0" arrowstyle: none}
+edge: { sourcename: "5" targetname: "3" arrowstyle: none}
+edge: { sourcename: "5" targetname: "4" arrowstyle: none}
+}
