@@ -12,7 +12,7 @@
 
 #include "func.h"
 
-namespace x64 {
+namespace x86_64 {
 
 Block::Block() {}
 Block::~Block() {}

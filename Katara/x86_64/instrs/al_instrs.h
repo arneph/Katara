@@ -18,7 +18,7 @@
 #include "x86_64/instr.h"
 #include "x86_64/ops.h"
 
-namespace x64 {
+namespace x86_64 {
 
 class UnaryALInstr : public Instr {
 public:

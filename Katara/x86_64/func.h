@@ -17,7 +17,7 @@
 #include "x86_64/mc/linker.h"
 #include "x86_64/block.h"
 
-namespace x64 {
+namespace x86_64 {
 
 class Prog;
 class ProgBuilder;

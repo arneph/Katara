@@ -8,7 +8,7 @@
 
 #include "instr_decoder.h"
 
-namespace x64 {
+namespace x86_64 {
 namespace coding {
 
 InstrDecoder::InstrDecoder(const common::data code)

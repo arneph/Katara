@@ -13,7 +13,7 @@
 #include "x86_64/coding/instr_decoder.h"
 #include "x86_64/coding/instr_encoder.h"
 
-namespace x64 {
+namespace x86_64 {
 
 Jcc::Jcc(Jcc::CondType cond,
          std::shared_ptr<BlockRef> block_ref)

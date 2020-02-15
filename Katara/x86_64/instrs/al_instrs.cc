@@ -10,7 +10,7 @@
 
 #include "x86_64/coding/instr_encoder.h"
 
-namespace x64 {
+namespace x86_64 {
 
 UnaryALInstr::UnaryALInstr(std::shared_ptr<RM8> rm)
     : op_size_(8), op_(rm) {}

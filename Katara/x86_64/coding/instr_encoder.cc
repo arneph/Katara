@@ -8,7 +8,7 @@
 
 #include "instr_encoder.h"
 
-namespace x64 {
+namespace x86_64 {
 namespace coding {
 
 InstrEncoder::InstrEncoder(common::data code)

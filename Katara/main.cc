@@ -51,84 +51,84 @@ void test_x86() {
     uint8_t *add_ints_addr = (uint8_t *) &AddInts;
     uint8_t *print_int_addr = (uint8_t *) &PrintInt;
     
-    x64::Linker *linker = new x64::Linker();
+    x86_64::Linker *linker = new x86_64::Linker();
     linker->AddFuncAddr("addInts", add_ints_addr);
     linker->AddFuncAddr("printInt", print_int_addr);
     
     const char *str = "Hello world!\n";
-    std::shared_ptr<x64::Imm64> str_c = std::make_shared<x64::Imm64>((int64_t) str);
+    std::shared_ptr<x86_64::Imm64> str_c = std::make_shared<x86_64::Imm64>((int64_t) str);
     
-    using namespace x64::literals;
+    using namespace x86_64::literals;
     
-    x64::ProgBuilder prog_builder;
-    x64::FuncBuilder main_func_builder = prog_builder.AddFunc("main");
+    x86_64::ProgBuilder prog_builder;
+    x86_64::FuncBuilder main_func_builder = prog_builder.AddFunc("main");
     
     // Prolog:
     {
-        x64::BlockBuilder prolog_block_builder = main_func_builder.AddBlock();
-        prolog_block_builder.AddInstr(std::make_unique<x64::Push>(x64::rbp));
-        prolog_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rbp, x64::rsp));
+        x86_64::BlockBuilder prolog_block_builder = main_func_builder.AddBlock();
+        prolog_block_builder.AddInstr(std::make_unique<x86_64::Push>(x86_64::rbp));
+        prolog_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rbp, x86_64::rsp));
     }
     
     // Fibonacci numbers:
     {
-        x64::BlockBuilder start_block_builder = main_func_builder.AddBlock();
-        start_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::r15b, 10_imm8));
-        start_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::r12, 1_imm64));
-        start_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::r13, 1_imm64));
-        start_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rdi, x64::r12));
-        start_block_builder.AddInstr(std::make_unique<x64::Call>("printInt"_f));
+        x86_64::BlockBuilder start_block_builder = main_func_builder.AddBlock();
+        start_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r15b, 10_imm8));
+        start_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r12, 1_imm64));
+        start_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r13, 1_imm64));
+        start_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::r12));
+        start_block_builder.AddInstr(std::make_unique<x86_64::Call>("printInt"_f));
     }
     {
-        x64::BlockBuilder loop_block_builder = main_func_builder.AddBlock();
-        loop_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rdi, x64::r12));
-        loop_block_builder.AddInstr(std::make_unique<x64::Call>("printInt"_f));
-        loop_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::r14, x64::r12));
-        loop_block_builder.AddInstr(std::make_unique<x64::Add>(x64::r14, x64::r13));
-        loop_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::r13, x64::r12));
-        loop_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::r12, x64::r14));
-        loop_block_builder.AddInstr(std::make_unique<x64::Sub>(x64::r15b, 1_imm8));
-        loop_block_builder.AddInstr(std::make_unique<x64::Jcc>(x64::Jcc::CondType::kAbove,
+        x86_64::BlockBuilder loop_block_builder = main_func_builder.AddBlock();
+        loop_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::r12));
+        loop_block_builder.AddInstr(std::make_unique<x86_64::Call>("printInt"_f));
+        loop_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r14, x86_64::r12));
+        loop_block_builder.AddInstr(std::make_unique<x86_64::Add>(x86_64::r14, x86_64::r13));
+        loop_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r13, x86_64::r12));
+        loop_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r12, x86_64::r14));
+        loop_block_builder.AddInstr(std::make_unique<x86_64::Sub>(x86_64::r15b, 1_imm8));
+        loop_block_builder.AddInstr(std::make_unique<x86_64::Jcc>(x86_64::Jcc::CondType::kAbove,
                                                                loop_block_builder.block()->GetBlockRef()));
     }
     
     // Hello world (Syscall test):
     {
-        x64::BlockBuilder hello_block_builder = main_func_builder.AddBlock();
-        hello_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rax, 0x2000004_imm64)); // write
-        hello_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rdi, 1_imm32));         // stdout
-        hello_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rsi, str_c));           // const char
-        hello_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rdx, 13_imm32));        // size
-        hello_block_builder.AddInstr(std::make_unique<x64::Syscall>());
-        //hello_block_builder.AddInstr(std::make_unique<x64::Jmp>(hello_block_builder.block()->GetBlockRef()));
+        x86_64::BlockBuilder hello_block_builder = main_func_builder.AddBlock();
+        hello_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rax, 0x2000004_imm64)); // write
+        hello_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, 1_imm32));         // stdout
+        hello_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rsi, str_c));           // const char
+        hello_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdx, 13_imm32));        // size
+        hello_block_builder.AddInstr(std::make_unique<x86_64::Syscall>());
+        //hello_block_builder.AddInstr(std::make_unique<x86_64::Jmp>(hello_block_builder.block()->GetBlockRef()));
     }
         
     // Other tests:
     {
-        x64::BlockBuilder test_block_builder = main_func_builder.AddBlock();
-        test_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rdi, 1_imm32));
-        test_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rsi, 2_imm32));
-        test_block_builder.AddInstr(std::make_unique<x64::Call>("addInts"_f));
-        test_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rdi, x64::rax));
-        test_block_builder.AddInstr(std::make_unique<x64::Sub>(x64::rdi, x64::rax));
-        test_block_builder.AddInstr(std::make_unique<x64::Add>(x64::rdi, x64::rax));
-        test_block_builder.AddInstr(std::make_unique<x64::Add>(x64::rdi, 17_imm8));
-        test_block_builder.AddInstr(std::make_unique<x64::Sub>(x64::rdi, 6_imm8));
-        test_block_builder.AddInstr(std::make_unique<x64::Call>("printInt"_f));
-        test_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rdi, 1233_imm32));
-        test_block_builder.AddInstr(std::make_unique<x64::Sub>(x64::rdi, std::make_shared<x64::Imm32>(-1)));
-        test_block_builder.AddInstr(std::make_unique<x64::Call>("printInt"_f));
+        x86_64::BlockBuilder test_block_builder = main_func_builder.AddBlock();
+        test_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, 1_imm32));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rsi, 2_imm32));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Call>("addInts"_f));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::rax));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Sub>(x86_64::rdi, x86_64::rax));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Add>(x86_64::rdi, x86_64::rax));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Add>(x86_64::rdi, 17_imm8));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Sub>(x86_64::rdi, 6_imm8));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Call>("printInt"_f));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, 1233_imm32));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Sub>(x86_64::rdi, std::make_shared<x86_64::Imm32>(-1)));
+        test_block_builder.AddInstr(std::make_unique<x86_64::Call>("printInt"_f));
     }
         
     // Epilog:
     {
-        x64::BlockBuilder epilog_block_builder = main_func_builder.AddBlock();
-        epilog_block_builder.AddInstr(std::make_unique<x64::Mov>(x64::rsp, x64::rbp));
-        epilog_block_builder.AddInstr(std::make_unique<x64::Pop>(x64::rbp));
-        epilog_block_builder.AddInstr(std::make_unique<x64::Ret>());
+        x86_64::BlockBuilder epilog_block_builder = main_func_builder.AddBlock();
+        epilog_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rsp, x86_64::rbp));
+        epilog_block_builder.AddInstr(std::make_unique<x86_64::Pop>(x86_64::rbp));
+        epilog_block_builder.AddInstr(std::make_unique<x86_64::Ret>());
     }
     
-    std::shared_ptr<x64::Prog> prog = prog_builder.prog();
+    std::shared_ptr<x86_64::Prog> prog = prog_builder.prog();
     
     std::cout << prog->ToString() << std::endl << std::endl;
     

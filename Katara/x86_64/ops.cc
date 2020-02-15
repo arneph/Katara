@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace x64 {
+namespace x86_64 {
 
 std::string RegToString(uint8_t reg, uint8_t size);
 

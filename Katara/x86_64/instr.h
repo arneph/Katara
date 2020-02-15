@@ -16,7 +16,7 @@
 #include "x86_64/mc/linker.h"
 #include "x86_64/ops.h"
 
-namespace x64 {
+namespace x86_64 {
 
 // TODO:
 // SAL/SAR/SHL/SHR      (shift)

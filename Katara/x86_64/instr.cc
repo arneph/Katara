@@ -8,6 +8,6 @@
 
 #include "instr.h"
 
-namespace x64 {
+namespace x86_64 {
 
 }

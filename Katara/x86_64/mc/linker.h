@@ -17,7 +17,7 @@
 #include "common/data.h"
 #include "x86_64/ops.h"
 
-namespace x64 {
+namespace x86_64 {
 
 class Linker {
 public:

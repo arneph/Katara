@@ -6,8 +6,8 @@
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#ifndef unlinker_h
-#define unlinker_h
+#ifndef x86_64_unlinker_h
+#define x86_64_unlinker_h
 
 #include <memory>
 #include <string>
@@ -17,7 +17,7 @@
 #include "common/data.h"
 #include "x86_64/ops.h"
 
-namespace x64 {
+namespace x86_64 {
 
 class Unlinker {
     Unlinker();
@@ -42,4 +42,4 @@ private:
 
 }
 
-#endif /* unlinker_h */
+#endif /* x86_64_unlinker_h */

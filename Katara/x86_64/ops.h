@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-namespace x64 {
+namespace x86_64 {
 
 typedef enum : uint8_t {
     s00 = 0,

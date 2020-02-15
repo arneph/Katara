@@ -10,7 +10,7 @@
 
 #include "x86_64/coding/instr_encoder.h"
 
-namespace x64 {
+namespace x86_64 {
 
 Mov::Mov(std::shared_ptr<Reg8>  d,
          std::shared_ptr<Reg8>   s)

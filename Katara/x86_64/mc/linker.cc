@@ -8,7 +8,7 @@
 
 #include "linker.h"
 
-namespace x64 {
+namespace x86_64 {
 
 Linker::Linker() {}
 Linker::~Linker() {}

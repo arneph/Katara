@@ -17,7 +17,7 @@
 #include "x86_64/mc/linker.h"
 #include "x86_64/instr.h"
 
-namespace x64 {
+namespace x86_64 {
 
 class Func;
 class FuncBuilder;

@@ -10,7 +10,7 @@
 
 #include <sstream>
 
-namespace x64 {
+namespace x86_64 {
 
 Func::Func() {}
 Func::~Func() {}
