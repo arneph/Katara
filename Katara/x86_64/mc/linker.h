@@ -24,28 +24,28 @@ public:
     Linker();
     ~Linker();
     
-    void AddFuncAddr(std::string func_name,
+    void AddFuncAddr(int64_t func_id,
                      uint8_t *func_addr);
     void AddBlockAddr(int64_t block_id,
                       uint8_t *block_addr);
     
-    void AddFuncRef(std::shared_ptr<FuncRef> func_ref,
+    void AddFuncRef(const FuncRef &func_ref,
                     common::data patch_data);
-    void AddBlockRef(std::shared_ptr<BlockRef> block_ref,
+    void AddBlockRef(const BlockRef &block_ref,
                      common::data patch_data);
     
     void ApplyPatches() const;
     
 private:
-    std::unordered_map<std::string, uint8_t *> func_addrs_;
+    std::unordered_map<int64_t, uint8_t *> func_addrs_;
     std::unordered_map<int64_t, uint8_t *> block_addrs_;
 
     struct FuncPatch {
-        std::shared_ptr<FuncRef> func_ref;
+        FuncRef func_ref;
         common::data patch_data;
     };
     struct BlockPatch {
-        std::shared_ptr< BlockRef> block_ref;
+        BlockRef block_ref;
         common::data patch_data;
     };
     

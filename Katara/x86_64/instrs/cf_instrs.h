@@ -55,9 +55,12 @@ public:
         kLess           = 0x0c
     } CondType;
     
-    Jcc(CondType cond, std::shared_ptr<BlockRef> block_ref);
+    Jcc(CondType cond, BlockRef block_ref);
     ~Jcc() override;
 
+    CondType cond() const;
+    BlockRef dst() const;
+    
     int8_t Encode(Linker *linker,
                   common::data code) const override;
     std::string ToString() const override;
@@ -65,14 +68,14 @@ public:
 private:
     std::string CondAsOpcodeString() const;
     
-    const CondType cond_;
-    const std::shared_ptr<BlockRef> dst_;
+    CondType cond_;
+    BlockRef dst_;
 };
 
 class Jmp final : public Instr {
 public:
-    Jmp(std::shared_ptr<RM64> rm);
-    Jmp(std::shared_ptr<BlockRef> block_ref);
+    Jmp(RM rm);
+    Jmp(BlockRef block_ref);
     ~Jmp() override;
     
     int8_t Encode(Linker *linker,
@@ -80,13 +83,13 @@ public:
     std::string ToString() const override;
     
 private:
-    const std::shared_ptr<Operand> dst_;
+    Operand dst_;
 };
 
 class Call final : public Instr {
 public:
-    Call(std::shared_ptr<RM64> rm);
-    Call(std::shared_ptr<FuncRef> func_ref);
+    Call(RM rm);
+    Call(FuncRef func_ref);
     ~Call() override;
     
     int8_t Encode(Linker *linker,
@@ -94,7 +97,7 @@ public:
     std::string ToString() const override;
 
 private:
-    const std::shared_ptr<Operand> callee_;
+    Operand callee_;
 };
 
 class Syscall final : public Instr {

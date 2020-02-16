@@ -48,6 +48,7 @@ public:
     
 private:
     std::shared_ptr<Prog> prog_;
+    int64_t func_count_;
     int64_t block_count_;
 };
 

@@ -30,7 +30,7 @@ public:
     int64_t block_id() const;
     const std::vector<std::unique_ptr<Instr>>& instrs() const;
     
-    std::unique_ptr<BlockRef> GetBlockRef() const;
+    BlockRef GetBlockRef() const;
     
     int64_t Encode(Linker *linker,
                    common::data code) const;

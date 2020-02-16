@@ -14,7 +14,7 @@ namespace coding {
 InstrDecoder::InstrDecoder(const common::data code)
     : code_(code) {
     if (code[size_] == 0x66) {
-        op_size_ = 16;
+        op_size_ = Size::k16;
         size_++;
     }
     if ((code[size_] & 0xf0) == 0x40) {
@@ -22,7 +22,7 @@ InstrDecoder::InstrDecoder(const common::data code)
         size_++;
         
         if (*rex_ & 0x08) {
-            op_size_ = 64;
+            op_size_ = Size::k64;
         }
     }
 }
@@ -63,11 +63,11 @@ void InstrDecoder::DecodeDisp(uint8_t disp_size) {
     size_ += disp_size / 8;
 }
 
-uint8_t InstrDecoder::GetOperandSize() const {
+Size InstrDecoder::GetOperandSize() const {
     return op_size_;
 }
 
-void InstrDecoder::SetOperandSize(uint8_t op_size) {
+void InstrDecoder::SetOperandSize(Size op_size) {
     op_size_ = op_size;
 }
 
@@ -94,7 +94,7 @@ uint8_t InstrDecoder::DecodeOpcodeExt() {
     return (*modrm_ >> 3) & 0x7;
 }
 
-Reg * InstrDecoder::DecodeOpcodeReg(uint8_t opcode_index,
+Reg InstrDecoder::DecodeOpcodeReg(uint8_t opcode_index,
                                     uint8_t lshift) {
     if (opcode_index >= opcode_size_)
         throw "attempted to decode opcode reg in unknown "
@@ -108,36 +108,20 @@ Reg * InstrDecoder::DecodeOpcodeReg(uint8_t opcode_index,
     if (rex_ != nullptr && *rex_ & 0x04) {
         reg_index += 8;
     }
-    switch (op_size_) {
-        case 8: return new Reg8(reg_index);
-        case 16: return new Reg16(reg_index);
-        case 32: return new Reg32(reg_index);
-        case 64: return new Reg64(reg_index);
-        default:
-            throw "unknown operand size: " +
-                  std::to_string(op_size_);
-    }
+    return Reg(op_size_, reg_index);
 }
 
-Reg * InstrDecoder::DecodeModRMReg() {
+Reg InstrDecoder::DecodeModRMReg() {
     DecodeModRM();
     
     uint8_t reg_index = (*modrm_ >> 3) & 0x7;
     if (rex_ != nullptr && *rex_ & 0x04) {
         reg_index += 8;
     }
-    switch (op_size_) {
-        case 8: return new Reg8(reg_index);
-        case 16: return new Reg16(reg_index);
-        case 32: return new Reg32(reg_index);
-        case 64: return new Reg64(reg_index);
-        default:
-            throw "unknown operand size: " +
-                  std::to_string(op_size_);
-    }
+    return Reg(op_size_, reg_index);
 }
 
-RM * InstrDecoder::DecodeRM() {
+RM InstrDecoder::DecodeRM() {
     // Obtain ModRM byte:
     DecodeModRM();
     const uint8_t mod = (*modrm_ >> 6) & 0x03;
@@ -149,15 +133,7 @@ RM * InstrDecoder::DecodeRM() {
         if (rex_ != nullptr && *rex_ & 0x01) {
             reg_index += 8;
         }
-        switch (op_size_) {
-            case 8: return new Reg8(reg_index);
-            case 16: return new Reg16(reg_index);
-            case 32: return new Reg32(reg_index);
-            case 64: return new Reg64(reg_index);
-            default:
-                throw "unknown operand size: " +
-                      std::to_string(op_size_);
-        }
+        return Reg(op_size_, reg_index);
     }
     
     // Obtain SIB if present:
@@ -186,15 +162,7 @@ RM * InstrDecoder::DecodeRM() {
     
     // Handle disp32 only:
     if (mod == 0 && rm == 0x05) {
-        switch (op_size_) {
-            case 8: return new Mem8(disp);
-            case 16: return new Mem16(disp);
-            case 32: return new Mem32(disp);
-            case 64: return new Mem64(disp);
-            default:
-                throw "unknown operand size: " +
-                      std::to_string(op_size_);
-        }
+        return Mem(op_size_, disp);
     }
     
     // Handle no SIB:
@@ -203,15 +171,7 @@ RM * InstrDecoder::DecodeRM() {
         if (rex_ != nullptr && *rex_ & 0x01) {
             base_reg += 8;
         }
-        switch (op_size_) {
-            case 8: return new Mem8(base_reg, disp);
-            case 16: return new Mem16(base_reg, disp);
-            case 32: return new Mem32(base_reg, disp);
-            case 64: return new Mem64(base_reg, disp);
-            default:
-                throw "unknown operand size: " +
-                      std::to_string(op_size_);
-        }
+        return Mem(op_size_, base_reg, disp);
     }
     
     // Decode SIB:
@@ -221,7 +181,12 @@ RM * InstrDecoder::DecodeRM() {
     
     uint8_t base_reg = 0xff;
     uint8_t index_reg = 0xff;
-    scale_t scale = scale_t(s);
+    Scale scale;
+    if (s == 0) scale = Scale::kS00;
+    if (s == 1) scale = Scale::kS01;
+    if (s == 2) scale = Scale::kS10;
+    if (s == 3) scale = Scale::kS11;
+    else throw "unexpected scale bits";
     
     if (mod != 0 || b != 5) {
         base_reg = s;
@@ -236,26 +201,10 @@ RM * InstrDecoder::DecodeRM() {
         }
     }
     
-    switch (op_size_) {
-        case 8: return new Mem8(base_reg,
-                                index_reg, scale,
-                                disp);
-        case 16: return new Mem16(base_reg,
-                                  index_reg, scale,
-                                  disp);
-        case 32: return new Mem32(base_reg,
-                                  index_reg, scale,
-                                  disp);
-        case 64: return new Mem64(base_reg,
-                                  index_reg, scale,
-                                  disp);
-        default:
-            throw "unknown operand size: " +
-                  std::to_string(op_size_);
-    }
+    return Mem(op_size_, base_reg, index_reg, scale, disp);
 }
 
-Imm * InstrDecoder::DecodeImm(uint8_t imm_size) {
+Imm InstrDecoder::DecodeImm(uint8_t imm_size) {
     if (imm_ == nullptr) {
         imm_ = &code_[size_];
         size_ += imm_size  / 8;
@@ -276,10 +225,10 @@ Imm * InstrDecoder::DecodeImm(uint8_t imm_size) {
         imm |= static_cast<int64_t>(imm_[7]) << 56;
     }
     switch (imm_size) {
-        case 8: return new Imm8((int8_t) imm);
-        case 16: return new Imm16((int16_t) imm);
-        case 32: return new Imm32((int32_t) imm);
-        case 64: return new Imm64((int64_t) imm);
+        case 8: return Imm((int8_t) imm);
+        case 16: return Imm((int16_t) imm);
+        case 32: return Imm((int32_t) imm);
+        case 64: return Imm((int64_t) imm);
         default:
             throw "unknown imm size: " +
                   std::to_string(imm_size);

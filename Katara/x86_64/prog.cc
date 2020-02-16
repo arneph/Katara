@@ -47,7 +47,9 @@ ProgBuilder::ProgBuilder() {
 ProgBuilder::~ProgBuilder() {}
 
 FuncBuilder ProgBuilder::AddFunc(std::string func_name) {
-    FuncBuilder func_builder(prog_, func_name, block_count_);
+    FuncBuilder func_builder(prog_,
+                             func_count_++, func_name,
+                             block_count_);
     
     prog_->funcs_.push_back(func_builder.func());
     return func_builder;

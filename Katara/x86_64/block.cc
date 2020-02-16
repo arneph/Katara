@@ -29,8 +29,8 @@ const std::vector<std::unique_ptr<Instr>>& Block::instrs() const {
     return instrs_;
 }
 
-std::unique_ptr<BlockRef> Block::GetBlockRef() const {
-    return std::make_unique<BlockRef>(block_id_);
+BlockRef Block::GetBlockRef() const {
+    return BlockRef(block_id_);
 }
 
 int64_t Block::Encode(Linker *linker,

@@ -22,53 +22,15 @@ namespace x86_64 {
 
 class Mov final : public Instr {
 public:
-    Mov(std::shared_ptr<Reg8> d,
-        std::shared_ptr<Reg8> s);
-    Mov(std::shared_ptr<Reg16> d,
-        std::shared_ptr<Reg16> s);
-    Mov(std::shared_ptr<Reg32> d,
-        std::shared_ptr<Reg32> s);
-    Mov(std::shared_ptr<Reg64> d,
-        std::shared_ptr<Reg64> s);
-    
-    Mov(std::shared_ptr<Mem8> d,
-        std::shared_ptr<Reg8> s);
-    Mov(std::shared_ptr<Mem16> d,
-        std::shared_ptr<Reg16> s);
-    Mov(std::shared_ptr<Mem32> d,
-        std::shared_ptr<Reg32> s);
-    Mov(std::shared_ptr<Mem64> d,
-        std::shared_ptr<Reg64> s);
-    
-    Mov(std::shared_ptr<Reg8> d,
-        std::shared_ptr<Mem8> s);
-    Mov(std::shared_ptr<Reg16> d,
-        std::shared_ptr<Mem16> s);
-    Mov(std::shared_ptr<Reg32> d,
-        std::shared_ptr<Mem32> s);
-    Mov(std::shared_ptr<Reg64> d,
-        std::shared_ptr<Mem64> s);
-    
-    Mov(std::shared_ptr<Reg8> d,
-        std::shared_ptr<Imm8> s);
-    Mov(std::shared_ptr<Reg16> d,
-        std::shared_ptr<Imm16> s);
-    Mov(std::shared_ptr<Reg32> d,
-        std::shared_ptr<Imm32> s);
-    Mov(std::shared_ptr<Reg64> d,
-        std::shared_ptr<Imm32> s);
-    Mov(std::shared_ptr<Reg64> d,
-        std::shared_ptr<Imm64> s);
-    
-    Mov(std::shared_ptr<Mem8> d,
-        std::shared_ptr<Imm8> s);
-    Mov(std::shared_ptr<Mem16> d,
-        std::shared_ptr<Imm16> s);
-    Mov(std::shared_ptr<Mem32> d,
-        std::shared_ptr<Imm32> s);
-    Mov(std::shared_ptr<Mem64> d,
-        std::shared_ptr<Imm32> s);
+    Mov(Reg dst, Reg src);
+    Mov(Mem dst, Reg src);
+    Mov(Reg dst, Mem src);
+    Mov(Reg dst, Imm src);
+    Mov(Mem dst, Imm src);
     ~Mov() override;
+    
+    RM dst() const;
+    Operand src() const;
     
     int8_t Encode(Linker *linker,
                   common::data code) const override;
@@ -82,21 +44,17 @@ private:
         kRM_IMM
     } MovType;
     
-    const MovType mov_type_;
-    const uint8_t op_size_;
-    const std::shared_ptr<Operand> dst_, src_;
+    MovType mov_type_;
+    RM dst_;
+    Operand src_;
 };
 
 class Xchg final : public Instr {
-    Xchg(std::shared_ptr<RM8> rm,
-         std::shared_ptr<Reg8> reg);
-    Xchg(std::shared_ptr<RM16> rm,
-         std::shared_ptr<Reg16> reg);
-    Xchg(std::shared_ptr<RM32> rm,
-         std::shared_ptr<Reg32> reg);
-    Xchg(std::shared_ptr<RM64> rm,
-         std::shared_ptr<Reg64> reg);
+    Xchg(RM rm, Reg reg);
     ~Xchg() override;
+    
+    RM op_a() const;
+    Reg op_b() const;
     
     int8_t Encode(Linker *linker,
                   common::data code) const override;
@@ -105,46 +63,39 @@ class Xchg final : public Instr {
 private:
     bool CanUseRegAShortcut() const;
     
-    const uint8_t op_size_;
-    const std::shared_ptr<RM> op_a_;
-    const std::shared_ptr<Reg> op_b_;
+    RM op_a_;
+    Reg op_b_;
 };
 
 class Push final : public Instr {
 public:
-    Push(std::shared_ptr<Mem16> mem);
-    Push(std::shared_ptr<Mem64> mem);
-    Push(std::shared_ptr<Reg16> reg);
-    Push(std::shared_ptr<Reg64> reg);
-    Push(std::shared_ptr<Imm8> imm);
-    Push(std::shared_ptr<Imm16> imm);
-    Push(std::shared_ptr<Imm32> imm);
+    Push(RM rm);
+    Push(Imm imm);
     ~Push() override;
+    
+    Operand op() const;
     
     int8_t Encode(Linker *linker,
                   common::data code) const override;
     std::string ToString() const override;
 
 private:
-    const uint8_t op_size_;
-    const std::shared_ptr<Operand> op_;
+    Operand op_;
 };
 
 class Pop final : public Instr {
 public:
-    Pop(std::shared_ptr<Mem16> mem);
-    Pop(std::shared_ptr<Mem64> mem);
-    Pop(std::shared_ptr<Reg16> reg);
-    Pop(std::shared_ptr<Reg64> reg);
+    Pop(RM rm);
     ~Pop() override;
+    
+    RM op() const;
     
     int8_t Encode(Linker *linker,
                   common::data code) const override;
     std::string ToString() const override;
     
 private:
-    const uint8_t op_size_;
-    const std::shared_ptr<Operand> op_;
+    RM op_;
 };
 
 }

@@ -15,10 +15,17 @@
 
 namespace x86_64 {
 
-Jcc::Jcc(Jcc::CondType cond,
-         std::shared_ptr<BlockRef> block_ref)
+Jcc::Jcc(Jcc::CondType cond, BlockRef block_ref)
     : cond_(cond), dst_(block_ref) {}
 Jcc::~Jcc() {}
+
+Jcc::CondType Jcc::cond() const {
+    return cond_;
+}
+
+BlockRef Jcc::dst() const {
+    return dst_;
+}
 
 int8_t Jcc::Encode(Linker *linker,
                    common::data code) const {
@@ -36,41 +43,44 @@ int8_t Jcc::Encode(Linker *linker,
 
 std::string Jcc::CondAsOpcodeString() const {
     switch (cond_) {
-    case kOverflow:       return "jo";
-    case kNoOverflow:     return "jno";
-    case kSign:           return "js";
-    case kNoSign:         return "jns";
-    case kParityEven:     return "jpe";
-    case kParityOdd:      return "jpo";
-    case kEqual:          return "je";
-    case kNotEqual:       return "jne";
-    case kAbove:          return "ja";
-    case kAboveOrEqual:   return "jae";
-    case kBelowOrEqual:   return "jbe";
-    case kBelow:          return "jb";
-    case kGreater:        return "jg";
-    case kGreaterOrEqual: return "jge";
-    case kLessOrEqual:    return "jle";
-    case kLess:           return "jl";
+        case CondType::kOverflow:       return "jo";
+        case CondType::kNoOverflow:     return "jno";
+        case CondType::kSign:           return "js";
+        case CondType::kNoSign:         return "jns";
+        case CondType::kParityEven:     return "jpe";
+        case CondType::kParityOdd:      return "jpo";
+        case CondType::kEqual:          return "je";
+        case CondType::kNotEqual:       return "jne";
+        case CondType::kAbove:          return "ja";
+        case CondType::kAboveOrEqual:   return "jae";
+        case CondType::kBelowOrEqual:   return "jbe";
+        case CondType::kBelow:          return "jb";
+        case CondType::kGreater:        return "jg";
+        case CondType::kGreaterOrEqual: return "jge";
+        case CondType::kLessOrEqual:    return "jle";
+        case CondType::kLess:           return "jl";
     }
 }
 
 std::string Jcc::ToString() const {
-    return CondAsOpcodeString() + " " + dst_->ToString();
+    return CondAsOpcodeString() + " " + dst_.ToString();
 }
 
-Jmp::Jmp(std::shared_ptr<RM64> rm)
-    : dst_(rm) {}
-Jmp::Jmp(std::shared_ptr<BlockRef> block_ref)
-    : dst_(block_ref) {}
+Jmp::Jmp(RM rm) : dst_(rm) {
+    if (rm.size() != Size::k64)
+        throw "unsupported rm size";
+}
+
+Jmp::Jmp(BlockRef block_ref) : dst_(block_ref) {}
 Jmp::~Jmp() {}
 
 int8_t Jmp::Encode(Linker *linker,
                    common::data code) const {
-    if (RM64 *rm = dynamic_cast<RM64 *>(dst_.get())) {
+    if (dst_.is_rm()) {
+        RM rm = dst_.rm();
         coding::InstrEncoder encoder(code);
         
-        if (dst_->RequiresREX()) {
+        if (dst_.RequiresREX()) {
             encoder.EncodeREX();
         }
         encoder.EncodeOpcode(0xff);
@@ -79,15 +89,15 @@ int8_t Jmp::Encode(Linker *linker,
         
         return encoder.size();
         
-    } else if (BlockRef *block_ref =
-               dynamic_cast<BlockRef *>(dst_.get())) {
+    } else if (dst_.is_block_ref()) {
+        BlockRef block_ref = dst_.block_ref();
         code[0] = 0xe9;
         code[1] = 0x00;
         code[2] = 0x00;
         code[3] = 0x00;
         code[4] = 0x00;
         
-        linker->AddBlockRef(std::shared_ptr<BlockRef>(dst_, block_ref),
+        linker->AddBlockRef(block_ref,
                             code.view(1, 5));
         
         return 5;
@@ -97,21 +107,25 @@ int8_t Jmp::Encode(Linker *linker,
 }
 
 std::string Jmp::ToString() const {
-    return "jmp " + dst_->ToString();
+    return "jmp " + dst_.ToString();
 }
 
-Call::Call(std::shared_ptr<RM64> rm)
-    : callee_(rm) {}
-Call::Call(std::shared_ptr<FuncRef> func_ref)
-    : callee_(func_ref) {}
+Call::Call(RM rm) : callee_(rm) {
+    if (rm.size() != Size::k64)
+        throw "unsupported rm size";
+}
+
+Call::Call(FuncRef func_ref) : callee_(func_ref) {}
 Call::~Call() {}
 
 int8_t Call::Encode(Linker *linker,
                     common::data code) const {
-    if (RM64 *rm = dynamic_cast<RM64 *>(callee_.get())) {
+    if (callee_.is_rm()) {
+        RM rm = callee_.rm();
+        
         coding::InstrEncoder encoder(code);
         
-        if (callee_->RequiresREX()) {
+        if (callee_.RequiresREX()) {
             encoder.EncodeREX();
         }
         encoder.EncodeOpcode(0xff);
@@ -120,15 +134,15 @@ int8_t Call::Encode(Linker *linker,
         
         return encoder.size();
         
-    } else if (FuncRef *func_ref =
-               dynamic_cast<FuncRef *>(callee_.get())) {
+    } else if (callee_.is_func_ref()) {
+        FuncRef func_ref = callee_.func_ref();
         code[0] = 0xe8;
         code[1] = 0x00;
         code[2] = 0x00;
         code[3] = 0x00;
         code[4] = 0x00;
         
-        linker->AddFuncRef(std::shared_ptr<FuncRef>(callee_, func_ref),
+        linker->AddFuncRef(func_ref,
                            code.view(1, 5));
         
         return 5;
@@ -138,7 +152,7 @@ int8_t Call::Encode(Linker *linker,
 }
 
 std::string Call::ToString() const {
-    return "call " + callee_->ToString();
+    return "call " + callee_.ToString();
 }
 
 Syscall::Syscall() {}

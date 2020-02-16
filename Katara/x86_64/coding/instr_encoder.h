@@ -24,7 +24,7 @@ public:
     
     uint8_t size() const;
     
-    void EncodeOperandSize(uint8_t op_size);
+    void EncodeOperandSize(Size op_size);
     
     void EncodeREX();
     
@@ -37,12 +37,12 @@ public:
     // Encode constant opcode extension (3 bits) in ModRM reg:
     void EncodeOpcodeExt(uint8_t opcode_ext);
     
-    void EncodeOpcodeReg(Reg *reg,
+    void EncodeOpcodeReg(const Reg &reg,
                          uint8_t opcode_index = 0,
                          uint8_t lshift = 0);
-    void EncodeModRMReg(Reg *reg);
-    void EncodeRM(RM *rm);
-    void EncodeImm(Imm *imm);
+    void EncodeModRMReg(const Reg &reg);
+    void EncodeRM(const RM &rm);
+    void EncodeImm(const Imm &imm);
 
 private:
     common::data code_;

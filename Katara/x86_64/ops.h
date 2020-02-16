@@ -14,45 +14,21 @@
 
 namespace x86_64 {
 
-typedef enum : uint8_t {
-    s00 = 0,
-    s01 = 1,
-    s10 = 2,
-    s11 = 3
-} scale_t;
+enum class Size : uint8_t {
+    k8 = 8,
+    k16 = 16,
+    k32 = 32,
+    k64 = 64,
+};
 
-class Operand {
+class Reg {
 public:
-    virtual ~Operand() {}
+    Reg(Size size, uint8_t reg);
     
-    virtual bool RequiresREX() const = 0;
-    virtual std::string ToString() const = 0;
-};
-
-class Imm : public Operand {
-public:
-    virtual uint8_t RequiredImmSize() const = 0;
-    virtual void EncodeInImm(uint8_t *imm) const = 0;
-};
-
-class RM : public Operand {
-public:
-    virtual bool RequiresSIB() const = 0;
-    virtual uint8_t RequiredDispSize() const = 0;
-    virtual void EncodeInModRM_SIB_Disp(uint8_t *rex,
-                                        uint8_t *modrm,
-                                        uint8_t *sib,
-                                        uint8_t *disp) const = 0;
-};
-
-class Reg : virtual public RM {
-public:
-    Reg(uint8_t reg);
-    ~Reg() override;
-    
+    Size size() const;
     int8_t reg() const;
     
-    bool RequiresREX() const override;
+    bool RequiresREX() const;
     
     // Opcode encoding:
     void EncodeInOpcode(uint8_t *rex,
@@ -60,302 +36,253 @@ public:
                         uint8_t lshift) const;
     
     // ModRM encoding:
-    bool RequiresSIB() const override;
-    uint8_t RequiredDispSize() const override;
+    bool RequiresSIB() const;
+    uint8_t RequiredDispSize() const;
     void EncodeInModRM_SIB_Disp(uint8_t *rex,
                                 uint8_t *modrm,
                                 uint8_t *sib,
-                                uint8_t *disp) const override;
+                                uint8_t *disp) const;
     
     // ModRM reg encoding:
     void EncodeInModRMReg(uint8_t *rex,
                           uint8_t *modrm) const;
     
-protected:
-    const int8_t reg_;
+    std::string ToString() const;
+    
+private:
+    Size size_;
+    int8_t reg_;
 };
 
-class Mem : virtual public RM {
+enum class Scale : uint8_t {
+    kS00 = 0,
+    kS01 = 1,
+    kS10 = 2,
+    kS11 = 3
+};
+
+class Mem {
 public:
-    Mem(int32_t disp);
-    Mem(uint8_t base_reg);
-    Mem(uint8_t base_reg, int32_t disp);
-    Mem(uint8_t index_reg, scale_t scale);
-    Mem(uint8_t index_reg, scale_t scale, int32_t disp);
-    Mem(uint8_t base_reg, uint8_t index_reg, scale_t scale);
-    Mem(uint8_t base_reg, uint8_t index_reg, scale_t scale,
-        int32_t disp);
-    ~Mem() override;
+    Mem(Size size, int32_t disp);
+    Mem(Size size, uint8_t base_reg, int32_t disp = 0);
+    Mem(Size size, uint8_t index_reg, Scale scale, int32_t disp = 0);
+    Mem(Size size, uint8_t base_reg,
+        uint8_t index_reg, Scale scale, int32_t disp = 0);
     
+    Size size() const;
     uint8_t base_reg() const;
     uint8_t index_reg() const;
-    scale_t scale() const;
+    Scale scale() const;
     int32_t disp() const;
     
-    bool RequiresREX() const override;
+    bool RequiresREX() const;
     
     // ModRM encoding:
-    bool RequiresSIB() const override;
-    uint8_t RequiredDispSize() const override;
+    bool RequiresSIB() const;
+    uint8_t RequiredDispSize() const;
     void EncodeInModRM_SIB_Disp(uint8_t *rex,
                                 uint8_t *modrm,
                                 uint8_t *sib,
-                                uint8_t *disp) const override;
+                                uint8_t *disp) const;
     
-    std::string ToString() const override;
+    std::string ToString() const;
 
-protected:
-    const uint8_t base_reg_;
-    const uint8_t index_reg_;
-    const scale_t scale_;
-    const int32_t disp_;
+private:
+    Size size_;
+    uint8_t base_reg_;
+    uint8_t index_reg_;
+    Scale scale_;
+    int32_t disp_;
 };
 
-class FuncRef final : public Operand {
+class Imm {
 public:
-    FuncRef(std::string func_name);
-    ~FuncRef();
+    Imm(int8_t value);
+    Imm(int16_t value);
+    Imm(int32_t value);
+    Imm(int64_t value);
     
-    std::string func_name() const;
+    Size size() const;
+    int64_t value() const;
     
-    bool RequiresREX() const override;
-    std::string ToString() const override;
+    bool RequiresREX() const;
+    uint8_t RequiredImmSize() const;
+    void EncodeInImm(uint8_t *imm) const;
+    
+    std::string ToString() const;
+
+private:
+    Size size_;
+    int64_t value_;
+};
+
+class FuncRef {
+public:
+    FuncRef(int64_t func_id);
+    
+    int64_t func_id() const;
+    
+    std::string ToString() const;
     
 private:
-    const std::string func_name_;
+    int64_t func_id_;
 };
 
-class BlockRef final : public Operand {
+class BlockRef {
 public:
     BlockRef(int64_t block_id);
-    ~BlockRef();
     
     int64_t block_id() const;
     
-    bool RequiresREX() const override;
-    std::string ToString() const override;
+    std::string ToString() const;
     
 private:
-    const int64_t block_id_;
+    int64_t block_id_;
 };
 
-class Imm8 final : public Imm {
+class RM;
+
+class Operand {
 public:
-    Imm8(int8_t value);
-    ~Imm8();
+    enum class Kind : uint8_t {
+        kReg,
+        kMem,
+        kImm,
+        kFuncRef,
+        kBlockRef,
+    };
     
-    int8_t value() const;
+    Operand(Reg reg);
+    Operand(Mem mem);
+    Operand(Imm imm);
+    Operand(FuncRef func_ref);
+    Operand(BlockRef block_ref);
     
-    bool RequiresREX() const override;
-    uint8_t RequiredImmSize() const override;
-    void EncodeInImm(uint8_t *imm) const override;
-    std::string ToString() const override;
-
-private:
-    const int8_t value_;
+    Kind kind() const;
+    Size size() const;
+    
+    bool is_reg() const;
+    Reg reg() const;
+    
+    bool is_mem() const;
+    Mem mem() const;
+    
+    bool is_rm() const;
+    RM rm() const;
+    
+    bool is_imm() const;
+    Imm imm() const;
+    
+    bool is_func_ref() const;
+    FuncRef func_ref() const;
+    
+    bool is_block_ref() const;
+    BlockRef block_ref() const;
+    
+    bool RequiresREX() const;
+    
+    std::string ToString() const;
+    
+protected:
+    union Data {
+        Reg reg;
+        Mem mem;
+        Imm imm;
+        FuncRef func_ref;
+        BlockRef block_ref;
+        
+        Data(Reg r) : reg(r) {}
+        Data(Mem m) : mem(m) {}
+        Data(Imm i) : imm(i) {}
+        Data(FuncRef r) : func_ref(r) {}
+        Data(BlockRef r) : block_ref(r) {}
+    };
+    
+    Kind kind_;
+    Data data_;
 };
 
-class RM8 : virtual public RM {
-};
-
-class Mem8 final : public Mem, public RM8 {
+class RM : public Operand {
 public:
-    Mem8(int32_t disp) :
-        Mem(disp) {}
-    Mem8(uint8_t base_reg) :
-        Mem(base_reg) {}
-    Mem8(uint8_t base_reg, int32_t disp) :
-        Mem(base_reg, disp) {}
-    Mem8(uint8_t index_reg, scale_t scale) :
-        Mem(index_reg, scale) {}
-    Mem8(uint8_t index_reg, scale_t scale, int32_t disp) :
-        Mem(index_reg, scale, disp) {}
-    Mem8(uint8_t base_reg, uint8_t index_reg, scale_t scale) :
-        Mem(base_reg, index_reg, scale) {}
-    Mem8(uint8_t base_reg, uint8_t index_reg, scale_t scale,
-         int32_t disp) :
-        Mem(base_reg, index_reg, scale, disp) {}
-    ~Mem8() override {}
-};
-
-class Reg8 final : public Reg, public RM8 {
-public:
-    Reg8(uint8_t reg) : Reg(reg) {}
-    ~Reg8() override {}
+    RM(Reg reg);
+    RM(Mem mem);
     
-    bool RequiresREX() const override;
-    std::string ToString() const override;
+    bool RequiresSIB() const;
+    uint8_t RequiredDispSize() const;
+    void EncodeInModRM_SIB_Disp(uint8_t *rex,
+                                uint8_t *modrm,
+                                uint8_t *sib,
+                                uint8_t *disp) const;
 };
 
-class Imm16 final : public Imm {
-public:
-    Imm16(int16_t value);
-    ~Imm16();
-    
-    int16_t value() const;
-    
-    bool RequiresREX() const override;
-    uint8_t RequiredImmSize() const override;
-    void EncodeInImm(uint8_t *imm) const override;
-    std::string ToString() const override;
-    
-private:
-    const int16_t value_;
-};
+extern const Reg al;
+extern const Reg cl;
+extern const Reg dl;
+extern const Reg bl;
+extern const Reg spl;
+extern const Reg bpl;
+extern const Reg sil;
+extern const Reg dil;
+extern const Reg r8b;
+extern const Reg r9b;
+extern const Reg r10b;
+extern const Reg r11b;
+extern const Reg r12b;
+extern const Reg r13b;
+extern const Reg r14b;
+extern const Reg r15b;
 
-class RM16 : virtual public RM {
-};
+extern const Reg ax;
+extern const Reg cx;
+extern const Reg dx;
+extern const Reg bx;
+extern const Reg sp;
+extern const Reg bp;
+extern const Reg si;
+extern const Reg di;
+extern const Reg r8w;
+extern const Reg r9w;
+extern const Reg r10w;
+extern const Reg r11w;
+extern const Reg r12w;
+extern const Reg r13w;
+extern const Reg r14w;
+extern const Reg r15w;
 
-class Mem16 final : public Mem, public RM16 {
-public:
-    Mem16(int32_t disp) :
-        Mem(disp) {}
-    Mem16(uint8_t base_reg) :
-        Mem(base_reg) {}
-    Mem16(uint8_t base_reg, int32_t disp) :
-        Mem(base_reg, disp) {}
-    Mem16(uint8_t index_reg, scale_t scale) :
-        Mem(index_reg, scale) {}
-    Mem16(uint8_t index_reg, scale_t scale, int32_t disp) :
-        Mem(index_reg, scale, disp) {}
-    Mem16(uint8_t base_reg, uint8_t index_reg, scale_t scale) :
-        Mem(base_reg, index_reg, scale) {}
-    Mem16(uint8_t base_reg, uint8_t index_reg, scale_t scale,
-         int32_t disp) :
-        Mem(base_reg, index_reg, scale, disp) {}
-    ~Mem16() override {}
-};
+extern const Reg eax;
+extern const Reg ecx;
+extern const Reg edx;
+extern const Reg ebx;
+extern const Reg esp;
+extern const Reg ebp;
+extern const Reg esi;
+extern const Reg edi;
+extern const Reg r8d;
+extern const Reg r9d;
+extern const Reg r10d;
+extern const Reg r11d;
+extern const Reg r12d;
+extern const Reg r13d;
+extern const Reg r14d;
+extern const Reg r15d;
 
-class Reg16 final : public Reg, public RM16 {
-public:
-    Reg16(uint8_t reg) : Reg(reg) {}
-    ~Reg16() override {}
-    
-    std::string ToString() const override;
-};
+extern const Reg rax;
+extern const Reg rcx;
+extern const Reg rdx;
+extern const Reg rbx;
+extern const Reg rsp;
+extern const Reg rbp;
+extern const Reg rsi;
+extern const Reg rdi;
+extern const Reg r8;
+extern const Reg r9;
+extern const Reg r10;
+extern const Reg r11;
+extern const Reg r12;
+extern const Reg r13;
+extern const Reg r14;
+extern const Reg r15;
 
-class Imm32 final : public Imm {
-public:
-    Imm32(int32_t value);
-    ~Imm32();
-    
-    int32_t value() const;
-    
-    bool RequiresREX() const override;
-    uint8_t RequiredImmSize() const override;
-    void EncodeInImm(uint8_t *imm) const override;
-    std::string ToString() const override;
-    
-private:
-    const int32_t value_;
-};
-
-class RM32 : virtual public RM {
-};
-
-class Mem32 final : public Mem, public RM32 {
-public:
-    Mem32(int32_t disp) :
-        Mem(disp) {}
-    Mem32(uint8_t base_reg) :
-        Mem(base_reg) {}
-    Mem32(uint8_t base_reg, int32_t disp) :
-        Mem(base_reg, disp) {}
-    Mem32(uint8_t index_reg, scale_t scale) :
-        Mem(index_reg, scale) {}
-    Mem32(uint8_t index_reg, scale_t scale, int32_t disp) :
-        Mem(index_reg, scale, disp) {}
-    Mem32(uint8_t base_reg, uint8_t index_reg, scale_t scale) :
-        Mem(base_reg, index_reg, scale) {}
-    Mem32(uint8_t base_reg, uint8_t index_reg, scale_t scale,
-         int32_t disp) :
-        Mem(base_reg, index_reg, scale, disp) {}
-    ~Mem32() override {}
-};
-
-class Reg32 final : public Reg, public RM32 {
-public:
-    Reg32(uint8_t reg) : Reg(reg) {}
-    ~Reg32() override {}
-    
-    std::string ToString() const override;
-};
-
-class Imm64 final : public Imm {
-public:
-    Imm64(int64_t value);
-    ~Imm64();
-    
-    int64_t value() const;
-    
-    bool RequiresREX() const override;
-    uint8_t RequiredImmSize() const override;
-    void EncodeInImm(uint8_t *imm) const override;
-    std::string ToString() const override;
-    
-private:
-    const int64_t value_;
-};
-
-class RM64 : virtual public RM {
-};
-
-class Mem64 final : public Mem, public RM64 {
-public:
-    Mem64(int32_t disp) :
-        Mem(disp) {}
-    Mem64(uint8_t base_reg) :
-        Mem(base_reg) {}
-    Mem64(uint8_t base_reg, int32_t disp) :
-        Mem(base_reg, disp) {}
-    Mem64(uint8_t index_reg, scale_t scale) :
-        Mem(index_reg, scale) {}
-    Mem64(uint8_t index_reg, scale_t scale, int32_t disp) :
-        Mem(index_reg, scale, disp) {}
-    Mem64(uint8_t base_reg, uint8_t index_reg, scale_t scale) :
-        Mem(base_reg, index_reg, scale) {}
-    Mem64(uint8_t base_reg, uint8_t index_reg, scale_t scale,
-         int32_t disp) :
-        Mem(base_reg, index_reg, scale, disp) {}
-};
-
-class Reg64 final : public Reg, public RM64 {
-public:
-    Reg64(uint8_t reg) : Reg(reg) {}
-    
-    std::string ToString() const override;
-};
-
-extern const std::shared_ptr<Reg8> al,   cl,   dl,   bl;
-extern const std::shared_ptr<Reg8> spl,  bpl,  sil,  dil;
-extern const std::shared_ptr<Reg8> r8b,  r9b,  r10b, r11b;
-extern const std::shared_ptr<Reg8> r12b, r12b, r14b, r15b;
-
-extern const std::shared_ptr<Reg16> ax,   cx,   dx,   bx;
-extern const std::shared_ptr<Reg16> sp,   bp,   si,   di;
-extern const std::shared_ptr<Reg16> r8w,  r9w,  r10w, r11w;
-extern const std::shared_ptr<Reg16> r12w, r12w, r14w, r15w;
-
-extern const std::shared_ptr<Reg32> eax,  ecx,  edx,  ebx;
-extern const std::shared_ptr<Reg32> esp,  ebp,  esi,  edi;
-extern const std::shared_ptr<Reg32> r8d,  r9d,  r10d, r11d;
-extern const std::shared_ptr<Reg32> r12d, r12d, r14d, r15d;
-
-extern const std::shared_ptr<Reg64> rax, rcx, rdx, rbx;
-extern const std::shared_ptr<Reg64> rsp, rbp, rsi, rdi;
-extern const std::shared_ptr<Reg64> r8,  r9,  r10, r11;
-extern const std::shared_ptr<Reg64> r12, r13, r14, r15;
-
-inline namespace literals {
-
-extern std::unique_ptr<Imm8>  operator""_imm8 (unsigned long long value);
-extern std::unique_ptr<Imm16> operator""_imm16(unsigned long long value);
-extern std::unique_ptr<Imm32> operator""_imm32(unsigned long long value);
-extern std::unique_ptr<Imm64> operator""_imm64(unsigned long long value);
-
-extern std::unique_ptr<FuncRef> operator""_f(const char *value, unsigned long len);
-
-}
 }
 
 #endif /* x86_64_ops_h */

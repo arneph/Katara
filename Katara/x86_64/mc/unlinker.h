@@ -23,21 +23,17 @@ class Unlinker {
     Unlinker();
     ~Unlinker();
     
-    const std::unordered_map<uint8_t *,
-                             std::shared_ptr<FuncRef>>
+    const std::unordered_map<uint8_t *, FuncRef>
         func_refs() const;
-    const std::unordered_map<uint8_t *,
-                             std::shared_ptr<BlockRef>>
+    const std::unordered_map<uint8_t *, BlockRef>
         block_refs() const;
     
-    std::shared_ptr<FuncRef> GetFuncRef(uint8_t *func_addr);
-    std::shared_ptr<BlockRef> GetBlockRef(uint8_t *block_addr);
+    FuncRef GetFuncRef(uint8_t *func_addr);
+    BlockRef GetBlockRef(uint8_t *block_addr);
     
 private:
-    std::unordered_map<uint8_t *,
-                       std::shared_ptr<FuncRef>> func_refs_;
-    std::unordered_map<uint8_t *,
-                       std::shared_ptr<BlockRef>> block_refs_;
+    std::unordered_map<uint8_t *, FuncRef> func_refs_;
+    std::unordered_map<uint8_t *, BlockRef> block_refs_;
 };
 
 }

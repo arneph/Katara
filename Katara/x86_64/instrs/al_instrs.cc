@@ -12,20 +12,9 @@
 
 namespace x86_64 {
 
-UnaryALInstr::UnaryALInstr(std::shared_ptr<RM8> rm)
-    : op_size_(8), op_(rm) {}
-UnaryALInstr::UnaryALInstr(std::shared_ptr<RM16> rm)
-    : op_size_(16), op_(rm) {}
-UnaryALInstr::UnaryALInstr(std::shared_ptr<RM32> rm)
-    : op_size_(32), op_(rm) {}
-UnaryALInstr::UnaryALInstr(std::shared_ptr<RM64> rm)
-    : op_size_(64), op_(rm) {}
+UnaryALInstr::UnaryALInstr(RM op) : op_(op) {}
 
-uint8_t UnaryALInstr::op_size() const {
-    return op_size_;
-}
-
-std::shared_ptr<RM> UnaryALInstr::op() const {
+RM UnaryALInstr::op() const {
     return op_;
 }
 
@@ -33,161 +22,70 @@ int8_t UnaryALInstr::Encode(Linker *linker,
                             common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if (op_->RequiresREX()) {
+    encoder.EncodeOperandSize(op_.size());
+    if (op_.RequiresREX()) {
         encoder.EncodeREX();
     }
     
     encoder.EncodeOpcode(Opcode());
     encoder.EncodeOpcodeExt(OpcodeExt());
-    encoder.EncodeRM(op_.get());
+    encoder.EncodeRM(op_);
     
     return encoder.size();
 }
 
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem8> mem,
-                             std::shared_ptr<Imm8> imm)
-    : op_encoding_(OpEncoding::kRM_IMM),
-      op_size_(8), op_a_(mem), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem16> mem,
-                             std::shared_ptr<Imm16> imm)
-    : op_encoding_(OpEncoding::kRM_IMM),
-      op_size_(16), op_a_(mem), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem32> mem,
-                             std::shared_ptr<Imm32> imm)
-    : op_encoding_(OpEncoding::kRM_IMM),
-      op_size_(32), op_a_(mem), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem64> mem,
-                             std::shared_ptr<Imm32> imm)
-    : op_encoding_(OpEncoding::kRM_IMM),
-      op_size_(64), op_a_(mem), op_b_(imm) {}
+BinaryALInstr::BinaryALInstr(RM rm, Imm imm) : op_a_(rm), op_b_(imm) {
+    if (imm.size() == Size::k64)
+        throw "unsupported imm size";
+    if (rm.size() == imm.size() ||
+        (rm.size() == Size::k64 && imm.size() == Size::k32)) {
+        op_encoding_ = OpEncoding::kRM_IMM;
+    } else if (imm.size() == Size::k8) {
+        op_encoding_ = OpEncoding::kRM_IMM8;
+    } else {
+        throw "unsupported rm size, imm size combination";
+    }
+}
 
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem16> mem,
-                             std::shared_ptr<Imm8> imm)
-    : op_encoding_(OpEncoding::kRM_IMM8),
-      op_size_(16), op_a_(mem), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem32> mem,
-                             std::shared_ptr<Imm8> imm)
-    : op_encoding_(OpEncoding::kRM_IMM8),
-      op_size_(32), op_a_(mem), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem64> mem,
-                             std::shared_ptr<Imm8> imm)
-    : op_encoding_(OpEncoding::kRM_IMM8),
-      op_size_(64), op_a_(mem), op_b_(imm) {}
+BinaryALInstr::BinaryALInstr(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
+    if (rm.size() != reg.size())
+        throw "unsupported rm size, reg size combination";
+    
+    op_encoding_ = OpEncoding::kRM_REG;
+}
 
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg8> reg,
-                             std::shared_ptr<Imm8> imm)
-    : op_encoding_(OpEncoding::kRM_IMM),
-      op_size_(8),  op_a_(reg), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg16> reg,
-                             std::shared_ptr<Imm16> imm)
-    : op_encoding_(OpEncoding::kRM_IMM),
-      op_size_(16), op_a_(reg), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg32> reg,
-                             std::shared_ptr<Imm32> imm)
-    : op_encoding_(OpEncoding::kRM_IMM),
-      op_size_(32), op_a_(reg), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg64> reg,
-                             std::shared_ptr<Imm32> imm)
-    : op_encoding_(OpEncoding::kRM_IMM),
-      op_size_(64), op_a_(reg), op_b_(imm) {}
+BinaryALInstr::BinaryALInstr(Reg reg, Mem mem) : op_a_(reg), op_b_(mem) {
+    if (reg.size() != mem.size())
+        throw "unsupported reg size, mem size combination";
+    
+    op_encoding_ = OpEncoding::kREG_RM;
+}
 
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg16> reg,
-                             std::shared_ptr<Imm8> imm)
-    : op_encoding_(OpEncoding::kRM_IMM8),
-      op_size_(16), op_a_(reg), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg32> reg,
-                             std::shared_ptr<Imm8> imm)
-    : op_encoding_(OpEncoding::kRM_IMM8),
-      op_size_(32), op_a_(reg), op_b_(imm) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg64> reg,
-                             std::shared_ptr<Imm8> imm)
-    : op_encoding_(OpEncoding::kRM_IMM8),
-      op_size_(64), op_a_(reg), op_b_(imm) {}
-
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem8> mem,
-                             std::shared_ptr<Reg8> reg)
-    : op_encoding_(OpEncoding::kRM_REG),
-      op_size_(8),  op_a_(mem), op_b_(reg) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem16> mem,
-                             std::shared_ptr<Reg16> reg)
-    : op_encoding_(OpEncoding::kRM_REG),
-      op_size_(16), op_a_(mem), op_b_(reg) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem32> mem,
-                             std::shared_ptr<Reg32> reg)
-    : op_encoding_(OpEncoding::kRM_REG),
-      op_size_(32), op_a_(mem), op_b_(reg) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Mem64> mem,
-                             std::shared_ptr<Reg64> reg)
-    : op_encoding_(OpEncoding::kRM_REG),
-      op_size_(64), op_a_(mem), op_b_(reg) {}
-
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg8> regA,
-                             std::shared_ptr<Reg8> regB)
-    : op_encoding_(OpEncoding::kRM_REG),
-      op_size_(8),  op_a_(regA), op_b_(regB) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg16>  regA,
-                             std::shared_ptr<Reg16>  regB)
-    : op_encoding_(OpEncoding::kRM_REG),
-      op_size_(16), op_a_(regA), op_b_(regB) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg32>  regA,
-                             std::shared_ptr<Reg32>  regB)
-    : op_encoding_(OpEncoding::kRM_REG),
-      op_size_(32), op_a_(regA), op_b_(regB) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg64>  regA,
-                             std::shared_ptr<Reg64>  regB)
-    : op_encoding_(OpEncoding::kRM_REG),
-      op_size_(64), op_a_(regA), op_b_(regB) {}
-
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg8>   reg,
-                             std::shared_ptr<Mem8>   mem)
-    : op_encoding_(OpEncoding::kREG_RM),
-      op_size_(8),  op_a_(reg), op_b_(mem) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg16>  reg,
-                             std::shared_ptr<Mem16>  mem)
-    : op_encoding_(OpEncoding::kREG_RM),
-      op_size_(16), op_a_(reg), op_b_(mem) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg32>  reg,
-                             std::shared_ptr<Mem32>  mem)
-    : op_encoding_(OpEncoding::kREG_RM),
-      op_size_(32), op_a_(reg), op_b_(mem) {}
-BinaryALInstr::BinaryALInstr(std::shared_ptr<Reg64>  reg,
-                             std::shared_ptr<Mem64>  mem)
-    : op_encoding_(OpEncoding::kREG_RM),
-      op_size_(64), op_a_(reg), op_b_(mem) {}
-
-BinaryALInstr::OpEncoding
-BinaryALInstr::op_encoding() const {
+BinaryALInstr::OpEncoding BinaryALInstr::op_encoding() const {
     return op_encoding_;
 }
 
-uint8_t BinaryALInstr::op_size() const {
-    return op_size_;
-}
-
-std::shared_ptr<Operand> BinaryALInstr::op_a() const {
+RM BinaryALInstr::op_a() const {
     return op_a_;
 }
 
-std::shared_ptr<Operand> BinaryALInstr::op_b() const {
+Operand BinaryALInstr::op_b() const {
     return op_b_;
 }
 
 bool BinaryALInstr::CanUseRegAShortcut() const {
     if (op_encoding_ != OpEncoding::kRM_IMM) return false;
-    if (Reg *reg = dynamic_cast<Reg *>(op_a_.get())) {
-        return reg->reg() == 0;
-    } else {
-        return false;
-    }
+    if (!op_a_.is_reg()) return false;
+    
+    return op_a_.reg().reg() == 0;
 }
 
 int8_t BinaryALInstr::Encode(Linker *linker,
                              common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if (op_a_->RequiresREX() || op_b_->RequiresREX()) {
+    encoder.EncodeOperandSize(op_a_.size());
+    if (op_a_.RequiresREX() || op_b_.RequiresREX()) {
         encoder.EncodeREX();
     }
     
@@ -202,26 +100,21 @@ int8_t BinaryALInstr::Encode(Linker *linker,
     } else if (op_encoding_ == OpEncoding::kRM_IMM ||
                op_encoding_ == OpEncoding::kRM_IMM8 ||
                op_encoding_ == OpEncoding::kRM_REG) {
-        RM *rm = dynamic_cast<RM *>(op_a_.get());
-        encoder.EncodeRM(rm);
+        encoder.EncodeRM(op_a_);
         
     } else if (op_encoding_ == OpEncoding::kREG_RM) {
-        Reg *reg = dynamic_cast<Reg *>(op_a_.get());
-        encoder.EncodeModRMReg(reg);
+        encoder.EncodeModRMReg(op_a_.reg());
     }
     
     if (op_encoding_ == OpEncoding::kRM_IMM ||
         op_encoding_ == OpEncoding::kRM_IMM8) {
-        Imm *imm = dynamic_cast<Imm *>(op_b_.get());
-        encoder.EncodeImm(imm);
+        encoder.EncodeImm(op_b_.imm());
         
     } else if (op_encoding_ == OpEncoding::kRM_REG) {
-        Reg *reg = dynamic_cast<Reg *>(op_b_.get());
-        encoder.EncodeModRMReg(reg);
+        encoder.EncodeModRMReg(op_b_.reg());
         
     } else if (op_encoding_ == OpEncoding::kREG_RM) {
-        RM *rm = dynamic_cast<RM *>(op_b_.get());
-        encoder.EncodeRM(rm);
+        encoder.EncodeRM(op_b_.rm());
     }
     
     return encoder.size();
@@ -230,7 +123,7 @@ int8_t BinaryALInstr::Encode(Linker *linker,
 Not::~Not() {}
 
 uint8_t Not::Opcode() const {
-    return (op_size() == 8) ? 0xf6 : 0xf7;
+    return (op().size() == Size::k8) ? 0xf6 : 0xf7;
 }
 
 uint8_t Not::OpcodeExt() const {
@@ -238,24 +131,24 @@ uint8_t Not::OpcodeExt() const {
 }
 
 std::string Not::ToString() const {
-    return "not " + op()->ToString();
+    return "not " + op().ToString();
 }
 
 And::~And() {}
 
 uint8_t And::Opcode() const {
     if (CanUseRegAShortcut()) {
-        return (op_size() == 8) ? 0x24 : 0x25;
+        return (op_a().size() == Size::k8) ? 0x24 : 0x25;
     }
     switch (op_encoding()) {
         case OpEncoding::kRM_IMM:
-            return (op_size() == 8) ? 0x80 : 0x81;
+            return (op_a().size() == Size::k8) ? 0x80 : 0x81;
         case OpEncoding::kRM_IMM8:
             return 0x83;
         case OpEncoding::kRM_REG:
-            return (op_size() == 8) ? 0x20 : 0x21;
+            return (op_a().size() == Size::k8) ? 0x20 : 0x21;
         case OpEncoding::kREG_RM:
-            return (op_size() == 8) ? 0x22 : 0x23;
+            return (op_a().size() == Size::k8) ? 0x22 : 0x23;
     }
 }
 
@@ -264,24 +157,24 @@ uint8_t And::OpcodeExt() const {
 }
 
 std::string And::ToString() const {
-    return "and " + op_a()->ToString() + ","
-                  + op_b()->ToString();
+    return "and " + op_a().ToString() + ","
+                  + op_b().ToString();
 }
 
 Or::~Or() {}
 uint8_t Or::Opcode() const {
     if (CanUseRegAShortcut()) {
-        return (op_size() == 8) ? 0x0c : 0x0d;
+        return (op_a().size() == Size::k8) ? 0x0c : 0x0d;
     }
     switch (op_encoding()) {
         case OpEncoding::kRM_IMM:
-            return (op_size() == 8) ? 0x80 : 0x81;
+            return (op_a().size() == Size::k8) ? 0x80 : 0x81;
         case OpEncoding::kRM_IMM8:
             return 0x83;
         case OpEncoding::kRM_REG:
-            return (op_size() == 8) ? 0x08 : 0x09;
+            return (op_a().size() == Size::k8) ? 0x08 : 0x09;
         case OpEncoding::kREG_RM:
-            return (op_size() == 8) ? 0x0a : 0x0b;
+            return (op_a().size() == Size::k8) ? 0x0a : 0x0b;
     }
 }
 
@@ -290,25 +183,25 @@ uint8_t Or::OpcodeExt() const {
 }
 
 std::string Or::ToString() const {
-    return "or " + op_a()->ToString() + ","
-                 + op_b()->ToString();
+    return "or " + op_a().ToString() + ","
+                 + op_b().ToString();
 }
 
 Xor::~Xor() {}
 
 uint8_t Xor::Opcode() const {
     if (CanUseRegAShortcut()) {
-        return (op_size() == 8) ? 0x34 : 0x35;
+        return (op_a().size() == Size::k8) ? 0x34 : 0x35;
     }
     switch (op_encoding()) {
         case OpEncoding::kRM_IMM:
-            return (op_size() == 8) ? 0x80 : 0x81;
+            return (op_a().size() == Size::k8) ? 0x80 : 0x81;
         case OpEncoding::kRM_IMM8:
             return 0x83;
         case OpEncoding::kRM_REG:
-            return (op_size() == 8) ? 0x30 : 0x31;
+            return (op_a().size() == Size::k8) ? 0x30 : 0x31;
         case OpEncoding::kREG_RM:
-            return (op_size() == 8) ? 0x32 : 0x33;
+            return (op_a().size() == Size::k8) ? 0x32 : 0x33;
     }
 }
 
@@ -317,14 +210,14 @@ uint8_t Xor::OpcodeExt() const {
 }
 
 std::string Xor::ToString() const {
-    return "xor " + op_a()->ToString() + ","
-                  + op_b()->ToString();
+    return "xor " + op_a().ToString() + ","
+                  + op_b().ToString();
 }
 
 Neg::~Neg() {}
 
 uint8_t Neg::Opcode() const {
-    return (op_size() == 8) ? 0xf6 : 0xf7;
+    return (op().size() == Size::k8) ? 0xf6 : 0xf7;
 }
 
 uint8_t Neg::OpcodeExt() const {
@@ -332,24 +225,24 @@ uint8_t Neg::OpcodeExt() const {
 }
 
 std::string Neg::ToString() const {
-    return "neg " + op()->ToString();
+    return "neg " + op().ToString();
 }
 
 Add::~Add() {}
 
 uint8_t Add::Opcode() const {
     if (CanUseRegAShortcut()) {
-        return (op_size() == 8) ? 0x04 : 0x05;
+        return (op_a().size() == Size::k8) ? 0x04 : 0x05;
     }
     switch (op_encoding()) {
         case OpEncoding::kRM_IMM:
-            return (op_size() == 8) ? 0x80 : 0x81;
+            return (op_a().size() == Size::k8) ? 0x80 : 0x81;
         case OpEncoding::kRM_IMM8:
             return 0x83;
         case OpEncoding::kRM_REG:
-            return (op_size() == 8) ? 0x00 : 0x01;
+            return (op_a().size() == Size::k8) ? 0x00 : 0x01;
         case OpEncoding::kREG_RM:
-            return (op_size() == 8) ? 0x02 : 0x03;
+            return (op_a().size() == Size::k8) ? 0x02 : 0x03;
     }
 }
 
@@ -358,25 +251,25 @@ uint8_t Add::OpcodeExt() const {
 }
 
 std::string Add::ToString() const {
-    return "add " + op_a()->ToString() + ","
-                  + op_b()->ToString();
+    return "add " + op_a().ToString() + ","
+                  + op_b().ToString();
 }
 
 Adc::~Adc() {}
 
 uint8_t Adc::Opcode() const {
     if (CanUseRegAShortcut()) {
-        return (op_size() == 8) ? 0x14 : 0x15;
+        return (op_a().size() == Size::k8) ? 0x14 : 0x15;
     }
     switch (op_encoding()) {
         case OpEncoding::kRM_IMM:
-            return (op_size() == 8) ? 0x80 : 0x81;
+            return (op_a().size() == Size::k8) ? 0x80 : 0x81;
         case OpEncoding::kRM_IMM8:
             return 0x83;
         case OpEncoding::kRM_REG:
-            return (op_size() == 8) ? 0x10 : 0x11;
+            return (op_a().size() == Size::k8) ? 0x10 : 0x11;
         case OpEncoding::kREG_RM:
-            return (op_size() == 8) ? 0x12 : 0x13;
+            return (op_a().size() == Size::k8) ? 0x12 : 0x13;
     }
 }
 
@@ -385,25 +278,25 @@ uint8_t Adc::OpcodeExt() const {
 }
 
 std::string Adc::ToString() const {
-    return "adc " + op_a()->ToString() + ","
-                  + op_b()->ToString();
+    return "adc " + op_a().ToString() + ","
+                  + op_b().ToString();
 }
 
 Sub::~Sub() {}
 
 uint8_t Sub::Opcode() const {
     if (CanUseRegAShortcut()) {
-        return (op_size() == 8) ? 0x2c : 0x2d;
+        return (op_a().size() == Size::k8) ? 0x2c : 0x2d;
     }
     switch (op_encoding()) {
         case OpEncoding::kRM_IMM:
-            return (op_size() == 8) ? 0x80 : 0x81;
+            return (op_a().size() == Size::k8) ? 0x80 : 0x81;
         case OpEncoding::kRM_IMM8:
             return 0x83;
         case OpEncoding::kRM_REG:
-            return (op_size() == 8) ? 0x28 : 0x29;
+            return (op_a().size() == Size::k8) ? 0x28 : 0x29;
         case OpEncoding::kREG_RM:
-            return (op_size() == 8) ? 0x2a : 0x2b;
+            return (op_a().size() == Size::k8) ? 0x2a : 0x2b;
     }
 }
 
@@ -412,25 +305,25 @@ uint8_t Sub::OpcodeExt() const {
 }
 
 std::string Sub::ToString() const {
-    return "sub " + op_a()->ToString() + ","
-                  + op_b()->ToString();
+    return "sub " + op_a().ToString() + ","
+                  + op_b().ToString();
 }
 
 Sbb::~Sbb() {}
 
 uint8_t Sbb::Opcode() const {
     if (CanUseRegAShortcut()) {
-        return (op_size() == 8) ? 0x1c : 0x1d;
+        return (op_a().size() == Size::k8) ? 0x1c : 0x1d;
     }
     switch (op_encoding()) {
         case OpEncoding::kRM_IMM:
-            return (op_size() == 8) ? 0x80 : 0x81;
+            return (op_a().size() == Size::k8) ? 0x80 : 0x81;
         case OpEncoding::kRM_IMM8:
             return 0x83;
         case OpEncoding::kRM_REG:
-            return (op_size() == 8) ? 0x18 : 0x19;
+            return (op_a().size() == Size::k8) ? 0x18 : 0x19;
         case OpEncoding::kREG_RM:
-            return (op_size() == 8) ? 0x1a : 0x1b;
+            return (op_a().size() == Size::k8) ? 0x1a : 0x1b;
     }
 }
 
@@ -439,25 +332,25 @@ uint8_t Sbb::OpcodeExt() const {
 }
 
 std::string Sbb::ToString() const {
-    return "sbb " + op_a()->ToString() + ","
-                  + op_b()->ToString();
+    return "sbb " + op_a().ToString() + ","
+                  + op_b().ToString();
 }
 
 Cmp::~Cmp() {}
 
 uint8_t Cmp::Opcode() const {
     if (CanUseRegAShortcut()) {
-        return (op_size() == 8) ? 0x3c : 0x3d;
+        return (op_a().size() == Size::k8) ? 0x3c : 0x3d;
     }
     switch (op_encoding()) {
         case OpEncoding::kRM_IMM:
-            return (op_size() == 8) ? 0x80 : 0x81;
+            return (op_a().size() == Size::k8) ? 0x80 : 0x81;
         case OpEncoding::kRM_IMM8:
             return 0x83;
         case OpEncoding::kRM_REG:
-            return (op_size() == 8) ? 0x38 : 0x39;
+            return (op_a().size() == Size::k8) ? 0x38 : 0x39;
         case OpEncoding::kREG_RM:
-            return (op_size() == 8) ? 0x3a : 0x3b;
+            return (op_a().size() == Size::k8) ? 0x3a : 0x3b;
     }
 }
 
@@ -466,159 +359,118 @@ uint8_t Cmp::OpcodeExt() const {
 }
 
 std::string Cmp::ToString() const {
-    return "cmp " + op_a()->ToString() + ","
-                  + op_b()->ToString();
+    return "cmp " + op_a().ToString() + ","
+                  + op_b().ToString();
 }
 
-Mul::Mul(std::shared_ptr<RM8> rm)
-    : op_size_(8), factor_(rm) {}
-Mul::Mul(std::shared_ptr<RM16> rm)
-    : op_size_(16), factor_(rm) {}
-Mul::Mul(std::shared_ptr<RM32> rm)
-    : op_size_(32), factor_(rm) {}
-Mul::Mul(std::shared_ptr<RM64> rm)
-    : op_size_(64), factor_(rm) {}
+Mul::Mul(RM rm) : factor_(rm) {}
 Mul::~Mul() {}
+
+RM Mul::factor() const {
+    return factor_;
+}
 
 int8_t Mul::Encode(Linker *linker,
                    common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if (factor_->RequiresREX()) {
+    encoder.EncodeOperandSize(factor_.size());
+    if (factor_.RequiresREX()) {
         encoder.EncodeREX();
     }
-    encoder.EncodeOpcode((op_size_ == 8) ? 0xf6 : 0xf7);
+    encoder.EncodeOpcode((factor_.size() == Size::k8) ? 0xf6 : 0xf7);
     encoder.EncodeOpcodeExt(4);
-    encoder.EncodeRM(factor_.get());
+    encoder.EncodeRM(factor_);
     
     return encoder.size();
 }
 
 std::string Mul::ToString() const {
-    return "mul " + factor_->ToString();
+    return "mul " + factor_.ToString();
 }
 
-Imul::Imul(std::shared_ptr<RM8> rm)
-    : imul_type_(ImulType::kRegAD_RM),
-      op_size_(8),
-      factor_a_(nullptr),
-      factor_b_(rm),
-      factor_c_(nullptr) {}
-Imul::Imul(std::shared_ptr<RM16> rm)
-    : imul_type_(ImulType::kRegAD_RM),
-      op_size_(8),
-      factor_a_(nullptr),
-      factor_b_(rm),
-      factor_c_(nullptr) {}
-Imul::Imul(std::shared_ptr<RM32> rm)
-    : imul_type_(ImulType::kRegAD_RM),
-      op_size_(8),
-      factor_a_(nullptr),
-      factor_b_(rm),
-      factor_c_(nullptr) {}
-Imul::Imul(std::shared_ptr<RM64> rm)
-    : imul_type_(ImulType::kRegAD_RM),
-      op_size_(8),
-      factor_a_(nullptr),
-      factor_b_(rm),
-      factor_c_(nullptr) {}
+Imul::Imul(RM rm) : factor_a_(Size::k8, 0), factor_b_(rm), factor_c_(0) {
+    imul_type_ = ImulType::kRegAD_RM;
+}
 
-Imul::Imul(std::shared_ptr<Reg16> reg,
-           std::shared_ptr<RM16> rm,
-           std::shared_ptr<Imm8> imm)
-    : imul_type_(ImulType::kReg_RM_IMM8),
-      op_size_(16),
-      factor_a_(reg),
-      factor_b_(rm),
-      factor_c_(imm) {}
-Imul::Imul(std::shared_ptr<Reg32> reg,
-           std::shared_ptr<RM32> rm,
-           std::shared_ptr<Imm8> imm)
-    : imul_type_(ImulType::kReg_RM_IMM8),
-      op_size_(32),
-      factor_a_(reg),
-      factor_b_(rm),
-      factor_c_(imm) {}
-Imul::Imul(std::shared_ptr<Reg64> reg,
-           std::shared_ptr<RM64> rm,
-           std::shared_ptr<Imm8> imm)
-    : imul_type_(ImulType::kReg_RM_IMM8),
-      op_size_(64),
-      factor_a_(reg),
-      factor_b_(rm),
-      factor_c_(imm) {}
+Imul::Imul(Reg reg, RM rm) : factor_a_(reg), factor_b_(rm), factor_c_(0) {
+    if (reg.size() != rm.size())
+        throw "unsupported reg size, rm size combination";
+    if (reg.size() == Size::k8)
+        throw "unsupported reg or rm size";
+    
+    imul_type_ = ImulType::kReg_RM;
+}
 
-Imul::Imul(std::shared_ptr<Reg16> reg,
-           std::shared_ptr<RM16> rm,
-           std::shared_ptr<Imm16> imm)
-    : imul_type_(ImulType::kReg_RM_IMM),
-      op_size_(16),
-      factor_a_(reg),
-      factor_b_(rm),
-      factor_c_(imm) {}
-Imul::Imul(std::shared_ptr<Reg32> reg,
-           std::shared_ptr<RM32> rm,
-           std::shared_ptr<Imm32> imm)
-    : imul_type_(ImulType::kReg_RM_IMM),
-      op_size_(32),
-      factor_a_(reg),
-      factor_b_(rm),
-      factor_c_(imm) {}
-Imul::Imul(std::shared_ptr<Reg64> reg,
-           std::shared_ptr<RM64> rm,
-           std::shared_ptr<Imm32> imm)
-    : imul_type_(ImulType::kReg_RM_IMM),
-      op_size_(64),
-      factor_a_(reg),
-      factor_b_(rm),
-      factor_c_(imm) {}
+Imul::Imul(Reg reg, RM rm, Imm imm)
+    : factor_a_(reg), factor_b_(rm), factor_c_(imm) {
+    if (reg.size() != rm.size())
+        throw "unsupported reg size, rm size combination";
+    if (reg.size() == Size::k8)
+        throw "unsupported reg and rm size";
+    if (imm.size() == Size::k64)
+        throw "unsupported imm size";
+    if (reg.size() == imm.size() ||
+        (reg.size() == Size::k64 && imm.size() == Size::k32)) {
+        imul_type_ = ImulType::kReg_RM_IMM;
+    } else if (imm.size() == Size::k8) {
+        imul_type_ = ImulType::kReg_RM_IMM8;
+    } else {
+        throw "unsupported reg size, rm size, imm size combination";
+    }
+}
+
 Imul::~Imul() {}
 
+Reg Imul::factor_a() const {
+    return factor_a_;
+}
+
+RM Imul::factor_b() const {
+    return factor_b_;
+}
+
+Imm Imul::factor_c() const {
+    return factor_c_;
+}
+
 bool Imul::CanSkipImm() const {
-    if (factor_c_.get() == nullptr) {
+    if (imul_type_ != ImulType::kReg_RM_IMM &&
+        imul_type_ != ImulType::kReg_RM_IMM8) {
         return true;
     }
-    if (Imm8 *imm = dynamic_cast<Imm8 *>(factor_c_.get())) {
-        return imm->value() == 1;
-    } else if (Imm16 *imm = dynamic_cast<Imm16 *>(factor_c_.get())) {
-        return imm->value() == 1;
-    } else if (Imm32 *imm = dynamic_cast<Imm32 *>(factor_c_.get())) {
-        return imm->value() == 1;
-    }
-    return true;
+    return factor_c_.value() == 1;
 }
 
 int8_t Imul::Encode(Linker *linker,
                     common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if ((factor_a_.get() != nullptr &&
-         factor_a_->RequiresREX()) ||
-        factor_b_->RequiresREX() ||
-        (!CanSkipImm() &&
-         factor_c_->RequiresREX())) {
+    encoder.EncodeOperandSize(factor_b_.size());
+    if ((imul_type_ != ImulType::kRegAD_RM && factor_a_.RequiresREX()) ||
+        factor_b_.RequiresREX() ||
+        (!CanSkipImm() && factor_c_.RequiresREX())) {
         encoder.EncodeREX();
     }
     
     if (imul_type_ == ImulType::kRegAD_RM) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0xf6 : 0xf7);
+        encoder.EncodeOpcode((factor_b_.size() == Size::k8) ? 0xf6 : 0xf7);
         encoder.EncodeOpcodeExt(5);
-        encoder.EncodeRM(factor_b_.get());
-    } else if (imul_type_ == ImulType::kReg_RM_IMM8 ||
-               imul_type_ == ImulType::kReg_RM_IMM) {
+        encoder.EncodeRM(factor_b_);
+    } else if (imul_type_ == ImulType::kReg_RM ||
+               imul_type_ == ImulType::kReg_RM_IMM ||
+               imul_type_ == ImulType::kReg_RM_IMM8) {
         if (CanSkipImm()) {
             encoder.EncodeOpcode(0x0f, 0xaf);
-        } else if (imul_type_ == ImulType::kReg_RM_IMM8) {
-            encoder.EncodeOpcode(0x6b);
         } else if (imul_type_ == ImulType::kReg_RM_IMM) {
             encoder.EncodeOpcode(0x69);
+        } else if (imul_type_ == ImulType::kReg_RM_IMM8) {
+            encoder.EncodeOpcode(0x6b);
         }
-        encoder.EncodeModRMReg(factor_a_.get());
-        encoder.EncodeRM(factor_b_.get());
+        encoder.EncodeModRMReg(factor_a_);
+        encoder.EncodeRM(factor_b_);
         if (!CanSkipImm()) {
-            encoder.EncodeImm(factor_c_.get());
+            encoder.EncodeImm(factor_c_);
         }
     }
     
@@ -627,79 +479,74 @@ int8_t Imul::Encode(Linker *linker,
 
 std::string Imul::ToString() const {
     if (imul_type_ == ImulType::kRegAD_RM) {
-        return "imul " + factor_b_->ToString();
+        return "imul " + factor_b_.ToString();
     } else if (CanSkipImm()) {
-        return "imul " + factor_a_->ToString() + ","
-                       + factor_b_->ToString();
+        return "imul " + factor_a_.ToString() + ","
+                       + factor_b_.ToString();
     } else {
-        return "imul " + factor_a_->ToString() + ","
-                       + factor_b_->ToString() + ","
-                       + factor_c_->ToString();
+        return "imul " + factor_a_.ToString() + ","
+                       + factor_b_.ToString() + ","
+                       + factor_c_.ToString();
     }
 }
 
-Div::Div(std::shared_ptr<RM8> rm)
-    : op_size_(8), factor_(rm) {}
-Div::Div(std::shared_ptr<RM16> rm)
-    : op_size_(16), factor_(rm) {}
-Div::Div(std::shared_ptr<RM32> rm)
-    : op_size_(32), factor_(rm) {}
-Div::Div(std::shared_ptr<RM64> rm)
-    : op_size_(64), factor_(rm) {}
+Div::Div(RM rm) : divisor_(rm) {}
 Div::~Div() {}
+
+RM Div::divisor() const {
+    return divisor_;
+}
 
 int8_t Div::Encode(Linker *linker,
                    common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if (factor_->RequiresREX()) {
+    encoder.EncodeOperandSize(divisor_.size());
+    if (divisor_.RequiresREX()) {
         encoder.EncodeREX();
     }
-    encoder.EncodeOpcode((op_size_ == 8) ? 0xf6 : 0xf7);
+    encoder.EncodeOpcode((divisor_.size() == Size::k8) ? 0xf6 : 0xf7);
     encoder.EncodeOpcodeExt(6);
-    encoder.EncodeRM(factor_.get());
+    encoder.EncodeRM(divisor_);
     
     return encoder.size();
 }
 
 std::string Div::ToString() const {
-    return "div " + factor_->ToString();
+    return "div " + divisor_.ToString();
 }
 
-Idiv::Idiv(std::shared_ptr<RM8> rm)
-    : op_size_(8), factor_(rm) {}
-Idiv::Idiv(std::shared_ptr<RM16> rm)
-    : op_size_(16), factor_(rm) {}
-Idiv::Idiv(std::shared_ptr<RM32> rm)
-    : op_size_(32), factor_(rm) {}
-Idiv::Idiv(std::shared_ptr<RM64> rm)
-    : op_size_(64), factor_(rm) {}
+Idiv::Idiv(RM rm) : divisor_(rm) {}
 Idiv::~Idiv() {}
+
+RM Idiv::divisor() const {
+    return divisor_;
+}
 
 int8_t Idiv::Encode(Linker *linker,
                     common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if (factor_->RequiresREX()) {
+    encoder.EncodeOperandSize(divisor_.size());
+    if (divisor_.RequiresREX()) {
         encoder.EncodeREX();
     }
-    encoder.EncodeOpcode((op_size_ == 8) ? 0xf6 : 0xf7);
+    encoder.EncodeOpcode((divisor_.size() == Size::k8) ? 0xf6 : 0xf7);
     encoder.EncodeOpcodeExt(7);
-    encoder.EncodeRM(factor_.get());
+    encoder.EncodeRM(divisor_);
     
     return encoder.size();
 }
 
 std::string Idiv::ToString() const {
-    return "idiv " + factor_->ToString();
+    return "idiv " + divisor_.ToString();
 }
 
-SignExtendRegA::SignExtendRegA(uint8_t op_size) : op_size_(op_size) {
-    if (op_size != 16 && op_size != 32 && op_size != 64) {
-        throw "expected op_size 16, 32, or 64, got: "
-            + std::to_string(op_size);
+SignExtendRegA::SignExtendRegA(Size op_size) : op_size_(op_size) {
+    if (op_size != Size::k16 &&
+        op_size != Size::k32 &&
+        op_size != Size::k64) {
+        throw "expected op_size 16, 32, or 64";
     }
 }
 
@@ -716,18 +563,19 @@ int8_t SignExtendRegA::Encode(Linker *linker,
 }
 
 std::string SignExtendRegA::ToString() const {
-    if (op_size_ == 16) {
+    if (op_size_ == Size::k16) {
         return "cbw";
-    } else if (op_size_ == 32) {
+    } else if (op_size_ == Size::k32) {
         return "cwde";
     } else {
         return "cdqe";
     }
 }
-SignExtendRegAD::SignExtendRegAD(uint8_t op_size) : op_size_(op_size) {
-    if (op_size != 16 && op_size != 32 && op_size != 64) {
-        throw "expected op_size 16, 32, or 64, got: "
-            + std::to_string(op_size);
+SignExtendRegAD::SignExtendRegAD(Size op_size) : op_size_(op_size) {
+    if (op_size != Size::k16 &&
+        op_size != Size::k32 &&
+        op_size != Size::k64) {
+        throw "expected op_size 16, 32, or 64";
     }
 }
 
@@ -744,96 +592,83 @@ int8_t SignExtendRegAD::Encode(Linker *linker,
 }
 
 std::string SignExtendRegAD::ToString() const {
-    if (op_size_ == 16) {
+    if (op_size_ == Size::k16) {
         return "cwd";
-    } else if (op_size_ == 32) {
+    } else if (op_size_ == Size::k32) {
         return "cdq";
     } else {
         return "cqo";
     }
 }
 
-Test::Test(std::shared_ptr<RM8> rm,
-           std::shared_ptr<Imm8> imm)
-    : test_type_(TestType::kRM_IMM),
-      op_size_(8), op_a_(rm), op_b_(imm) {}
-Test::Test(std::shared_ptr<RM16> rm,
-           std::shared_ptr<Imm16> imm)
-    : test_type_(TestType::kRM_IMM),
-      op_size_(16), op_a_(rm), op_b_(imm) {}
-Test::Test(std::shared_ptr<RM32> rm,
-           std::shared_ptr<Imm32> imm)
-    : test_type_(TestType::kRM_IMM),
-      op_size_(32), op_a_(rm), op_b_(imm) {}
-Test::Test(std::shared_ptr<RM64> rm,
-           std::shared_ptr<Imm32> imm)
-    : test_type_(TestType::kRM_IMM),
-      op_size_(64), op_a_(rm), op_b_(imm) {}
-
-Test::Test(std::shared_ptr<RM8> rm,
-           std::shared_ptr<Reg8> reg)
-    : test_type_(TestType::kRM_REG),
-      op_size_(8), op_a_(rm), op_b_(reg) {}
-Test::Test(std::shared_ptr<RM16> rm,
-           std::shared_ptr<Reg16> reg)
-    : test_type_(TestType::kRM_REG),
-      op_size_(16), op_a_(rm), op_b_(reg) {}
-Test::Test(std::shared_ptr<RM32> rm,
-           std::shared_ptr<Reg32> reg)
-    : test_type_(TestType::kRM_REG),
-      op_size_(32), op_a_(rm), op_b_(reg) {}
-Test::Test(std::shared_ptr<RM64> rm,
-           std::shared_ptr<Reg64> reg)
-    : test_type_(TestType::kRM_REG),
-      op_size_(64), op_a_(rm), op_b_(reg) {}
+Test::Test(RM rm, Imm imm) : op_a_(rm), op_b_(imm) {
+    if (imm.size() == Size::k64)
+        throw "unsupported imm size";
+    if (rm.size() == imm.size() ||
+        (rm.size() == Size::k64 && imm.size() == Size::k32)) {
+        test_type_ = TestType::kRM_IMM;
+    } else {
+        throw "unsupported rm size, imm size combination";
+    }
+}
+        
+Test::Test(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
+    if (rm.size() != reg.size())
+        throw "unsupported rm size, reg size combination";
+    
+    test_type_ = TestType::kRM_REG;
+}
 
 Test::~Test() {}
 
+RM Test::op_a() const {
+    return op_a_;
+}
+        
+Operand Test::op_b() const {
+    return op_b_;
+}
+
 bool Test::CanUseRegAShortcut() const {
     if (test_type_ != TestType::kRM_IMM) return false;
-    if (Reg *reg = dynamic_cast<Reg *>(op_a_.get())) {
-        return reg->reg() == 0;
-    }
-    return false;
+    if (!op_a_.is_reg()) return false;
+    return op_a_.reg().reg() == 0;
 }
 
 int8_t Test::Encode(Linker *linker,
                     common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if (op_a_->RequiresREX() || op_b_->RequiresREX()) {
+    encoder.EncodeOperandSize(op_a_.size());
+    if (op_a_.RequiresREX() || op_b_.RequiresREX()) {
         encoder.EncodeREX();
     }
     
     if (CanUseRegAShortcut()) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0xa8 : 0xa9);
+        encoder.EncodeOpcode((op_a_.size() == Size::k8) ? 0xa8 : 0xa9);
     } else if (test_type_ == TestType::kRM_IMM) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0xf6 : 0xf7);
+        encoder.EncodeOpcode((op_a_.size() == Size::k8) ? 0xf6 : 0xf7);
         encoder.EncodeOpcodeExt(0);
     } else if (test_type_ == TestType::kRM_REG) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0x84 : 0x85);
+        encoder.EncodeOpcode((op_a_.size() == Size::k8) ? 0x84 : 0x85);
     }
     
     if (!CanUseRegAShortcut()) {
-        encoder.EncodeRM(op_a_.get());
+        encoder.EncodeRM(op_a_);
     }
     if (test_type_ == TestType::kRM_IMM) {
-        Imm *imm = dynamic_cast<Imm *>(op_b_.get());
+        encoder.EncodeImm(op_b_.imm());
         
-        encoder.EncodeImm(imm);
     } else if (test_type_ == TestType::kRM_REG) {
-        Reg *reg = dynamic_cast<Reg *>(op_b_.get());
-        
-        encoder.EncodeModRMReg(reg);
+        encoder.EncodeModRMReg(op_b_.reg());
     }
     
     return encoder.size();
 }
 
 std::string Test::ToString() const {
-    return "test " + op_a_->ToString() + ","
-                   + op_b_->ToString();
+    return "test " + op_a_.ToString() + ","
+                   + op_b_.ToString();
 }
 
 }

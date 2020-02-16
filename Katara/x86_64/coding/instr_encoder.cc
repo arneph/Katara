@@ -19,13 +19,13 @@ uint8_t InstrEncoder::size() const {
     return size_;
 }
 
-void InstrEncoder::EncodeOperandSize(uint8_t op_size) {
+void InstrEncoder::EncodeOperandSize(Size op_size) {
     if (opcode_ != nullptr)
         throw "attempted to encode operand mode after opcode";
     
-    if (op_size == 16) {
+    if (op_size == Size::k16) {
         code_[size_++] = 0x66; // 16bit operand mode prefix
-    } else if (op_size == 64) {
+    } else if (op_size == Size::k64) {
         EncodeREX();
         
         *rex_ |= 0x08;         // REX.W
@@ -86,7 +86,7 @@ void InstrEncoder::EncodeOpcodeExt(uint8_t opcode_ext) {
     *modrm_ |= (opcode_ext & 0x7) << 3; // Reg = reg lower bits
 }
 
-void InstrEncoder::EncodeOpcodeReg(Reg *reg,
+void InstrEncoder::EncodeOpcodeReg(const Reg &reg,
                                    uint8_t opcode_index,
                                    uint8_t lshift) {
     if (opcode_ == nullptr)
@@ -98,10 +98,10 @@ void InstrEncoder::EncodeOpcodeReg(Reg *reg,
     if (lshift > 5)
         throw "opcode lshift out range: " + std::to_string(lshift);
     
-    reg->EncodeInOpcode(rex_, opcode_ + opcode_index, lshift);
+    reg.EncodeInOpcode(rex_, opcode_ + opcode_index, lshift);
 }
 
-void InstrEncoder::EncodeModRMReg(Reg *reg) {
+void InstrEncoder::EncodeModRMReg(const Reg &reg) {
     if (opcode_ == nullptr)
         throw "attempted to encode reg without opcode";
     if (imm_ != nullptr)
@@ -110,10 +110,10 @@ void InstrEncoder::EncodeModRMReg(Reg *reg) {
     if (modrm_ == nullptr) {
         modrm_ = &code_[size_++];
     }
-    reg->EncodeInModRMReg(rex_, modrm_);
+    reg.EncodeInModRMReg(rex_, modrm_);
 }
 
-void InstrEncoder::EncodeRM(RM *rm) {
+void InstrEncoder::EncodeRM(const RM &rm) {
     if (opcode_ == nullptr)
         throw "attempted to encode reg without opcode";
     if (sib_ != nullptr || disp_ != nullptr)
@@ -124,31 +124,31 @@ void InstrEncoder::EncodeRM(RM *rm) {
     if (modrm_ == nullptr) {
         modrm_ = &code_[size_++];
     }
-    if (rm->RequiresSIB()) {
+    if (rm.RequiresSIB()) {
         sib_ = &code_[size_++];
     }
     disp_ = &code_[size_];
-    size_ += rm->RequiredDispSize();
+    size_ += rm.RequiredDispSize();
     
     if (size_ > code_.size())
         throw "instruction exceeds code capacity";
     
-    rm->EncodeInModRM_SIB_Disp(rex_, modrm_, sib_, disp_);
+    rm.EncodeInModRM_SIB_Disp(rex_, modrm_, sib_, disp_);
 }
 
-void InstrEncoder::EncodeImm(Imm *imm) {
+void InstrEncoder::EncodeImm(const Imm &imm) {
     if (opcode_ == nullptr)
         throw "attempted to encode imm without opcode";
     if (imm_ != nullptr)
         throw "attempted to encode imm twice";
     
     imm_ = &code_[size_];
-    size_ += imm->RequiredImmSize();
+    size_ += imm.RequiredImmSize();
     
     if (size_ > code_.size())
         throw "instruction exceeds code capacity";
     
-    imm->EncodeInImm(imm_);
+    imm.EncodeInImm(imm_);
 }
 
 }

@@ -24,17 +24,17 @@ public:
     
     uint8_t size() const;
     
-    uint8_t GetOperandSize() const;
-    void SetOperandSize(uint8_t op_size);
+    Size GetOperandSize() const;
+    void SetOperandSize(Size op_size);
     
     uint8_t DecodeOpcodePart();
     uint8_t DecodeOpcodeExt();
     
-    Reg * DecodeOpcodeReg(uint8_t opcode_index = 0,
+    Reg DecodeOpcodeReg(uint8_t opcode_index = 0,
                           uint8_t lshift = 0);
-    Reg * DecodeModRMReg();
-    RM * DecodeRM();
-    Imm * DecodeImm(uint8_t imm_size);
+    Reg DecodeModRMReg();
+    RM DecodeRM();
+    Imm DecodeImm(uint8_t imm_size);
     
 private:
     void DecodeModRM();
@@ -44,7 +44,7 @@ private:
     const common::data code_;
     uint8_t size_ = 0;
     
-    uint8_t op_size_ = 32;
+    Size op_size_ = Size::k32;
     const uint8_t *rex_ = nullptr;
     uint8_t opcode_size_ = 0;
     const uint8_t *opcode_ = nullptr;

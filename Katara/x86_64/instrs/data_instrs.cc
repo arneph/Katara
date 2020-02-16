@@ -12,284 +12,239 @@
 
 namespace x86_64 {
 
-Mov::Mov(std::shared_ptr<Reg8>  d,
-         std::shared_ptr<Reg8>   s)
-    : mov_type_(MovType::kRM_REG),
-      op_size_(8),  dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg16>  d,
-         std::shared_ptr<Reg16>  s)
-    : mov_type_(MovType::kRM_REG),
-      op_size_(16), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg32>  d,
-         std::shared_ptr<Reg32>  s)
-    : mov_type_(MovType::kRM_REG),
-      op_size_(32), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg64>  d,
-         std::shared_ptr<Reg64>  s)
-    : mov_type_(MovType::kRM_REG),
-      op_size_(64), dst_(d), src_(s) {}
+Mov::Mov(Reg dst, Reg src) : dst_(dst), src_(src) {
+    if (dst.size() != src.size())
+        throw "unsupported reg size, reg size combination";
+    
+    mov_type_ = MovType::kRM_REG;
+}
 
-Mov::Mov(std::shared_ptr<Mem8>  d,
-         std::shared_ptr<Reg8>   s)
-    : mov_type_(MovType::kRM_REG),
-      op_size_(8),  dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Mem16>  d,
-         std::shared_ptr<Reg16>  s)
-    : mov_type_(MovType::kRM_REG),
-      op_size_(16), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Mem32>  d,
-         std::shared_ptr<Reg32>  s)
-    : mov_type_(MovType::kRM_REG),
-      op_size_(32), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Mem64>  d,
-         std::shared_ptr<Reg64>  s)
-    : mov_type_(MovType::kRM_REG),
-      op_size_(64), dst_(d), src_(s) {}
+Mov::Mov(Mem dst, Reg src) : dst_(dst), src_(src) {
+    if (dst.size() != src.size())
+        throw "unsupported mem size, reg size combination";
+    
+    mov_type_ = MovType::kRM_REG;
+}
 
-Mov::Mov(std::shared_ptr<Reg8>  d,
-         std::shared_ptr<Mem8>   s)
-    : mov_type_(MovType::kREG_RM),
-      op_size_(8),  dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg16>  d,
-         std::shared_ptr<Mem16>  s)
-    : mov_type_(MovType::kREG_RM),
-      op_size_(16), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg32>  d,
-         std::shared_ptr<Mem32>  s)
-    : mov_type_(MovType::kREG_RM),
-      op_size_(32), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg64>  d,
-         std::shared_ptr<Mem64>  s)
-    : mov_type_(MovType::kREG_RM),
-      op_size_(64), dst_(d), src_(s) {}
+Mov::Mov(Reg dst, Mem src) : dst_(dst), src_(src) {
+    if (dst.size() != src.size())
+        throw "unsupported reg size, mem size combination";
+    
+    mov_type_ = MovType::kREG_RM;
+}
 
-Mov::Mov(std::shared_ptr<Reg8>  d,
-         std::shared_ptr<Imm8>  s)
-    : mov_type_(MovType::kREG_IMM),
-      op_size_(8),  dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg16>  d,
-         std::shared_ptr<Imm16> s)
-    : mov_type_(MovType::kREG_IMM),
-      op_size_(16), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg32>  d,
-         std::shared_ptr<Imm32> s)
-    : mov_type_(MovType::kREG_IMM),
-      op_size_(32), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg64>  d,
-         std::shared_ptr<Imm32> s)
-    : mov_type_(MovType::kRM_IMM),
-      op_size_(64), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Reg64>  d,
-         std::shared_ptr<Imm64> s)
-    : mov_type_(MovType::kREG_IMM),
-      op_size_(64), dst_(d), src_(s) {}
+Mov::Mov(Reg dst, Imm src) : dst_(dst), src_(src) {
+    if (dst.size() == src.size() ||
+        (dst.size() == Size::k64 && src.size() == Size::k32)) {
+        mov_type_ = MovType::kREG_IMM;
+    } else {
+        throw "unsupported reg size, imm size combination";
+    }
+}
 
-Mov::Mov(std::shared_ptr<Mem8>  d,
-         std::shared_ptr<Imm8>  s)
-    : mov_type_(MovType::kRM_IMM),
-      op_size_(8),  dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Mem16>  d,
-         std::shared_ptr<Imm16> s)
-    : mov_type_(MovType::kRM_IMM),
-      op_size_(16), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Mem32>  d,
-         std::shared_ptr<Imm32> s)
-    : mov_type_(MovType::kRM_IMM),
-      op_size_(32), dst_(d), src_(s) {}
-Mov::Mov(std::shared_ptr<Mem64>  d,
-         std::shared_ptr<Imm32> s)
-    : mov_type_(MovType::kRM_IMM),
-      op_size_(64), dst_(d), src_(s) {}
+Mov::Mov(Mem dst, Imm src) : dst_(dst), src_(src) {
+    if (src.size() == Size::k64)
+        throw "unsupported imm size";
+    if (dst.size() == src.size() ||
+        (dst.size() == Size::k64 && src.size() == Size::k32)) {
+        mov_type_ = MovType::kRM_IMM;
+    } else {
+        throw "unsupported mem size, imm size combination";
+    }
+}
+
 Mov::~Mov() {}
+
+RM Mov::dst() const {
+    return dst_;
+}
+
+Operand Mov::src() const {
+    return src_;
+}
 
 int8_t Mov::Encode(Linker *linker,
                    common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if (dst_->RequiresREX() || src_->RequiresREX()) {
+    encoder.EncodeOperandSize(src_.size());
+    if (dst_.RequiresREX() || src_.RequiresREX()) {
         encoder.EncodeREX();
     }
     
     if (mov_type_ == kRM_REG) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0x88 : 0x89);
+        encoder.EncodeOpcode((src_.size() == Size::k8) ? 0x88 : 0x89);
     } else if (mov_type_ == kREG_RM) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0x8A : 0x8B);
+        encoder.EncodeOpcode((src_.size() == Size::k8) ? 0x8A : 0x8B);
     } else if (mov_type_ == kREG_IMM) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0xB0 : 0xB8);
+        encoder.EncodeOpcode((src_.size() == Size::k8) ? 0xB0 : 0xB8);
     } else if (mov_type_ == kRM_IMM) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0xC6 : 0xC7);
+        encoder.EncodeOpcode((src_.size() == Size::k8) ? 0xC6 : 0xC7);
         encoder.EncodeOpcodeExt(0);
     }
     
     if (mov_type_ == kRM_REG || mov_type_ == kRM_IMM) {
-        RM *drm = dynamic_cast<RM *>(dst_.get());
-        encoder.EncodeRM(drm);
+        encoder.EncodeRM(dst_.rm());
         
     } else if (mov_type_ == kREG_RM) {
-        Reg *dreg = dynamic_cast<Reg *>(dst_.get());
-        encoder.EncodeModRMReg(dreg);
+        encoder.EncodeModRMReg(dst_.reg());
         
     } else if (mov_type_ == kREG_IMM) {
-        Reg *dreg = dynamic_cast<Reg *>(dst_.get());
-        encoder.EncodeOpcodeReg(dreg);
+        encoder.EncodeOpcodeReg(dst_.reg());
     }
     
     if (mov_type_ == kRM_REG) {
-        Reg *sreg = dynamic_cast<Reg *>(src_.get());
-        encoder.EncodeModRMReg(sreg);
+        encoder.EncodeModRMReg(src_.reg());
         
     } else if (mov_type_ == kREG_RM) {
-        RM *srm = dynamic_cast<RM *>(src_.get());
-        encoder.EncodeRM(srm);
+        encoder.EncodeRM(src_.rm());
         
     } else if (mov_type_ == kREG_IMM || mov_type_ == kRM_IMM) {
-        Imm *simm = dynamic_cast<Imm *>(src_.get());
-        encoder.EncodeImm(simm);
+        encoder.EncodeImm(src_.imm());
     }
     
     return encoder.size();
 }
 
 std::string Mov::ToString() const {
-    return "mov " + dst_->ToString() + ","
-                  + src_->ToString();
+    return "mov " + dst_.ToString() + ","
+                  + src_.ToString();
 }
 
-Xchg::Xchg(std::shared_ptr<RM8> rm,
-           std::shared_ptr<Reg8> reg)
-    : op_size_(8), op_a_(rm), op_b_(reg) {}
-Xchg::Xchg(std::shared_ptr<RM16> rm,
-           std::shared_ptr<Reg16> reg)
-    : op_size_(16), op_a_(rm), op_b_(reg) {}
-Xchg::Xchg(std::shared_ptr<RM32> rm,
-           std::shared_ptr<Reg32> reg)
-    : op_size_(32), op_a_(rm), op_b_(reg) {}
-Xchg::Xchg(std::shared_ptr<RM64> rm,
-           std::shared_ptr<Reg64> reg)
-    : op_size_(64), op_a_(rm), op_b_(reg) {}
+Xchg::Xchg(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
+    if (rm.size() != reg.size())
+        throw "incompatible rm size, reg size combination";
+}
+
 Xchg::~Xchg() {}
 
+RM Xchg::op_a() const {
+    return op_a_;
+}
+
+Reg Xchg::op_b() const {
+    return op_b_;
+}
+
 bool Xchg::CanUseRegAShortcut() const {
-    if (op_size_ == 8) return false;
-    if (op_b_->reg() == 0) return true;
-    if (Reg *reg = dynamic_cast<Reg *>(op_a_.get())) {
-        return reg->reg() == 0;
-    }
-    return false;
+    if (op_a_.size() == Size::k8) return false;
+    if (!op_a_.is_reg()) return false;
+    if (op_b_.reg() == 0) return true;
+    return op_a_.reg().reg() == 0;
 }
 
 int8_t Xchg::Encode(Linker *linker,
                     common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    encoder.EncodeOperandSize(op_size_);
-    if (op_a_->RequiresREX() || op_b_->RequiresREX()) {
+    encoder.EncodeOperandSize(op_a_.size());
+    if (op_a_.RequiresREX() || op_b_.RequiresREX()) {
         encoder.EncodeREX();
     }
     
     if (CanUseRegAShortcut()) {
-        Reg *reg = dynamic_cast<Reg *>(op_a_.get());
-        
-        uint8_t r = (reg->reg() + op_b_->reg()) & 0x07;
+        uint8_t r = (op_a_.reg().reg() + op_b_.reg()) & 0x07;
         
         encoder.EncodeOpcode(0x90 + r);
     } else {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0x86 : 0x87);
-        encoder.EncodeRM(op_a_.get());
-        encoder.EncodeModRMReg(op_b_.get());
+        encoder.EncodeOpcode((op_a_.size() == Size::k8) ? 0x86 : 0x87);
+        encoder.EncodeRM(op_a_);
+        encoder.EncodeModRMReg(op_b_);
     }
     
     return encoder.size();
 }
 
 std::string Xchg::ToString() const {
-    return "xchg " + op_a_->ToString() + ","
-                   + op_b_->ToString();
+    return "xchg " + op_a_.ToString() + ","
+                   + op_b_.ToString();
 }
 
-Push::Push(std::shared_ptr<Mem16>  mem)
-    : op_size_(16), op_(mem) {}
-Push::Push(std::shared_ptr<Mem64>  mem)
-    : op_size_(64), op_(mem) {}
-Push::Push(std::shared_ptr<Reg16>  reg)
-    : op_size_(16), op_(reg) {}
-Push::Push(std::shared_ptr<Reg64>  reg)
-    : op_size_(64), op_(reg) {}
-Push::Push(std::shared_ptr<Imm8>  imm)
-    : op_size_(8),  op_(imm) {}
-Push::Push(std::shared_ptr<Imm16> imm)
-    : op_size_(16), op_(imm) {}
-Push::Push(std::shared_ptr<Imm32> imm)
-    : op_size_(32), op_(imm) {}
+Push::Push(RM rm) : op_(rm) {
+    if (rm.size() != Size::k16 &&
+        rm.size() != Size::k64)
+        throw "unsupported rm size";
+}
+
+Push::Push(Imm imm) : op_(imm) {
+    if (imm.size() == Size::k64)
+        throw "unsupported imm size";
+}
+
 Push::~Push() {}
+
+Operand Push::op() const {
+    return op_;
+}
 
 int8_t Push::Encode(Linker *linker,
                     common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    if (op_size_ != 64) {
-        encoder.EncodeOperandSize(op_size_);
+    if (op_.size() != Size::k64) {
+        encoder.EncodeOperandSize(op_.size());
     }
-    if (op_->RequiresREX()) {
+    if (op_.RequiresREX()) {
         encoder.EncodeREX();
     }
-    if (Reg *reg = dynamic_cast<Reg *>(op_.get())) {
+    if (op_.is_reg()) {
         encoder.EncodeOpcode(0x50);
-        encoder.EncodeOpcodeReg(reg);
+        encoder.EncodeOpcodeReg(op_.reg());
         
-    } else if (Mem *mem = dynamic_cast<Mem *>(op_.get())) {
+    } else if (op_.is_mem()) {
         encoder.EncodeOpcode(0xff);
         encoder.EncodeOpcodeExt(6);
-        encoder.EncodeRM(mem);
+        encoder.EncodeRM(op_.mem());
         
-    } else if (Imm *imm = dynamic_cast<Imm *>(op_.get())) {
-        encoder.EncodeOpcode((op_size_ == 8) ? 0x6a : 0x68);
-        encoder.EncodeImm(imm);
+    } else if (op_.is_imm()) {
+        encoder.EncodeOpcode((op_.size() == Size::k8) ? 0x6a : 0x68);
+        encoder.EncodeImm(op_.imm());
     }
     
     return encoder.size();
 }
 
 std::string Push::ToString() const {
-    return "push " + op_->ToString();
+    return "push " + op_.ToString();
 }
 
-Pop::Pop(std::shared_ptr<Mem16>  mem)
-    : op_size_(16), op_(mem) {}
-Pop::Pop(std::shared_ptr<Mem64>  mem)
-    : op_size_(64), op_(mem) {}
-Pop::Pop(std::shared_ptr<Reg16>  reg)
-    : op_size_(16), op_(reg) {}
-Pop::Pop(std::shared_ptr<Reg64>  reg)
-    : op_size_(64), op_(reg) {}
+Pop::Pop(RM rm) : op_(rm) {
+    if (rm.size() != Size::k16 &&
+        rm.size() != Size::k64)
+        throw "unsupported rm size";
+}
+
 Pop::~Pop() {}
+
+RM Pop::op() const {
+    return op_;
+}
 
 int8_t Pop::Encode(Linker *linker,
                    common::data code) const {
     coding::InstrEncoder encoder(code);
     
-    if (op_size_ != 64) {
-        encoder.EncodeOperandSize(op_size_);
+    if (op_.size() != Size::k64) {
+        encoder.EncodeOperandSize(op_.size());
     }
-    if (op_->RequiresREX()) {
+    if (op_.RequiresREX()) {
         encoder.EncodeREX();
     }
-    if (Reg *reg = dynamic_cast<Reg *>(op_.get())) {
+    if (op_.is_reg()) {
         encoder.EncodeOpcode(0x58);
-        encoder.EncodeOpcodeReg(reg);
+        encoder.EncodeOpcodeReg(op_.reg());
         
-    } else if (Mem *mem = dynamic_cast<Mem *>(op_.get())) {
+    } else if (op_.is_mem()) {
         encoder.EncodeOpcode(0x8f);
         encoder.EncodeOpcodeExt(0);
-        encoder.EncodeRM(mem);
+        encoder.EncodeRM(op_.mem());
     }
     
     return encoder.size();
 }
 
 std::string Pop::ToString() const {
-    return "pop " + op_->ToString();
+    return "pop " + op_.ToString();
 }
 
 }

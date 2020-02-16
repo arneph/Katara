@@ -27,10 +27,11 @@ public:
     ~Func();
     
     std::weak_ptr<Prog> prog() const;
+    int64_t func_id() const;
     std::string name() const;
     const std::vector<std::shared_ptr<Block>> blocks() const;
     
-    std::unique_ptr<FuncRef> GetFuncRef() const;
+    FuncRef GetFuncRef() const;
     
     int64_t Encode(Linker *linker,
                    common::data code) const;
@@ -40,6 +41,7 @@ private:
     Func();
     
     std::weak_ptr<Prog> prog_;
+    int64_t func_id_;
     std::string name_;
     std::vector<std::shared_ptr<Block>> blocks_;
     
@@ -56,6 +58,7 @@ public:
     
 private:
     FuncBuilder(std::shared_ptr<Prog> prog,
+                int64_t func_id,
                 std::string func_name,
                 int64_t& block_count);
     
