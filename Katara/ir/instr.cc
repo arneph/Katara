@@ -118,17 +118,17 @@ bool is_unary_al_operation_string(std::string op_str) {
 
 UnaryALOperation to_unary_al_operation(std::string op_str) {
     if (op_str == "not")
-        return kNot;
+        return UnaryALOperation::kNot;
     if (op_str == "neg")
-        return kNeg;
+        return UnaryALOperation::kNeg;
     throw "unknown unary al operation string";
 }
 
 std::string to_string(UnaryALOperation op) {
     switch (op) {
-        case kNot:
+        case UnaryALOperation::kNot:
             return "not";
-        case kNeg:
+        case UnaryALOperation::kNeg:
             return "neg";
     }
 }
@@ -183,41 +183,41 @@ bool is_binary_al_operation_string(std::string op_str) {
 
 BinaryALOperation to_binary_al_operation(std::string op_str) {
     if (op_str == "and")
-        return kAnd;
+        return BinaryALOperation::kAnd;
     if (op_str == "or")
-        return kOr;
+        return BinaryALOperation::kOr;
     if (op_str == "xor")
-        return kXor;
+        return BinaryALOperation::kXor;
     if (op_str == "add")
-        return kAdd;
+        return BinaryALOperation::kAdd;
     if (op_str == "sub")
-        return kSub;
+        return BinaryALOperation::kSub;
     if (op_str == "mul")
-        return kMul;
+        return BinaryALOperation::kMul;
     if (op_str == "div")
-        return kDiv;
+        return BinaryALOperation::kDiv;
     if (op_str == "rem")
-        return kRem;
+        return BinaryALOperation::kRem;
     throw "unknown binary al operation string";
 }
 
 std::string to_string(BinaryALOperation op) {
     switch (op) {
-        case kAnd:
+        case BinaryALOperation::kAnd:
             return "and";
-        case kOr:
+        case BinaryALOperation::kOr:
             return "or";
-        case kXor:
+        case BinaryALOperation::kXor:
             return "xor";
-        case kAdd:
+        case BinaryALOperation::kAdd:
             return "add";
-        case kSub:
+        case BinaryALOperation::kSub:
             return "sub";
-        case kMul:
+        case BinaryALOperation::kMul:
             return "mul";
-        case kDiv:
+        case BinaryALOperation::kDiv:
             return "div";
-        case kRem:
+        case BinaryALOperation::kRem:
             return "rem";
     }
 }
@@ -281,33 +281,33 @@ bool is_compare_operation_string(std::string op_str) {
 
 CompareOperation to_compare_operation(std::string op_str) {
     if (op_str == "eq")
-        return kEqual;
+        return CompareOperation::kEqual;
     if (op_str == "ne")
-        return kNotEqual;
+        return CompareOperation::kNotEqual;
     if (op_str == "gt")
-        return kGreater;
+        return CompareOperation::kGreater;
     if (op_str == "gte")
-        return kGreaterOrEqual;
+        return CompareOperation::kGreaterOrEqual;
     if (op_str == "lte")
-        return kLessOrEqual;
+        return CompareOperation::kLessOrEqual;
     if (op_str == "lt")
-        return kLess;
+        return CompareOperation::kLess;
     throw "unknown compare operation string";
 }
 
 std::string to_string(CompareOperation op) {
     switch (op) {
-        case kEqual:
+        case CompareOperation::kEqual:
             return "eq";
-        case kNotEqual:
+        case CompareOperation::kNotEqual:
             return "ne";
-        case kGreater:
+        case CompareOperation::kGreater:
             return "gt";
-        case kGreaterOrEqual:
+        case CompareOperation::kGreaterOrEqual:
             return "gte";
-        case kLessOrEqual:
+        case CompareOperation::kLessOrEqual:
             return "lte";
-        case kLess:
+        case CompareOperation::kLess:
             return "lt";
     }
 }

@@ -88,10 +88,10 @@ private:
     std::vector<InheritedValue> args_;
 };
 
-typedef enum : uint8_t {
+enum class UnaryALOperation : uint8_t {
     kNot,
     kNeg
-} UnaryALOperation;
+};
 
 extern bool is_unary_al_operation_string(std::string op_str);
 extern UnaryALOperation to_unary_al_operation(std::string op_str);
@@ -116,7 +116,7 @@ private:
     Value operand_;
 };
 
-typedef enum : uint8_t {
+enum class BinaryALOperation : uint8_t {
     kAnd,
     kOr,
     kXor,
@@ -125,7 +125,7 @@ typedef enum : uint8_t {
     kMul,
     kDiv,
     kRem
-} BinaryALOperation;
+};
 
 extern bool is_binary_al_operation_string(std::string op_str);
 extern BinaryALOperation to_binary_al_operation(std::string op_str);
@@ -153,14 +153,14 @@ private:
     Value operand_b_;
 };
 
-typedef enum : uint8_t {
+enum class CompareOperation : uint8_t {
     kEqual,
     kNotEqual,
     kGreater,
     kGreaterOrEqual,
     kLessOrEqual,
     kLess
-} CompareOperation;
+};
 
 extern bool is_compare_operation_string(std::string op_str);
 extern CompareOperation to_compare_operation(std::string op_str);
