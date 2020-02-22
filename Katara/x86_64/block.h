@@ -26,9 +26,9 @@ class Block {
 public:
     ~Block();
     
-    std::weak_ptr<Func> func() const;
+    Func * func() const;
     int64_t block_id() const;
-    const std::vector<std::unique_ptr<Instr>>& instrs() const;
+    const std::vector<Instr *>& instrs() const;
     
     BlockRef GetBlockRef() const;
     
@@ -39,9 +39,9 @@ public:
 private:
     Block();
     
-    std::weak_ptr<Func> func_;
+    Func *func_;
     int64_t block_id_;
-    std::vector<std::unique_ptr<Instr>> instrs_;
+    std::vector<Instr *> instrs_;
     
     friend class BlockBuilder;
 };
@@ -50,15 +50,15 @@ class BlockBuilder {
 public:
     ~BlockBuilder();
     
-    void AddInstr(std::unique_ptr<Instr> instr);
+    void AddInstr(Instr *instr);
     
-    std::shared_ptr<Block> block() const;
+    Block * block() const;
     
 private:
-    BlockBuilder(std::shared_ptr<Func> func,
+    BlockBuilder(Func *func,
                  int64_t block_id);
     
-    std::shared_ptr<Block> block_;
+    Block *block_;
     
     friend class FuncBuilder;
 };

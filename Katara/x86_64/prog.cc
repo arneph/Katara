@@ -15,7 +15,7 @@ namespace x86_64 {
 Prog::Prog() {}
 Prog::~Prog() {}
 
-const std::vector<std::shared_ptr<Func>> Prog::funcs() const {
+const std::vector<Func *> Prog::funcs() const {
     return funcs_;
 }
 
@@ -40,7 +40,7 @@ std::string Prog::ToString() const {
 }
 
 ProgBuilder::ProgBuilder() {
-    prog_ = std::unique_ptr<Prog>(new Prog());
+    prog_ = new Prog();
     block_count_ = 0;
 }
 
@@ -55,7 +55,7 @@ FuncBuilder ProgBuilder::AddFunc(std::string func_name) {
     return func_builder;
 }
 
-std::shared_ptr<Prog> ProgBuilder::prog() const {
+Prog * ProgBuilder::prog() const {
     return prog_;
 }
 

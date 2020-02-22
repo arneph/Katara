@@ -26,10 +26,10 @@ class Func {
 public:
     ~Func();
     
-    std::weak_ptr<Prog> prog() const;
+    Prog * prog() const;
     int64_t func_id() const;
     std::string name() const;
-    const std::vector<std::shared_ptr<Block>> blocks() const;
+    const std::vector<Block *> blocks() const;
     
     FuncRef GetFuncRef() const;
     
@@ -40,10 +40,10 @@ public:
 private:
     Func();
     
-    std::weak_ptr<Prog> prog_;
+    Prog *prog_;
     int64_t func_id_;
     std::string name_;
-    std::vector<std::shared_ptr<Block>> blocks_;
+    std::vector<Block *> blocks_;
     
     friend class FuncBuilder;
 };
@@ -54,15 +54,15 @@ public:
     
     BlockBuilder AddBlock();
     
-    std::shared_ptr<Func> func() const;
+    Func * func() const;
     
 private:
-    FuncBuilder(std::shared_ptr<Prog> prog,
+    FuncBuilder(Prog *prog,
                 int64_t func_id,
                 std::string func_name,
                 int64_t& block_count);
     
-    std::shared_ptr<Func> func_;
+    Func *func_;
     int64_t& block_count_;
     
     friend class ProgBuilder;

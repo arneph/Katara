@@ -64,69 +64,69 @@ void test_x86() {
     // Prolog:
     {
         x86_64::BlockBuilder prolog_block_builder = main_func_builder.AddBlock();
-        prolog_block_builder.AddInstr(std::make_unique<x86_64::Push>(x86_64::rbp));
-        prolog_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rbp, x86_64::rsp));
+        prolog_block_builder.AddInstr(new x86_64::Push(x86_64::rbp));
+        prolog_block_builder.AddInstr(new x86_64::Mov(x86_64::rbp, x86_64::rsp));
     }
     
     // Fibonacci numbers:
     {
         x86_64::BlockBuilder start_block_builder = main_func_builder.AddBlock();
-        start_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r15b, x86_64::Imm(int8_t{10})));
-        start_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r12, x86_64::Imm(int64_t{1})));
-        start_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r13, x86_64::Imm(int64_t{1})));
-        start_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::r12));
-        start_block_builder.AddInstr(std::make_unique<x86_64::Call>(x86_64::FuncRef(1235)));
+        start_block_builder.AddInstr(new x86_64::Mov(x86_64::r15b, x86_64::Imm(int8_t{10})));
+        start_block_builder.AddInstr(new x86_64::Mov(x86_64::r12, x86_64::Imm(int64_t{1})));
+        start_block_builder.AddInstr(new x86_64::Mov(x86_64::r13, x86_64::Imm(int64_t{1})));
+        start_block_builder.AddInstr(new x86_64::Mov(x86_64::rdi, x86_64::r12));
+        start_block_builder.AddInstr(new x86_64::Call(x86_64::FuncRef(1235)));
     }
     {
         x86_64::BlockBuilder loop_block_builder = main_func_builder.AddBlock();
-        loop_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::r12));
-        loop_block_builder.AddInstr(std::make_unique<x86_64::Call>(x86_64::FuncRef(1235)));
-        loop_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r14, x86_64::r12));
-        loop_block_builder.AddInstr(std::make_unique<x86_64::Add>(x86_64::r14, x86_64::r13));
-        loop_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r13, x86_64::r12));
-        loop_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::r12, x86_64::r14));
-        loop_block_builder.AddInstr(std::make_unique<x86_64::Sub>(x86_64::r15b, x86_64::Imm(int8_t{1})));
-        loop_block_builder.AddInstr(std::make_unique<x86_64::Jcc>(x86_64::Jcc::CondType::kAbove,
+        loop_block_builder.AddInstr(new x86_64::Mov(x86_64::rdi, x86_64::r12));
+        loop_block_builder.AddInstr(new x86_64::Call(x86_64::FuncRef(1235)));
+        loop_block_builder.AddInstr(new x86_64::Mov(x86_64::r14, x86_64::r12));
+        loop_block_builder.AddInstr(new x86_64::Add(x86_64::r14, x86_64::r13));
+        loop_block_builder.AddInstr(new x86_64::Mov(x86_64::r13, x86_64::r12));
+        loop_block_builder.AddInstr(new x86_64::Mov(x86_64::r12, x86_64::r14));
+        loop_block_builder.AddInstr(new x86_64::Sub(x86_64::r15b, x86_64::Imm(int8_t{1})));
+        loop_block_builder.AddInstr(new x86_64::Jcc(x86_64::Jcc::CondType::kAbove,
                                                                loop_block_builder.block()->GetBlockRef()));
     }
     
     // Hello world (Syscall test):
     {
         x86_64::BlockBuilder hello_block_builder = main_func_builder.AddBlock();
-        hello_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rax, x86_64::Imm(int64_t{0x2000004})));  // write
-        hello_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::Imm(int32_t{1})));          // stdout
-        hello_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rsi, str_c));                            // const char
-        hello_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdx, x86_64::Imm(int32_t{13})));         // size
-        hello_block_builder.AddInstr(std::make_unique<x86_64::Syscall>());
+        hello_block_builder.AddInstr(new x86_64::Mov(x86_64::rax, x86_64::Imm(int64_t{0x2000004})));  // write
+        hello_block_builder.AddInstr(new x86_64::Mov(x86_64::rdi, x86_64::Imm(int32_t{1})));          // stdout
+        hello_block_builder.AddInstr(new x86_64::Mov(x86_64::rsi, str_c));                            // const char
+        hello_block_builder.AddInstr(new x86_64::Mov(x86_64::rdx, x86_64::Imm(int32_t{13})));         // size
+        hello_block_builder.AddInstr(new x86_64::Syscall());
         //hello_block_builder.AddInstr(std::make_unique<x86_64::Jmp>(hello_block_builder.block()->GetBlockRef()));
     }
         
     // Other tests:
     {
         x86_64::BlockBuilder test_block_builder = main_func_builder.AddBlock();
-        test_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::Imm(int32_t{1})));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rsi, x86_64::Imm(int32_t{2})));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Call>(x86_64::FuncRef(1234)));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::rax));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Sub>(x86_64::rdi, x86_64::rax));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Add>(x86_64::rdi, x86_64::rax));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Add>(x86_64::rdi, x86_64::Imm(int8_t{17})));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Sub>(x86_64::rdi, x86_64::Imm(int8_t{6})));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Call>(x86_64::FuncRef(1235)));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rdi, x86_64::Imm(int32_t{1233})));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Sub>(x86_64::rdi, x86_64::Imm(int32_t{-1})));
-        test_block_builder.AddInstr(std::make_unique<x86_64::Call>(x86_64::FuncRef(1235)));
+        test_block_builder.AddInstr(new x86_64::Mov(x86_64::rdi, x86_64::Imm(int32_t{1})));
+        test_block_builder.AddInstr(new x86_64::Mov(x86_64::rsi, x86_64::Imm(int32_t{2})));
+        test_block_builder.AddInstr(new x86_64::Call(x86_64::FuncRef(1234)));
+        test_block_builder.AddInstr(new x86_64::Mov(x86_64::rdi, x86_64::rax));
+        test_block_builder.AddInstr(new x86_64::Sub(x86_64::rdi, x86_64::rax));
+        test_block_builder.AddInstr(new x86_64::Add(x86_64::rdi, x86_64::rax));
+        test_block_builder.AddInstr(new x86_64::Add(x86_64::rdi, x86_64::Imm(int8_t{17})));
+        test_block_builder.AddInstr(new x86_64::Sub(x86_64::rdi, x86_64::Imm(int8_t{6})));
+        test_block_builder.AddInstr(new x86_64::Call(x86_64::FuncRef(1235)));
+        test_block_builder.AddInstr(new x86_64::Mov(x86_64::rdi, x86_64::Imm(int32_t{1233})));
+        test_block_builder.AddInstr(new x86_64::Sub(x86_64::rdi, x86_64::Imm(int32_t{-1})));
+        test_block_builder.AddInstr(new x86_64::Call(x86_64::FuncRef(1235)));
     }
         
     // Epilog:
     {
         x86_64::BlockBuilder epilog_block_builder = main_func_builder.AddBlock();
-        epilog_block_builder.AddInstr(std::make_unique<x86_64::Mov>(x86_64::rsp, x86_64::rbp));
-        epilog_block_builder.AddInstr(std::make_unique<x86_64::Pop>(x86_64::rbp));
-        epilog_block_builder.AddInstr(std::make_unique<x86_64::Ret>());
+        epilog_block_builder.AddInstr(new x86_64::Mov(x86_64::rsp, x86_64::rbp));
+        epilog_block_builder.AddInstr(new x86_64::Pop(x86_64::rbp));
+        epilog_block_builder.AddInstr(new x86_64::Ret());
     }
     
-    std::shared_ptr<x86_64::Prog> prog = prog_builder.prog();
+    x86_64::Prog *prog = prog_builder.prog();
     
     std::cout << prog->ToString() << std::endl << std::endl;
     

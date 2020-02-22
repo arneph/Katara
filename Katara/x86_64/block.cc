@@ -17,7 +17,7 @@ namespace x86_64 {
 Block::Block() {}
 Block::~Block() {}
 
-std::weak_ptr<Func> Block::func() const {
+Func * Block::func() const {
     return func_;
 }
 
@@ -25,7 +25,7 @@ int64_t Block::block_id() const {
     return block_id_;
 }
 
-const std::vector<std::unique_ptr<Instr>>& Block::instrs() const {
+const std::vector<Instr *>& Block::instrs() const {
     return instrs_;
 }
 
@@ -56,20 +56,20 @@ std::string Block::ToString() const {
     return ss.str();
 }
 
-BlockBuilder::BlockBuilder(std::shared_ptr<Func> func,
+BlockBuilder::BlockBuilder(Func *func,
                            int64_t block_id) {
-    block_ = std::shared_ptr<Block>(new Block());
+    block_ = new Block();
     block_->func_ = func;
     block_->block_id_ = block_id;
 }
 
 BlockBuilder::~BlockBuilder() {}
 
-void BlockBuilder::AddInstr(std::unique_ptr<Instr> instr) {
-    block_->instrs_.push_back(std::move(instr));
+void BlockBuilder::AddInstr(Instr *instr) {
+    block_->instrs_.push_back(instr);
 }
 
-std::shared_ptr<Block> BlockBuilder::block() const {
+Block * BlockBuilder::block() const {
     return block_;
 }
 

@@ -15,7 +15,7 @@ namespace x86_64 {
 Func::Func() {}
 Func::~Func() {}
 
-std::weak_ptr<Prog> Func::prog() const {
+Prog * Func::prog() const {
     return prog_;
 }
 
@@ -27,7 +27,7 @@ std::string Func::name() const {
     return name_;
 }
 
-const std::vector<std::shared_ptr<Block>> Func::blocks() const {
+const std::vector<Block *> Func::blocks() const {
     return blocks_;
 }
 
@@ -58,12 +58,12 @@ std::string Func::ToString() const {
     return ss.str();
 }
 
-FuncBuilder::FuncBuilder(std::shared_ptr<Prog> prog,
+FuncBuilder::FuncBuilder(Prog *prog,
                          int64_t func_id,
                          std::string func_name,
                          int64_t& block_count)
     : block_count_(block_count) {
-    func_ = std::shared_ptr<Func>(new Func());
+    func_ = new Func();
     func_->prog_ = prog;
     func_->name_ = func_name;
     func_->func_id_ = func_id;
@@ -80,7 +80,7 @@ BlockBuilder FuncBuilder::AddBlock() {
     return block_builder;
 }
 
-std::shared_ptr<Func> FuncBuilder::func() const {
+Func * FuncBuilder::func() const {
     return func_;
 }
 

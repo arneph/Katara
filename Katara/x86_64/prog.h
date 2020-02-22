@@ -23,7 +23,7 @@ class Prog {
 public:
     ~Prog();
     
-    const std::vector<std::shared_ptr<Func>> funcs() const;
+    const std::vector<Func *> funcs() const;
     
     int64_t Encode(Linker *linker,
                    common::data code) const;
@@ -32,7 +32,7 @@ public:
 private:
     Prog();
     
-    std::vector<std::shared_ptr<Func>> funcs_;
+    std::vector<Func *> funcs_;
     
     friend class ProgBuilder;
 };
@@ -44,10 +44,10 @@ public:
     
     FuncBuilder AddFunc(std::string func_name);
     
-    std::shared_ptr<Prog> prog() const;
+    Prog * prog() const;
     
 private:
-    std::shared_ptr<Prog> prog_;
+    Prog *prog_;
     int64_t func_count_;
     int64_t block_count_;
 };
