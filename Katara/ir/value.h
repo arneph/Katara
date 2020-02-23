@@ -33,6 +33,7 @@ enum class Type : int8_t {
 
 extern bool is_integral(Type type);
 extern bool is_unsigned(Type type);
+extern int8_t size(Type type);
 extern Type to_type(std::string type_str);
 extern std::string to_string(Type type);
 

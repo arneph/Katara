@@ -49,6 +49,27 @@ bool is_unsigned(Type type) {
     }
 }
 
+extern int8_t size(Type type) {
+    switch (type) {
+        case Type::kBool:
+        case Type::kI8:
+        case Type::kU8:
+            return 8;
+        case Type::kI16:
+        case Type::kU16:
+            return 16;
+        case Type::kI32:
+        case Type::kU32:
+            return 32;
+        case Type::kI64:
+        case Type::kU64:
+        case Type::kFunc:
+            return 64;
+        default:
+            throw "type has no associated size";
+    }
+}
+
 Type to_type(std::string type_str) {
     if (type_str == "b")
         return Type::kBool;
