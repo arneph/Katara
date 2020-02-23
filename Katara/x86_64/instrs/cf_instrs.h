@@ -13,6 +13,7 @@
 #include <string>
 
 #include "common/data.h"
+#include "x86_64/instrs/instr_cond.h"
 #include "x86_64/mc/linker.h"
 #include "x86_64/mc/unlinker.h"
 #include "x86_64/instr.h"
@@ -22,43 +23,10 @@ namespace x86_64 {
 
 class Jcc final : public Instr {
 public:
-    typedef enum : int8_t {
-        kOverflow       = 0x00,
-        kNoOverflow     = 0x01,
-        kCarry          = 0x02,
-        kNoCarry        = 0x03,
-        kZero           = 0x04,
-        kNoZero         = 0x05,
-        kCarryZero      = 0x06,
-        kNoCarryZero    = 0x07,
-        kSign           = 0x08,
-        kNoSign         = 0x09,
-        kParity         = 0x0a,
-        kNoParity       = 0x0b,
-        kParityEven     = kParity,
-        kParityOdd      = kNoParity,
-        
-        // all integers:
-        kEqual          = kZero,
-        kNotEqual       = kNoZero,
-        
-        // unsigned integers:
-        kAbove          = kNoCarryZero,
-        kAboveOrEqual   = kNoCarry,
-        kBelowOrEqual   = kCarryZero,
-        kBelow          = kCarry,
-        
-        // signed integers:
-        kGreater        = 0x0f,
-        kGreaterOrEqual = 0x0d,
-        kLessOrEqual    = 0x0e,
-        kLess           = 0x0c
-    } CondType;
-    
-    Jcc(CondType cond, BlockRef block_ref);
+    Jcc(InstrCond cond, BlockRef block_ref);
     ~Jcc() override;
 
-    CondType cond() const;
+    InstrCond cond() const;
     BlockRef dst() const;
     
     int8_t Encode(Linker *linker,
@@ -66,9 +34,7 @@ public:
     std::string ToString() const override;
     
 private:
-    std::string CondAsOpcodeString() const;
-    
-    CondType cond_;
+    InstrCond cond_;
     BlockRef dst_;
 };
 

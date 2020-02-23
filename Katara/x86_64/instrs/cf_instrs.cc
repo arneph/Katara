@@ -15,11 +15,13 @@
 
 namespace x86_64 {
 
-Jcc::Jcc(Jcc::CondType cond, BlockRef block_ref)
+extern 
+
+Jcc::Jcc(InstrCond cond, BlockRef block_ref)
     : cond_(cond), dst_(block_ref) {}
 Jcc::~Jcc() {}
 
-Jcc::CondType Jcc::cond() const {
+InstrCond Jcc::cond() const {
     return cond_;
 }
 
@@ -41,29 +43,8 @@ int8_t Jcc::Encode(Linker *linker,
     return 6;
 }
 
-std::string Jcc::CondAsOpcodeString() const {
-    switch (cond_) {
-        case CondType::kOverflow:       return "jo";
-        case CondType::kNoOverflow:     return "jno";
-        case CondType::kSign:           return "js";
-        case CondType::kNoSign:         return "jns";
-        case CondType::kParityEven:     return "jpe";
-        case CondType::kParityOdd:      return "jpo";
-        case CondType::kEqual:          return "je";
-        case CondType::kNotEqual:       return "jne";
-        case CondType::kAbove:          return "ja";
-        case CondType::kAboveOrEqual:   return "jae";
-        case CondType::kBelowOrEqual:   return "jbe";
-        case CondType::kBelow:          return "jb";
-        case CondType::kGreater:        return "jg";
-        case CondType::kGreaterOrEqual: return "jge";
-        case CondType::kLessOrEqual:    return "jle";
-        case CondType::kLess:           return "jl";
-    }
-}
-
 std::string Jcc::ToString() const {
-    return CondAsOpcodeString() + " " + dst_.ToString();
+    return "j" + to_suffix_string(cond_) + " " + dst_.ToString();
 }
 
 Jmp::Jmp(RM rm) : dst_(rm) {

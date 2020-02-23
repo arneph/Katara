@@ -14,12 +14,12 @@
 
 namespace x86_64 {
 
-enum class Size : uint8_t {
+typedef enum : int8_t {
     k8 = 8,
     k16 = 16,
     k32 = 32,
     k64 = 64,
-};
+} Size;
 
 class Reg {
 public:

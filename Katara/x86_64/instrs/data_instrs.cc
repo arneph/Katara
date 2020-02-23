@@ -253,4 +253,37 @@ std::string Pop::ToString() const {
     return "pop " + op_.ToString();
 }
 
+Setcc::Setcc(InstrCond cond, RM op) : cond_(cond), op_(op) {
+    if (op.size() != k8)
+        throw "unsupported rm size";
+}
+
+Setcc::~Setcc() {}
+
+InstrCond Setcc::cond() const {
+    return cond_;
+}
+
+RM Setcc::op() const {
+    return op_;
+}
+
+int8_t Setcc::Encode(Linker *linker,
+                     common::data code) const {
+    coding::InstrEncoder encoder(code);
+    
+    if (op_.RequiresREX()) {
+        encoder.EncodeREX();
+    }
+    
+    encoder.EncodeOpcode(0x0f, 0x90 | cond_);
+    encoder.EncodeRM(op_);
+    
+    return encoder.size();
+}
+
+std::string Setcc::ToString() const {
+    return "set" + to_suffix_string(cond_) + " " + op_.ToString();
+}
+
 }

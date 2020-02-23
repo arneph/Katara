@@ -17,6 +17,7 @@
 #include "x86_64/mc/unlinker.h"
 #include "x86_64/instr.h"
 #include "x86_64/ops.h"
+#include "x86_64/instrs/cf_instrs.h"
 
 namespace x86_64 {
 
@@ -91,6 +92,23 @@ public:
     std::string ToString() const override;
     
 private:
+    RM op_;
+};
+
+class Setcc final : public Instr {
+public:
+    Setcc(InstrCond cond, RM op);
+    ~Setcc() override;
+    
+    InstrCond cond() const;
+    RM op() const;
+    
+    int8_t Encode(Linker *linker,
+                  common::data code) const override;
+    std::string ToString() const override;
+    
+private:
+    InstrCond cond_;
     RM op_;
 };
 
