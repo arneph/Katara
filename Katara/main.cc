@@ -86,8 +86,8 @@ void test_x86() {
         loop_block_builder.AddInstr(new x86_64::Mov(x86_64::r13, x86_64::r12));
         loop_block_builder.AddInstr(new x86_64::Mov(x86_64::r12, x86_64::r14));
         loop_block_builder.AddInstr(new x86_64::Sub(x86_64::r15b, x86_64::Imm(int8_t{1})));
-        loop_block_builder.AddInstr(new x86_64::Jcc(x86_64::Jcc::CondType::kAbove,
-                                                               loop_block_builder.block()->GetBlockRef()));
+        loop_block_builder.AddInstr(new x86_64::Jcc(x86_64::InstrCond::kAbove,
+                                                    loop_block_builder.block()->GetBlockRef()));
     }
     
     // Hello world (Syscall test):
