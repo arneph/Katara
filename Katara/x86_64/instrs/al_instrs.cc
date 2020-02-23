@@ -34,31 +34,44 @@ int8_t UnaryALInstr::Encode(Linker *linker,
     return encoder.size();
 }
 
-BinaryALInstr::BinaryALInstr(RM rm, Imm imm) : op_a_(rm), op_b_(imm) {
-    if (imm.size() == Size::k64)
-        throw "unsupported imm size";
-    if (rm.size() == imm.size() ||
-        (rm.size() == Size::k64 && imm.size() == Size::k32)) {
-        op_encoding_ = OpEncoding::kRM_IMM;
-    } else if (imm.size() == Size::k8) {
-        op_encoding_ = OpEncoding::kRM_IMM8;
+BinaryALInstr::BinaryALInstr(RM op_a, Operand op_b)
+    : op_a_(op_a), op_b_(op_b) {
+    if (op_b.is_imm()) {
+        if (op_b.size() == Size::k64)
+            throw "unsupported imm size";
+        
+        if (op_a.size() == op_b.size() ||
+            (op_a.size() == Size::k64 && op_b.size() == Size::k32)) {
+            op_encoding_ = OpEncoding::kRM_IMM;
+            
+        } else if (op_b.size() == Size::k8) {
+            op_encoding_ = OpEncoding::kRM_IMM8;
+            
+        } else {
+            throw "unsupported rm size, imm size combination";
+        }
+        
     } else {
-        throw "unsupported rm size, imm size combination";
+        if (op_a.size() != op_b.size())
+            throw "unsupported rm size, reg size combination";
+        
+        if (op_a.is_reg()) {
+            op_encoding_ = OpEncoding::kREG_RM;
+            
+        } else if (op_a.is_mem()) {
+            if (op_b.is_reg()) {
+                op_encoding_ = OpEncoding::kRM_REG;
+                
+            } else if (op_b.is_mem()) {
+                throw "unsupported binary al instr: mem with mem";
+            } else {
+                throw "unexpected operand kind";
+            }
+            
+        } else {
+            throw "unexpected operand kind";
+        }
     }
-}
-
-BinaryALInstr::BinaryALInstr(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
-    if (rm.size() != reg.size())
-        throw "unsupported rm size, reg size combination";
-    
-    op_encoding_ = OpEncoding::kRM_REG;
-}
-
-BinaryALInstr::BinaryALInstr(Reg reg, Mem mem) : op_a_(reg), op_b_(mem) {
-    if (reg.size() != mem.size())
-        throw "unsupported reg size, mem size combination";
-    
-    op_encoding_ = OpEncoding::kREG_RM;
 }
 
 BinaryALInstr::OpEncoding BinaryALInstr::op_encoding() const {

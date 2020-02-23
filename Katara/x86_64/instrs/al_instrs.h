@@ -44,9 +44,7 @@ private:
 
 class BinaryALInstr : public Instr {
 public:
-    BinaryALInstr(RM rm, Imm imm);
-    BinaryALInstr(RM rm, Reg reg);
-    BinaryALInstr(Reg reg, Mem mem);
+    BinaryALInstr(RM op_a, Operand op_b);
     virtual ~BinaryALInstr() override {}
     
     RM op_a() const;
