@@ -13,6 +13,9 @@
 #include <unordered_set>
 
 #include "ir/func.h"
+#include "ir/block.h"
+#include "ir/instr.h"
+#include "ir/value.h"
 
 #include "ir_info/func_live_range_info.h"
 
