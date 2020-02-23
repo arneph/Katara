@@ -22,11 +22,7 @@ namespace x86_64 {
 
 class Mov final : public Instr {
 public:
-    Mov(Reg dst, Reg src);
-    Mov(Mem dst, Reg src);
-    Mov(Reg dst, Mem src);
-    Mov(Reg dst, Imm src);
-    Mov(Mem dst, Imm src);
+    Mov(RM dst, Operand src);
     ~Mov() override;
     
     RM dst() const;

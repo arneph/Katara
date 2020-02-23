@@ -12,44 +12,50 @@
 
 namespace x86_64 {
 
-Mov::Mov(Reg dst, Reg src) : dst_(dst), src_(src) {
-    if (dst.size() != src.size())
-        throw "unsupported reg size, reg size combination";
-    
-    mov_type_ = MovType::kRM_REG;
-}
-
-Mov::Mov(Mem dst, Reg src) : dst_(dst), src_(src) {
-    if (dst.size() != src.size())
-        throw "unsupported mem size, reg size combination";
-    
-    mov_type_ = MovType::kRM_REG;
-}
-
-Mov::Mov(Reg dst, Mem src) : dst_(dst), src_(src) {
-    if (dst.size() != src.size())
-        throw "unsupported reg size, mem size combination";
-    
-    mov_type_ = MovType::kREG_RM;
-}
-
-Mov::Mov(Reg dst, Imm src) : dst_(dst), src_(src) {
-    if (dst.size() == src.size() ||
-        (dst.size() == Size::k64 && src.size() == Size::k32)) {
-        mov_type_ = MovType::kREG_IMM;
+Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
+    if (dst.is_reg()) {
+        if (src.is_imm()) {
+            if (dst.size() == src.size() ||
+                (dst.size() == Size::k64 && src.size() == Size::k32)) {
+                mov_type_ = MovType::kREG_IMM;
+            } else {
+                throw "unsupported reg size, imm size combination";
+            }
+            
+        } else if (src.is_reg() || src.is_mem()) {
+            if (dst.size() != src.size())
+                throw "unsupported reg size, reg/mem size combination";
+            mov_type_ = MovType::kREG_RM;
+            
+        } else {
+            throw "unexpected src operand kind";
+        }
+        
+    } else if (dst.is_mem()) {
+        if (src.is_imm()) {
+            if (src.size() == Size::k64)
+                throw "unsupported imm size";
+            if (dst.size() == src.size() ||
+                (dst.size() == Size::k64 && src.size() == Size::k32)) {
+                mov_type_ = MovType::kRM_IMM;
+            } else {
+                throw "unsupported mem size, imm size combination";
+            }
+            
+        } else if (src.is_reg()) {
+            if (dst.size() != src.size())
+                throw "unsupported mem size, reg size combination";
+            mov_type_ = MovType::kRM_REG;
+            
+        } else if (src.is_mem()) {
+            throw "unsupported mov: mem to mem";
+            
+        } else {
+            throw "unexpected src operand kind";
+        }
+        
     } else {
-        throw "unsupported reg size, imm size combination";
-    }
-}
-
-Mov::Mov(Mem dst, Imm src) : dst_(dst), src_(src) {
-    if (src.size() == Size::k64)
-        throw "unsupported imm size";
-    if (dst.size() == src.size() ||
-        (dst.size() == Size::k64 && src.size() == Size::k32)) {
-        mov_type_ = MovType::kRM_IMM;
-    } else {
-        throw "unsupported mem size, imm size combination";
+        throw "unexpected dst operand kind";
     }
 }
 
