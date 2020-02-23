@@ -308,6 +308,7 @@ private:
 };
 
 class Test final : public Instr {
+public:
     Test(RM rm, Imm imm);
     Test(RM rm, Reg reg);
     
