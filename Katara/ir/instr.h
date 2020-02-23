@@ -162,6 +162,8 @@ enum class CompareOperation : uint8_t {
     kLess
 };
 
+extern CompareOperation comuted(CompareOperation op);
+extern CompareOperation negated(CompareOperation op);
 extern bool is_compare_operation_string(std::string op_str);
 extern CompareOperation to_compare_operation(std::string op_str);
 extern std::string to_string(CompareOperation op);

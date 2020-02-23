@@ -270,6 +270,48 @@ std::string BinaryALInstr::ToString() const {
            + ", " + operand_b_.ToString();
 }
 
+CompareOperation comuted(CompareOperation op) {
+    switch (op) {
+        case CompareOperation::kEqual:
+        case CompareOperation::kNotEqual:
+            return op;
+            
+        case CompareOperation::kGreater:
+            return CompareOperation::kLess;
+            
+        case CompareOperation::kGreaterOrEqual:
+            return CompareOperation::kLessOrEqual;
+            
+        case CompareOperation::kLessOrEqual:
+            return CompareOperation::kGreaterOrEqual;
+            
+        case CompareOperation::kLess:
+            return CompareOperation::kGreater;
+    }
+}
+
+CompareOperation negated(CompareOperation op) {
+    switch (op) {
+        case CompareOperation::kEqual:
+            return CompareOperation::kNotEqual;
+            
+        case CompareOperation::kNotEqual:
+            return CompareOperation::kEqual;
+            
+        case CompareOperation::kGreater:
+            return CompareOperation::kLessOrEqual;
+            
+        case CompareOperation::kGreaterOrEqual:
+            return CompareOperation::kLess;
+            
+        case CompareOperation::kLessOrEqual:
+            return CompareOperation::kGreater;
+            
+        case CompareOperation::kLess:
+            return CompareOperation::kGreaterOrEqual;
+    }
+}
+
 bool is_compare_operation_string(std::string op_str) {
     return op_str == "eq"
         || op_str == "ne"
