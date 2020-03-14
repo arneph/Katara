@@ -1,0 +1,20 @@
+Func0:
+BB0:
+	mov al,0x01
+	mov bl,0x01
+	mov dl,0x0a
+	jmp BB1
+BB1:
+	cmp dl,0x00
+	sete cl
+	test cl,0x01
+	jne BB3
+	jmp BB2
+BB2:
+	mov cl,al
+	add cl,bl
+	sub dl,0x01
+	mov al,bl
+	mov bl,cl
+	jmp BB1
+BB3:

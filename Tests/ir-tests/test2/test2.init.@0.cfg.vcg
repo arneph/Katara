@@ -1,0 +1,10 @@
+graph: { title: "Graph"
+node: {
+title: "0"
+color: white
+label: 
+"{0} entry
+00 %2:i64 = add:i64 %0, %1
+01 ret %2:i64"
+}
+}

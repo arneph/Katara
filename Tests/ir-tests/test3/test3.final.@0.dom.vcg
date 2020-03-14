@@ -15,18 +15,6 @@ label:
 94 ret"
 }
 node: {
-title: "17"
-color: white
-label: 
-"{17}
-80 %68:i64 = phi %74:{6}, %62:{16}
-81 %69:i64 = phi %75:{6}, %63:{16}
-82 %70:i64 = phi %27:{6}, %67:{16}
-83 %71:i64 = phi %25:{6}, %77:{16}
-84 %72:i64 = phi %79:{6}, %65:{16}
-85 jmp {1}"
-}
-node: {
 title: "15"
 color: white
 label: 
@@ -34,6 +22,10 @@ label:
 69 %125:i64 = mul:i64 %48, %75
 70 %126:i64 = div:i64 %125, #4
 71 %61:i64 = mov %126
+114 %62:i64 = mov %57
+116 %63:i64 = mov %61
+118 %64:i64 = mov %48
+120 %65:i64 = mov %58
 72 jmp {16}"
 }
 node: {
@@ -45,6 +37,8 @@ label:
 65 %53:i64 = mov %123
 66 %124:i64 = add:i64 %57, #1
 67 %55:i64 = mov %124
+96 %57:i64 = mov %55
+98 %58:i64 = mov %53
 68 jmp {13}"
 }
 node: {
@@ -52,8 +46,6 @@ title: "13"
 color: white
 label: 
 "{13}
-59 %57:i64 = phi %74:{12}, %55:{14}
-60 %58:i64 = phi %79:{12}, %53:{14}
 61 %121:i64 = sub:i64 %58, #8
 62 %122:b = eq:i64 %121, %57
 63 jcc %122, {15}, {14}"
@@ -64,96 +56,9 @@ color: white
 label: 
 "{12}
 57 %48:i64 = mov #725
+95 %57:i64 = mov %74
+97 %58:i64 = mov %79
 58 jmp {13}"
-}
-node: {
-title: "9"
-color: white
-label: 
-"{9}
-44 %43:i64 = phi %34:{8}, %41:{10}
-45 %44:i64 = phi %79:{8}, %39:{10}
-46 %116:i64 = sub:i64 %44, #7
-47 %117:b = eq:i64 %116, %43
-48 jcc %117, {11}, {10}"
-}
-node: {
-title: "5"
-color: white
-label: 
-"{5}
-31 %110:i64 = add:i64 %25, #1
-32 %23:i64 = mov %110
-33 jmp {4}"
-}
-node: {
-title: "8"
-color: white
-label: 
-"{8}
-39 %113:i64 = mul:i64 %75, %75
-40 %114:i64 = mul:i64 %113, #7
-41 %115:i64 = sub:i64 %114, #2
-42 %34:i64 = mov %115
-43 jmp {9}"
-}
-node: {
-title: "10"
-color: white
-label: 
-"{10}
-49 %118:i64 = sub:i64 %44, #1
-50 %39:i64 = mov %118
-51 %119:i64 = add:i64 %43, #1
-52 %41:i64 = mov %119
-53 jmp {9}"
-}
-node: {
-title: "16"
-color: white
-label: 
-"{16}
-73 %62:i64 = phi %43:{11}, %57:{15}
-74 %63:i64 = phi %46:{11}, %61:{15}
-75 %64:i64 = phi %76:{11}, %48:{15}
-76 %65:i64 = phi %44:{11}, %58:{15}
-77 %127:i64 = add:i64 %64, %77
-78 %67:i64 = mov %127
-79 jmp {17}"
-}
-node: {
-title: "1"
-color: white
-label: 
-"{1}
-09 %74:i64 = phi %4:{0}, %68:{17}
-10 %75:i64 = phi %5:{0}, %69:{17}
-11 %76:i64 = phi %6:{0}, %70:{17}
-12 %77:i64 = phi %7:{0}, %71:{17}
-13 %78:i64 = phi %0:{0}, %14:{17}
-14 %79:i64 = phi %3:{0}, %72:{17}
-15 %101:i64 = div:i64 %1, #4
-16 %102:i64 = add:i64 %101, #5
-17 %103:b = gte:i64 %102, #8
-18 jcc %103, {18}, {2}"
-}
-node: {
-title: "7"
-color: white
-label: 
-"{7}
-37 %112:b = lt:i64 %2, %79
-38 jcc %112, {12}, {8}"
-}
-node: {
-title: "3"
-color: white
-label: 
-"{3}
-24 %107:i64 = sub:i64 %76, #5
-25 %108:i64 = mul:i64 %107, %77
-26 %19:i64 = mov %108
-27 jmp {4}"
 }
 node: {
 title: "11"
@@ -162,36 +67,24 @@ label:
 "{11}
 54 %120:i64 = mul:i64 %75, %43
 55 %46:i64 = mov %120
+113 %62:i64 = mov %43
+115 %63:i64 = mov %46
+117 %64:i64 = mov %76
+119 %65:i64 = mov %44
 56 jmp {16}"
 }
 node: {
-title: "6"
+title: "17"
 color: white
 label: 
-"{6}
-34 %111:i64 = add:i64 %19, %25
-35 %27:i64 = mov %111
-36 jmp {17}"
-}
-node: {
-title: "4"
-color: white
-label: 
-"{4}
-28 %25:i64 = phi %77:{3}, %23:{5}
-29 %109:b = lte:i64 %19, %25
-30 jcc %109, {6}, {5}"
-}
-node: {
-title: "2"
-color: white
-label: 
-"{2}
-19 %104:i64 = mul:i64 %78, #7
-20 %105:i64 = add:i64 %104, #9
-21 %14:i64 = mov %105
-22 %106:b = gte:i64 %2, %79
-23 jcc %106, {7}, {3}"
+"{17}
+124 %74:i64 = mov %68
+126 %75:i64 = mov %69
+128 %76:i64 = mov %70
+130 %77:i64 = mov %71
+132 %78:i64 = mov %14
+134 %79:i64 = mov %72
+85 jmp {1}"
 }
 node: {
 title: "0"
@@ -206,24 +99,151 @@ label:
 05 %5:i64 = mov #6
 06 %6:i64 = mov #7
 07 %7:i64 = mov #8
+123 %74:i64 = mov %4
+125 %75:i64 = mov %5
+127 %76:i64 = mov %6
+129 %77:i64 = mov %7
+131 %78:i64 = mov %0
+133 %79:i64 = mov %3
 08 jmp {1}"
+}
+node: {
+title: "10"
+color: white
+label: 
+"{10}
+49 %118:i64 = sub:i64 %44, #1
+50 %39:i64 = mov %118
+51 %119:i64 = add:i64 %43, #1
+52 %41:i64 = mov %119
+110 %43:i64 = mov %41
+112 %44:i64 = mov %39
+53 jmp {9}"
+}
+node: {
+title: "9"
+color: white
+label: 
+"{9}
+46 %116:i64 = sub:i64 %44, #7
+47 %117:b = eq:i64 %116, %43
+48 jcc %117, {11}, {10}"
+}
+node: {
+title: "8"
+color: white
+label: 
+"{8}
+39 %113:i64 = mul:i64 %75, %75
+40 %114:i64 = mul:i64 %113, #7
+41 %115:i64 = sub:i64 %114, #2
+42 %34:i64 = mov %115
+109 %43:i64 = mov %34
+111 %44:i64 = mov %79
+43 jmp {9}"
+}
+node: {
+title: "6"
+color: white
+label: 
+"{6}
+34 %111:i64 = add:i64 %19, %25
+35 %27:i64 = mov %111
+99 %68:i64 = mov %74
+101 %69:i64 = mov %75
+103 %70:i64 = mov %27
+105 %71:i64 = mov %25
+107 %72:i64 = mov %79
+36 jmp {17}"
+}
+node: {
+title: "16"
+color: white
+label: 
+"{16}
+77 %127:i64 = add:i64 %64, %77
+78 %67:i64 = mov %127
+100 %68:i64 = mov %62
+102 %69:i64 = mov %63
+104 %70:i64 = mov %67
+106 %71:i64 = mov %77
+108 %72:i64 = mov %65
+79 jmp {17}"
+}
+node: {
+title: "5"
+color: white
+label: 
+"{5}
+31 %110:i64 = add:i64 %25, #1
+32 %23:i64 = mov %110
+122 %25:i64 = mov %23
+33 jmp {4}"
+}
+node: {
+title: "3"
+color: white
+label: 
+"{3}
+24 %107:i64 = sub:i64 %76, #5
+25 %108:i64 = mul:i64 %107, %77
+26 %19:i64 = mov %108
+121 %25:i64 = mov %77
+27 jmp {4}"
+}
+node: {
+title: "4"
+color: white
+label: 
+"{4}
+29 %109:b = lte:i64 %19, %25
+30 jcc %109, {6}, {5}"
+}
+node: {
+title: "7"
+color: white
+label: 
+"{7}
+37 %112:b = lt:i64 %2, %79
+38 jcc %112, {12}, {8}"
+}
+node: {
+title: "1"
+color: white
+label: 
+"{1}
+15 %101:i64 = div:i64 %1, #4
+16 %102:i64 = add:i64 %101, #5
+17 %103:b = gte:i64 %102, #8
+18 jcc %103, {18}, {2}"
+}
+node: {
+title: "2"
+color: white
+label: 
+"{2}
+19 %104:i64 = mul:i64 %78, #7
+20 %105:i64 = add:i64 %104, #9
+21 %14:i64 = mov %105
+22 %106:b = gte:i64 %2, %79
+23 jcc %106, {7}, {3}"
 }
 edge: { sourcename: "13" targetname: "14" arrowstyle: solid}
 edge: { sourcename: "13" targetname: "15" arrowstyle: solid}
 edge: { sourcename: "12" targetname: "13" arrowstyle: solid}
+edge: { sourcename: "0" targetname: "1" arrowstyle: solid}
 edge: { sourcename: "9" targetname: "10" arrowstyle: solid}
 edge: { sourcename: "9" targetname: "11" arrowstyle: solid}
 edge: { sourcename: "8" targetname: "9" arrowstyle: solid}
-edge: { sourcename: "1" targetname: "2" arrowstyle: solid}
-edge: { sourcename: "1" targetname: "18" arrowstyle: solid}
-edge: { sourcename: "7" targetname: "16" arrowstyle: solid}
-edge: { sourcename: "7" targetname: "8" arrowstyle: solid}
-edge: { sourcename: "7" targetname: "12" arrowstyle: solid}
 edge: { sourcename: "3" targetname: "4" arrowstyle: solid}
 edge: { sourcename: "4" targetname: "5" arrowstyle: solid}
 edge: { sourcename: "4" targetname: "6" arrowstyle: solid}
+edge: { sourcename: "7" targetname: "8" arrowstyle: solid}
+edge: { sourcename: "7" targetname: "16" arrowstyle: solid}
+edge: { sourcename: "7" targetname: "12" arrowstyle: solid}
+edge: { sourcename: "1" targetname: "2" arrowstyle: solid}
+edge: { sourcename: "1" targetname: "18" arrowstyle: solid}
 edge: { sourcename: "2" targetname: "3" arrowstyle: solid}
 edge: { sourcename: "2" targetname: "17" arrowstyle: solid}
 edge: { sourcename: "2" targetname: "7" arrowstyle: solid}
-edge: { sourcename: "0" targetname: "1" arrowstyle: solid}
 }
