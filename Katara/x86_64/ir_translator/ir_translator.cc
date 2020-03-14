@@ -13,7 +13,7 @@ namespace x86_64_ir_translator {
 IRTranslator::IRTranslator(
     ir::Prog *program,
     std::unordered_map<ir::Func*,
-                       ir_info::InterferenceGraph&>
+                       ir_info::InterferenceGraph>&
         inteference_graphs)
     : ir_program_(program), interference_graphs_(inteference_graphs) {
 }
@@ -97,9 +97,14 @@ void IRTranslator::PrepareInterferenceGraph(ir::Func *ir_func) {
 
 void IRTranslator::TranslateProgram() {
     for (ir::Func *ir_func : ir_program_->funcs()) {
+        std::string ir_func_name = ir_func->name();
+        if (ir_func_name.empty()) {
+            ir_func_name = "Func" + std::to_string(ir_func->number());
+        }
+        
         x86_64::Func *x86_64_func
         = TranslateFunc(ir_func,
-                        x86_64_program_builder_.AddFunc(ir_func->name()));
+                        x86_64_program_builder_.AddFunc(ir_func_name));
         
         if (ir_func == ir_program_->entry_func()) {
             x86_64_main_func_ = x86_64_func;
@@ -259,6 +264,10 @@ void IRTranslator::TranslateBinaryALInstr(
                  ir_operand_a,
                  ir_block,
                  x86_64_block_builder);
+    
+    if (ir_operand_b.is_constant()) {
+        
+    }
     
     x86_64::RM x86_64_operand_a = TranslateComputed(ir_result,
                                                     ir_func);
@@ -468,6 +477,10 @@ void IRTranslator::GenerateMovs(
                                                  ir_func);
     x86_64::Operand x86_64_origin = TranslateValue(ir_origin,
                                                    ir_func);
+    
+    if (x86_64_result == x86_64_origin) {
+        return;
+    }
     
     if (!x86_64_result.is_mem() ||
         !x86_64_origin.is_mem()) {

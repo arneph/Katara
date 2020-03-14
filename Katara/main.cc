@@ -26,7 +26,9 @@
 #include "ir_processors/parser.h"
 #include "ir_processors/live_range_analyzer.h"
 #include "ir_processors/register_allocator.h"
+#include "ir_processors/phi_resolver.h"
 
+#include "x86_64/ir_translator/ir_translator.h"
 #include "x86_64/mc/linker.h"
 #include "x86_64/prog.h"
 #include "x86_64/func.h"
@@ -179,10 +181,13 @@ void run_ir_test(std::filesystem::path test_dir) {
         vcg::Graph dom_tree = func->ToDominatorTree();
         
         to_file(cfg.ToVCGFormat(),
-                out_file_base.string() + ".@" + std::to_string(func->number()) + ".cfg.vcg");
+                out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".cfg.vcg");
         to_file(dom_tree.ToVCGFormat(/*exclude_node_text=*/ false),
-                out_file_base.string() + ".@" + std::to_string(func->number()) + ".dom.vcg");
+                out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".dom.vcg");
     }
+    
+    std::unordered_map<ir::Func *,
+                       ir_info::InterferenceGraph> interference_graphs;
     
     for (ir::Func *func : prog->funcs()) {
         ir_proc::LiveRangeAnalyzer live_range_analyzer(func);
@@ -192,17 +197,47 @@ void run_ir_test(std::filesystem::path test_dir) {
         ir_info::InterferenceGraph& interference_graph =
             live_range_analyzer.interference_graph();
         
-        ir_proc::RegisterAllocator
-            register_allocator(func, interference_graph);
-        register_allocator.AllocateRegisters();
+        interference_graphs.insert({func, interference_graph});
         
         to_file(func_live_range_info.ToString(),
                 out_file_base.string() + ".@" + std::to_string(func->number()) + ".live_range_info.txt");
+    }
+    
+    x86_64_ir_translator::IRTranslator translator(prog,
+                                                  interference_graphs);
+    translator.PrepareInterferenceGraphs();
+    
+    for (ir::Func *func : prog->funcs()) {
+        ir_info::InterferenceGraph& interference_graph =
+            interference_graphs.at(func);
+        
+        ir_proc::RegisterAllocator register_allocator(func,
+                                                      interference_graph);
+        register_allocator.AllocateRegisters();
+        
         to_file(interference_graph.ToString(),
                 out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.txt");
         to_file(interference_graph.ToVCGGraph().ToVCGFormat(),
                 out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.vcg");
+        
+        ir_proc::PhiResolver phi_resolver(func);
+        phi_resolver.ResolvePhis();
+        
+        vcg::Graph cfg = func->ToControlFlowGraph();
+        vcg::Graph dom_tree = func->ToDominatorTree();
+        
+        to_file(cfg.ToVCGFormat(),
+                out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".cfg.vcg");
+        to_file(dom_tree.ToVCGFormat(/*exclude_node_text=*/ false),
+                out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".dom.vcg");
     }
+    
+    translator.TranslateProgram();
+    
+    x86_64::Prog * x86_64_program = translator.x86_64_program();
+    
+    to_file(x86_64_program->ToString(),
+            out_file_base.string() + ".x86_64.txt");
     
     delete prog;
 }

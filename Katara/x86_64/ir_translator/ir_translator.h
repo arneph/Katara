@@ -35,7 +35,7 @@ class IRTranslator {
 public:
     IRTranslator(ir::Prog *program,
                  std::unordered_map<ir::Func *,
-                                    ir_info::InterferenceGraph&>
+                                    ir_info::InterferenceGraph>&
                     inteference_graphs);
     ~IRTranslator();
     
@@ -111,7 +111,7 @@ private:
     
     ir::Prog *ir_program_;
     std::unordered_map<ir::Func *,
-                       ir_info::InterferenceGraph&> interference_graphs_;
+                       ir_info::InterferenceGraph>& interference_graphs_;
     
     x86_64::ProgBuilder x86_64_program_builder_;
     x86_64::Func *x86_64_main_func_;
