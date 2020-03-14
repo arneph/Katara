@@ -44,6 +44,7 @@ public:
     void for_each_non_phi_instr_reverse(std::function<void(Instr *)> f);
     
     void AddInstr(Instr *instr);
+    void InsertInstr(size_t index, Instr *instr);
     void RemoveInstr(int64_t inum);
     void RemoveInstr(Instr *instr);
     

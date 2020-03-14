@@ -111,6 +111,12 @@ void Block::for_each_non_phi_instr_reverse(
 }
 
 void Block::AddInstr(Instr *instr) {
+    InsertInstr(instrs_.size(), instr);
+}
+
+void Block::InsertInstr(size_t index, Instr *instr) {
+    if (index < 0 || index > instrs_.size())
+        throw "insertion index out of bounds";
     if (instr == nullptr)
         throw "tried to add nullptr instruction to block";
     if (instr->number_ != -1)
@@ -119,7 +125,7 @@ void Block::AddInstr(Instr *instr) {
     
     instr->number_ = func_->instr_count_++;
     instr->block_ = this;
-    instrs_.push_back(instr);
+    instrs_.insert(instrs_.begin() + index, instr);
     func_->instr_lookup_.insert({instr->number(), instr});
 }
 
