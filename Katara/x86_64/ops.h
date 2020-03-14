@@ -54,6 +54,11 @@ private:
     int8_t reg_;
 };
 
+bool operator==(const Reg& lhs,
+                const Reg& rhs);
+bool operator!=(const Reg& lhs,
+                const Reg& rhs);
+
 enum class Scale : uint8_t {
     kS00 = 0,
     kS01 = 1,
@@ -95,6 +100,11 @@ private:
     int32_t disp_;
 };
 
+bool operator==(const Mem& lhs,
+                const Mem& rhs);
+bool operator!=(const Mem& lhs,
+                const Mem& rhs);
+
 class Imm {
 public:
     Imm(int8_t value);
@@ -116,6 +126,11 @@ private:
     int64_t value_;
 };
 
+bool operator==(const Imm& lhs,
+                const Imm& rhs);
+bool operator!=(const Imm& lhs,
+                const Imm& rhs);
+
 class FuncRef {
 public:
     FuncRef(int64_t func_id);
@@ -128,6 +143,11 @@ private:
     int64_t func_id_;
 };
 
+bool operator==(const FuncRef& lhs,
+                const FuncRef& rhs);
+bool operator!=(const FuncRef& lhs,
+                const FuncRef& rhs);
+
 class BlockRef {
 public:
     BlockRef(int64_t block_id);
@@ -139,6 +159,11 @@ public:
 private:
     int64_t block_id_;
 };
+
+bool operator==(const BlockRef& lhs,
+                const BlockRef& rhs);
+bool operator!=(const BlockRef& lhs,
+                const BlockRef& rhs);
 
 class RM;
 
@@ -201,6 +226,11 @@ protected:
     Kind kind_;
     Data data_;
 };
+
+bool operator==(const Operand& lhs,
+                const Operand& rhs);
+bool operator!=(const Operand& lhs,
+                const Operand& rhs);
 
 class RM : public Operand {
 public:

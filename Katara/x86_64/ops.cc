@@ -172,6 +172,17 @@ std::string Reg::ToString() const {
     }
 }
 
+bool operator==(const Reg& lhs,
+                const Reg& rhs) {
+    return lhs.size() == rhs.size()
+        && lhs.reg() == rhs.reg();
+}
+
+bool operator!=(const Reg& lhs,
+                const Reg& rhs) {
+    return !(lhs == rhs);
+}
+
 Mem::Mem(Size size, int32_t disp)
     : Mem(size, 0xff, 0xff, Scale::kS00, disp) {}
 
@@ -339,6 +350,20 @@ std::string Mem::ToString() const {
     return ss.str();
 }
 
+bool operator==(const Mem& lhs,
+                const Mem& rhs) {
+    return lhs.size() == rhs.size()
+        && lhs.base_reg() == rhs.base_reg()
+        && lhs.index_reg() == rhs.index_reg()
+        && lhs.scale() == rhs.scale()
+        && lhs.disp() == rhs.disp();
+}
+
+bool operator!=(const Mem& lhs,
+                const Mem& rhs) {
+    return !(lhs == rhs);
+}
+
 Imm::Imm(int8_t value) : size_(Size::k8), value_(value) {}
 Imm::Imm(int16_t value) : size_(Size::k16), value_(value) {}
 Imm::Imm(int32_t value) : size_(Size::k32), value_(value) {}
@@ -432,6 +457,17 @@ std::string Imm::ToString() const {
     return ss.str();
 }
 
+bool operator==(const Imm& lhs,
+                const Imm& rhs) {
+    return lhs.size() == rhs.size()
+        && lhs.value() == rhs.value();
+}
+
+bool operator!=(const Imm& lhs,
+                const Imm& rhs) {
+    return !(lhs == rhs);
+}
+
 FuncRef::FuncRef(int64_t func_id) : func_id_(func_id) {}
 
 int64_t FuncRef::func_id() const {
@@ -442,6 +478,16 @@ std::string FuncRef::ToString() const {
     return "<" + std::to_string(func_id_) + ">";
 }
 
+bool operator==(const FuncRef& lhs,
+                const FuncRef& rhs) {
+    return lhs.func_id() == rhs.func_id();
+}
+
+bool operator!=(const FuncRef& lhs,
+                const FuncRef& rhs) {
+    return !(lhs == rhs);
+}
+
 BlockRef::BlockRef(int64_t block_id) : block_id_(block_id) {}
 
 int64_t BlockRef::block_id() const {
@@ -450,6 +496,16 @@ int64_t BlockRef::block_id() const {
 
 std::string BlockRef::ToString() const {
     return "BB" + std::to_string(block_id_);
+}
+
+bool operator==(const BlockRef& lhs,
+                const BlockRef& rhs) {
+    return lhs.block_id() == rhs.block_id();
+}
+
+bool operator!=(const BlockRef& lhs,
+                const BlockRef& rhs) {
+    return !(lhs == rhs);
 }
 
 Operand::Operand(Reg reg) : kind_(Kind::kReg), data_(reg) {}
@@ -561,6 +617,30 @@ std::string Operand::ToString() const {
         default:
             throw "unexpected operand kind";
     }
+}
+
+bool operator==(const Operand& lhs,
+                const Operand& rhs) {
+    if (lhs.kind() != rhs.kind()) {
+        return false;
+    }
+    switch (lhs.kind()) {
+        case Operand::Kind::kReg:
+            return lhs.reg() == rhs.reg();
+        case Operand::Kind::kMem:
+            return lhs.mem() == rhs.mem();
+        case Operand::Kind::kImm:
+            return lhs.imm() == rhs.imm();
+        case Operand::Kind::kFuncRef:
+            return lhs.func_ref() == rhs.func_ref();
+        case Operand::Kind::kBlockRef:
+            return lhs.block_ref() == rhs.block_ref();
+    }
+}
+
+bool operator!=(const Operand& lhs,
+                const Operand& rhs) {
+    return !(lhs == rhs);
 }
 
 RM::RM(Reg reg) : Operand(reg) {}
