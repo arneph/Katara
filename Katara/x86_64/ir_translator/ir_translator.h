@@ -93,6 +93,13 @@ private:
         ir::Block *ir_block,
         x86_64::BlockBuilder &x86_64_block_builder);
     
+    void GenerateFuncPrologue(
+        ir::Func *ir_func,
+        x86_64::BlockBuilder &x86_64_block_builder);
+    void GenerateFuncEpilogue(
+        ir::Func *ir_func,
+        x86_64::BlockBuilder &x86_64_block_builder);
+    
     void GenerateMovs(ir::Computed ir_result,
                       ir::Value ir_origin,
                       ir::Block *ir_block,

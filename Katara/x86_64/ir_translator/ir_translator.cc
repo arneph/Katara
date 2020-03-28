@@ -130,8 +130,16 @@ IRTranslator::TranslateFunc(ir::Func *ir_func,
     });
     
     for (ir::Block *ir_block : ir_blocks) {
+        x86_64::BlockBuilder x86_64_block_builder =
+            x86_64_func_builder.AddBlock();
+        
+        if (ir_func->entry_block() == ir_block) {
+            GenerateFuncPrologue(ir_func,
+                                 x86_64_block_builder);
+        }
+        
         TranslateBlock(ir_block,
-                       x86_64_func_builder.AddBlock());
+                       x86_64_block_builder);
     }
     
     return x86_64_func_builder.func();
@@ -513,7 +521,28 @@ void IRTranslator::TranslateReturnInstr(
     ir::ReturnInstr *ir_return_instr,
     ir::Block *ir_block,
     x86_64::BlockBuilder &x86_64_block_builder) {
-    // TODO: implement
+    GenerateFuncEpilogue(ir_block->func(),
+                         x86_64_block_builder);
+}
+
+void IRTranslator::GenerateFuncPrologue(
+    ir::Func *ir_func,
+    x86_64::BlockBuilder &x86_64_block_builder) {
+    x86_64_block_builder.AddInstr(
+        new x86_64::Push(x86_64::rbp));
+    x86_64_block_builder.AddInstr(
+        new x86_64::Mov(x86_64::rbp, x86_64::rsp));
+    // TODO: reserve stack space
+}
+
+void IRTranslator::GenerateFuncEpilogue(
+    ir::Func *ir_func,
+    x86_64::BlockBuilder &x86_64_block_builder) {
+    // TODO: revert stack pointer
+    x86_64_block_builder.AddInstr(
+        new x86_64::Pop(x86_64::rbp));
+    x86_64_block_builder.AddInstr(
+        new x86_64::Ret());
 }
 
 void IRTranslator::GenerateMovs(
