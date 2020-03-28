@@ -43,22 +43,22 @@ void IRTranslator::PrepareInterferenceGraph(ir::Func *ir_func) {
         int64_t arg_reg;
         switch (i) {
             case 0:
-                arg_reg = 7;
+                arg_reg = 7 - 2 /* rdi */;
                 break;
             case 1:
-                arg_reg = 6;
+                arg_reg = 6 - 2 /* rsi */;
                 break;
             case 2:
-                arg_reg = 2;
+                arg_reg = 2 /* rdx */;
                 break;
             case 3:
-                arg_reg = 1;
+                arg_reg = 1 /* rcx */;
                 break;
             case 4:
-                arg_reg = 8;
+                arg_reg = 8 - 2 /* r8 */;
                 break;
             case 5:
-                arg_reg = 9;
+                arg_reg = 9 - 2 /* r9 */;
                 break;
             default:
                 // TODO: use stack for additional args.
@@ -265,8 +265,27 @@ void IRTranslator::TranslateBinaryALInstr(
                  ir_block,
                  x86_64_block_builder);
     
-    if (ir_operand_b.is_constant()) {
+    bool requires_tmp_reg = false;
+    
+    if (ir_operand_b.is_constant() &&
+        ir::size(ir_operand_b.type()) == 64) {
+        int64_t v = ir_operand_b.constant().value();
         
+        if (ir_operand_b.type() == ir::Type::kI64) {
+            if (INT32_MIN <= v && v <= INT32_MAX) {
+                ir_operand_b = ir::Constant(int32_t(v));
+            } else {
+                requires_tmp_reg = true;
+            }
+        } else if (ir_operand_b.type() == ir::Type::kU64) {
+            if (0 <= v && v <= UINT32_MAX) {
+                ir_operand_b = ir::Constant(uint32_t(v));
+            } else {
+                requires_tmp_reg = true;
+            }
+        } else {
+            throw "unexpected operand type";
+        }
     }
     
     x86_64::RM x86_64_operand_a = TranslateComputed(ir_result,
@@ -274,11 +293,18 @@ void IRTranslator::TranslateBinaryALInstr(
     x86_64::Operand x86_64_operand_b = TranslateValue(ir_operand_b,
                                                       ir_func);
     
-    bool requires_tmp_reg = x86_64_operand_a.is_mem() &&
-                            x86_64_operand_b.is_mem();
-    ir::Type ir_type = ir_result.type();
-    x86_64::Size x86_64_size = (x86_64::Size) ir::size(ir_type);
-    x86_64::Reg x86_64_tmp_reg = x86_64::Reg(x86_64_size, 0);
+    if (x86_64_operand_a.is_mem() &&
+        x86_64_operand_b.is_mem()) {
+        requires_tmp_reg = true;
+    }
+    
+    ir::Type ir_operand_b_type = ir_operand_b.type();
+    x86_64::Size x86_64_size = x86_64::Size(ir::size(ir_operand_b_type));
+    x86_64::Reg x86_64_tmp_reg(x86_64_size, 0);
+    if (x86_64_operand_a.is_reg() &&
+        x86_64_operand_a.reg().reg() == 0) {
+        x86_64_tmp_reg = x86_64::Reg(x86_64_size, 1);
+    }
     
     if (requires_tmp_reg) {
         x86_64_block_builder.AddInstr(
@@ -298,8 +324,8 @@ void IRTranslator::TranslateBinaryALInstr(
 
         case ir::BinaryALOperation::kOr:
             x86_64_block_builder.AddInstr(
-                new x86_64::And(x86_64_operand_a,
-                                x86_64_operand_b));
+                new x86_64::Or(x86_64_operand_a,
+                               x86_64_operand_b));
             break;
             
         case ir::BinaryALOperation::kXor:
@@ -321,7 +347,7 @@ void IRTranslator::TranslateBinaryALInstr(
             break;
             
         default:
-            // TODO: implement mul, div, rem
+            // TODO: implement mul, div, rem 
             throw "unexpexted BinaryALOperartion";
     }
     
@@ -342,32 +368,55 @@ void IRTranslator::TranslateCompareInstr(
     ir::Value ir_operand_a = ir_compare_instr->operand_a();
     ir::Value ir_operand_b = ir_compare_instr->operand_b();
     
+    if (ir_operand_a.is_constant() &&
+        !ir_operand_b.is_constant()) {
+        ir_op = ir::comuted(ir_op);
+        std::swap(ir_operand_a, ir_operand_b);
+    }
+    
     x86_64::RM x86_64_result = TranslateComputed(ir_result,
                                                  ir_func);
-    x86_64::Operand x86_64_operand_a = TranslateValue(ir_operand_a,
-                                                      ir_func);
+    x86_64::RM x86_64_operand_a = x86_64_result;
     x86_64::Operand x86_64_operand_b = TranslateValue(ir_operand_b,
                                                       ir_func);
     
-    bool requires_tmp_reg = false;
-    bool required_tmp_reg_is_result_reg = x86_64_result.is_reg();
-    ir::Type ir_type = ir_operand_a.type();
-    x86_64::Size x86_64_size = (x86_64::Size) ir::size(ir_type);
-    x86_64::Reg x86_64_tmp_reg =
-        x86_64::Reg(x86_64_size, (required_tmp_reg_is_result_reg)
-                                 ? x86_64_result.reg().reg() : 0);
-    
-    if (x86_64_operand_a.is_imm() &&
-        x86_64_operand_b.is_imm()) {
-        requires_tmp_reg = true;
-    } else if (x86_64_operand_a.is_imm()) {
-        ir_op = ir::comuted(ir_op);
-        std::swap(x86_64_operand_a, x86_64_operand_b);
+    if (ir_operand_a.is_constant()) {
+        GenerateMovs(ir_result,
+                     ir_operand_a,
+                     ir_block,
+                     x86_64_block_builder);
+    } else if (ir_operand_a.is_computed()) {
+        x86_64_operand_a = TranslateComputed(ir_operand_a.computed(),
+                                             ir_func);
+    } else {
+        throw "unexpected operand_a kind";
     }
     
-    if (x86_64_operand_a.is_mem() &&
-        x86_64_operand_b.is_mem()) {
+    bool requires_tmp_reg = false;
+    if (ir_operand_b.is_constant()) {
         requires_tmp_reg = true;
+        
+    } else if (x86_64_operand_a.is_mem() &&
+               x86_64_operand_b.is_mem()) {
+        requires_tmp_reg = true;
+    }
+    
+    bool required_tmp_reg_is_result_reg = false;
+    if (!x86_64_operand_a.is_reg() ||
+        x86_64_operand_a.reg().reg() != x86_64_result.reg().reg()) {
+        required_tmp_reg_is_result_reg = x86_64_result.is_reg();
+    }
+    
+    ir::Type ir_type = ir_operand_b.type();
+    x86_64::Size x86_64_size = x86_64::Size(ir::size(ir_type));
+    x86_64::Reg x86_64_tmp_reg(x86_64_size, 0);
+    if (!required_tmp_reg_is_result_reg &&
+        x86_64_operand_a.is_reg() &&
+        x86_64_operand_a.reg().reg() == 0) {
+        x86_64_tmp_reg = x86_64::Reg(x86_64_size, 1);
+    } else if (required_tmp_reg_is_result_reg) {
+        x86_64_tmp_reg = x86_64::Reg(x86_64_size,
+                                     x86_64_result.reg().reg());
     }
     
     x86_64::InstrCond x86_64_cond =
@@ -380,12 +429,12 @@ void IRTranslator::TranslateCompareInstr(
         }
         x86_64_block_builder.AddInstr(
             new x86_64::Mov(x86_64_tmp_reg,
-                            x86_64_operand_a));
-        x86_64_operand_a = x86_64_tmp_reg;
+                            x86_64_operand_b));
+        x86_64_operand_b = x86_64_tmp_reg;
     }
     
     x86_64_block_builder.AddInstr(
-        new x86_64::Cmp(x86_64_operand_a.rm(),
+        new x86_64::Cmp(x86_64_operand_a,
                         x86_64_operand_b));
     x86_64_block_builder.AddInstr(
         new x86_64::Setcc(x86_64_cond, x86_64_result));
@@ -427,12 +476,12 @@ void IRTranslator::TranslateJumpCondInstr(
         TranslateBlockValue(ir_destination_false);
     
     if (ir_condition.is_constant()) {
-        if (ir_condition.constant().value().b) {
-            x86_64_block_builder.AddInstr(
-                new x86_64::Jmp(x86_64_destination_false));
-        } else {
+        if (ir_condition.constant().value()) {
             x86_64_block_builder.AddInstr(
                 new x86_64::Jmp(x86_64_destination_true));
+        } else {
+            x86_64_block_builder.AddInstr(
+                new x86_64::Jmp(x86_64_destination_false));
         }
         return;
     } else if (!ir_condition.is_computed()) {
@@ -445,7 +494,7 @@ void IRTranslator::TranslateJumpCondInstr(
     
     x86_64_block_builder.AddInstr(
         new x86_64::Test(x86_64_condition,
-                         x86_64::Imm(int8_t{1})));
+                         x86_64::Imm(int8_t{-1})));
     x86_64_block_builder.AddInstr(
         new x86_64::Jcc(x86_64::InstrCond::kNoZero,
                         x86_64_destination_true));
@@ -522,27 +571,27 @@ x86_64::Operand IRTranslator::TranslateValue(ir::Value value,
 x86_64::Imm IRTranslator::TranslateConstant(ir::Constant constant) {
     switch (constant.type()) {
         case ir::Type::kBool:
-            if (!constant.value().b) {
-                return x86_64::Imm(int8_t{0});
-            } else {
+            if (constant.value()) {
                 return x86_64::Imm(int8_t{1});
+            } else {
+                return x86_64::Imm(int8_t{0});
             }
             
         case ir::Type::kI8:
         case ir::Type::kU8:
-            return x86_64::Imm(constant.value().i8);
+            return x86_64::Imm(int8_t(constant.value()));
 
         case ir::Type::kI16:
         case ir::Type::kU16:
-            return x86_64::Imm(constant.value().i16);
+            return x86_64::Imm(int16_t(constant.value()));
 
         case ir::Type::kI32:
         case ir::Type::kU32:
-            return x86_64::Imm(constant.value().i32);
+            return x86_64::Imm(int32_t(constant.value()));
 
         case ir::Type::kI64:
         case ir::Type::kU64:
-            return x86_64::Imm(constant.value().i64);
+            return x86_64::Imm(int64_t(constant.value()));
         
         default:
             // Note: ir::Type::kFunc handled separately in
