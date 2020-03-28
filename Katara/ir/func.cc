@@ -43,7 +43,7 @@ std::string Func::ReferenceString() const {
 }
 
 Constant Func::func_value() const {
-    return Constant(Type::kFunc, Constant::Data{.func=number_});
+    return Constant(Type::kFunc, number_);
 }
 
 std::vector<Computed>& Func::args() {

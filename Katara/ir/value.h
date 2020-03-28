@@ -39,30 +39,26 @@ extern std::string to_string(Type type);
 
 class Constant {
 public:
-    union Data {
-        bool b;
-        int8_t i8;
-        int16_t i16;
-        int32_t i32;
-        int64_t i64;
-        uint8_t u8;
-        uint16_t u16;
-        uint32_t u32;
-        uint64_t u64;
-        int64_t func;
-    };
-    
-    Constant(Type type, Data value);
+    Constant(bool value);
+    Constant(int8_t value);
+    Constant(int16_t value);
+    Constant(int32_t value);
+    Constant(int64_t value);
+    Constant(uint8_t value);
+    Constant(uint16_t value);
+    Constant(uint32_t value);
+    Constant(uint64_t value);
+    Constant(Type type, int64_t value);
     
     Type type() const;
-    Data value() const;
+    int64_t value() const;
     
     std::string ToString() const;
     std::string ToStringWithType() const;
     
 private:
     Type type_;
-    Data value_;
+    int64_t value_;
 };
 
 bool operator==(const Constant& lhs,
@@ -192,7 +188,7 @@ namespace std {
 template<>
 struct hash<ir::Constant> {
     std::size_t operator()(const ir::Constant c) const {
-        return c.value().i64 ^ (int64_t(c.type()) << 48);
+        return c.value() ^ (int64_t(c.type()) << 48);
     }
 };
 

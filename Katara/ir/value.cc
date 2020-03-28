@@ -114,7 +114,17 @@ std::string to_string(Type type) {
     }
 }
 
-Constant::Constant(Type type, Data value)
+Constant::Constant(bool value) : Constant(Type::kBool, value) {}
+Constant::Constant(int8_t value) : Constant(Type::kI8, value) {}
+Constant::Constant(int16_t value) : Constant(Type::kI16, value) {}
+Constant::Constant(int32_t value) : Constant(Type::kI32, value) {}
+Constant::Constant(int64_t value) : Constant(Type::kI64, value) {}
+Constant::Constant(uint8_t value) : Constant(Type::kU8, value) {}
+Constant::Constant(uint16_t value) : Constant(Type::kU16, value) {}
+Constant::Constant(uint32_t value) : Constant(Type::kU32, value) {}
+Constant::Constant(uint64_t value) : Constant(Type::kU64, value) {}
+
+Constant::Constant(Type type, int64_t value)
     : type_(type), value_(value) {
     if (!is_integral(type) && type != Type::kFunc)
         throw "attempted to create const of non-integral type "
@@ -125,43 +135,26 @@ Type Constant::type() const {
     return type_;
 }
 
-Constant::Data Constant::value() const {
+int64_t Constant::value() const {
     return value_;
-}
-
-bool operator==(const Constant& lhs,
-                const Constant& rhs) {
-    return lhs.type() == rhs.type()
-        && lhs.value().i64 == rhs.value().i64;
-}
-
-bool operator!=(const Constant& lhs,
-                const Constant& rhs) {
-    return !(lhs == rhs);
 }
 
 std::string Constant::ToString() const {
     switch (type_) {
         case Type::kBool:
-            return (value_.b) ? "#t" : "#f";
+            return (value_) ? "#t" : "#f";
         case Type::kI8:
-            return "#" + std::to_string(value_.i8);
         case Type::kI16:
-            return "#" + std::to_string(value_.i16);
         case Type::kI32:
-            return "#" + std::to_string(value_.i32);
         case Type::kI64:
-            return "#" + std::to_string(value_.i64);
+            return "#" + std::to_string(value_);
         case Type::kU8:
-            return "#" + std::to_string(value_.u8);
         case Type::kU16:
-            return "#" + std::to_string(value_.u16);
         case Type::kU32:
-            return "#" + std::to_string(value_.u32);
         case Type::kU64:
-            return "#" + std::to_string(value_.u64);
+            return "#" + std::to_string(uint64_t(value_));
         case Type::kFunc:
-            return "@" + std::to_string(value_.func);
+            return "@" + std::to_string(value_);
         default:
             throw "unexpected const type";
     }
@@ -174,6 +167,17 @@ std::string Constant::ToStringWithType() const {
     }
     
     return ToString() + ":" + to_string(type_);
+}
+
+bool operator==(const Constant& lhs,
+                const Constant& rhs) {
+    return lhs.type() == rhs.type()
+        && lhs.value() == rhs.value();
+}
+
+bool operator!=(const Constant& lhs,
+                const Constant& rhs) {
+    return !(lhs == rhs);
 }
 
 Computed::Computed(Type type, int64_t number)

@@ -741,7 +741,7 @@ ir::Constant Parser::ParseConstant(ir::Type expected_type) {
         scanner_.Next();
         
         return ir::Constant(ir::Type::kFunc,
-                            ir::Constant::Data{ .func=number });
+                            number);
     }
     
     if (scanner_.token() != Scanner::kHashSign)
@@ -754,13 +754,13 @@ ir::Constant Parser::ParseConstant(ir::Type expected_type) {
                 throw "unexpected 'f'";
             
             return ir::Constant(ir::Type::kBool,
-                                ir::Constant::Data{ .b=false });
+                                false);
         } else if (scanner_.string() == "t") {
             if (expected_type != ir::Type::kBool)
                 throw "unexpected 't'";
             
             return ir::Constant(ir::Type::kBool,
-                                ir::Constant::Data{ .b=true });
+                                true);
         } else {
             throw "expected number, 't' or 'f'";
         }
@@ -788,37 +788,7 @@ ir::Constant Parser::ParseConstant(ir::Type expected_type) {
         type = expected_type;
     }
     
-    ir::Constant::Data data;
-    switch (type) {
-        case ir::Type::kI8:
-            data.i8 = static_cast<int8_t>(sign * number);
-            break;
-        case ir::Type::kI16:
-            data.i16 = static_cast<int16_t>(sign * number);
-            break;
-        case ir::Type::kI32:
-            data.i32 = static_cast<int32_t>(sign * number);
-            break;
-        case ir::Type::kI64:
-            data.i64 = static_cast<int64_t>(sign * number);
-            break;
-        case ir::Type::kU8:
-            data.u8 = static_cast<uint8_t>(number);
-            break;
-        case ir::Type::kU16:
-            data.u16 = static_cast<uint16_t>(number);
-            break;
-        case ir::Type::kU32:
-            data.u32 = static_cast<uint32_t>(number);
-            break;
-        case ir::Type::kU64:
-            data.u64 = static_cast<uint64_t>(number);
-            break;
-        default:
-            throw "unexpected type";
-    }
-    
-    return ir::Constant(type, data);
+    return ir::Constant(type, sign * number);
 }
 
 // Computed ::= '%' Identifier (':' Type)?
