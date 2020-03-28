@@ -334,17 +334,13 @@ std::string Mem::ToString() const {
         added_term = true;
     }
     if (index_reg_ != 0xff) {
-        if (added_term) ss << " + ";
-        ss << std::to_string(1 << s) << "*" << Reg(Size::k64, index_reg_).ToString();
-        added_term = true;
+        if (added_term) ss << "+";
+        ss << std::to_string(1 << s);
+        ss << "*";
+        ss << Reg(Size::k64, index_reg_).ToString();
     }
     if (disp_ != 0) {
-        if (added_term) ss << " + ";
-        if (-128 <= disp_ && disp_ <= +127) {
-            ss << "0x" << std::hex << std::setfill('0') << std::setw(2) << disp_;
-        } else {
-            ss << "0x" << std::hex << std::setfill('0') << std::setw(8) << disp_;
-        }
+        ss << std::showpos << disp_;
     }
     ss << "]";
     return ss.str();
