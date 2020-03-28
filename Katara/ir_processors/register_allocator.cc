@@ -19,7 +19,6 @@ RegisterAllocator::RegisterAllocator(
 RegisterAllocator::~RegisterAllocator() {}
 
 void RegisterAllocator::AllocateRegisters() {
-    graph_.ResetRegisters();
     /*
     std::unordered_map<ir::Computed, size_t> neighbor_count;
     std::unordered_map<ir::Computed, size_t> constraints_count;
@@ -43,6 +42,10 @@ void RegisterAllocator::AllocateRegisters() {
                queue_compare> queue;*/
     
     for (ir::Computed value : graph_.values()) {
+        if (graph_.GetRegister(value) != -1) {
+            continue;
+        }
+        
         std::unordered_set<int64_t> neighbor_colors;
         
         for (ir::Computed neighbor : graph_.GetNeighbors(value)) {
