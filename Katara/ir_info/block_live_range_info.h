@@ -10,6 +10,7 @@
 #define ir_info_block_live_range_info_h
 
 #include <string>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "ir/block.h"
@@ -20,25 +21,32 @@
 
 namespace ir_info {
 
-class FuncLiveRangeInfo;
-
 class BlockLiveRangeInfo {
 public:
     BlockLiveRangeInfo(ir::Block *block);
     ~BlockLiveRangeInfo();
     
-    std::unordered_set<ir::Computed>& definitions();
-    std::unordered_set<ir::Computed>& entry_set();
-    std::unordered_set<ir::Computed>& exit_set();
+    bool HasValue(ir::Computed value) const;
+    bool HasValueDefinition(ir::Computed value) const;
+    void AddValueDefinition(ir::Computed value, int64_t index);
+    void AddValueUse(ir::Computed value, int64_t index);
+    void PropagateBackwardsFromExitSet(ir::Computed value);
+    
+    std::unordered_set<ir::Computed> GetEntrySet() const;
+    std::unordered_set<ir::Computed> GetExitSet() const;
+    std::unordered_set<ir::Computed> GetLiveSet(int64_t index) const;
     
     std::string ToString() const;
     
 private:
+    struct ValueRange {
+        int64_t start_index_;
+        int64_t end_index_;
+    };
+    
     const ir::Block *block_;
     
-    std::unordered_set<ir::Computed> definitions_;
-    std::unordered_set<ir::Computed> entry_set_;
-    std::unordered_set<ir::Computed> exit_set_;
+    std::unordered_map<ir::Computed, ValueRange> value_ranges_;
 };
 
 }

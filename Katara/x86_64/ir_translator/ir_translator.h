@@ -18,6 +18,8 @@
 #include "ir/instr.h"
 #include "ir/value.h"
 
+#include "ir_info/func_live_range_info.h"
+#include "ir_info/block_live_range_info.h"
 #include "ir_info/interference_graph.h"
 
 #include "x86_64/prog.h"
@@ -34,6 +36,9 @@ namespace x86_64_ir_translator {
 class IRTranslator {
 public:
     IRTranslator(ir::Prog *program,
+                 std::unordered_map<ir::Func *,
+                                    ir_info::FuncLiveRangeInfo>&
+                    live_range_infos,
                  std::unordered_map<ir::Func *,
                                     ir_info::InterferenceGraph>&
                     inteference_graphs);
@@ -117,6 +122,9 @@ private:
                                                 ir::CompareOperation op);
     
     ir::Prog *ir_program_;
+    std::unordered_map<ir::Func *,
+                       ir_info::FuncLiveRangeInfo>&
+        live_range_infos_;
     std::unordered_map<ir::Func *,
                        ir_info::InterferenceGraph>& interference_graphs_;
     

@@ -42,7 +42,7 @@ void LiveRangeAnalyzer::FindLiveRanges() {
         
         BacktraceBlock(block, block_info);
         
-        if (!block_info.entry_set().empty()) {
+        if (!block_info.GetEntrySet().empty()) {
             queue.insert(block);
         }
     }
@@ -59,24 +59,17 @@ void LiveRangeAnalyzer::FindLiveRanges() {
             ir_info::BlockLiveRangeInfo& parent_info =
                 func_info_.GetBlockLiveRangeInfo(parent);
             
-            bool expanded_entry_set = false;
+            size_t old_entry_set_size =
+                parent_info.GetEntrySet().size();
             
-            for (ir::Computed value : block_info.entry_set()) {
-                auto it_a = parent_info.exit_set().find(value);
-                if (it_a != parent_info.exit_set().end()) {
-                    continue;
-                } else {
-                    parent_info.exit_set().insert(value);
-                }
-                
-                auto it_b = parent_info.definitions().find(value);
-                if (it_b == parent_info.definitions().end()) {
-                    parent_info.entry_set().insert(value);
-                    expanded_entry_set = true;
-                }
+            for (ir::Computed value : block_info.GetEntrySet()) {
+                parent_info.PropagateBackwardsFromExitSet(value);
             }
             
-            if (expanded_entry_set) {
+            size_t new_entry_set_size =
+                parent_info.GetEntrySet().size();
+            
+            if (old_entry_set_size < new_entry_set_size) {
                 queue.insert(parent);
             }
         }
@@ -86,44 +79,37 @@ void LiveRangeAnalyzer::FindLiveRanges() {
 void LiveRangeAnalyzer::BacktraceBlock(
     ir::Block *block,
     ir_info::BlockLiveRangeInfo &info) {
+    const size_t n = block->instrs().size();
     
-    // Add values defined in block to definitions
-    for (ir::Instr *instr : block->instrs()) {
+    // Backtrace through instructions in block
+    // Add value defintions and uses (outside phi instructions)
+    for (int64_t index = n - 1; index >= 0; index--) {
+        ir::Instr *instr = block->instrs().at(index);
+        
         for (ir::Computed defined_value : instr->DefinedValues()) {
-            info.definitions().insert(defined_value);
+            info.AddValueDefinition(defined_value, index);
+        }
+        
+        if (dynamic_cast<ir::PhiInstr *>(instr) != nullptr) {
+            continue;
+        }
+        for (ir::Computed used_value : instr->UsedValues()) {
+            info.AddValueUse(used_value, index);
         }
     }
     
-    // Add values used in phi instructions of child to exit set
-    // Also add values not defined in block to entry set
+    // Include values used in phi instructions of child
     if (block->HasMergingChild()) {
         block->MergingChild()->for_each_phi_instr(
             [&] (ir::PhiInstr *instr) {
-
             ir::Value value =
                 instr->ValueInheritedFromBlock(block->number());
             if (!value.is_computed()) return;
             ir::Computed computed = value.computed();
             
-            info.exit_set().insert(computed);
-            
-            auto it = info.definitions().find(computed);
-            if (it == info.definitions().end()) {
-                info.entry_set().insert(computed);
-            }
+            info.PropagateBackwardsFromExitSet(computed);
         });
     }
-    
-    // Add values used, but not defined in block to entry set
-    // excluding values used in phi instructions
-    block->for_each_non_phi_instr([&] (ir::Instr *instr) {
-        for (ir::Computed used_value : instr->UsedValues()) {
-            auto it = info.definitions().find(used_value);
-            if (it == info.definitions().end()) {
-                info.entry_set().insert(used_value);
-            }
-        }
-    });
 }
 
 void LiveRangeAnalyzer::BuildInterferenceGraph() {
@@ -144,7 +130,7 @@ void LiveRangeAnalyzer::BuildInterferenceGraph(
     ir::Block *block,
     ir_info::BlockLiveRangeInfo &info) {
     const size_t n = block->instrs().size();
-    std::unordered_set<ir::Computed> live_set = info.exit_set();
+    std::unordered_set<ir::Computed> live_set = info.GetExitSet();
     
     interference_graph_.AddEdgesIn(live_set);
     

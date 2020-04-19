@@ -187,6 +187,9 @@ void run_ir_test(std::filesystem::path test_dir) {
     }
     
     std::unordered_map<ir::Func *,
+                       ir_info::FuncLiveRangeInfo>
+        live_range_infos;
+    std::unordered_map<ir::Func *,
                        ir_info::InterferenceGraph> interference_graphs;
     
     for (ir::Func *func : prog->funcs()) {
@@ -197,6 +200,7 @@ void run_ir_test(std::filesystem::path test_dir) {
         ir_info::InterferenceGraph& interference_graph =
             live_range_analyzer.interference_graph();
         
+        live_range_infos.insert({func, func_live_range_info});
         interference_graphs.insert({func, interference_graph});
         
         to_file(func_live_range_info.ToString(),
@@ -204,6 +208,7 @@ void run_ir_test(std::filesystem::path test_dir) {
     }
     
     x86_64_ir_translator::IRTranslator translator(prog,
+                                                  live_range_infos,
                                                   interference_graphs);
     translator.PrepareInterferenceGraphs();
     
