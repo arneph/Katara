@@ -1,0 +1,22 @@
+Func2:
+BB0:
+	push rbp
+	mov rbp,rsp
+	pop rbp
+	ret
+
+Func1:
+BB1:
+	push rbp
+	mov rbp,rsp
+	pop rbp
+	ret
+
+add:
+BB2:
+	push rbp
+	mov rbp,rsp
+	mov rax,rdi
+	add rax,rsi
+	pop rbp
+	ret

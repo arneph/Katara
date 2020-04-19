@@ -1,0 +1,7 @@
+live range info for @0 add:
+{0} entry - live range info:
+<+   %1
+<+   %0
+ ++  %2
+entry set: %0, %1
+ exit set: 

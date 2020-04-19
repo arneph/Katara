@@ -1,13 +1,13 @@
 graph: { title: "Graph"
 node: {
 title: "0"
-color: white
+color: blue
 label: 
 "%1"
 }
 node: {
 title: "1"
-color: red
+color: turquoise
 label: 
 "%0"
 }

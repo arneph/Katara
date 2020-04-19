@@ -1,0 +1,410 @@
+graph: { title: "Graph"
+node: {
+title: "0"
+color: turquoise
+label: 
+"%0"
+}
+node: {
+title: "1"
+color: white
+label: 
+"%17"
+}
+node: {
+title: "2"
+color: blue
+label: 
+"%1"
+}
+node: {
+title: "3"
+color: red
+label: 
+"%16"
+}
+node: {
+title: "4"
+color: yellow
+label: 
+"%2"
+}
+node: {
+title: "5"
+color: green
+label: 
+"%15"
+}
+node: {
+title: "6"
+color: magenta
+label: 
+"%3"
+}
+node: {
+title: "7"
+color: white
+label: 
+"%14"
+}
+node: {
+title: "8"
+color: white
+label: 
+"%4"
+}
+node: {
+title: "9"
+color: white
+label: 
+"%13"
+}
+node: {
+title: "10"
+color: white
+label: 
+"%5"
+}
+node: {
+title: "11"
+color: white
+label: 
+"%12"
+}
+node: {
+title: "12"
+color: white
+label: 
+"%18"
+}
+node: {
+title: "13"
+color: white
+label: 
+"%20"
+}
+node: {
+title: "14"
+color: white
+label: 
+"%103"
+}
+node: {
+title: "15"
+color: white
+label: 
+"%9"
+}
+node: {
+title: "16"
+color: white
+label: 
+"%19"
+}
+node: {
+title: "17"
+color: white
+label: 
+"%102"
+}
+node: {
+title: "18"
+color: white
+label: 
+"%8"
+}
+node: {
+title: "19"
+color: white
+label: 
+"%21"
+}
+node: {
+title: "20"
+color: white
+label: 
+"%104"
+}
+node: {
+title: "21"
+color: white
+label: 
+"%10"
+}
+node: {
+title: "22"
+color: white
+label: 
+"%101"
+}
+node: {
+title: "23"
+color: white
+label: 
+"%7"
+}
+node: {
+title: "24"
+color: white
+label: 
+"%22"
+}
+node: {
+title: "25"
+color: white
+label: 
+"%11"
+}
+node: {
+title: "26"
+color: white
+label: 
+"%100"
+}
+node: {
+title: "27"
+color: white
+label: 
+"%6"
+}
+node: {
+title: "28"
+color: white
+label: 
+"%23"
+}
+edge: { sourcename: "1" targetname: "0" arrowstyle: none}
+edge: { sourcename: "2" targetname: "0" arrowstyle: none}
+edge: { sourcename: "2" targetname: "1" arrowstyle: none}
+edge: { sourcename: "3" targetname: "0" arrowstyle: none}
+edge: { sourcename: "3" targetname: "1" arrowstyle: none}
+edge: { sourcename: "3" targetname: "2" arrowstyle: none}
+edge: { sourcename: "4" targetname: "0" arrowstyle: none}
+edge: { sourcename: "4" targetname: "1" arrowstyle: none}
+edge: { sourcename: "4" targetname: "2" arrowstyle: none}
+edge: { sourcename: "4" targetname: "3" arrowstyle: none}
+edge: { sourcename: "5" targetname: "0" arrowstyle: none}
+edge: { sourcename: "5" targetname: "1" arrowstyle: none}
+edge: { sourcename: "5" targetname: "2" arrowstyle: none}
+edge: { sourcename: "5" targetname: "3" arrowstyle: none}
+edge: { sourcename: "5" targetname: "4" arrowstyle: none}
+edge: { sourcename: "6" targetname: "0" arrowstyle: none}
+edge: { sourcename: "6" targetname: "1" arrowstyle: none}
+edge: { sourcename: "6" targetname: "2" arrowstyle: none}
+edge: { sourcename: "6" targetname: "3" arrowstyle: none}
+edge: { sourcename: "6" targetname: "4" arrowstyle: none}
+edge: { sourcename: "6" targetname: "5" arrowstyle: none}
+edge: { sourcename: "7" targetname: "0" arrowstyle: none}
+edge: { sourcename: "7" targetname: "1" arrowstyle: none}
+edge: { sourcename: "7" targetname: "2" arrowstyle: none}
+edge: { sourcename: "7" targetname: "3" arrowstyle: none}
+edge: { sourcename: "7" targetname: "4" arrowstyle: none}
+edge: { sourcename: "7" targetname: "5" arrowstyle: none}
+edge: { sourcename: "7" targetname: "6" arrowstyle: none}
+edge: { sourcename: "8" targetname: "0" arrowstyle: none}
+edge: { sourcename: "8" targetname: "1" arrowstyle: none}
+edge: { sourcename: "8" targetname: "2" arrowstyle: none}
+edge: { sourcename: "8" targetname: "3" arrowstyle: none}
+edge: { sourcename: "8" targetname: "4" arrowstyle: none}
+edge: { sourcename: "8" targetname: "5" arrowstyle: none}
+edge: { sourcename: "8" targetname: "6" arrowstyle: none}
+edge: { sourcename: "8" targetname: "7" arrowstyle: none}
+edge: { sourcename: "9" targetname: "0" arrowstyle: none}
+edge: { sourcename: "9" targetname: "1" arrowstyle: none}
+edge: { sourcename: "9" targetname: "2" arrowstyle: none}
+edge: { sourcename: "9" targetname: "3" arrowstyle: none}
+edge: { sourcename: "9" targetname: "4" arrowstyle: none}
+edge: { sourcename: "9" targetname: "5" arrowstyle: none}
+edge: { sourcename: "9" targetname: "6" arrowstyle: none}
+edge: { sourcename: "9" targetname: "7" arrowstyle: none}
+edge: { sourcename: "9" targetname: "8" arrowstyle: none}
+edge: { sourcename: "10" targetname: "0" arrowstyle: none}
+edge: { sourcename: "10" targetname: "1" arrowstyle: none}
+edge: { sourcename: "10" targetname: "2" arrowstyle: none}
+edge: { sourcename: "10" targetname: "3" arrowstyle: none}
+edge: { sourcename: "10" targetname: "4" arrowstyle: none}
+edge: { sourcename: "10" targetname: "5" arrowstyle: none}
+edge: { sourcename: "10" targetname: "6" arrowstyle: none}
+edge: { sourcename: "10" targetname: "7" arrowstyle: none}
+edge: { sourcename: "10" targetname: "8" arrowstyle: none}
+edge: { sourcename: "10" targetname: "9" arrowstyle: none}
+edge: { sourcename: "11" targetname: "0" arrowstyle: none}
+edge: { sourcename: "11" targetname: "1" arrowstyle: none}
+edge: { sourcename: "11" targetname: "2" arrowstyle: none}
+edge: { sourcename: "11" targetname: "3" arrowstyle: none}
+edge: { sourcename: "11" targetname: "4" arrowstyle: none}
+edge: { sourcename: "11" targetname: "5" arrowstyle: none}
+edge: { sourcename: "11" targetname: "6" arrowstyle: none}
+edge: { sourcename: "11" targetname: "7" arrowstyle: none}
+edge: { sourcename: "11" targetname: "8" arrowstyle: none}
+edge: { sourcename: "11" targetname: "9" arrowstyle: none}
+edge: { sourcename: "11" targetname: "10" arrowstyle: none}
+edge: { sourcename: "12" targetname: "2" arrowstyle: none}
+edge: { sourcename: "12" targetname: "3" arrowstyle: none}
+edge: { sourcename: "12" targetname: "4" arrowstyle: none}
+edge: { sourcename: "12" targetname: "5" arrowstyle: none}
+edge: { sourcename: "12" targetname: "6" arrowstyle: none}
+edge: { sourcename: "12" targetname: "7" arrowstyle: none}
+edge: { sourcename: "12" targetname: "8" arrowstyle: none}
+edge: { sourcename: "12" targetname: "9" arrowstyle: none}
+edge: { sourcename: "12" targetname: "10" arrowstyle: none}
+edge: { sourcename: "12" targetname: "11" arrowstyle: none}
+edge: { sourcename: "13" targetname: "6" arrowstyle: none}
+edge: { sourcename: "13" targetname: "7" arrowstyle: none}
+edge: { sourcename: "13" targetname: "8" arrowstyle: none}
+edge: { sourcename: "13" targetname: "9" arrowstyle: none}
+edge: { sourcename: "13" targetname: "10" arrowstyle: none}
+edge: { sourcename: "13" targetname: "11" arrowstyle: none}
+edge: { sourcename: "14" targetname: "0" arrowstyle: none}
+edge: { sourcename: "14" targetname: "2" arrowstyle: none}
+edge: { sourcename: "14" targetname: "4" arrowstyle: none}
+edge: { sourcename: "15" targetname: "1" arrowstyle: none}
+edge: { sourcename: "15" targetname: "2" arrowstyle: none}
+edge: { sourcename: "15" targetname: "3" arrowstyle: none}
+edge: { sourcename: "15" targetname: "4" arrowstyle: none}
+edge: { sourcename: "15" targetname: "5" arrowstyle: none}
+edge: { sourcename: "15" targetname: "6" arrowstyle: none}
+edge: { sourcename: "15" targetname: "7" arrowstyle: none}
+edge: { sourcename: "15" targetname: "8" arrowstyle: none}
+edge: { sourcename: "15" targetname: "9" arrowstyle: none}
+edge: { sourcename: "15" targetname: "10" arrowstyle: none}
+edge: { sourcename: "15" targetname: "11" arrowstyle: none}
+edge: { sourcename: "15" targetname: "0" arrowstyle: none}
+edge: { sourcename: "15" targetname: "13" arrowstyle: none}
+edge: { sourcename: "15" targetname: "12" arrowstyle: none}
+edge: { sourcename: "16" targetname: "4" arrowstyle: none}
+edge: { sourcename: "16" targetname: "5" arrowstyle: none}
+edge: { sourcename: "16" targetname: "6" arrowstyle: none}
+edge: { sourcename: "16" targetname: "7" arrowstyle: none}
+edge: { sourcename: "16" targetname: "8" arrowstyle: none}
+edge: { sourcename: "16" targetname: "9" arrowstyle: none}
+edge: { sourcename: "16" targetname: "10" arrowstyle: none}
+edge: { sourcename: "16" targetname: "11" arrowstyle: none}
+edge: { sourcename: "16" targetname: "15" arrowstyle: none}
+edge: { sourcename: "17" targetname: "0" arrowstyle: none}
+edge: { sourcename: "17" targetname: "2" arrowstyle: none}
+edge: { sourcename: "17" targetname: "4" arrowstyle: none}
+edge: { sourcename: "18" targetname: "1" arrowstyle: none}
+edge: { sourcename: "18" targetname: "2" arrowstyle: none}
+edge: { sourcename: "18" targetname: "3" arrowstyle: none}
+edge: { sourcename: "18" targetname: "4" arrowstyle: none}
+edge: { sourcename: "18" targetname: "5" arrowstyle: none}
+edge: { sourcename: "18" targetname: "6" arrowstyle: none}
+edge: { sourcename: "18" targetname: "7" arrowstyle: none}
+edge: { sourcename: "18" targetname: "8" arrowstyle: none}
+edge: { sourcename: "18" targetname: "9" arrowstyle: none}
+edge: { sourcename: "18" targetname: "10" arrowstyle: none}
+edge: { sourcename: "18" targetname: "11" arrowstyle: none}
+edge: { sourcename: "18" targetname: "0" arrowstyle: none}
+edge: { sourcename: "18" targetname: "16" arrowstyle: none}
+edge: { sourcename: "18" targetname: "13" arrowstyle: none}
+edge: { sourcename: "18" targetname: "15" arrowstyle: none}
+edge: { sourcename: "18" targetname: "12" arrowstyle: none}
+edge: { sourcename: "19" targetname: "8" arrowstyle: none}
+edge: { sourcename: "19" targetname: "9" arrowstyle: none}
+edge: { sourcename: "19" targetname: "10" arrowstyle: none}
+edge: { sourcename: "19" targetname: "11" arrowstyle: none}
+edge: { sourcename: "19" targetname: "15" arrowstyle: none}
+edge: { sourcename: "19" targetname: "18" arrowstyle: none}
+edge: { sourcename: "20" targetname: "0" arrowstyle: none}
+edge: { sourcename: "20" targetname: "2" arrowstyle: none}
+edge: { sourcename: "20" targetname: "4" arrowstyle: none}
+edge: { sourcename: "21" targetname: "1" arrowstyle: none}
+edge: { sourcename: "21" targetname: "2" arrowstyle: none}
+edge: { sourcename: "21" targetname: "3" arrowstyle: none}
+edge: { sourcename: "21" targetname: "4" arrowstyle: none}
+edge: { sourcename: "21" targetname: "5" arrowstyle: none}
+edge: { sourcename: "21" targetname: "6" arrowstyle: none}
+edge: { sourcename: "21" targetname: "7" arrowstyle: none}
+edge: { sourcename: "21" targetname: "8" arrowstyle: none}
+edge: { sourcename: "21" targetname: "9" arrowstyle: none}
+edge: { sourcename: "21" targetname: "10" arrowstyle: none}
+edge: { sourcename: "21" targetname: "11" arrowstyle: none}
+edge: { sourcename: "21" targetname: "0" arrowstyle: none}
+edge: { sourcename: "21" targetname: "13" arrowstyle: none}
+edge: { sourcename: "21" targetname: "15" arrowstyle: none}
+edge: { sourcename: "21" targetname: "16" arrowstyle: none}
+edge: { sourcename: "21" targetname: "18" arrowstyle: none}
+edge: { sourcename: "21" targetname: "12" arrowstyle: none}
+edge: { sourcename: "21" targetname: "19" arrowstyle: none}
+edge: { sourcename: "22" targetname: "0" arrowstyle: none}
+edge: { sourcename: "22" targetname: "2" arrowstyle: none}
+edge: { sourcename: "22" targetname: "4" arrowstyle: none}
+edge: { sourcename: "23" targetname: "1" arrowstyle: none}
+edge: { sourcename: "23" targetname: "2" arrowstyle: none}
+edge: { sourcename: "23" targetname: "3" arrowstyle: none}
+edge: { sourcename: "23" targetname: "4" arrowstyle: none}
+edge: { sourcename: "23" targetname: "5" arrowstyle: none}
+edge: { sourcename: "23" targetname: "6" arrowstyle: none}
+edge: { sourcename: "23" targetname: "7" arrowstyle: none}
+edge: { sourcename: "23" targetname: "8" arrowstyle: none}
+edge: { sourcename: "23" targetname: "9" arrowstyle: none}
+edge: { sourcename: "23" targetname: "10" arrowstyle: none}
+edge: { sourcename: "23" targetname: "11" arrowstyle: none}
+edge: { sourcename: "23" targetname: "0" arrowstyle: none}
+edge: { sourcename: "23" targetname: "12" arrowstyle: none}
+edge: { sourcename: "23" targetname: "13" arrowstyle: none}
+edge: { sourcename: "23" targetname: "15" arrowstyle: none}
+edge: { sourcename: "23" targetname: "16" arrowstyle: none}
+edge: { sourcename: "23" targetname: "18" arrowstyle: none}
+edge: { sourcename: "23" targetname: "21" arrowstyle: none}
+edge: { sourcename: "23" targetname: "19" arrowstyle: none}
+edge: { sourcename: "24" targetname: "10" arrowstyle: none}
+edge: { sourcename: "24" targetname: "11" arrowstyle: none}
+edge: { sourcename: "24" targetname: "15" arrowstyle: none}
+edge: { sourcename: "24" targetname: "18" arrowstyle: none}
+edge: { sourcename: "24" targetname: "21" arrowstyle: none}
+edge: { sourcename: "24" targetname: "23" arrowstyle: none}
+edge: { sourcename: "25" targetname: "1" arrowstyle: none}
+edge: { sourcename: "25" targetname: "2" arrowstyle: none}
+edge: { sourcename: "25" targetname: "3" arrowstyle: none}
+edge: { sourcename: "25" targetname: "4" arrowstyle: none}
+edge: { sourcename: "25" targetname: "5" arrowstyle: none}
+edge: { sourcename: "25" targetname: "6" arrowstyle: none}
+edge: { sourcename: "25" targetname: "7" arrowstyle: none}
+edge: { sourcename: "25" targetname: "8" arrowstyle: none}
+edge: { sourcename: "25" targetname: "9" arrowstyle: none}
+edge: { sourcename: "25" targetname: "10" arrowstyle: none}
+edge: { sourcename: "25" targetname: "11" arrowstyle: none}
+edge: { sourcename: "25" targetname: "0" arrowstyle: none}
+edge: { sourcename: "25" targetname: "13" arrowstyle: none}
+edge: { sourcename: "25" targetname: "15" arrowstyle: none}
+edge: { sourcename: "25" targetname: "16" arrowstyle: none}
+edge: { sourcename: "25" targetname: "18" arrowstyle: none}
+edge: { sourcename: "25" targetname: "19" arrowstyle: none}
+edge: { sourcename: "25" targetname: "21" arrowstyle: none}
+edge: { sourcename: "25" targetname: "12" arrowstyle: none}
+edge: { sourcename: "25" targetname: "23" arrowstyle: none}
+edge: { sourcename: "25" targetname: "24" arrowstyle: none}
+edge: { sourcename: "26" targetname: "0" arrowstyle: none}
+edge: { sourcename: "26" targetname: "2" arrowstyle: none}
+edge: { sourcename: "26" targetname: "4" arrowstyle: none}
+edge: { sourcename: "27" targetname: "1" arrowstyle: none}
+edge: { sourcename: "27" targetname: "2" arrowstyle: none}
+edge: { sourcename: "27" targetname: "3" arrowstyle: none}
+edge: { sourcename: "27" targetname: "4" arrowstyle: none}
+edge: { sourcename: "27" targetname: "5" arrowstyle: none}
+edge: { sourcename: "27" targetname: "6" arrowstyle: none}
+edge: { sourcename: "27" targetname: "7" arrowstyle: none}
+edge: { sourcename: "27" targetname: "8" arrowstyle: none}
+edge: { sourcename: "27" targetname: "9" arrowstyle: none}
+edge: { sourcename: "27" targetname: "10" arrowstyle: none}
+edge: { sourcename: "27" targetname: "11" arrowstyle: none}
+edge: { sourcename: "27" targetname: "0" arrowstyle: none}
+edge: { sourcename: "27" targetname: "13" arrowstyle: none}
+edge: { sourcename: "27" targetname: "15" arrowstyle: none}
+edge: { sourcename: "27" targetname: "16" arrowstyle: none}
+edge: { sourcename: "27" targetname: "18" arrowstyle: none}
+edge: { sourcename: "27" targetname: "19" arrowstyle: none}
+edge: { sourcename: "27" targetname: "21" arrowstyle: none}
+edge: { sourcename: "27" targetname: "12" arrowstyle: none}
+edge: { sourcename: "27" targetname: "23" arrowstyle: none}
+edge: { sourcename: "27" targetname: "24" arrowstyle: none}
+edge: { sourcename: "27" targetname: "25" arrowstyle: none}
+edge: { sourcename: "28" targetname: "15" arrowstyle: none}
+edge: { sourcename: "28" targetname: "18" arrowstyle: none}
+edge: { sourcename: "28" targetname: "21" arrowstyle: none}
+edge: { sourcename: "28" targetname: "23" arrowstyle: none}
+edge: { sourcename: "28" targetname: "25" arrowstyle: none}
+edge: { sourcename: "28" targetname: "27" arrowstyle: none}
+}
