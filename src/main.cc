@@ -248,7 +248,7 @@ void run_ir_test(std::filesystem::path test_dir) {
 }
 
 void test_ir() {
-    std::filesystem::path ir_tests = "/Users/arne/Documents/Xcode Projects/Katara/Tests/ir-tests";
+    std::filesystem::path ir_tests = "/Users/arne/Documents/Xcode Projects/Katara/tests/ir";
     
     std::cout << "running ir-tests\n";
     
