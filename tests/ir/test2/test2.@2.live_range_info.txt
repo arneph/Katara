@@ -1,7 +1,0 @@
-live range info for @2:
-  {0} - live range info:
- +   %2
- +   %1
- +   %0
-entry set: 
- exit set: 

@@ -1,9 +1,0 @@
-interference graph edges:
-  %0: %1
-  %1: %0
-  %2: 
-
-interference graph registers:
-  %0:  5
-  %1:  4
-  %2:  0

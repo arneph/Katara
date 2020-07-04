@@ -98,7 +98,7 @@ void run_ir_test(std::filesystem::path test_dir) {
     std::string test_name = test_dir.filename();
     std::cout << "testing " + test_name << "\n";
     
-    std::filesystem::path in_file = test_dir.string() + "/" + test_name + ".ir.txt";
+    std::filesystem::path in_file = test_dir.string() + "/" + test_name + ".ir";
     std::filesystem::path out_file_base = test_dir.string() + "/" + test_name;
     
     if (!std::filesystem::exists(in_file)) {

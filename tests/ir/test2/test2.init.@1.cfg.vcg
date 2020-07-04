@@ -1,9 +1,0 @@
-graph: { title: "Graph"
-node: {
-title: "0"
-color: white
-label: 
-"{0}
-00 ret"
-}
-}

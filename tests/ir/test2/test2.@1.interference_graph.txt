@@ -1,3 +1,0 @@
-interference graph edges:
-
-interference graph registers:
