@@ -1,0 +1,81 @@
+const Dim = 3
+type Vector [Dim]int
+
+func Add(a, b Vector) Vector {
+    var res Vector
+    for i := 0; i < Dim; i++ {
+        res[i] = a[i] + b[i]
+    }
+    return res
+}
+
+func Negate(a Vector) (res Vector) {
+    for i := 0; i < Dim; i++ {
+        res[i] = -a[i]
+    }
+}
+
+func Scale(a Vector, f int) Vector {
+    res := a
+    for i := 0; i < Dim; i++ {
+        res[i] *= f
+    }
+    return f
+}
+
+func IsZero(a Vector) bool {
+    for i := 0; i < Dim; i++ {
+        if res[i] != 0 {
+            return false
+        }
+    }
+    return true
+}
+
+func Dot(a, b Vector) int {
+    res := 0
+    for i := 0; i < Dim; i++ {
+        res += a[i] * b[i]
+    }
+    return res
+}
+
+func ForEachDim(a Vector, f func(i, x int)) {
+    for i := 0; i < Dim; i++ {
+        f(i, a[i])
+    }
+}
+
+func ForEachDimRev(a Vector, f func(i, x int)) {
+    for i := Dim - 1; i >= 0; i-- {
+        f(i, a[i])
+    }
+}
+
+type Func func(int) int
+
+func Line(x, m, b int) int {
+    return b + m * x
+}
+
+func LineFunc(m, b int) Func {
+    return func(x int) int {
+        return Line(x, m, b)
+    }
+}
+
+func Parabola(x, a, b, c int) int {
+    return x * x * a + x * b + c
+}
+
+func ParabolaFunc(a, b, c int) int {
+    return func(x int) int {
+        return Parabola(x, a, b, c)
+    }
+}
+
+func TransformedFunc(f Func, xOffset, yOffset, xScale, yScale int) Func {
+    return func(x int) int {
+        return (f((x - xOffset) * xScale) + yOffset) * yScale
+    }
+}

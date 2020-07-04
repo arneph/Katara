@@ -16,6 +16,12 @@
 #include <iostream>
 #include <memory>
 
+#include "lang/positions.h"
+#include "lang/token.h"
+#include "lang/ast.h"
+#include "lang/scanner.h"
+#include "lang/parser.h"
+
 #include "ir/prog.h"
 #include "ir/func.h"
 #include "ir/block.h"
@@ -38,6 +44,159 @@
 #include "x86_64/instrs/cf_instrs.h"
 #include "x86_64/instrs/data_instrs.h"
 #include "x86_64/ops.h"
+
+void run_syntax_test(std::filesystem::path test_dir) {
+    std::string test_name = test_dir.filename();
+    std::cout << "testing " + test_name << "\n";
+    
+    std::filesystem::path in_file = test_dir.string() + "/" + test_name + ".kat";
+    
+    if (!std::filesystem::exists(in_file)) {
+        std::cout << "test file not found\n";
+        return;
+    }
+    
+    std::ifstream in_stream(in_file, std::ios::in);
+    std::stringstream str_stream;
+    str_stream << in_stream.rdbuf();
+    std::string str = str_stream.str();
+    
+    std::vector<lang::parser::Parser::Error> errors;
+    
+    lang::parser::Parser::ParseFile(str, errors);
+    
+    for (auto &error : errors) {
+        lang::pos::pos_t pos = error.pos_;
+        lang::pos::position_t position = lang::pos::pos_to_position(str, pos);
+        std::cout << position.line_ << ":" << position.column_ << ": ";
+        std::cout << error.message_ << '\n';
+    }
+}
+
+void test_syntax() {
+    std::filesystem::path ir_tests = "/Users/arne/Documents/Xcode/Katara/tests/syntax";
+    
+    std::cout << "running syntax-tests\n";
+    
+    for (auto entry : std::filesystem::directory_iterator(ir_tests)) {
+        if (!entry.is_directory()) {
+            continue;
+        }
+        run_syntax_test(entry.path());
+    }
+    
+    std::cout << "completed syntax-tests\n";
+}
+
+void to_file(std::string text, std::filesystem::path out_file) {
+    std::ofstream out_stream(out_file, std::ios::out);
+    
+    out_stream << text;
+}
+
+void run_ir_test(std::filesystem::path test_dir) {
+    std::string test_name = test_dir.filename();
+    std::cout << "testing " + test_name << "\n";
+    
+    std::filesystem::path in_file = test_dir.string() + "/" + test_name + ".ir.txt";
+    std::filesystem::path out_file_base = test_dir.string() + "/" + test_name;
+    
+    if (!std::filesystem::exists(in_file)) {
+        std::cout << "test file not found\n";
+        return;
+    }
+    
+    std::ifstream in_stream(in_file, std::ios::in);
+    ir_proc::Scanner scanner(in_stream);
+    ir::Prog *prog = ir_proc::Parser::Parse(scanner);
+    
+    std::cout << prog->ToString() << "\n";
+    
+    for (ir::Func *func : prog->funcs()) {
+        vcg::Graph cfg = func->ToControlFlowGraph();
+        vcg::Graph dom_tree = func->ToDominatorTree();
+        
+        to_file(cfg.ToVCGFormat(),
+                out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".cfg.vcg");
+        to_file(dom_tree.ToVCGFormat(/*exclude_node_text=*/ false),
+                out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".dom.vcg");
+    }
+    
+    std::unordered_map<ir::Func *,
+                       ir_info::FuncLiveRangeInfo>
+        live_range_infos;
+    std::unordered_map<ir::Func *,
+                       ir_info::InterferenceGraph> interference_graphs;
+    
+    for (ir::Func *func : prog->funcs()) {
+        ir_proc::LiveRangeAnalyzer live_range_analyzer(func);
+        
+        ir_info::FuncLiveRangeInfo& func_live_range_info =
+            live_range_analyzer.func_info();
+        ir_info::InterferenceGraph& interference_graph =
+            live_range_analyzer.interference_graph();
+        
+        live_range_infos.insert({func, func_live_range_info});
+        interference_graphs.insert({func, interference_graph});
+        
+        to_file(func_live_range_info.ToString(),
+                out_file_base.string() + ".@" + std::to_string(func->number()) + ".live_range_info.txt");
+    }
+    
+    x86_64_ir_translator::IRTranslator translator(prog,
+                                                  live_range_infos,
+                                                  interference_graphs);
+    translator.PrepareInterferenceGraphs();
+    
+    for (ir::Func *func : prog->funcs()) {
+        ir_info::InterferenceGraph& interference_graph =
+            interference_graphs.at(func);
+        
+        ir_proc::RegisterAllocator register_allocator(func,
+                                                      interference_graph);
+        register_allocator.AllocateRegisters();
+        
+        to_file(interference_graph.ToString(),
+                out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.txt");
+        to_file(interference_graph.ToVCGGraph().ToVCGFormat(),
+                out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.vcg");
+        
+        ir_proc::PhiResolver phi_resolver(func);
+        phi_resolver.ResolvePhis();
+        
+        vcg::Graph cfg = func->ToControlFlowGraph();
+        vcg::Graph dom_tree = func->ToDominatorTree();
+        
+        to_file(cfg.ToVCGFormat(),
+                out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".cfg.vcg");
+        to_file(dom_tree.ToVCGFormat(/*exclude_node_text=*/ false),
+                out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".dom.vcg");
+    }
+    
+    translator.TranslateProgram();
+    
+    x86_64::Prog * x86_64_program = translator.x86_64_program();
+    
+    to_file(x86_64_program->ToString(),
+            out_file_base.string() + ".x86_64.txt");
+    
+    delete prog;
+}
+
+void test_ir() {
+    std::filesystem::path ir_tests = "/Users/arne/Documents/Xcode/Katara/tests/ir";
+    
+    std::cout << "running ir-tests\n";
+    
+    for (auto entry : std::filesystem::directory_iterator(ir_tests)) {
+        if (!entry.is_directory()) {
+            continue;
+        }
+        run_ir_test(entry.path());
+    }
+    
+    std::cout << "completed ir-tests\n";
+}
 
 long AddInts(long a, long b) {
     return a + b;
@@ -152,119 +311,10 @@ void test_x86() {
     std::cout << "completed x86-tests\n";
 }
 
-void to_file(std::string text, std::filesystem::path out_file) {
-    std::ofstream out_stream(out_file, std::ios::out);
-    
-    out_stream << text;
-}
-
-void run_ir_test(std::filesystem::path test_dir) {
-    std::string test_name = test_dir.filename();
-    std::cout << "testing " + test_name << "\n";
-    
-    std::filesystem::path in_file = test_dir.string() + "/" + test_name + ".ir.txt";
-    std::filesystem::path out_file_base = test_dir.string() + "/" + test_name;
-    
-    if (!std::filesystem::exists(in_file)) {
-        std::cout << "test file not found\n";
-        return;
-    }
-    
-    std::ifstream in_stream(in_file, std::ios::in);
-    ir_proc::Scanner scanner(in_stream);
-    ir::Prog *prog = ir_proc::Parser::Parse(scanner);
-    
-    std::cout << prog->ToString() << "\n";
-    
-    for (ir::Func *func : prog->funcs()) {
-        vcg::Graph cfg = func->ToControlFlowGraph();
-        vcg::Graph dom_tree = func->ToDominatorTree();
-        
-        to_file(cfg.ToVCGFormat(),
-                out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".cfg.vcg");
-        to_file(dom_tree.ToVCGFormat(/*exclude_node_text=*/ false),
-                out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".dom.vcg");
-    }
-    
-    std::unordered_map<ir::Func *,
-                       ir_info::FuncLiveRangeInfo>
-        live_range_infos;
-    std::unordered_map<ir::Func *,
-                       ir_info::InterferenceGraph> interference_graphs;
-    
-    for (ir::Func *func : prog->funcs()) {
-        ir_proc::LiveRangeAnalyzer live_range_analyzer(func);
-        
-        ir_info::FuncLiveRangeInfo& func_live_range_info =
-            live_range_analyzer.func_info();
-        ir_info::InterferenceGraph& interference_graph =
-            live_range_analyzer.interference_graph();
-        
-        live_range_infos.insert({func, func_live_range_info});
-        interference_graphs.insert({func, interference_graph});
-        
-        to_file(func_live_range_info.ToString(),
-                out_file_base.string() + ".@" + std::to_string(func->number()) + ".live_range_info.txt");
-    }
-    
-    x86_64_ir_translator::IRTranslator translator(prog,
-                                                  live_range_infos,
-                                                  interference_graphs);
-    translator.PrepareInterferenceGraphs();
-    
-    for (ir::Func *func : prog->funcs()) {
-        ir_info::InterferenceGraph& interference_graph =
-            interference_graphs.at(func);
-        
-        ir_proc::RegisterAllocator register_allocator(func,
-                                                      interference_graph);
-        register_allocator.AllocateRegisters();
-        
-        to_file(interference_graph.ToString(),
-                out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.txt");
-        to_file(interference_graph.ToVCGGraph().ToVCGFormat(),
-                out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.vcg");
-        
-        ir_proc::PhiResolver phi_resolver(func);
-        phi_resolver.ResolvePhis();
-        
-        vcg::Graph cfg = func->ToControlFlowGraph();
-        vcg::Graph dom_tree = func->ToDominatorTree();
-        
-        to_file(cfg.ToVCGFormat(),
-                out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".cfg.vcg");
-        to_file(dom_tree.ToVCGFormat(/*exclude_node_text=*/ false),
-                out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".dom.vcg");
-    }
-    
-    translator.TranslateProgram();
-    
-    x86_64::Prog * x86_64_program = translator.x86_64_program();
-    
-    to_file(x86_64_program->ToString(),
-            out_file_base.string() + ".x86_64.txt");
-    
-    delete prog;
-}
-
-void test_ir() {
-    std::filesystem::path ir_tests = "/Users/arne/Documents/Xcode Projects/Katara/tests/ir";
-    
-    std::cout << "running ir-tests\n";
-    
-    for (auto entry : std::filesystem::directory_iterator(ir_tests)) {
-        if (!entry.is_directory()) {
-            continue;
-        }
-        run_ir_test(entry.path());
-    }
-    
-    std::cout << "completed ir-tests\n";
-}
-
 int main(int argc, const char * argv[]) {
     test_x86();
     test_ir();
+    test_syntax();
     
     return 0;
 }
