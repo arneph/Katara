@@ -86,6 +86,8 @@ typedef enum : int8_t {
     kConst,
     kVar,
     kType,
+    kInterface,
+    kStruct,
     kIf,
     kElse,
     kFor,

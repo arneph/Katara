@@ -45,14 +45,14 @@
 #include "x86_64/instrs/data_instrs.h"
 #include "x86_64/ops.h"
 
-void run_syntax_test(std::filesystem::path test_dir) {
+void run_lang_test(std::filesystem::path test_dir) {
     std::string test_name = test_dir.filename();
     std::cout << "testing " + test_name << "\n";
     
     std::filesystem::path in_file = test_dir.string() + "/" + test_name + ".kat";
     
     if (!std::filesystem::exists(in_file)) {
-        std::cout << "test file not found\n";
+        std::cout << "test file not found: " << in_file.generic_string() << "\n";
         return;
     }
     
@@ -73,19 +73,19 @@ void run_syntax_test(std::filesystem::path test_dir) {
     }
 }
 
-void test_syntax() {
-    std::filesystem::path ir_tests = "/Users/arne/Documents/Xcode/Katara/tests/syntax";
+void test_lang() {
+    std::filesystem::path lang_tests = "/Users/arne/Documents/Xcode/Katara/tests/lang";
     
-    std::cout << "running syntax-tests\n";
+    std::cout << "running lang-tests\n";
     
-    for (auto entry : std::filesystem::directory_iterator(ir_tests)) {
+    for (auto entry : std::filesystem::directory_iterator(lang_tests)) {
         if (!entry.is_directory()) {
             continue;
         }
-        run_syntax_test(entry.path());
+        run_lang_test(entry.path());
     }
     
-    std::cout << "completed syntax-tests\n";
+    std::cout << "completed lang-tests\n";
 }
 
 void to_file(std::string text, std::filesystem::path out_file) {
@@ -206,7 +206,7 @@ void PrintInt(long value) {
     printf("%ld\n", value);
 }
 
-void test_x86() {
+void test_x86_64() {
     std::cout << "running x86-tests\n";
     
     uint8_t *add_ints_addr = (uint8_t *) &AddInts;
@@ -312,9 +312,9 @@ void test_x86() {
 }
 
 int main(int argc, const char * argv[]) {
-    test_x86();
-    test_ir();
-    test_syntax();
+    test_lang();
+    //test_ir();
+    //test_x86_64();
     
     return 0;
 }

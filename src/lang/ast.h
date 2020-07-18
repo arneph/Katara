@@ -25,15 +25,45 @@ struct Node {
     virtual pos::pos_t end() const = 0;
 };
 
+// Expr ::= UnaryExpr
+//        | BinaryExpr
+//        | ParenExpr
+//        | SelectionExpr
+//        | TypeAssertExpr
+//        | IndexExpr
+//        | CallExpr
+//        | KeyValueExpr
+//        | FuncLit
+//        | CompositeLit
+//        | ArrayType
+//        | FuncType
+//        | InterfaceType
+//        | StructType
+//        | PointerType
+//        | TypeInstance
+//        | BasicLit
+//        | Ident .
 struct Expr : public Node {
     virtual ~Expr() {}
 };
 
+// Stmt ::= BlockStmt
+//        | DeclStmt
+//        | AssignStmt
+//        | ExprStmt
+//        | IncDecStmt
+//        | ReturnStmt
+//        | IfStmt
+//        | SwitchStmt
+//        | CaseClause
+//        | ForStmt
+//        | LabeledStmt
+//        | BranchStmt .
 struct Stmt : public Node {
     virtual ~Stmt() {}
 };
 
-// Decl ::= GenDecl|FuncDecl
+// Decl ::= GenDecl | FuncDecl .
 struct Decl : public Node {
     virtual ~Decl() {}
 };
@@ -62,14 +92,27 @@ struct BranchStmt;
 struct UnaryExpr;
 struct BinaryExpr;
 struct ParenExpr;
+struct SelectionExpr;
+struct TypeAssertExpr;
 struct IndexExpr;
 struct CallExpr;
+struct KeyValueExpr;
 struct FuncLit;
+struct CompositeLit;
 
 struct ArrayType;
 struct FuncType;
+struct InterfaceType;
+struct MethodSpec;
+struct StructType;
+struct PointerType;
+struct TypeInstance;
+
 struct FieldList;
 struct Field;
+struct TypeArgList;
+struct TypeParamList;
+struct TypeParam;
 
 struct BasicLit;
 struct Ident;
@@ -111,18 +154,21 @@ struct ValueSpec : public Spec {
     pos::pos_t end() const;
 };
 
-// TypeSpec ::= Ident Type "\n" .
+// TypeSpec ::= Ident [TypeParamList] Type "\n" .
 struct TypeSpec : public Spec {
     std::unique_ptr<Ident> name_;
+    std::unique_ptr<TypeParamList> type_params_;
     std::unique_ptr<Expr> type_;
     
     pos::pos_t start() const;
     pos::pos_t end() const;
 };
 
-// FuncDecl ::= "func" Ident FieldList [FieldList] BlockStmt .
+// FuncDecl ::= "func" [] Ident [TypeParamList] FieldList [FieldList] BlockStmt .
 struct FuncDecl : public Decl {
+    std::unique_ptr<FieldList> receiver_;
     std::unique_ptr<Ident> name_;
+    std::unique_ptr<TypeParamList> type_params_;
     std::unique_ptr<FuncType> type_;
     std::unique_ptr<BlockStmt> body_;
     
@@ -287,6 +333,26 @@ struct ParenExpr : public Expr {
     pos::pos_t end() const;
 };
 
+// SelectionExpr ::= Expr "." Ident .
+struct SelectionExpr : public Expr {
+    std::unique_ptr<Expr> accessed_;
+    std::unique_ptr<Ident> selection_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// TypeAssertExpr ::= Expr "." "<" Type ">" .
+struct TypeAssertExpr : public Expr {
+    std::unique_ptr<Expr> x_;
+    pos::pos_t l_angle_;
+    std::unique_ptr<Expr> type_; // nullptr for "type" keyword in type switch
+    pos::pos_t r_angle_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
 // IndexExpr ::= Expr "[" Expr "]" .
 struct IndexExpr : public Expr {
     std::unique_ptr<Expr> accessed_;
@@ -298,12 +364,23 @@ struct IndexExpr : public Expr {
     pos::pos_t end() const;
 };
 
-// CallExpe ::= Expr "(" [Expr {"," Expr}] ")" .
+// CallExpr ::= Expr [TypeArgList] "(" [Expr {"," Expr}] ")" .
 struct CallExpr : public Expr {
     std::unique_ptr<Expr> func_;
+    std::unique_ptr<TypeArgList> type_args_;
     pos::pos_t l_paren_;
     std::vector<std::unique_ptr<Expr>> args_;
     pos::pos_t r_paren_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// KeyValueExpr ::= Expr ":" Expr .
+struct KeyValueExpr : public Expr {
+    std::unique_ptr<Expr> key_;
+    pos::pos_t colon_;
+    std::unique_ptr<Expr> value_;
     
     pos::pos_t start() const;
     pos::pos_t end() const;
@@ -313,6 +390,17 @@ struct CallExpr : public Expr {
 struct FuncLit : public Expr {
     std::unique_ptr<FuncType> type_;
     std::unique_ptr<BlockStmt> body_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// CompositeLit ::= Type "{" [Expr {"," Expr}] "}" .
+struct CompositeLit : public Expr {
+    std::unique_ptr<Expr> type_;
+    pos::pos_t l_brace_;
+    std::vector<std::unique_ptr<Expr>> values_;
+    pos::pos_t r_brace_;
     
     pos::pos_t start() const;
     pos::pos_t end() const;
@@ -339,8 +427,50 @@ struct FuncType : public Expr {
     pos::pos_t end() const;
 };
 
-// FieldList ::= "(" {Field} ")"
+// InterfaceType ::= "interface" "{" {MethodSpec ";"} "}" .
+struct InterfaceType : public Expr {
+    pos::pos_t interface_;
+    pos::pos_t l_brace_;
+    std::vector<std::unique_ptr<MethodSpec>> methods_;
+    pos::pos_t r_brace_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// MethodSpec ::= Ident FieldList [FieldList] .
+struct MethodSpec : public Node {
+    std::unique_ptr<Ident> name_;
+    std::unique_ptr<FieldList> params_;
+    std::unique_ptr<FieldList> results_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// StructType ::= "struct" "{" FieldList "}" .
+struct StructType : public Expr {
+    pos::pos_t struct_;
+    pos::pos_t l_brace_;
+    std::unique_ptr<FieldList> fields_;
+    pos::pos_t r_brace_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// TypeInstance ::= Type TypeArgList .
+struct TypeInstance : public Expr {
+    std::unique_ptr<Expr> type_;
+    std::unique_ptr<TypeArgList> type_args_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// FieldList ::= "(" [Field {"," Field}] ")"
 //             | Field
+//             | {Field ";"} .
 struct FieldList : public Node {
     pos::pos_t l_paren_;
     std::vector<std::unique_ptr<Field>> fields_;
@@ -350,9 +480,38 @@ struct FieldList : public Node {
     pos::pos_t end() const;
 };
 
-// Field ::= [IdentList] Type
+// Field ::= {Ident} Type .
 struct Field : public Node {
     std::vector<std::unique_ptr<Ident>> names_;
+    std::unique_ptr<Expr> type_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// TypeArgList ::= "<" [Type {"," Type} ">" .
+struct TypeArgList : public Node {
+    pos::pos_t l_angle_;
+    std::vector<std::unique_ptr<Expr>> args_;
+    pos::pos_t r_angle_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// TypeParamList ::= "<" [TypeParam {"," TypeParam}] ">" .
+struct TypeParamList : public Node {
+    pos::pos_t l_angle_;
+    std::vector<std::unique_ptr<TypeParam>> params_;
+    pos::pos_t r_angle_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// TypeParam ::= Ident [Type] .
+struct TypeParam : public Node {
+    std::unique_ptr<Ident> name_;
     std::unique_ptr<Expr> type_;
     
     pos::pos_t start() const;

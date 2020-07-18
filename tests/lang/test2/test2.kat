@@ -1,0 +1,84 @@
+type List<T> interface {
+    Get(index int) T
+    Set(index int, T)
+    Len() int
+    
+    SubList(start, end int) List<T>
+}
+
+type ArrayList<T> struct{
+    data []T
+    start int
+    len int
+    cap int
+}
+
+func NewArrayList<T>() *List<T> {
+
+}
+
+func (l *ArrayList<T>) Get(index int) T {
+    return l.data[i]
+}
+
+func (l *ArrayList<T>) Set(index int, value T) {
+    l.data[i] = value
+}
+
+type ComparisonResult int
+type CompareFunc<T> func(a, b T) ComparisonResult
+
+func SortInts(l List<int>) {
+    Sort<int>(l, func(a, b int) ComparisonResult {
+        return
+    })
+}
+
+func Sort<T>(l List<T>, compareFunc CompareFunc<T>) {
+    
+}
+
+type Map<K, V> interface {
+    Get(key K) V
+    Set(key K, value V)
+    Delete(key K) V
+    
+    ForEach(f func(key K, value V))
+}
+
+type HashValue int64
+type Hashable interface {
+    Hash() HashValue
+}
+type HashFunc<T> func(value T) HashValue
+
+type HashMap<K, V> struct {
+    data []struct{K; V;}
+    hashFunc HashFunc<K>
+}
+
+func NewHashMap<K Hashable, V>() *HashMap<K, V> {
+    return NewCustomHashMap<K, V>(K.Hash)
+}
+
+func NewCustomHashMap<K, V>(hashFunc HashFunc<K>) *HashMap<K, V> {
+    
+}
+
+type Graph<T> struct {
+    nodes Set<*Node<T>>
+}
+
+type Node<T> struct {
+    value T
+    neighbors Set<%Node<T>>
+}
+
+func (n *Node<T>) ForEachNeighbor(f func(neighbor *Node<T>)) {
+    n.neighbors.ForEach(f)
+}
+
+func Test() {
+    l := NewArrayList<int>()
+    m := NewHashMap<string, List<int>>(0)
+}

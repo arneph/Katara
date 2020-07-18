@@ -31,7 +31,7 @@ std::string Scanner::token_string() const {
     return raw_.substr(tok_start_, tok_end_-tok_start_+1);
 }
 
-void Scanner::Next() {
+void Scanner::Next(bool split_shift_ops) {
     bool insert_semicolon = false;
     if (pos_ > 0) {
         switch (tok_) {
@@ -43,6 +43,7 @@ void Scanner::Next() {
             case token::kReturn:
             case token::kInc:
             case token::kDec:
+            case token::kGtr:
             case token::kRParen:
             case token::kRBrack:
             case token::kRBrace:
@@ -138,7 +139,8 @@ void Scanner::Next() {
             NextArithmeticOrBitOpStart(token::kXor);
             return;
         case '<':
-            if (pos_ < raw_.size() &&
+            if (!split_shift_ops &&
+                pos_ < raw_.size() &&
                 raw_.at(pos_) == '<') {
                 pos_++;
                 NextArithmeticOrBitOpStart(token::kShl);
@@ -154,7 +156,8 @@ void Scanner::Next() {
                 return;
             }
         case '>':
-            if (pos_ < raw_.size() &&
+            if (!split_shift_ops &&
+                pos_ < raw_.size() &&
                 raw_.at(pos_) == '>') {
                 pos_++;
                 NextArithmeticOrBitOpStart(token::kShr);
@@ -272,6 +275,10 @@ void Scanner::Next() {
         tok_ = token::kVar;
     } else if (ident == "type") {
         tok_ = token::kType;
+    } else if (ident == "interface") {
+        tok_ = token::kInterface;
+    } else if (ident == "struct") {
+        tok_ = token::kStruct;
     } else if (ident == "if") {
         tok_ = token::kIf;
     } else if (ident == "else") {

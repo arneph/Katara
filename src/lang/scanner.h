@@ -26,7 +26,7 @@ public:
     pos::pos_t token_end() const;
     std::string token_string() const;
     
-    void Next();
+    void Next(bool split_shift_ops = false);
     void SkipPastLine();
     
 private:

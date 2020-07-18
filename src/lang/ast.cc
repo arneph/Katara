@@ -204,6 +204,22 @@ pos::pos_t ParenExpr::end() const {
     return r_paren_;
 }
 
+pos::pos_t SelectionExpr::start() const {
+    return accessed_->start();
+}
+
+pos::pos_t SelectionExpr::end() const {
+    return selection_->end();
+}
+
+pos::pos_t TypeAssertExpr::start() const {
+    return x_->start();
+}
+
+pos::pos_t TypeAssertExpr::end() const {
+    return r_angle_;
+}
+
 pos::pos_t IndexExpr::start() const {
     return accessed_->start();
 }
@@ -220,12 +236,28 @@ pos::pos_t CallExpr::end() const {
     return r_paren_;
 }
 
+pos::pos_t KeyValueExpr::start() const {
+    return key_->start();
+}
+
+pos::pos_t KeyValueExpr::end() const {
+    return value_->end();
+}
+
 pos::pos_t FuncLit::start() const {
     return type_->start();
 }
 
 pos::pos_t FuncLit::end() const {
     return body_->end();
+}
+
+pos::pos_t CompositeLit::start() const {
+    return type_->start();
+}
+
+pos::pos_t CompositeLit::end() const {
+    return r_brace_;
 }
 
 pos::pos_t ArrayType::start() const {
@@ -247,6 +279,44 @@ pos::pos_t FuncType:: end() const {
     return params_->end();
 }
 
+pos::pos_t InterfaceType::start() const {
+    return interface_;
+}
+
+pos::pos_t InterfaceType::end() const {
+    return r_brace_;
+}
+
+pos::pos_t MethodSpec::start() const {
+    return name_->start();
+}
+
+pos::pos_t MethodSpec::end() const {
+    if (!results_) {
+        return params_->end();
+    }
+    return results_->end();
+}
+
+pos::pos_t StructType::start() const {
+    return struct_;
+}
+
+pos::pos_t StructType::end() const {
+    return r_brace_;
+}
+
+pos::pos_t TypeInstance::start() const {
+    return type_->start();
+}
+
+pos::pos_t TypeInstance::end() const {
+    if (!type_args_) {
+        return type_->end();
+    }
+    return type_args_->end();
+}
+
 pos::pos_t FieldList::start() const {
     return l_paren_;
 }
@@ -264,6 +334,33 @@ pos::pos_t Field::start() const {
 
 pos::pos_t Field::end() const {
     return type_->end();
+}
+
+pos::pos_t TypeArgList::start() const {
+    return l_angle_;
+}
+
+pos::pos_t TypeArgList::end() const {
+    return r_angle_;
+}
+
+pos::pos_t TypeParamList::start() const {
+    return l_angle_;
+}
+
+pos::pos_t TypeParamList::end() const {
+    return r_angle_;
+}
+
+pos::pos_t TypeParam::start() const {
+    return name_->start();
+}
+
+pos::pos_t TypeParam::end() const {
+    if (!type_) {
+        return name_->end();
+    }
+    return type_->start();
 }
 
 pos::pos_t BasicLit::start() const {

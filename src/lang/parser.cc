@@ -128,7 +128,7 @@ std::unique_ptr<ast::ValueSpec> Parser::ParseValueSpec() {
     value_spec->names_ = std::move(names);
     
     if (scanner_.token() != token::kAssign) {
-        auto type = ParseExpr();
+        auto type = ParseType();
         if (!type) {
             scanner_.SkipPastLine();
             return nullptr;
@@ -138,7 +138,7 @@ std::unique_ptr<ast::ValueSpec> Parser::ParseValueSpec() {
     
     if (scanner_.token() == token::kAssign) {
         scanner_.Next();
-        auto values = ParseExprList();
+        auto values = ParseExprList(/* disallow_composite_lit= */ false);
         if (values.empty()) {
             scanner_.SkipPastLine();
             return nullptr;
@@ -159,7 +159,15 @@ std::unique_ptr<ast::TypeSpec> Parser::ParseTypeSpec() {
     }
     type_spec->name_ = std::move(name);
     
-    auto type = ParseExpr();
+    if (scanner_.token() == token::kLss) {
+        auto type_params = ParseTypeParamList();
+        if (!type_params) {
+            return nullptr;
+        }
+        type_spec->type_params_ = std::move(type_params);
+    }
+    
+    auto type = ParseType();
     if (!type) {
         scanner_.SkipPastLine();
         return nullptr;
@@ -175,14 +183,29 @@ std::unique_ptr<ast::FuncDecl> Parser::ParseFuncDecl() {
     func_decl->type_->func_ = scanner_.token_start();
     scanner_.Next();
     
+    if (scanner_.token() == token::kLParen) {
+        auto receiver = ParseFuncFieldList(/* expect_paren= */ true);
+        if (!receiver) {
+            return nullptr;
+        }
+        func_decl->receiver_ = std::move(receiver);
+    }
+    
     auto name = ParseIdent();
     if (!name) {
-        scanner_.SkipPastLine();
         return nullptr;
     }
     func_decl->name_ = std::move(name);
     
-    auto params = ParseFieldList(/* expect_paren= */ true);
+    if (scanner_.token() == token::kLss) {
+        auto type_params = ParseTypeParamList();
+        if (!type_params) {
+            return nullptr;
+        }
+        func_decl->type_params_ = std::move(type_params);
+    }
+    
+    auto params = ParseFuncFieldList(/* expect_paren= */ true);
     if (!params) {
         scanner_.SkipPastLine();
         return nullptr;
@@ -190,7 +213,7 @@ std::unique_ptr<ast::FuncDecl> Parser::ParseFuncDecl() {
     func_decl->type_->params_ = std::move(params);
     
     if (scanner_.token() != token::kLBrace) {
-        auto results = ParseFieldList(/* expect_paren = */ false);
+        auto results = ParseFuncFieldList(/* expect_paren = */ false);
         if (!results) {
             scanner_.SkipPastLine();
             return nullptr;
@@ -258,7 +281,7 @@ std::unique_ptr<ast::Stmt> Parser::ParseStmt() {
             break;
     }
     
-    auto expr = ParseExpr();
+    auto expr = ParseExpr(/* disallow_composite_lit= */ false);
     if (expr == nullptr) {
         return nullptr;
     }
@@ -278,20 +301,23 @@ std::unique_ptr<ast::Stmt> Parser::ParseStmt() {
             return ParseLabeledStmt(std::move(ident));
         }
         default:
-            return ParseSimpleStmt(std::move(expr));
+            return ParseSimpleStmt(std::move(expr),
+                                   /* disallow_composite_lit= */ false);
     }
 }
 
-std::unique_ptr<ast::Stmt> Parser::ParseSimpleStmt() {
-    auto expr = ParseExpr();
+std::unique_ptr<ast::Stmt> Parser::ParseSimpleStmt(bool disallow_composite_lit) {
+    auto expr = ParseExpr(disallow_composite_lit);
     if (!expr) {
         return nullptr;
     }
     
-    return ParseSimpleStmt(std::move(expr));
+    return ParseSimpleStmt(std::move(expr),
+                           disallow_composite_lit);
 }
 
-std::unique_ptr<ast::Stmt> Parser::ParseSimpleStmt(std::unique_ptr<ast::Expr> expr) {
+std::unique_ptr<ast::Stmt> Parser::ParseSimpleStmt(std::unique_ptr<ast::Expr> expr,
+                                                   bool disallow_composite_lit) {
     switch (scanner_.token()) {
         case token::kInc:
         case token::kDec:
@@ -310,7 +336,8 @@ std::unique_ptr<ast::Stmt> Parser::ParseSimpleStmt(std::unique_ptr<ast::Expr> ex
         case token::kAndNotAssign:
         case token::kAssign:
         case token::kDefine:
-            return ParseAssignStmt(std::move(expr));
+            return ParseAssignStmt(std::move(expr),
+                                   disallow_composite_lit);
         default:
             return ParseExprStmt(std::move(expr));
     }
@@ -376,7 +403,7 @@ std::unique_ptr<ast::ReturnStmt> Parser::ParseReturnStmt() {
         return return_stmt;
     }
     
-    return_stmt->results_ = ParseExprList();
+    return_stmt->results_ = ParseExprList(/* disallow_composite_lit= */ false);
     
     return return_stmt;
 }
@@ -395,7 +422,7 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
     if_stmt->if_ = scanner_.token_start();
     scanner_.Next();
     
-    auto expr = ParseExpr();
+    auto expr = ParseExpr(/* disallow_composite_lit= */ true);
     if (!expr) {
         return nullptr;
     }
@@ -403,7 +430,8 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
     if (scanner_.token() == token::kLBrace) {
         if_stmt->cond_ = std::move(expr);
     } else {
-        auto init = ParseSimpleStmt(std::move(expr));
+        auto init = ParseSimpleStmt(std::move(expr),
+                                    /* disallow_composite_lit= */ true);
         if (!init) {
             return nullptr;
         }
@@ -419,7 +447,7 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
         }
         scanner_.Next();
         
-        auto cond = ParseExpr();
+        auto cond = ParseExpr(/* disallow_composite_lit= */ true);
         if (!cond) {
             return nullptr;
         }
@@ -471,7 +499,7 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
     scanner_.Next();
     
     if (scanner_.token() != token::kLBrace) {
-        auto expr = ParseExpr();
+        auto expr = ParseExpr(/* disallow_composite_lit= */ true);
         if (!expr) {
             return nullptr;
         }
@@ -479,7 +507,8 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
         if (scanner_.token() == token::kLBrace) {
             switch_stmt->tag_ = std::move(expr);
         } else {
-            auto init = ParseSimpleStmt(std::move(expr));
+            auto init = ParseSimpleStmt(std::move(expr),
+                                        /* disallow_composite_lit= */ true);
             if (!init) {
                 return nullptr;
             }
@@ -496,7 +525,7 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
             scanner_.Next();
             
             if (scanner_.token() != token::kLBrace) {
-                auto tag = ParseExpr();
+                auto tag = ParseExpr(/* disallow_composite_lit= */ true);
                 if (!tag) {
                     return nullptr;
                 }
@@ -545,7 +574,7 @@ std::unique_ptr<ast::CaseClause> Parser::ParseCaseClause() {
     scanner_.Next();
     
     if (case_clause->tok_ == token::kCase) {
-        auto cond_vals = ParseExprList();
+        auto cond_vals = ParseExprList(/* disallow_composite_lit= */ false);
         if (cond_vals.empty()) {
             scanner_.SkipPastLine();
             return nullptr;
@@ -584,7 +613,7 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
     scanner_.Next();
     
     if (scanner_.token() != token::kLBrace) {
-        auto expr = ParseExpr();
+        auto expr = ParseExpr(/* disallow_composite_lit= */ true);
         if (!expr) {
             return nullptr;
         }
@@ -592,7 +621,8 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
         if (scanner_.token() == token::kLBrace) {
             for_stmt->cond_ = std::move(expr);
         } else {
-            auto init = ParseSimpleStmt(std::move(expr));
+            auto init = ParseSimpleStmt(std::move(expr),
+                                        /* disallow_composite_lit= */ true);
             if (!init) {
                 return nullptr;
             }
@@ -608,7 +638,7 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
             }
             scanner_.Next();
             
-            auto cond = ParseExpr();
+            auto cond = ParseExpr(/* disallow_composite_lit= */ true);
             if (!cond) {
                 return nullptr;
             }
@@ -625,7 +655,7 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
             scanner_.Next();
             
             if (scanner_.token() != token::kLBrace) {
-                auto post = ParseSimpleStmt();
+                auto post = ParseSimpleStmt(/* disallow_composite_lit= */ true);
                 if (!post) {
                     return nullptr;
                 }
@@ -716,9 +746,11 @@ std::unique_ptr<ast::LabeledStmt> Parser::ParseLabeledStmt(std::unique_ptr<ast::
     return labeled_stmt;
 }
 
-std::unique_ptr<ast::AssignStmt> Parser::ParseAssignStmt(std::unique_ptr<ast::Expr> first_expr) {
+std::unique_ptr<ast::AssignStmt> Parser::ParseAssignStmt(std::unique_ptr<ast::Expr> first_expr,
+                                                         bool disallow_composite_lit) {
     auto assign_stmt = std::make_unique<ast::AssignStmt>();
-    assign_stmt->lhs_ = ParseExprList(std::move(first_expr));
+    assign_stmt->lhs_ = ParseExprList(std::move(first_expr),
+                                      disallow_composite_lit);
     
     switch (scanner_.token()) {
         case token::kAddAssign:
@@ -747,7 +779,7 @@ std::unique_ptr<ast::AssignStmt> Parser::ParseAssignStmt(std::unique_ptr<ast::Ex
     assign_stmt->tok_ = scanner_.token();
     scanner_.Next();
     
-    auto rhs = ParseExprList();
+    auto rhs = ParseExprList(disallow_composite_lit);
     if (rhs.empty()) {
         return nullptr;
     }
@@ -776,21 +808,30 @@ std::unique_ptr<ast::IncDecStmt> Parser::ParseIncDecStmt(std::unique_ptr<ast::Ex
     return inc_dec_stmt;
 }
 
-std::vector<std::unique_ptr<ast::Expr>> Parser::ParseExprList() {
-    auto expr = ParseExpr();
+std::vector<std::unique_ptr<ast::Expr>> Parser::ParseExprList(bool disallow_composite_lit) {
+    switch (scanner_.token()) {
+        case token::kColon:
+        case token::kRParen:
+        case token::kSemicolon:
+            return {};
+        default:
+            break;
+    }
+    auto expr = ParseExpr(disallow_composite_lit);
     if (!expr) {
         return {};
     }
     
-    return ParseExprList(std::move(expr));
+    return ParseExprList(std::move(expr), disallow_composite_lit);
 }
 
-std::vector<std::unique_ptr<ast::Expr>> Parser::ParseExprList(std::unique_ptr<ast::Expr> first_expr) {
+std::vector<std::unique_ptr<ast::Expr>> Parser::ParseExprList(std::unique_ptr<ast::Expr> first_expr,
+                                                              bool disallow_composite_lit) {
     std::vector<std::unique_ptr<ast::Expr>> list;
     list.push_back(std::move(first_expr));
     while (scanner_.token() == token::kComma) {
         scanner_.Next();
-        auto expr = ParseExpr();
+        auto expr = ParseExpr(disallow_composite_lit);
         if (!expr) {
             return {};
         }
@@ -799,27 +840,29 @@ std::vector<std::unique_ptr<ast::Expr>> Parser::ParseExprList(std::unique_ptr<as
     return list;
 }
 
-std::unique_ptr<ast::Expr> Parser::ParseExpr() {
-    return ParseExpr(0);
+std::unique_ptr<ast::Expr> Parser::ParseExpr(bool disallow_composite_lit) {
+    return ParseExpr(0, disallow_composite_lit);
 }
 
-std::unique_ptr<ast::Expr> Parser::ParseExpr(token::precedence_t prec) {
+std::unique_ptr<ast::Expr> Parser::ParseExpr(token::precedence_t prec,
+                                             bool disallow_composite_lit) {
     switch (scanner_.token()) {
         case token::kAdd:
         case token::kSub:
         case token::kNot:
         case token::kXor:
         case token::kMul:
+        case token::kRem:
         case token::kAnd:
-            return ParseUnaryExpr();
+            return ParseUnaryExpr(disallow_composite_lit);
         default:
             break;
     }
     if (prec > token::kMaxPrecedence) {
-        return ParsePrimaryExpr();
+        return ParsePrimaryExpr(disallow_composite_lit);
     }
     
-    auto x = ParseExpr(prec + 1);
+    auto x = ParseExpr(prec + 1, disallow_composite_lit);
     if (!x) {
         return nullptr;
     }
@@ -831,29 +874,33 @@ std::unique_ptr<ast::Expr> Parser::ParseExpr(token::precedence_t prec) {
         return x;
     }
     scanner_.Next();
-    auto y = ParseExpr(op_prec + 1);
+    
+    auto y = ParseExpr(op_prec + 1, disallow_composite_lit);
     if (!y) {
         return nullptr;
     }
+    
     auto binary_expr = std::make_unique<ast::BinaryExpr>();
     binary_expr->x_ = std::move(x);
     binary_expr->op_start_ = op_start;
     binary_expr->op_ = op;
     binary_expr->y_ = std::move(y);
+    
     return binary_expr;
 }
 
-std::unique_ptr<ast::Expr> Parser::ParseUnaryExpr() {
+std::unique_ptr<ast::Expr> Parser::ParseUnaryExpr(bool disallow_composite_lit) {
     switch (scanner_.token()) {
         case token::kAdd:
         case token::kSub:
         case token::kNot:
         case token::kXor:
         case token::kMul:
+        case token::kRem:
         case token::kAnd:
             break;
         default:
-            return ParsePrimaryExpr();
+            return ParsePrimaryExpr(disallow_composite_lit);
     }
     
     auto unary_expr = std::make_unique<ast::UnaryExpr>();
@@ -861,7 +908,7 @@ std::unique_ptr<ast::Expr> Parser::ParseUnaryExpr() {
     unary_expr->op_ = scanner_.token();
     scanner_.Next();
     
-    auto x = ParseUnaryExpr();
+    auto x = ParseUnaryExpr(disallow_composite_lit);
     if (!x) {
         return nullptr;
     }
@@ -870,23 +917,18 @@ std::unique_ptr<ast::Expr> Parser::ParseUnaryExpr() {
     return unary_expr;
 }
 
-std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr() {
+std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(bool disallow_composite_lit) {
     std::unique_ptr<ast::Expr> primary_expr;
     switch (scanner_.token()) {
         case token::kInt:
             primary_expr = ParseBasicLit();
             break;
         case token::kLBrack:
-            primary_expr = ParseArrayType();
+        case token::kFunc:
+        case token::kInterface:
+        case token::kStruct:
+            primary_expr = ParseType();
             break;
-        case token::kFunc:{
-            auto type = ParseFuncType();
-            if (scanner_.token() != token::kLBrace) {
-                return type;
-            }
-            primary_expr = ParseFuncLit(std::move(type));
-            break;
-        }
         case token::kIdent:
             primary_expr = ParseIdent();
             break;
@@ -901,14 +943,64 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr() {
             scanner_.SkipPastLine();
             return nullptr;
     }
+    
+    return ParsePrimaryExpr(std::move(primary_expr),
+                            disallow_composite_lit);
+}
+
+std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> primary_expr,
+                                                    bool disallow_composite_lit) {
     bool extended_primary_expr = true;
     while (extended_primary_expr) {
         switch (scanner_.token()) {
+            case token::kPeriod:
+                scanner_.Next();
+                if (scanner_.token() == token::kIdent) {
+                    primary_expr = ParseSelectionExpr(std::move(primary_expr));
+                } else if (scanner_.token() == token::kIdent) {
+                    primary_expr = ParseTypeAssertExpr(std::move(primary_expr));
+                } else {
+                    errors_.push_back(Error{
+                        scanner_.token_start(),
+                        "expected identifier or '<'"
+                    });
+                    scanner_.SkipPastLine();
+                    return nullptr;
+                }
+                break;
             case token::kLBrack:
                 primary_expr = ParseIndexExpr(std::move(primary_expr));
                 break;
             case token::kLParen:
-                primary_expr = ParseCallExpr(std::move(primary_expr));
+                primary_expr = ParseCallExpr(std::move(primary_expr), nullptr);
+                break;
+            case token::kLBrace:
+                if (auto func_type_ptr = dynamic_cast<ast::FuncType *>(primary_expr.get());
+                    func_type_ptr != nullptr) {
+                    primary_expr.release();
+                    auto func_type = std::unique_ptr<ast::FuncType>(func_type_ptr);
+                    primary_expr = ParseFuncLit(std::move(func_type));
+                } else if (disallow_composite_lit) {
+                    return primary_expr;
+                } else {
+                    primary_expr = ParseCompositeLit(std::move(primary_expr));
+                }
+                break;
+            case token::kLss:
+                if (dynamic_cast<ast::Ident *>(primary_expr.get()) == nullptr &&
+                    dynamic_cast<ast::SelectionExpr *>(primary_expr.get()) == nullptr) {
+                    return primary_expr;
+                } else if (primary_expr->end() + 1 != scanner_.token_start()) {
+                    return primary_expr;
+                } else {
+                    auto type_args = ParseTypeArgList();
+                    if (!type_args) {
+                        return nullptr;
+                    }
+                    primary_expr = ParsePrimaryExpr(std::move(primary_expr),
+                                                    std::move(type_args),
+                                                    disallow_composite_lit);
+                }
                 break;
             default:
                 extended_primary_expr = false;
@@ -919,6 +1011,27 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr() {
         }
     }
     return primary_expr;
+}
+
+std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> primary_expr,
+                                                    std::unique_ptr<ast::TypeArgList> type_args,
+                                                    bool disallow_composite_lit) {
+    if (scanner_.token() == token::kLParen) {
+        auto call_epxr = ParseCallExpr(std::move(primary_expr), std::move(type_args));
+        if (!call_epxr) {
+            return nullptr;
+        }
+        return ParsePrimaryExpr(std::move(call_epxr),
+                                disallow_composite_lit);
+        
+    } else {
+        auto type_instance = std::make_unique<ast::TypeInstance>();
+        type_instance->type_ = std::move(primary_expr);
+        type_instance->type_args_ = std::move(type_args);
+        
+        return ParsePrimaryExpr(std::move(type_instance),
+                                disallow_composite_lit);
+    }
 }
 
 std::unique_ptr<ast::ParenExpr> Parser::ParseParenExpr() {
@@ -935,7 +1048,7 @@ std::unique_ptr<ast::ParenExpr> Parser::ParseParenExpr() {
     paren_expr->l_paren_ = scanner_.token_start();
     scanner_.Next();
     
-    auto x = ParseExpr(0);
+    auto x = ParseExpr(/* disallow_composite_lit= */ false);
     if (!x) {
         return nullptr;
     }
@@ -955,6 +1068,54 @@ std::unique_ptr<ast::ParenExpr> Parser::ParseParenExpr() {
     return paren_expr;
 }
 
+std::unique_ptr<ast::SelectionExpr> Parser::ParseSelectionExpr(std::unique_ptr<ast::Expr> accessed) {
+    auto selection_expr = std::make_unique<ast::SelectionExpr>();
+    selection_expr->accessed_ = std::move(accessed);
+    
+    auto selection = ParseIdent();
+    if (!selection) {
+        return nullptr;
+    }
+    selection_expr->selection_ = std::move(selection);
+    
+    return selection_expr;
+}
+
+std::unique_ptr<ast::TypeAssertExpr> Parser::ParseTypeAssertExpr(std::unique_ptr<ast::Expr> x) {
+    auto type_assert_expr = std::make_unique<ast::TypeAssertExpr>();
+    type_assert_expr->x_ = std::move(x);
+    
+    if (scanner_.token() != token::kLss) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '<'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    type_assert_expr->l_angle_ = scanner_.token_start();
+    scanner_.Next();
+    
+    auto type = ParseType();
+    if (!type) {
+        return nullptr;
+    }
+    type_assert_expr->type_ = std::move(type);
+    
+    if (scanner_.token() != token::kGtr) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '>'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    type_assert_expr->r_angle_ = scanner_.token_start();
+    scanner_.Next();
+    
+    return type_assert_expr;
+}
+
 std::unique_ptr<ast::IndexExpr> Parser::ParseIndexExpr(std::unique_ptr<ast::Expr> accessed) {
     auto index_expr = std::make_unique<ast::IndexExpr>();
     index_expr->accessed_ = std::move(accessed);
@@ -970,7 +1131,7 @@ std::unique_ptr<ast::IndexExpr> Parser::ParseIndexExpr(std::unique_ptr<ast::Expr
     index_expr->l_brack_ = scanner_.token_start();
     scanner_.Next();
     
-    auto index = ParseExpr(0);
+    auto index = ParseExpr(/* disallow_composite_lit= */ false);
     if (!index) {
         return nullptr;
     }
@@ -990,9 +1151,11 @@ std::unique_ptr<ast::IndexExpr> Parser::ParseIndexExpr(std::unique_ptr<ast::Expr
     return index_expr;
 }
 
-std::unique_ptr<ast::CallExpr> Parser::ParseCallExpr(std::unique_ptr<ast::Expr> func) {
+std::unique_ptr<ast::CallExpr> Parser::ParseCallExpr(std::unique_ptr<ast::Expr> func,
+                                                     std::unique_ptr<ast::TypeArgList> type_args) {
     auto call_expr = std::make_unique<ast::CallExpr>();
     call_expr->func_ = std::move(func);
+    call_expr->type_args_ = std::move(type_args);
     
     if (scanner_.token() != token::kLParen) {
         errors_.push_back(Error{
@@ -1005,7 +1168,7 @@ std::unique_ptr<ast::CallExpr> Parser::ParseCallExpr(std::unique_ptr<ast::Expr> 
     call_expr->l_paren_ = scanner_.token_start();
     scanner_.Next();
     
-    call_expr->args_ = ParseExprList();
+    call_expr->args_ = ParseExprList(/* disallow_composite_lit= */ false);
     
     if (scanner_.token() != token::kRParen) {
         errors_.push_back(Error{
@@ -1021,9 +1184,9 @@ std::unique_ptr<ast::CallExpr> Parser::ParseCallExpr(std::unique_ptr<ast::Expr> 
     return call_expr;
 }
 
-std::unique_ptr<ast::FuncLit> Parser::ParseFuncLit(std::unique_ptr<ast::FuncType> type) {
+std::unique_ptr<ast::FuncLit> Parser::ParseFuncLit(std::unique_ptr<ast::FuncType> func_type) {
     auto func_lit = std::make_unique<ast::FuncLit>();
-    func_lit->type_ = std::move(type);
+    func_lit->type_ = std::move(func_type);
     
     auto body = ParseBlockStmt();
     if (!body) {
@@ -1034,14 +1197,93 @@ std::unique_ptr<ast::FuncLit> Parser::ParseFuncLit(std::unique_ptr<ast::FuncType
     return func_lit;
 }
 
+std::unique_ptr<ast::CompositeLit> Parser::ParseCompositeLit(std::unique_ptr<ast::Expr> type) {
+    auto composite_lit = std::make_unique<ast::CompositeLit>();
+    composite_lit->type_ = std::move(type);
+    
+    if (scanner_.token() != token::kLBrace) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '{'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    composite_lit->l_brace_ = scanner_.token_start();
+    scanner_.Next();
+    
+    while (scanner_.token() != token::kRBrace) {
+        auto element = ParseCompositeLitElement();
+        if (!element) {
+            return nullptr;
+        }
+        composite_lit->values_.push_back(std::move(element));
+        
+        if (scanner_.token() == token::kRBrace) {
+            break;
+        }
+        if (scanner_.token() != token::kComma) {
+            errors_.push_back(Error{
+                scanner_.token_start(),
+                "expected ',' or '}'"
+            });
+            scanner_.SkipPastLine();
+            return nullptr;
+        }
+        scanner_.Next();
+    }
+    composite_lit->r_brace_ = scanner_.token_start();
+    scanner_.Next();
+    
+    return composite_lit;
+}
+
+std::unique_ptr<ast::Expr> Parser::ParseCompositeLitElement() {
+    if (scanner_.token() == token::kLBrace) {
+        return ParseCompositeLit(nullptr);
+    }
+    
+    auto expr = ParseExpr(/* disallow_composite_lit= */ false);
+    if (!expr) {
+        return nullptr;
+    }
+    
+    if (scanner_.token() != token::kColon) {
+        return expr;
+    }
+    auto key_value_expr = std::make_unique<ast::KeyValueExpr>();
+    key_value_expr->key_ = std::move(expr);
+    key_value_expr->colon_ = scanner_.token_start();
+    scanner_.Next();
+    
+    if (scanner_.token() == token::kLBrace) {
+        expr = ParseCompositeLit(nullptr);
+    } else {
+        expr = ParseExpr(/* disallow_composite_lit= */ false);
+    }
+    if (!expr) {
+        return nullptr;
+    }
+    key_value_expr->value_ = std::move(expr);
+    
+    return key_value_expr;
+}
+
 std::unique_ptr<ast::Expr> Parser::ParseType() {
     switch (scanner_.token()) {
-        case token::kIdent:
-            return ParseIdent();
         case token::kLBrack:
             return ParseArrayType();
         case token::kFunc:
             return ParseFuncType();
+        case token::kInterface:
+            return ParseInterfaceType();
+        case token::kStruct:
+            return ParseStructType();
+        case token::kMul:
+        case token::kRem:
+            return ParsePointerType();
+        case token::kIdent:
+            return ParseType(ParseIdent(/* split_shift_ops= */ true));
         default:
             errors_.push_back(Error{
                 scanner_.token_start(),
@@ -1050,6 +1292,30 @@ std::unique_ptr<ast::Expr> Parser::ParseType() {
             scanner_.SkipPastLine();
             return nullptr;
     }
+}
+
+std::unique_ptr<ast::Expr> Parser::ParseType(std::unique_ptr<ast::Ident> ident) {
+    std::unique_ptr<ast::Expr> type = std::move(ident);
+    
+    if (scanner_.token() == token::kPeriod) {
+        scanner_.Next();
+
+        auto selection = ParseIdent(/* split_shift_ops= */ true);
+        if (!selection) {
+            return nullptr;
+        }
+        auto selection_expr = std::make_unique<ast::SelectionExpr>();
+        selection_expr->accessed_ = std::move(type);
+        selection_expr->selection_ = std::move(selection);
+        
+        type = std::move(selection_expr);
+    }
+    
+    if (scanner_.token() == token::kLss) {
+        type = ParseTypeInstance(std::move(type));
+    }
+    
+    return type;
 }
 
 std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
@@ -1066,11 +1332,13 @@ std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
     array_type->l_brack_ = scanner_.token_start();
     scanner_.Next();
     
-    auto len = ParseExpr(0);
-    if (!len) {
-        return nullptr;
+    if (scanner_.token() != token::kRBrack) {
+        auto len = ParseExpr(/* disallow_composite_lit= */ false);
+        if (!len) {
+            return nullptr;
+        }
+        array_type->len_ = std::move(len);
     }
-    array_type->len_ = std::move(len);
     
     if (scanner_.token() != token::kRBrack) {
         errors_.push_back(Error{
@@ -1083,7 +1351,7 @@ std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
     array_type->r_brack_ = scanner_.token_start();
     scanner_.Next();
     
-    auto element_type = ParseExpr(6);
+    auto element_type = ParseType();
     if (!element_type) {
         return nullptr;
     }
@@ -1106,27 +1374,205 @@ std::unique_ptr<ast::FuncType> Parser::ParseFuncType() {
     func_type->func_ = scanner_.token_start();
     scanner_.Next();
     
-    auto params = ParseFieldList(true);
+    auto params = ParseFuncFieldList(/* expect_paren= */ true);
     if (!params) {
         return nullptr;
     }
     func_type->params_ = std::move(params);
     
-    if (scanner_.token() == token::kIdent ||
-        scanner_.token() == token::kLBrack ||
-        scanner_.token() == token::kFunc ||
-        scanner_.token() == token::kLParen) {
-        auto results = ParseFieldList(false);
-        if (!results) {
-            return nullptr;
+    switch (scanner_.token()) {
+        case token::kLParen:
+        case token::kLBrack:
+        case token::kFunc:
+        case token::kInterface:
+        case token::kStruct:
+        case token::kMul:
+        case token::kRem:
+        case token::kIdent:{
+            auto results = ParseFuncFieldList(/* expect_paren= */ false);
+            if (!results) {
+                return nullptr;
+            }
+            func_type->results_ = std::move(results);
+            break;
         }
-        func_type->results_ = std::move(results);
+        default:
+            break;
     }
     
     return func_type;
 }
 
-std::unique_ptr<ast::FieldList> Parser::ParseFieldList(bool expect_paren) {
+std::unique_ptr<ast::InterfaceType> Parser::ParseInterfaceType() {
+    auto interface_type = std::make_unique<ast::InterfaceType>();
+    
+    if (scanner_.token() != token::kInterface) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected 'interface'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    interface_type->interface_ = scanner_.token_start();
+    scanner_.Next();
+    
+    if (scanner_.token() != token::kLBrace) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '{'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    interface_type->l_brace_ = scanner_.token_start();
+    scanner_.Next();
+    
+    while (scanner_.token() != token::kRBrace) {
+        auto method_spec = ParseMethodSpec();
+        if (!method_spec) {
+            return nullptr;
+        }
+        interface_type->methods_.push_back(std::move(method_spec));
+        
+        if (scanner_.token() != token::kSemicolon) {
+            errors_.push_back(Error{
+                scanner_.token_start(),
+                "expected ';' or new line"
+            });
+            scanner_.SkipPastLine();
+            return nullptr;
+        }
+        scanner_.Next();
+    }
+    interface_type->r_brace_ = scanner_.token_start();
+    scanner_.Next(/* split_shift_ops= */ true);
+    
+    return interface_type;
+}
+
+std::unique_ptr<ast::MethodSpec> Parser::ParseMethodSpec() {
+    auto method_spec = std::make_unique<ast::MethodSpec>();
+    
+    auto name = ParseIdent();
+    if (!name) {
+        return nullptr;
+    }
+    method_spec->name_ = std::move(name);
+    
+    auto params = ParseFuncFieldList(/* expect_paren= */ true);
+    if (!params) {
+        return nullptr;
+    }
+    method_spec->params_ = std::move(params);
+    
+    switch (scanner_.token()) {
+        case token::kLParen:
+        case token::kLBrack:
+        case token::kFunc:
+        case token::kInterface:
+        case token::kStruct:
+        case token::kMul:
+        case token::kRem:
+        case token::kIdent:{
+            auto results = ParseFuncFieldList(/* expect_paren= */ false);
+            if (!results) {
+                return nullptr;
+            }
+            method_spec->results_ = std::move(results);
+            break;
+        }
+        default:
+            break;
+    }
+    
+    return method_spec;
+}
+
+std::unique_ptr<ast::StructType> Parser::ParseStructType() {
+    auto struct_type = std::make_unique<ast::StructType>();
+    
+    if (scanner_.token() != token::kStruct) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected 'struct'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    struct_type->struct_ = scanner_.token_start();
+    scanner_.Next();
+    
+    if (scanner_.token() != token::kLBrace) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '{'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    struct_type->l_brace_ = scanner_.token_start();
+    scanner_.Next();
+    
+    auto fields = ParseStructFieldList();
+    if (!fields) {
+        return nullptr;
+    }
+    struct_type->fields_ = std::move(fields);
+    
+    if (scanner_.token() != token::kRBrace) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '}'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    struct_type->r_brace_ = scanner_.token_start();
+    scanner_.Next(/* split_shift_ops= */ true);
+    
+    return struct_type;
+}
+
+std::unique_ptr<ast::UnaryExpr> Parser::ParsePointerType() {
+    auto pointer_type = std::make_unique<ast::UnaryExpr>();
+    
+    if (scanner_.token() != token::kMul &&
+        scanner_.token() != token::kRem) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '*' or '%'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    pointer_type->op_start_ = scanner_.token_start();
+    pointer_type->op_ = scanner_.token();
+    scanner_.Next();
+    
+    auto element_type = ParseType();
+    if (!element_type) {
+        return nullptr;
+    }
+    pointer_type->x_ = std::move(element_type);
+    
+    return pointer_type;
+}
+
+std::unique_ptr<ast::TypeInstance> Parser::ParseTypeInstance(std::unique_ptr<ast::Expr> type) {
+    auto type_instance = std::make_unique<ast::TypeInstance>();
+    type_instance->type_ = std::move(type);
+    
+    auto type_args = ParseTypeArgList();
+    if (!type_args) {
+        return nullptr;
+    }
+    type_instance->type_args_ = std::move(type_args);
+    
+    return type_instance;
+}
+
+std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
     auto field_list = std::make_unique<ast::FieldList>();
     
     bool has_paren = (scanner_.token() == token::kLParen);
@@ -1141,6 +1587,13 @@ std::unique_ptr<ast::FieldList> Parser::ParseFieldList(bool expect_paren) {
     if (has_paren) {
         field_list->l_paren_ = scanner_.token_start();
         scanner_.Next();
+        
+        if (scanner_.token() == token::kRParen) {
+            field_list->r_paren_ = scanner_.token_start();
+            scanner_.Next();
+            
+            return field_list;
+        }
     }
     
     auto first_field = ParseField();
@@ -1172,6 +1625,30 @@ std::unique_ptr<ast::FieldList> Parser::ParseFieldList(bool expect_paren) {
             return nullptr;
         }
         field_list->r_paren_ = scanner_.token_start();
+        scanner_.Next(/* split_shift_ops= */ true);
+    }
+    
+    return field_list;
+}
+
+std::unique_ptr<ast::FieldList> Parser::ParseStructFieldList() {
+    auto field_list = std::make_unique<ast::FieldList>();
+    
+    while (scanner_.token() != token::kRBrace) {
+        auto field = ParseField();
+        if (!field) {
+            return nullptr;
+        }
+        field_list->fields_.push_back(std::move(field));
+        
+        if (scanner_.token() != token::kSemicolon) {
+            errors_.push_back(Error{
+                scanner_.token_start(),
+                "expected ';' or new line"
+            });
+            scanner_.SkipPastLine();
+            return nullptr;
+        }
         scanner_.Next();
     }
     
@@ -1193,9 +1670,13 @@ std::unique_ptr<ast::Field> Parser::ParseField() {
     auto ident = ParseIdent();
     if (scanner_.token() != token::kComma) {
         switch (scanner_.token()) {
-            case token::kIdent:
             case token::kLBrack:
-            case token::kFunc:{
+            case token::kFunc:
+            case token::kInterface:
+            case token::kStruct:
+            case token::kMul:
+            case token::kRem:
+            case token::kIdent:{
                 auto type = ParseType();
                 if (!type) {
                     return nullptr;
@@ -1204,9 +1685,14 @@ std::unique_ptr<ast::Field> Parser::ParseField() {
                 field->type_ = std::move(type);
                 return field;
             }
-            default:
-                field->type_ = std::move(ident);
+            default:{
+                auto named_type = ParseType(std::move(ident));
+                if (!named_type) {
+                    return nullptr;
+                }
+                field->type_ = std::move(named_type);
                 return field;
+            }
         }
     }
     field->names_.push_back(std::move(ident));
@@ -1228,6 +1714,129 @@ std::unique_ptr<ast::Field> Parser::ParseField() {
     field->type_ = std::move(type);
     
     return field;
+}
+
+std::unique_ptr<ast::TypeArgList> Parser::ParseTypeArgList() {
+    auto type_args = std::make_unique<ast::TypeArgList>();
+        
+    if (scanner_.token() != token::kLss) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '<'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    type_args->l_angle_ = scanner_.token_start();
+    scanner_.Next(/* split_shift_ops= */ true);
+    
+    if (scanner_.token() != token::kGtr) {
+        auto type_arg = ParseType();
+        if (!type_arg) {
+            return nullptr;
+        }
+        type_args->args_.push_back(std::move(type_arg));
+        
+        while (scanner_.token() == token::kComma) {
+            scanner_.Next();
+            
+            auto type_arg = ParseType();
+            if (!type_arg) {
+                return nullptr;
+            }
+            type_args->args_.push_back(std::move(type_arg));
+        }
+    }
+    
+    if (scanner_.token() != token::kGtr) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '>'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    type_args->r_angle_ = scanner_.token_start();
+    scanner_.Next(/* split_shift_ops= */ true);
+    
+    return type_args;
+}
+
+std::unique_ptr<ast::TypeParamList> Parser::ParseTypeParamList() {
+    auto type_params = std::make_unique<ast::TypeParamList>();
+        
+    if (scanner_.token() != token::kLss) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '<'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    type_params->l_angle_ = scanner_.token_start();
+    scanner_.Next(/* split_shift_ops= */ true);
+    
+    if (scanner_.token() != token::kGtr) {
+        auto type_param = ParseTypeParam();
+        if (!type_param) {
+            return nullptr;
+        }
+        type_params->params_.push_back(std::move(type_param));
+        
+        while (scanner_.token() == token::kComma) {
+            scanner_.Next();
+            
+            auto type_param = ParseTypeParam();
+            if (!type_param) {
+                return nullptr;
+            }
+            type_params->params_.push_back(std::move(type_param));
+        }
+    }
+    
+    if (scanner_.token() != token::kGtr) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected '>'"
+        });
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    type_params->r_angle_ = scanner_.token_start();
+    scanner_.Next(/* split_shift_ops= */ true);
+    
+    return type_params;
+}
+
+std::unique_ptr<ast::TypeParam> Parser::ParseTypeParam() {
+    auto type_param = std::make_unique<ast::TypeParam>();
+    
+    auto name = ParseIdent();
+    if (!name) {
+        return nullptr;
+    }
+    type_param->name_ = std::move(name);
+    
+    switch (scanner_.token()) {
+        case token::kLBrack:
+        case token::kFunc:
+        case token::kInterface:
+        case token::kStruct:
+        case token::kMul:
+        case token::kRem:
+        case token::kIdent:{
+            auto type = ParseType();
+            if (!type) {
+                return nullptr;
+            }
+            type_param->type_ = std::move(type);
+            break;
+        }
+        default:
+            break;
+    }
+    
+    return type_param;
 }
 
 std::unique_ptr<ast::BasicLit> Parser::ParseBasicLit() {
@@ -1267,18 +1876,19 @@ std::vector<std::unique_ptr<ast::Ident>> Parser::ParseIdentList() {
     return list;
 }
 
-std::unique_ptr<ast::Ident> Parser::ParseIdent() {
+std::unique_ptr<ast::Ident> Parser::ParseIdent(bool split_shift_ops) {
     if (scanner_.token() != token::kIdent) {
         errors_.push_back(Error{
             scanner_.token_start(),
             "expected identifier"
         });
+        scanner_.SkipPastLine();
         return nullptr;
     }
     auto ident = std::make_unique<ast::Ident>();
     ident->name_start_ = scanner_.token_start();
     ident->name_ = scanner_.token_string();
-    scanner_.Next();
+    scanner_.Next(split_shift_ops);
     return ident;
 }
 
