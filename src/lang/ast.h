@@ -32,9 +32,9 @@ struct Node {
 //        | TypeAssertExpr
 //        | IndexExpr
 //        | CallExpr
-//        | KeyValueExpr
 //        | FuncLit
 //        | CompositeLit
+//        | KeyValueExpr
 //        | ArrayType
 //        | FuncType
 //        | InterfaceType
@@ -96,16 +96,15 @@ struct SelectionExpr;
 struct TypeAssertExpr;
 struct IndexExpr;
 struct CallExpr;
-struct KeyValueExpr;
 struct FuncLit;
 struct CompositeLit;
+struct KeyValueExpr;
 
 struct ArrayType;
 struct FuncType;
 struct InterfaceType;
 struct MethodSpec;
 struct StructType;
-struct PointerType;
 struct TypeInstance;
 
 struct FieldList;
@@ -164,7 +163,7 @@ struct TypeSpec : public Spec {
     pos::pos_t end() const;
 };
 
-// FuncDecl ::= "func" [] Ident [TypeParamList] FieldList [FieldList] BlockStmt .
+// FuncDecl ::= "func" [FieldList] Ident [TypeParamList] FieldList [FieldList] BlockStmt .
 struct FuncDecl : public Decl {
     std::unique_ptr<FieldList> receiver_;
     std::unique_ptr<Ident> name_;
@@ -376,16 +375,6 @@ struct CallExpr : public Expr {
     pos::pos_t end() const;
 };
 
-// KeyValueExpr ::= Expr ":" Expr .
-struct KeyValueExpr : public Expr {
-    std::unique_ptr<Expr> key_;
-    pos::pos_t colon_;
-    std::unique_ptr<Expr> value_;
-    
-    pos::pos_t start() const;
-    pos::pos_t end() const;
-};
-
 // FuncLit ::= FuncType BlockStmt .
 struct FuncLit : public Expr {
     std::unique_ptr<FuncType> type_;
@@ -406,7 +395,17 @@ struct CompositeLit : public Expr {
     pos::pos_t end() const;
 };
 
-// ArrayType ::= "[" Expr "]" Type .
+// KeyValueExpr ::= Expr ":" Expr .
+struct KeyValueExpr : public Expr {
+    std::unique_ptr<Expr> key_;
+    pos::pos_t colon_;
+    std::unique_ptr<Expr> value_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
+};
+
+// ArrayType ::= "[" [Expr] "]" Type .
 struct ArrayType : public Expr {
     pos::pos_t l_brack_;
     std::unique_ptr<Expr> len_;
