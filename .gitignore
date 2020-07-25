@@ -1,0 +1,3 @@
+bazel*
+tests/**/*.txt
+tests/**/*.vcg
