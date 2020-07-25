@@ -19,6 +19,7 @@
 #include "lang/positions.h"
 #include "lang/token.h"
 #include "lang/ast.h"
+#include "lang/ast_util.h"
 #include "lang/scanner.h"
 #include "lang/parser.h"
 
@@ -45,11 +46,18 @@
 #include "x86_64/instrs/data_instrs.h"
 #include "x86_64/ops.h"
 
+void to_file(std::string text, std::filesystem::path out_file) {
+    std::ofstream out_stream(out_file, std::ios::out);
+    
+    out_stream << text;
+}
+
 void run_lang_test(std::filesystem::path test_dir) {
     std::string test_name = test_dir.filename();
     std::cout << "testing " + test_name << "\n";
     
     std::filesystem::path in_file = test_dir.string() + "/" + test_name + ".kat";
+    std::filesystem::path out_file_base = test_dir.string() + "/" + test_name;
     
     if (!std::filesystem::exists(in_file)) {
         std::cout << "test file not found: " << in_file.generic_string() << "\n";
@@ -63,14 +71,22 @@ void run_lang_test(std::filesystem::path test_dir) {
     
     std::vector<lang::parser::Parser::Error> errors;
     
-    lang::parser::Parser::ParseFile(str, errors);
+    auto ast = lang::parser::Parser::ParseFile(str, errors);
     
-    for (auto &error : errors) {
-        lang::pos::pos_t pos = error.pos_;
-        lang::pos::position_t position = lang::pos::pos_to_position(str, pos);
-        std::cout << position.line_ << ":" << position.column_ << ": ";
-        std::cout << error.message_ << '\n';
+    if (!errors.empty()) {
+        for (auto &error : errors) {
+            lang::pos::pos_t pos = error.pos_;
+            lang::pos::position_t position = lang::pos::pos_to_position(str, pos);
+            std::cout << position.line_ << ":" << position.column_ << ": ";
+            std::cout << error.message_ << '\n';
+        }
+        return;
     }
+    
+    vcg::Graph ast_graph = lang::ast::NodeToTree(ast.get(), str);
+    
+    to_file(ast_graph.ToVCGFormat(),
+            out_file_base.string() + ".ast.vcg");
 }
 
 void test_lang() {
@@ -86,12 +102,6 @@ void test_lang() {
     }
     
     std::cout << "completed lang-tests\n";
-}
-
-void to_file(std::string text, std::filesystem::path out_file) {
-    std::ofstream out_stream(out_file, std::ios::out);
-    
-    out_stream << text;
 }
 
 void run_ir_test(std::filesystem::path test_dir) {
