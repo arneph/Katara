@@ -14,7 +14,7 @@
 namespace lang {
 namespace ast {
 
-vcg::Graph NodeToTree(Node *node, std::string raw) {
+vcg::Graph NodeToTree(pos::FileSet *file_set, Node *node) {
     vcg::Graph graph;
     std::vector<int64_t> stack;
     int64_t count = 0;
@@ -40,9 +40,8 @@ vcg::Graph NodeToTree(Node *node, std::string raw) {
             title = "node";
             color = vcg::kRed;
         }
-        std::string text =
-            raw.substr(ast_node->start(),
-                       ast_node->end() - ast_node->start() + 1);
+        pos::File *file = file_set->FileAt(ast_node->start());
+        std::string text = file->contents(ast_node->start(), ast_node->end());
         if (auto it = std::find(text.begin(), text.end(), '\n');
             it != text.end()) {
             text = std::string(text.begin(), it) + "...";

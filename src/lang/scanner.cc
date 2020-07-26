@@ -11,7 +11,7 @@
 namespace lang {
 namespace scanner {
 
-Scanner::Scanner(std::string raw) : raw_(raw), pos_(0) {
+Scanner::Scanner(pos::File *file) : file_(file), pos_(file->start()), tok_(token::kIllegal) {
     Next();
 }
 
@@ -28,49 +28,47 @@ int64_t Scanner::token_end() const {
 }
 
 std::string Scanner::token_string() const {
-    return raw_.substr(tok_start_, tok_end_-tok_start_+1);
+    return file_->contents(tok_start_, tok_end_);
 }
 
 void Scanner::Next(bool split_shift_ops) {
     bool insert_semicolon = false;
-    if (pos_ > 0) {
-        switch (tok_) {
-            case token::kIdent:
-            case token::kInt:
-            case token::kFallthrough:
-            case token::kContinue:
-            case token::kBreak:
-            case token::kReturn:
-            case token::kInc:
-            case token::kDec:
-            case token::kGtr:
-            case token::kRParen:
-            case token::kRBrack:
-            case token::kRBrace:
-                insert_semicolon = true;
-            default:;
-        }
+    switch (tok_) {
+        case token::kIdent:
+        case token::kInt:
+        case token::kFallthrough:
+        case token::kContinue:
+        case token::kBreak:
+        case token::kReturn:
+        case token::kInc:
+        case token::kDec:
+        case token::kGtr:
+        case token::kRParen:
+        case token::kRBrack:
+        case token::kRBrace:
+            insert_semicolon = true;
+        default:;
     }
-    for (; pos_ < raw_.size() &&
-         (raw_.at(pos_) == ' ' ||
-          raw_.at(pos_) == '\t' ||
-          (raw_.at(pos_) == '\n' && !insert_semicolon));
+    for (; pos_ < file_->end() &&
+         (file_->at(pos_) == ' ' ||
+          file_->at(pos_) == '\t' ||
+          (file_->at(pos_) == '\n' && !insert_semicolon));
          pos_++);
     tok_start_ = pos_;
-    if (pos_ == raw_.size()) {
+    if (pos_ == file_->end()) {
         tok_ = token::kEOF;
         tok_end_ = pos_;
         return;
     }
     
-    switch (raw_.at(pos_++)) {
+    switch (file_->at(pos_++)) {
         case '\n':
             tok_ = token::kSemicolon;
             tok_end_ = pos_ - 1;
             return;
         case '+':
-            if (pos_ < raw_.size() &&
-                raw_.at(pos_) == '+') {
+            if (pos_ < file_->end() &&
+                file_->at(pos_) == '+') {
                 tok_ = token::kInc;
                 tok_end_ = pos_++;
                 return;
@@ -78,8 +76,8 @@ void Scanner::Next(bool split_shift_ops) {
             NextArithmeticOrBitOpStart(token::kAdd);
             return;
         case '-':
-            if (pos_ < raw_.size() &&
-                raw_.at(pos_) == '-') {
+            if (pos_ < file_->end() &&
+                file_->at(pos_) == '-') {
                 tok_ = token::kDec;
                 tok_end_ = pos_++;
                 return;
@@ -90,20 +88,20 @@ void Scanner::Next(bool split_shift_ops) {
             NextArithmeticOrBitOpStart(token::kMul);
             return;
         case '/':
-            if (pos_ < raw_.size() &&
-                raw_.at(pos_) == '/') {
-                for (; pos_ < raw_.size() && raw_.at(pos_) != '\n';
+            if (pos_ < file_->end() &&
+                file_->at(pos_) == '/') {
+                for (; pos_ < file_->end() && file_->at(pos_) != '\n';
                      pos_++);
                 tok_ = token::kComment;
                 tok_end_ = pos_ - 1;
                 return;
-            } else if (pos_ < raw_.size() &&
-                       raw_.at(pos_) == '*') {
-                for (; pos_ < raw_.size() - 1 &&
-                     (raw_.at(pos_) != '*' || raw_.at(pos_ + 1) != '/');
+            } else if (pos_ < file_->end() &&
+                       file_->at(pos_) == '*') {
+                for (; pos_ < file_->end() - 1 &&
+                     (file_->at(pos_) != '*' || file_->at(pos_ + 1) != '/');
                      pos_++);
                 tok_ = token::kComment;
-                tok_end_ = (pos_ < raw_.size() - 1) ? pos_ + 1 : pos_;
+                tok_end_ = (pos_ < file_->end() - 1) ? pos_ + 1 : pos_;
                 pos_ += 2;
                 return;
             }
@@ -113,13 +111,13 @@ void Scanner::Next(bool split_shift_ops) {
             NextArithmeticOrBitOpStart(token::kRem);
             return;
         case '&':
-            if (pos_ < raw_.size() &&
-                raw_.at(pos_) == '&') {
+            if (pos_ < file_->end() &&
+                file_->at(pos_) == '&') {
                 tok_ = token::kLAnd;
                 tok_end_ = pos_++;
                 return;
-            } else if (pos_ < raw_.size() &&
-                       raw_.at(pos_) == '^') {
+            } else if (pos_ < file_->end() &&
+                       file_->at(pos_) == '^') {
                 pos_++;
                 NextArithmeticOrBitOpStart(token::kAndNot);
                 return;
@@ -127,8 +125,8 @@ void Scanner::Next(bool split_shift_ops) {
             NextArithmeticOrBitOpStart(token::kAnd);
             return;
         case '|':
-            if (pos_ < raw_.size() &&
-                raw_.at(pos_) == '|') {
+            if (pos_ < file_->end() &&
+                file_->at(pos_) == '|') {
                 tok_ = token::kLOr;
                 tok_end_ = pos_++;
                 return;
@@ -140,13 +138,13 @@ void Scanner::Next(bool split_shift_ops) {
             return;
         case '<':
             if (!split_shift_ops &&
-                pos_ < raw_.size() &&
-                raw_.at(pos_) == '<') {
+                pos_ < file_->end() &&
+                file_->at(pos_) == '<') {
                 pos_++;
                 NextArithmeticOrBitOpStart(token::kShl);
                 return;
-            } else if (pos_ < raw_.size() &&
-                       raw_.at(pos_) == '=') {
+            } else if (pos_ < file_->end() &&
+                       file_->at(pos_) == '=') {
                 tok_ = token::kLeq;
                 tok_end_ = pos_++;
                 return;
@@ -157,13 +155,13 @@ void Scanner::Next(bool split_shift_ops) {
             }
         case '>':
             if (!split_shift_ops &&
-                pos_ < raw_.size() &&
-                raw_.at(pos_) == '>') {
+                pos_ < file_->end() &&
+                file_->at(pos_) == '>') {
                 pos_++;
                 NextArithmeticOrBitOpStart(token::kShr);
                 return;
-            } else if (pos_ < raw_.size() &&
-                       raw_.at(pos_) == '=') {
+            } else if (pos_ < file_->end() &&
+                       file_->at(pos_) == '=') {
                 tok_ = token::kGeq;
                 tok_end_ = pos_++;
                 return;
@@ -173,8 +171,8 @@ void Scanner::Next(bool split_shift_ops) {
                 return;
             }
         case '=':
-            if (pos_ < raw_.size() &&
-                raw_.at(pos_) == '=') {
+            if (pos_ < file_->end() &&
+                file_->at(pos_) == '=') {
                 tok_ = token::kEql;
                 tok_end_ = pos_++;
                 return;
@@ -184,8 +182,8 @@ void Scanner::Next(bool split_shift_ops) {
                 return;
             }
         case '!':
-            if (pos_ < raw_.size() &&
-                raw_.at(pos_) == '=') {
+            if (pos_ < file_->end() &&
+                file_->at(pos_) == '=') {
                 tok_ = token::kNeq;
                 tok_end_ = pos_++;
                 return;
@@ -195,8 +193,8 @@ void Scanner::Next(bool split_shift_ops) {
                 return;
             }
         case ':':
-            if (pos_ < raw_.size() &&
-                raw_.at(pos_) == '=') {
+            if (pos_ < file_->end() &&
+                file_->at(pos_) == '=') {
                 tok_ = token::kDefine;
                 tok_end_ = pos_++;
                 return;
@@ -251,24 +249,24 @@ void Scanner::Next(bool split_shift_ops) {
         case '7':
         case '8':
         case '9':
-            for (; pos_ < raw_.size() &&
-                 '0' <= raw_.at(pos_) && raw_.at(pos_) <= '9';
+            for (; pos_ < file_->end() &&
+                 '0' <= file_->at(pos_) && file_->at(pos_) <= '9';
                  pos_++);
             tok_ = token::kInt;
             tok_end_ = pos_ - 1;
             return;
     }
     
-    for (; pos_ < raw_.size() &&
-         (('A' <= raw_.at(pos_) && raw_.at(pos_) <= 'Z') ||
-          ('a' <= raw_.at(pos_) && raw_.at(pos_) <= 'z') ||
-          ('0' <= raw_.at(pos_) && raw_.at(pos_) <= '9') ||
-          raw_.at(pos_) == '_');
+    for (; pos_ < file_->end() &&
+         (('A' <= file_->at(pos_) && file_->at(pos_) <= 'Z') ||
+          ('a' <= file_->at(pos_) && file_->at(pos_) <= 'z') ||
+          ('0' <= file_->at(pos_) && file_->at(pos_) <= '9') ||
+          file_->at(pos_) == '_');
          pos_++);
     tok_ = token::kIdent;
     tok_end_ = pos_ - 1;
     
-    std::string ident = raw_.substr(tok_start_, tok_end_-tok_start_+1);
+    std::string ident = file_->contents(tok_start_, tok_end_);
     if (ident == "const") {
         tok_ = token::kConst;
     } else if (ident == "var") {
@@ -305,8 +303,8 @@ void Scanner::Next(bool split_shift_ops) {
 }
 
 void Scanner::NextArithmeticOrBitOpStart(token::Token tok) {
-    if (pos_ < raw_.size() &&
-        raw_.at(pos_) == '=') {
+    if (pos_ < file_->end() &&
+        file_->at(pos_) == '=') {
         tok_ = token::Token(tok + token::kAddAssign - token::kAdd);
         pos_++;
     } else {
@@ -316,8 +314,8 @@ void Scanner::NextArithmeticOrBitOpStart(token::Token tok) {
 }
 
 void Scanner::SkipPastLine() {
-    for (; pos_ < raw_.size() &&
-         (raw_.at(pos_) != '\n');
+    for (; pos_ < file_->end() &&
+         (file_->at(pos_) != '\n');
          pos_++);
     Next();
 }

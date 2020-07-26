@@ -11,17 +11,22 @@
 namespace lang {
 namespace parser {
 
-std::unique_ptr<ast::File> Parser::ParseFile(std::string file_contents,
+std::unique_ptr<ast::File> Parser::ParseFile(pos::FileSet *file_set,
+                                             std::string file_name,
+                                             std::string file_contents,
                                              std::vector<Error>& errors) {
-    Parser parser(file_contents, errors);
+    pos::File *file = file_set->AddFile(file_name, file_contents);
+    scanner::Scanner scanner(file);
+    Parser parser(scanner, errors);
     return parser.ParseFile();
 }
 
-Parser::Parser(std::string file_contents,
-               std::vector<Error>& errors) : scanner_(file_contents), errors_(errors) {}
+Parser::Parser(scanner::Scanner& scanner,
+               std::vector<Error>& errors) : scanner_(scanner), errors_(errors) {}
 
 std::unique_ptr<ast::File> Parser::ParseFile() {
     auto file = std::make_unique<ast::File>();
+    file->file_start_ = scanner_.token_start();
     
     while (scanner_.token() != token::kEOF) {
         auto decl = ParseDecl();
@@ -38,6 +43,7 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
         }
         scanner_.Next();
     }
+    file->file_end_ = scanner_.token_end();
     
     return file;
 }
@@ -609,7 +615,7 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
         scanner_.SkipPastLine();
         return nullptr;
     }
-    for_stmt->for_ = scanner_.token();
+    for_stmt->for_ = scanner_.token_start();
     scanner_.Next();
     
     if (scanner_.token() != token::kLBrace) {
@@ -846,47 +852,34 @@ std::unique_ptr<ast::Expr> Parser::ParseExpr(bool disallow_composite_lit) {
 
 std::unique_ptr<ast::Expr> Parser::ParseExpr(token::precedence_t prec,
                                              bool disallow_composite_lit) {
-    switch (scanner_.token()) {
-        case token::kAdd:
-        case token::kSub:
-        case token::kNot:
-        case token::kXor:
-        case token::kMul:
-        case token::kRem:
-        case token::kAnd:
-            return ParseUnaryExpr(disallow_composite_lit);
-        default:
-            break;
-    }
-    if (prec > token::kMaxPrecedence) {
-        return ParsePrimaryExpr(disallow_composite_lit);
-    }
-    
-    auto x = ParseExpr(prec + 1, disallow_composite_lit);
+    auto x = ParseUnaryExpr(disallow_composite_lit);
     if (!x) {
         return nullptr;
     }
     
-    pos::pos_t op_start = scanner_.token_start();
-    token::Token op = scanner_.token();
-    token::precedence_t op_prec = token::prececende(op);
-    if (op_prec <= prec) {
-        return x;
+    while (true) {
+        pos::pos_t op_start = scanner_.token_start();
+        token::Token op = scanner_.token();
+        token::precedence_t op_prec = token::prececende(op);
+        if (op_prec == 0 || op_prec < prec) {
+            break;
+        }
+        scanner_.Next();
+        
+        auto y = ParseExpr(op_prec + 1, disallow_composite_lit);
+        if (!y) {
+            return nullptr;
+        }
+        
+        auto binary_expr = std::make_unique<ast::BinaryExpr>();
+        binary_expr->x_ = std::move(x);
+        binary_expr->op_start_ = op_start;
+        binary_expr->op_ = op;
+        binary_expr->y_ = std::move(y);
+        
+        x = std::move(binary_expr);
     }
-    scanner_.Next();
-    
-    auto y = ParseExpr(op_prec + 1, disallow_composite_lit);
-    if (!y) {
-        return nullptr;
-    }
-    
-    auto binary_expr = std::make_unique<ast::BinaryExpr>();
-    binary_expr->x_ = std::move(x);
-    binary_expr->op_start_ = op_start;
-    binary_expr->op_ = op;
-    binary_expr->y_ = std::move(y);
-    
-    return binary_expr;
+    return x;
 }
 
 std::unique_ptr<ast::Expr> Parser::ParseUnaryExpr(bool disallow_composite_lit) {

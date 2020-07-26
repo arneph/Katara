@@ -11,22 +11,68 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace lang {
 namespace pos {
 
 typedef int64_t pos_t;
-typedef struct{
-    int64_t line_;
-    int64_t column_;
+
+constexpr pos_t kNoPos = 0;
+
+struct Position {
+    Position() : Position("", 0, 0) {}
+    Position(int64_t line) : Position("", line, 0) {}
+    Position(int64_t line, int64_t column) : Position("", line, column) {}
+    Position(std::string filename) : Position(filename, 0, 0) {}
+    Position(std::string filename, int64_t line) : Position(filename, line, 0) {}
+    Position(std::string filename, int64_t line, int64_t column)
+    : filename_(filename), line_(line), column_(column) {}
     
-    pos_t line_start_;
-    pos_t line_end_;
-} position_t;
+    bool IsValid() const;
+    
+    std::string ToString() const;
 
-constexpr pos_t kNoPos = -1;
+    const std::string filename_;
+    const int64_t line_;
+    const int64_t column_;
+};
 
-position_t pos_to_position(std::string raw, pos_t pos);
+class FileSet;
+
+class File {
+public:
+    std::string name() const;
+    pos_t start() const;
+    pos_t end() const;
+    std::string contents() const;
+    std::string contents(pos_t start, pos_t end) const;
+    char at(pos_t pos) const;
+    
+    int64_t LineNumberFor(pos_t pos) const;
+    std::string LineFor(pos_t pos) const;
+    Position PositionFor(pos_t pos) const;
+    
+private:
+    File(std::string name, pos_t start, std::string contents);
+    
+    std::string name_;
+    std::string contents_;
+    std::vector<pos_t> line_starts_;
+    
+    friend FileSet;
+};
+
+class FileSet {
+public:
+    Position PositionFor(pos_t pos) const;
+    File * FileAt(pos_t pos) const;
+    
+    File * AddFile(std::string name, std::string contents);
+    
+private:
+    std::vector<std::unique_ptr<class File>> files_;
+};
 
 }
 }

@@ -19,7 +19,7 @@ namespace scanner {
 
 class Scanner {
 public:
-    Scanner(std::string raw);
+    Scanner(pos::File *file);
     
     token::Token token() const;
     pos::pos_t token_start() const;
@@ -30,7 +30,8 @@ public:
     void SkipPastLine();
     
 private:
-    const std::string raw_;
+    const pos::File *file_;
+    
     pos::pos_t pos_;
     
     token::Token tok_;

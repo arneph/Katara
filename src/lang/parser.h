@@ -28,11 +28,13 @@ public:
         std::string message_;
     };
     
-    static std::unique_ptr<ast::File> ParseFile(std::string file_contents,
+    static std::unique_ptr<ast::File> ParseFile(pos::FileSet *file_set,
+                                                std::string file_name,
+                                                std::string file_contents,
                                                 std::vector<Error>& errors);
     
 private:
-    Parser(std::string file_contents,
+    Parser(scanner::Scanner& scanner,
            std::vector<Error>& errors);
     
     std::unique_ptr<ast::File> ParseFile();
@@ -108,7 +110,7 @@ private:
     std::vector<std::unique_ptr<ast::Ident>> ParseIdentList();
     std::unique_ptr<ast::Ident> ParseIdent(bool split_shift_ops = false);
     
-    scanner::Scanner scanner_;
+    scanner::Scanner& scanner_;
     std::vector<Error>& errors_;
 };
 
