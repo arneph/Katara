@@ -12,14 +12,11 @@ namespace lang {
 namespace ast {
 
 pos::pos_t File::start() const {
-    return 0;
+    return file_start_;
 }
 
 pos::pos_t File::end() const {
-    if (decls_.empty()) {
-        return 0;
-    }
-    return decls_.back()->end();
+    return file_end_;
 }
 
 pos::pos_t GenDecl::start() const {
@@ -318,11 +315,17 @@ pos::pos_t TypeInstance::end() const {
 }
 
 pos::pos_t FieldList::start() const {
-    return l_paren_;
+    if (l_paren_ != pos::kNoPos) {
+        return l_paren_;
+    }
+    return fields_.front()->start();
 }
 
 pos::pos_t FieldList::end() const {
-    return r_paren_;
+    if (r_paren_ != pos::kNoPos) {
+        return r_paren_;
+    }
+    return fields_.back()->end();
 }
 
 pos::pos_t Field::start() const {

@@ -118,6 +118,8 @@ struct Ident;
 
 // File ::= {Decl} .
 struct File : public Node {
+    pos::pos_t file_start_;
+    pos::pos_t file_end_;
     std::vector<std::unique_ptr<Decl>> decls_;
     
     pos::pos_t start() const;
