@@ -76,6 +76,8 @@ void Walk(TypeParam *type_param, WalkFunction f);
 void Walk(BasicLit *basic_lit, WalkFunction f);
 void Walk(Ident *ident, WalkFunction f);
 
+bool IsTypeSwitchStmt(SwitchStmt *switch_stmt);
+
 }
 }
 

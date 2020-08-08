@@ -562,6 +562,36 @@ void Walk(Ident *ident, WalkFunction f) {
     WalkFunction g = f(ident);
     if (g) g(nullptr);
 }
-        
+
+bool IsTypeSwitchStmt(SwitchStmt *switch_stmt) {
+    if (switch_stmt->init_ && switch_stmt->tag_) {
+        return false;
+    } else if (!switch_stmt->init_ && !switch_stmt->tag_) {
+        return false;
+    }
+    Expr *expr = nullptr;
+    if (switch_stmt->init_) {
+        auto assign_stmt = dynamic_cast<AssignStmt *>(switch_stmt->init_.get());
+        if (assign_stmt == nullptr ||
+            assign_stmt->tok_ != token::kDefine ||
+            assign_stmt->lhs_.size() != 1 ||
+            assign_stmt->rhs_.size() != 1) {
+            return false;
+        }
+        expr = assign_stmt->rhs_.at(0).get();
+    } else if (switch_stmt->tag_) {
+        expr = switch_stmt->tag_.get();
+    }
+    if (expr == nullptr) {
+        return false;
+    }
+    TypeAssertExpr *type_assert_expr = dynamic_cast<TypeAssertExpr *>(expr);
+    if (type_assert_expr == nullptr ||
+        type_assert_expr->type_) {
+        return false;
+    }
+    return true;
+}
+
 }
 }
