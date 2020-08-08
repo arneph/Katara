@@ -9,6 +9,11 @@
 #ifndef lang_type_checker_h
 #define lang_type_checker_h
 
+#include <map>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+
 #include "lang/positions.h"
 #include "lang/ast.h"
 #include "lang/types.h"
@@ -36,13 +41,13 @@ private:
         : pos_file_(pos_file), ast_file_(ast_file), info_(info), errors_(errors) {}
     ~TypeChecker() {}
     
-// Preparation
+// Preparation:
     void SetupUniverse();
     void SetupPredeclaredTypes();
     void SetupPredeclaredConstants();
     void SetupPredeclaredNil();
     
-// Identifier Resolution
+// Identifier Resolution:
     void ResolveIdentifiers();
     void AddObjectToScope(types::Object *object, types::Scope *scope);
     
@@ -58,7 +63,7 @@ private:
     void ResolveIdentifiersInFuncDecl(ast::FuncDecl *func_decl, types::Scope *scope);
     
     void ResolveIdentifiersInTypeParamList(ast::TypeParamList *type_param_list,
-                                          types::Scope *scope);
+                                           types::Scope *scope);
     void ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *field_list, types::Scope *scope);
     void ResolveIdentifiersInRegularFuncFieldList(ast::FieldList *field_list, types::Scope *scope);
     
@@ -82,6 +87,14 @@ private:
     void ResolveIdentifiersInStructType(ast::StructType *struct_type, types::Scope *scope);
     void ResolveIdentifier(ast::Ident *ident, types::Scope *scope);
     
+// Init Order:
+    void FindInitOrder();
+    void FindInitializersAndDependencies(std::map<types::Variable *,
+                                                  types::Initializer *>& inits,
+                                         std::map<types::Object *,
+                                                  std::unordered_set<types::Object *>>& deps);
+    std::unordered_set<types::Object *> FindInitDependenciesOfNode(ast::Node *node);
+    
     pos::File *pos_file_;
     ast::File *ast_file_;
     types::TypeInfo *info_;
@@ -89,6 +102,7 @@ private:
     
     std::unordered_map<types::Basic::Kind, types::Basic*> basic_types_;
     
+    types::Scope *file_scope_;
     types::Scope *current_func_scope_;
 };
 

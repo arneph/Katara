@@ -405,6 +405,8 @@ private:
 
 class Scope {
 public:
+    ~Scope() {}
+    
     Scope * parent() const;
     const std::vector<Scope *>& children() const;
     const std::unordered_map<std::string, Object *>& named_objects() const;
@@ -420,6 +422,22 @@ private:
     std::vector<Scope *> children_;
     std::unordered_map<std::string, Object *> named_objects_;
     std::unordered_set<Object *> unnamed_objects_;
+    
+    friend type_checker::TypeChecker;
+};
+
+class Initializer {
+public:
+    ~Initializer() {}
+    
+    const std::vector<Variable *>& lhs() const;
+    ast::Expr * rhs() const;
+    
+private:
+    Initializer() {}
+    
+    std::vector<Variable *> lhs_;
+    ast::Expr *rhs_;
     
     friend type_checker::TypeChecker;
 };
@@ -448,6 +466,7 @@ private:
     std::vector<std::unique_ptr<Type>> type_unique_ptrs_;
     std::vector<std::unique_ptr<Object>> object_unique_ptrs_;
     std::vector<std::unique_ptr<Scope>> scope_unique_ptrs_;
+    std::vector<std::unique_ptr<Initializer>> initializer_unique_ptrs_;
     
     std::unordered_map<ast::Expr *, Type *> types_;
     std::unordered_map<ast::Expr *, constant::Value *> constant_values_;
@@ -457,6 +476,8 @@ private:
     std::unordered_map<ast::Node *, Object *> implicits_;
     
     std::unordered_map<ast::Node *, Scope *> scopes_;
+    
+    std::vector<Initializer *> init_order_;
     
     Scope *universe_;
     

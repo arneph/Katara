@@ -1,0 +1,12 @@
+var (
+	a = c + b
+	b = f()
+	c = f()
+	d = 3
+)
+
+func f() int {
+    d++
+	return d
+}
+
