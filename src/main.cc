@@ -20,8 +20,11 @@
 #include "lang/token.h"
 #include "lang/ast.h"
 #include "lang/ast_util.h"
+#include "lang/constant.h"
+#include "lang/types.h"
 #include "lang/scanner.h"
 #include "lang/parser.h"
+#include "lang/type_checker.h"
 
 #include "ir/prog.h"
 #include "ir/func.h"
@@ -72,15 +75,15 @@ void run_lang_test(std::filesystem::path test_dir) {
     
     auto file_set = std::make_unique<lang::pos::FileSet>();
     
-    std::vector<lang::parser::Parser::Error> errors;
+    std::vector<lang::parser::Parser::Error> parse_errors;
     
     auto ast = lang::parser::Parser::ParseFile(file_set.get(),
                                                in_file_name,
                                                str,
-                                               errors);
+                                               parse_errors);
     
-    if (!errors.empty()) {
-        for (auto &error : errors) {
+    if (!parse_errors.empty()) {
+        for (auto &error : parse_errors) {
             lang::pos::pos_t pos = error.pos_;
             lang::pos::Position position = file_set->PositionFor(pos);
             std::cout << position.ToString() << ": ";
@@ -93,6 +96,23 @@ void run_lang_test(std::filesystem::path test_dir) {
     
     to_file(ast_graph.ToVCGFormat(),
             out_file_base.string() + ".ast.vcg");
+    
+    std::vector<lang::type_checker::TypeChecker::Error> type_errors;
+    auto type_info = std::make_unique<lang::types::TypeInfo>();
+    lang::type_checker::TypeChecker::Check(file_set->FileAt(ast->start()),
+                                           ast.get(),
+                                           type_info.get(),
+                                           type_errors);
+    
+    if (!type_errors.empty()) {
+        for (auto &error : type_errors) {
+            lang::pos::pos_t pos = error.pos_.at(0);
+            lang::pos::Position position = file_set->PositionFor(pos);
+            std::cout << position.ToString() << ": ";
+            std::cout << error.message_ << '\n';
+        }
+        return;
+    }
 }
 
 void test_lang() {
