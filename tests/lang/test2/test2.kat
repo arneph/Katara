@@ -18,11 +18,11 @@ func NewArrayList<T>() *List<T> {
 }
 
 func (l *ArrayList<T>) Get(index int) T {
-    return l.data[i]
+    return l.data[index]
 }
 
 func (l *ArrayList<T>) Set(index int, value T) {
-    l.data[i] = value
+    l.data[index] = value
 }
 
 type ComparisonResult int
@@ -77,6 +77,8 @@ type Node<T> struct {
 func (n *Node<T>) ForEachNeighbor(f func(neighbor *Node<T>)) {
     n.neighbors.ForEach(f)
 }
+
+type string []uint8
 
 func Test() {
     l := NewArrayList<int>()

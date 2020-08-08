@@ -25,7 +25,7 @@ func Scale(a Vector, f int) Vector {
 
 func IsZero(a Vector) bool {
     for i := 0; i < Dim; i++ {
-        if res[i] != 0 {
+        if a[i] != 0 {
             return false
         }
     }
