@@ -1089,11 +1089,15 @@ std::unique_ptr<ast::TypeAssertExpr> Parser::ParseTypeAssertExpr(std::unique_ptr
     type_assert_expr->l_angle_ = scanner_.token_start();
     scanner_.Next();
     
-    auto type = ParseType();
-    if (!type) {
-        return nullptr;
+    if (scanner_.token() == token::kType) {
+        scanner_.Next();
+    } else {
+        auto type = ParseType();
+        if (!type) {
+            return nullptr;
+        }
+        type_assert_expr->type_ = std::move(type);
     }
-    type_assert_expr->type_ = std::move(type);
     
     if (scanner_.token() != token::kGtr) {
         errors_.push_back(Error{
