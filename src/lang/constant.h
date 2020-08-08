@@ -11,42 +11,32 @@
 
 #include <memory>
 #include <string>
-#include <vector>
+#include <variant>
+
+#include "lang/token.h"
 
 namespace lang {
 namespace constant {
 
-typedef enum : uint8_t {
-    kBool,
-    kInt,
-} Kind;
+typedef std::variant<bool,
+                     int8_t, uint8_t,
+                     int16_t, uint16_t,
+                     int32_t, uint32_t,
+                     int64_t, uint64_t> value_t;
 
 class Value {
 public:
-    Value(Kind kind);
-    Value(bool b);
-    Value(uint64_t ui64);
-    Value(int64_t i64);
-    
-    Kind kind() const;
-    
-    bool AsBool() const;
-    bool IsPreciseUint64() const;
-    uint64_t AsUint64() const;
-    bool IsPreciseInt64() const;
-    int64_t AsInt64() const;
+    Value(value_t value) : value_(value) {}
     
     std::string ToString() const;
     
-private:
-    typedef bool Sign;
-    static const Sign kPlus = false;
-    static const Sign kMinus = true;
-    
-    Kind kind_;
-    Sign sign_;
-    uint64_t abs_;
+    value_t value_;
 };
+
+bool Compare(Value x, token::Token op, Value y);
+Value BinaryOp(Value x, token::Token op, Value y);
+Value ShiftOp(Value x, token::Token op, Value y);
+Value UnaryOp(token::Token op, Value x);
 
 }
 }
