@@ -208,184 +208,184 @@ Value BinaryOp(Value x, token::Token op, Value y) {
         case 1:
             switch (op) {
                 case token::kAdd:
-                    return Value(std::get<int8_t>(x.value_) + std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) + std::get<int8_t>(y.value_)));
                 case token::kSub:
-                    return Value(std::get<int8_t>(x.value_) - std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) - std::get<int8_t>(y.value_)));
                 case token::kMul:
-                    return Value(std::get<int8_t>(x.value_) * std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) * std::get<int8_t>(y.value_)));
                 case token::kQuo:
-                    return Value(std::get<int8_t>(x.value_) / std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) / std::get<int8_t>(y.value_)));
                 case token::kRem:
-                    return Value(std::get<int8_t>(x.value_) % std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) % std::get<int8_t>(y.value_)));
                 case token::kAnd:
-                    return Value(std::get<int8_t>(x.value_) & std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) & std::get<int8_t>(y.value_)));
                 case token::kOr:
-                    return Value(std::get<int8_t>(x.value_) | std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) | std::get<int8_t>(y.value_)));
                 case token::kXor:
-                    return Value(std::get<int8_t>(x.value_) ^ std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) ^ std::get<int8_t>(y.value_)));
                 case token::kAndNot:
-                    return Value(std::get<int8_t>(x.value_) & ~std::get<int8_t>(y.value_));
+                    return Value(int8_t(std::get<int8_t>(x.value_) & ~std::get<int8_t>(y.value_)));
                 default:
                     throw "unexpected binary op";
             }
         case 2:
             switch (op) {
                 case token::kAdd:
-                    return Value(std::get<uint8_t>(x.value_) + std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) + std::get<uint8_t>(y.value_)));
                 case token::kSub:
-                    return Value(std::get<uint8_t>(x.value_) - std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) - std::get<uint8_t>(y.value_)));
                 case token::kMul:
-                    return Value(std::get<uint8_t>(x.value_) * std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) * std::get<uint8_t>(y.value_)));
                 case token::kQuo:
-                    return Value(std::get<uint8_t>(x.value_) / std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) / std::get<uint8_t>(y.value_)));
                 case token::kRem:
-                    return Value(std::get<uint8_t>(x.value_) % std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) % std::get<uint8_t>(y.value_)));
                 case token::kAnd:
-                    return Value(std::get<uint8_t>(x.value_) & std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) & std::get<uint8_t>(y.value_)));
                 case token::kOr:
-                    return Value(std::get<uint8_t>(x.value_) | std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) | std::get<uint8_t>(y.value_)));
                 case token::kXor:
-                    return Value(std::get<uint8_t>(x.value_) ^ std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) ^ std::get<uint8_t>(y.value_)));
                 case token::kAndNot:
-                    return Value(std::get<uint8_t>(x.value_) & ~std::get<uint8_t>(y.value_));
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) & ~std::get<uint8_t>(y.value_)));
                 default:
                     throw "unexpected binary op";
             }
         case 3:
             switch (op) {
                 case token::kAdd:
-                    return Value(std::get<int16_t>(x.value_) + std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) + std::get<int16_t>(y.value_)));
                 case token::kSub:
-                    return Value(std::get<int16_t>(x.value_) - std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) - std::get<int16_t>(y.value_)));
                 case token::kMul:
-                    return Value(std::get<int16_t>(x.value_) * std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) * std::get<int16_t>(y.value_)));
                 case token::kQuo:
-                    return Value(std::get<int16_t>(x.value_) / std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) / std::get<int16_t>(y.value_)));
                 case token::kRem:
-                    return Value(std::get<int16_t>(x.value_) % std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) % std::get<int16_t>(y.value_)));
                 case token::kAnd:
-                    return Value(std::get<int16_t>(x.value_) & std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) & std::get<int16_t>(y.value_)));
                 case token::kOr:
-                    return Value(std::get<int16_t>(x.value_) | std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) | std::get<int16_t>(y.value_)));
                 case token::kXor:
-                    return Value(std::get<int16_t>(x.value_) ^ std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) ^ std::get<int16_t>(y.value_)));
                 case token::kAndNot:
-                    return Value(std::get<int16_t>(x.value_) & ~std::get<int16_t>(y.value_));
+                    return Value(int16_t(std::get<int16_t>(x.value_) & ~std::get<int16_t>(y.value_)));
                 default:
                     throw "unexpected binary op";
             }
         case 4:
             switch (op) {
                 case token::kAdd:
-                    return Value(std::get<uint16_t>(x.value_) + std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) + std::get<uint16_t>(y.value_)));
                 case token::kSub:
-                    return Value(std::get<uint16_t>(x.value_) - std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) - std::get<uint16_t>(y.value_)));
                 case token::kMul:
-                    return Value(std::get<uint16_t>(x.value_) * std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) * std::get<uint16_t>(y.value_)));
                 case token::kQuo:
-                    return Value(std::get<uint16_t>(x.value_) / std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) / std::get<uint16_t>(y.value_)));
                 case token::kRem:
-                    return Value(std::get<uint16_t>(x.value_) % std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) % std::get<uint16_t>(y.value_)));
                 case token::kAnd:
-                    return Value(std::get<uint16_t>(x.value_) & std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) & std::get<uint16_t>(y.value_)));
                 case token::kOr:
-                    return Value(std::get<uint16_t>(x.value_) | std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) | std::get<uint16_t>(y.value_)));
                 case token::kXor:
-                    return Value(std::get<uint16_t>(x.value_) ^ std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) ^ std::get<uint16_t>(y.value_)));
                 case token::kAndNot:
-                    return Value(std::get<uint16_t>(x.value_) & ~std::get<uint16_t>(y.value_));
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) & ~std::get<uint16_t>(y.value_)));
                 default:
                     throw "unexpected binary op";
             }
         case 5:
             switch (op) {
                 case token::kAdd:
-                    return Value(std::get<int32_t>(x.value_) + std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) + std::get<int32_t>(y.value_)));
                 case token::kSub:
-                    return Value(std::get<int32_t>(x.value_) - std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) - std::get<int32_t>(y.value_)));
                 case token::kMul:
-                    return Value(std::get<int32_t>(x.value_) * std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) * std::get<int32_t>(y.value_)));
                 case token::kQuo:
-                    return Value(std::get<int32_t>(x.value_) / std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) / std::get<int32_t>(y.value_)));
                 case token::kRem:
-                    return Value(std::get<int32_t>(x.value_) % std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) % std::get<int32_t>(y.value_)));
                 case token::kAnd:
-                    return Value(std::get<int32_t>(x.value_) & std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) & std::get<int32_t>(y.value_)));
                 case token::kOr:
-                    return Value(std::get<int32_t>(x.value_) | std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) | std::get<int32_t>(y.value_)));
                 case token::kXor:
-                    return Value(std::get<int32_t>(x.value_) ^ std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) ^ std::get<int32_t>(y.value_)));
                 case token::kAndNot:
-                    return Value(std::get<int32_t>(x.value_) & ~std::get<int32_t>(y.value_));
+                    return Value(int32_t(std::get<int32_t>(x.value_) & ~std::get<int32_t>(y.value_)));
                 default:
                     throw "unexpected binary op";
             }
         case 6:
             switch (op) {
                 case token::kAdd:
-                    return Value(std::get<uint32_t>(x.value_) + std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) + std::get<uint32_t>(y.value_)));
                 case token::kSub:
-                    return Value(std::get<uint32_t>(x.value_) - std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) - std::get<uint32_t>(y.value_)));
                 case token::kMul:
-                    return Value(std::get<uint32_t>(x.value_) * std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) * std::get<uint32_t>(y.value_)));
                 case token::kQuo:
-                    return Value(std::get<uint32_t>(x.value_) / std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) / std::get<uint32_t>(y.value_)));
                 case token::kRem:
-                    return Value(std::get<uint32_t>(x.value_) % std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) % std::get<uint32_t>(y.value_)));
                 case token::kAnd:
-                    return Value(std::get<uint32_t>(x.value_) & std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) & std::get<uint32_t>(y.value_)));
                 case token::kOr:
-                    return Value(std::get<uint32_t>(x.value_) | std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) | std::get<uint32_t>(y.value_)));
                 case token::kXor:
-                    return Value(std::get<uint32_t>(x.value_) ^ std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) ^ std::get<uint32_t>(y.value_)));
                 case token::kAndNot:
-                    return Value(std::get<uint32_t>(x.value_) & ~std::get<uint32_t>(y.value_));
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) & ~std::get<uint32_t>(y.value_)));
                 default:
                     throw "unexpected binary op";
             }
         case 7:
             switch (op) {
                 case token::kAdd:
-                    return Value(std::get<int64_t>(x.value_) + std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) + std::get<int64_t>(y.value_)));
                 case token::kSub:
-                    return Value(std::get<int64_t>(x.value_) - std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) - std::get<int64_t>(y.value_)));
                 case token::kMul:
-                    return Value(std::get<int64_t>(x.value_) * std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) * std::get<int64_t>(y.value_)));
                 case token::kQuo:
-                    return Value(std::get<int64_t>(x.value_) / std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) / std::get<int64_t>(y.value_)));
                 case token::kRem:
-                    return Value(std::get<int64_t>(x.value_) % std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) % std::get<int64_t>(y.value_)));
                 case token::kAnd:
-                    return Value(std::get<int64_t>(x.value_) & std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) & std::get<int64_t>(y.value_)));
                 case token::kOr:
-                    return Value(std::get<int64_t>(x.value_) | std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) | std::get<int64_t>(y.value_)));
                 case token::kXor:
-                    return Value(std::get<int64_t>(x.value_) ^ std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) ^ std::get<int64_t>(y.value_)));
                 case token::kAndNot:
-                    return Value(std::get<int64_t>(x.value_) & ~std::get<int64_t>(y.value_));
+                    return Value(int64_t(std::get<int64_t>(x.value_) & ~std::get<int64_t>(y.value_)));
                 default:
                     throw "unexpected binary op";
             }
         case 8:
             switch (op) {
                 case token::kAdd:
-                    return Value(std::get<uint64_t>(x.value_) + std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) + std::get<uint64_t>(y.value_)));
                 case token::kSub:
-                    return Value(std::get<uint64_t>(x.value_) - std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) - std::get<uint64_t>(y.value_)));
                 case token::kMul:
-                    return Value(std::get<uint64_t>(x.value_) * std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) * std::get<uint64_t>(y.value_)));
                 case token::kQuo:
-                    return Value(std::get<uint64_t>(x.value_) / std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) / std::get<uint64_t>(y.value_)));
                 case token::kRem:
-                    return Value(std::get<uint64_t>(x.value_) % std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) % std::get<uint64_t>(y.value_)));
                 case token::kAnd:
-                    return Value(std::get<uint64_t>(x.value_) & std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) & std::get<uint64_t>(y.value_)));
                 case token::kOr:
-                    return Value(std::get<uint64_t>(x.value_) | std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) | std::get<uint64_t>(y.value_)));
                 case token::kXor:
-                    return Value(std::get<uint64_t>(x.value_) ^ std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) ^ std::get<uint64_t>(y.value_)));
                 case token::kAndNot:
-                    return Value(std::get<uint64_t>(x.value_) & ~std::get<uint64_t>(y.value_));
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) & ~std::get<uint64_t>(y.value_)));
                 default:
                     throw "unexpected binary op";
             }
@@ -416,72 +416,72 @@ Value ShiftOp(Value x, token::Token op, Value y) {
         case 1:
             switch (op) {
                 case token::kShl:
-                    return Value(std::get<int8_t>(x.value_) << s);
+                    return Value(int8_t(std::get<int8_t>(x.value_) << s));
                 case token::kShr:
-                    return Value(std::get<int8_t>(x.value_) >> s);
+                    return Value(int8_t(std::get<int8_t>(x.value_) >> s));
                 default:
                     throw "unexpected shift op";
             }
         case 2:
             switch (op) {
                 case token::kShl:
-                    return Value(std::get<uint8_t>(x.value_) << s);
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) << s));
                 case token::kShr:
-                    return Value(std::get<uint8_t>(x.value_) >> s);
+                    return Value(uint8_t(std::get<uint8_t>(x.value_) >> s));
                 default:
                     throw "unexpected shift op";
             }
         case 3:
             switch (op) {
                 case token::kShl:
-                    return Value(std::get<int16_t>(x.value_) << s);
+                    return Value(int16_t(std::get<int16_t>(x.value_) << s));
                 case token::kShr:
-                    return Value(std::get<int16_t>(x.value_) >> s);
+                    return Value(int16_t(std::get<int16_t>(x.value_) >> s));
                 default:
                     throw "unexpected shift op";
             }
         case 4:
             switch (op) {
                 case token::kShl:
-                    return Value(std::get<uint16_t>(x.value_) << s);
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) << s));
                 case token::kShr:
-                    return Value(std::get<uint16_t>(x.value_) >> s);
+                    return Value(uint16_t(std::get<uint16_t>(x.value_) >> s));
                 default:
                     throw "unexpected shift op";
             }
         case 5:
             switch (op) {
                 case token::kShl:
-                    return Value(std::get<int32_t>(x.value_) << s);
+                    return Value(int32_t(std::get<int32_t>(x.value_) << s));
                 case token::kShr:
-                    return Value(std::get<int32_t>(x.value_) >> s);
+                    return Value(int32_t(std::get<int32_t>(x.value_) >> s));
                 default:
                     throw "unexpected shift op";
             }
         case 6:
             switch (op) {
                 case token::kShl:
-                    return Value(std::get<uint32_t>(x.value_) << s);
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) << s));
                 case token::kShr:
-                    return Value(std::get<uint32_t>(x.value_) >> s);
+                    return Value(uint32_t(std::get<uint32_t>(x.value_) >> s));
                 default:
                     throw "unexpected shift op";
             }
         case 7:
             switch (op) {
                 case token::kShl:
-                    return Value(std::get<int64_t>(x.value_) << s);
+                    return Value(int64_t(std::get<int64_t>(x.value_) << s));
                 case token::kShr:
-                    return Value(std::get<int64_t>(x.value_) >> s);
+                    return Value(int64_t(std::get<int64_t>(x.value_) >> s));
                 default:
                     throw "unexpected shift op";
             }
         case 8:
             switch (op) {
                 case token::kShl:
-                    return Value(std::get<uint64_t>(x.value_) << s);
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) << s));
                 case token::kShr:
-                    return Value(std::get<uint64_t>(x.value_) >> s);
+                    return Value(uint64_t(std::get<uint64_t>(x.value_) >> s));
                 default:
                     throw "unexpected shift op";
             }
@@ -504,9 +504,9 @@ Value UnaryOp(token::Token op, Value x) {
                 case token::kAdd:
                     return x;
                 case token::kSub:
-                    return Value(-std::get<int8_t>(x.value_));
+                    return Value(int8_t(-std::get<int8_t>(x.value_)));
                 case token::kXor:
-                    return Value(~std::get<int8_t>(x.value_));
+                    return Value(int8_t(~std::get<int8_t>(x.value_)));
                 default:
                     throw "unexpected unary op";
             }
@@ -515,9 +515,9 @@ Value UnaryOp(token::Token op, Value x) {
                 case token::kAdd:
                     return x;
                 case token::kSub:
-                    return Value(-std::get<uint8_t>(x.value_));
+                    return Value(int8_t(-std::get<uint8_t>(x.value_)));
                 case token::kXor:
-                    return Value(~std::get<uint8_t>(x.value_));
+                    return Value(uint8_t(~std::get<uint8_t>(x.value_)));
                 default:
                     throw "unexpected unary op";
             }
@@ -526,9 +526,9 @@ Value UnaryOp(token::Token op, Value x) {
                 case token::kAdd:
                     return x;
                 case token::kSub:
-                    return Value(-std::get<int16_t>(x.value_));
+                    return Value(int16_t(-std::get<int16_t>(x.value_)));
                 case token::kXor:
-                    return Value(~std::get<int16_t>(x.value_));
+                    return Value(int16_t(~std::get<int16_t>(x.value_)));
                 default:
                     throw "unexpected unary op";
             }
@@ -537,9 +537,9 @@ Value UnaryOp(token::Token op, Value x) {
                 case token::kAdd:
                     return x;
                 case token::kSub:
-                    return Value(-std::get<uint16_t>(x.value_));
+                    return Value(int16_t(-std::get<uint16_t>(x.value_)));
                 case token::kXor:
-                    return Value(~std::get<uint16_t>(x.value_));
+                    return Value(uint16_t(~std::get<uint16_t>(x.value_)));
                 default:
                     throw "unexpected unary op";
             }
@@ -548,9 +548,9 @@ Value UnaryOp(token::Token op, Value x) {
                 case token::kAdd:
                     return x;
                 case token::kSub:
-                    return Value(-std::get<int32_t>(x.value_));
+                    return Value(int32_t(-std::get<int32_t>(x.value_)));
                 case token::kXor:
-                    return Value(~std::get<int32_t>(x.value_));
+                    return Value(int32_t(~std::get<int32_t>(x.value_)));
                 default:
                     throw "unexpected unary op";
             }
@@ -559,9 +559,9 @@ Value UnaryOp(token::Token op, Value x) {
                 case token::kAdd:
                     return x;
                 case token::kSub:
-                    return Value(-std::get<uint32_t>(x.value_));
+                    return Value(int32_t(-std::get<uint32_t>(x.value_)));
                 case token::kXor:
-                    return Value(~std::get<uint32_t>(x.value_));
+                    return Value(uint32_t(~std::get<uint32_t>(x.value_)));
                 default:
                     throw "unexpected unary op";
             }
@@ -570,9 +570,9 @@ Value UnaryOp(token::Token op, Value x) {
                 case token::kAdd:
                     return x;
                 case token::kSub:
-                    return Value(-std::get<int64_t>(x.value_));
+                    return Value(int64_t(-std::get<int64_t>(x.value_)));
                 case token::kXor:
-                    return Value(~std::get<int64_t>(x.value_));
+                    return Value(int64_t(~std::get<int64_t>(x.value_)));
                 default:
                     throw "unexpected unary op";
             }
@@ -581,9 +581,9 @@ Value UnaryOp(token::Token op, Value x) {
                 case token::kAdd:
                     return x;
                 case token::kSub:
-                    return Value(-std::get<uint64_t>(x.value_));
+                    return Value(int64_t(-std::get<uint64_t>(x.value_)));
                 case token::kXor:
-                    return Value(~std::get<uint64_t>(x.value_));
+                    return Value(uint64_t(~std::get<uint64_t>(x.value_)));
                 default:
                     throw "unexpected unary op";
             }
@@ -591,6 +591,8 @@ Value UnaryOp(token::Token op, Value x) {
             throw "unexpected value_t";
     }
 }
+
+
 
 }
 }
