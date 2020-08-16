@@ -63,19 +63,31 @@ public:
         
         kByte = kUint8,
     } Kind;
+    typedef enum : int8_t {
+        kIsBoolean = 1 << 0,
+        kIsInteger = 1 << 1,
+        kIsUnsigned = 1 << 2,
+        kIsUntyped = 1 << 3,
+        
+        kIsOrdered = kIsInteger,
+        kIsNumeric = kIsInteger,
+        kIsConstant = kIsBoolean | kIsNumeric,
+    } Info;
     
     ~Basic() {}
     
     Kind kind() const;
+    Info info() const;
     
     Type * Underlying();
     
     std::string ToString() const;
     
 private:
-    Basic(Kind kind);
+    Basic(Kind kind, Info info);
     
     Kind kind_;
+    Info info_;
     
     friend type_checker::TypeChecker;
 };
@@ -445,7 +457,7 @@ private:
 class TypeInfo {
 public:
     const std::unordered_map<ast::Expr *, Type *>& types() const;
-    const std::unordered_map<ast::Expr *, constant::Value *>& constant_values() const;
+    const std::unordered_map<ast::Expr *, constant::Value>& constant_values() const;
     const std::unordered_map<ast::Ident *, Object *>& definitions() const;
     const std::unordered_map<ast::Ident *, Object *>& uses() const;
     const std::unordered_map<ast::Node *, Object *>& implicits() const;
@@ -469,7 +481,7 @@ private:
     std::vector<std::unique_ptr<Initializer>> initializer_unique_ptrs_;
     
     std::unordered_map<ast::Expr *, Type *> types_;
-    std::unordered_map<ast::Expr *, constant::Value *> constant_values_;
+    std::unordered_map<ast::Expr *, constant::Value> constant_values_;
     
     std::unordered_map<ast::Ident *, Object *> definitions_;
     std::unordered_map<ast::Ident *, Object *> uses_;

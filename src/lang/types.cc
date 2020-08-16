@@ -11,10 +11,14 @@
 namespace lang {
 namespace types {
 
-Basic::Basic(Kind kind) : kind_(kind) {}
+Basic::Basic(Kind kind, Info info) : kind_(kind), info_(info) {}
 
 Basic::Kind Basic::kind() const {
     return kind_;
+}
+
+Basic::Info Basic::info() const {
+    return info_;
 }
 
 Type * Basic::Underlying() {
@@ -410,7 +414,7 @@ const std::unordered_map<ast::Expr *, Type *>& TypeInfo::types() const {
     return types_;
 }
 
-const std::unordered_map<ast::Expr *, constant::Value *>& TypeInfo::constant_values() const {
+const std::unordered_map<ast::Expr *, constant::Value>& TypeInfo::constant_values() const {
     return constant_values_;
 }
 
