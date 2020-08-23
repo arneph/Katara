@@ -94,8 +94,14 @@ private:
 
 class Pointer : public Type {
 public:
+    enum class Kind : int8_t {
+        kStrong,
+        kWeak,
+    };
+    
     ~Pointer() {}
     
+    Kind kind() const;
     Type * element_type() const;
     
     Type * Underlying();
@@ -105,6 +111,7 @@ public:
 private:
     Pointer() {}
     
+    Kind kind_;
     Type *element_type_;
     
     friend type_checker::TypeChecker;

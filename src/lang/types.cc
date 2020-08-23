@@ -60,6 +60,10 @@ std::string Basic::ToString() const {
     }
 }
 
+Pointer::Kind Pointer::kind() const {
+    return kind_;
+}
+
 Type * Pointer::element_type() const {
     return element_type_;
 }
@@ -69,7 +73,12 @@ Type * Pointer::Underlying() {
 }
 
 std::string Pointer::ToString() const {
-    return "*" + element_type_->ToString();
+    switch (kind_) {
+        case Kind::kStrong:
+            return "*" + element_type_->ToString();
+        case Kind::kWeak:
+            return "%" + element_type_->ToString();
+    }
 }
 
 Type * Array::element_type() const {
