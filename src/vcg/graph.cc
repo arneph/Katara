@@ -8,6 +8,7 @@
 
 #include "graph.h"
 
+#include <iomanip>
 #include <sstream>
 
 namespace vcg {
@@ -31,12 +32,13 @@ std::string Graph::ToVCGFormat(bool exclude_node_text) const {
         ss << "node: {\n";
         ss << "title: \"" << node.number() << "\"\n";
         ss << "color: " + to_string(node.color()) << "\n";
-        ss << "label: \n\"";
-        ss << node.title();
+        ss << "label: \n";
+        std::string label = node.title();
         if (!exclude_node_text && !node.text().empty()) {
-            ss << "\n" << node.text();
+            label += "\n" + node.text();
         }
-        ss << "\"\n";
+        ss << std::quoted(label);
+        ss << "\n";
         ss << "}\n";
     }
     
