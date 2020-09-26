@@ -23,7 +23,7 @@ Scanner::Token Scanner::token() const {
 }
 
 std::string Scanner::string() const {
-    if (token_ == kUnknown && token_ == kEoF)
+    if (token_ == kUnknown || token_ == kEoF)
         throw "token has no associated string";
     
     return string_;
