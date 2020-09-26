@@ -25,6 +25,7 @@
 #include "lang/scanner.h"
 #include "lang/parser.h"
 #include "lang/type_checker.h"
+#include "lang/packages.h"
 
 #include "ir/prog.h"
 #include "ir/func.h"
@@ -59,55 +60,31 @@ void run_lang_test(std::filesystem::path test_dir) {
     std::string test_name = test_dir.filename();
     std::cout << "testing " + test_name << "\n";
     
-    std::string in_file_name = test_name + ".kat";
-    std::filesystem::path in_file = test_dir.string() + "/" + in_file_name;
-    std::filesystem::path out_file_base = test_dir.string() + "/" + test_name;
+    std::filesystem::path out_file_base = test_dir / test_name;
     
-    if (!std::filesystem::exists(in_file)) {
-        std::cout << "test file not found: " << in_file.generic_string() << "\n";
-        return;
-    }
+    lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib");
+    lang::packages::Package *pkg = pkg_manager.LoadPackage(test_dir);
     
-    std::ifstream in_stream(in_file, std::ios::in);
-    std::stringstream str_stream;
-    str_stream << in_stream.rdbuf();
-    std::string str = str_stream.str();
-    
-    auto file_set = std::make_unique<lang::pos::FileSet>();
-    
-    std::vector<lang::parser::Parser::Error> parse_errors;
-    
-    auto ast = lang::parser::Parser::ParseFile(file_set.get(),
-                                               in_file_name,
-                                               str,
-                                               parse_errors);
-    
-    if (!parse_errors.empty()) {
-        for (auto &error : parse_errors) {
+    if (!pkg->parse_errors().empty()) {
+        for (auto &error : pkg->parse_errors()) {
             lang::pos::pos_t pos = error.pos_;
-            lang::pos::Position position = file_set->PositionFor(pos);
+            lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
             std::cout << position.ToString() << ": ";
             std::cout << error.message_ << '\n';
         }
         return;
     }
+    for (auto &ast : pkg->ast_files()) {
+        vcg::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast.get());
+        
+        to_file(ast_graph.ToVCGFormat(),
+                out_file_base.string() + ".ast.vcg");
+    }
     
-    vcg::Graph ast_graph = lang::ast::NodeToTree(file_set.get(), ast.get());
-    
-    to_file(ast_graph.ToVCGFormat(),
-            out_file_base.string() + ".ast.vcg");
-    
-    std::vector<lang::type_checker::TypeChecker::Error> type_errors;
-    auto type_info = std::make_unique<lang::types::TypeInfo>();
-    lang::type_checker::TypeChecker::Check(file_set->FileAt(ast->start()),
-                                           ast.get(),
-                                           type_info.get(),
-                                           type_errors);
-    
-    if (!type_errors.empty()) {
-        for (auto &error : type_errors) {
+    if (!pkg->type_errors().empty()) {
+        for (auto &error : pkg->type_errors()) {
             lang::pos::pos_t pos = error.pos_.at(0);
-            lang::pos::Position position = file_set->PositionFor(pos);
+            lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
             std::cout << position.ToString() << ": ";
             std::cout << error.message_ << '\n';
         }
