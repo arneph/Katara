@@ -1,3 +1,5 @@
+package std
+
 type List<T> interface {
     Get(index int) T
     Set(index int, T)

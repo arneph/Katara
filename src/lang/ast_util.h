@@ -37,6 +37,7 @@ void Walk(Stmt *stmt, WalkFunction f);
 void Walk(Decl *decl, WalkFunction f);
 void Walk(File *file, WalkFunction f);
 void Walk(GenDecl *gen_decl, WalkFunction f);
+void Walk(ImportSpec *import_spec, WalkFunction f);
 void Walk(ValueSpec *value_spec, WalkFunction f);
 void Walk(TypeSpec *type_spec, WalkFunction f);
 void Walk(FuncDecl *func_decl, WalkFunction f);

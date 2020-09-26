@@ -83,6 +83,8 @@ void Walk(Node *node, WalkFunction f) {
         Walk(stmt, f);
     } else if (Decl *decl = dynamic_cast<Decl *>(node)) {
         Walk(decl, f);
+    } else if (ImportSpec *import_spec = dynamic_cast<ImportSpec *>(node)) {
+        Walk(import_spec, f);
     } else if (ValueSpec *value_spec = dynamic_cast<ValueSpec *>(node)) {
         Walk(value_spec, f);
     } else if (TypeSpec *type_spec = dynamic_cast<TypeSpec *>(node)) {
@@ -199,6 +201,16 @@ void Walk(GenDecl *gen_decl, WalkFunction f) {
     for (auto& spec : gen_decl->specs_) {
         Walk(spec.get(), g);
     }
+    g(nullptr);
+}
+
+void Walk(ImportSpec *import_spec, WalkFunction f) {
+    WalkFunction g = f(import_spec);
+    if (!g) return;
+    if (import_spec->name_) {
+        Walk(import_spec->name_.get(), g);
+    }
+    Walk(import_spec->path_.get(), g);
     g(nullptr);
 }
 

@@ -24,8 +24,10 @@ typedef enum : int8_t {
     kComment,
     
     // Literals:
-    kIdent, // main
-    kInt,   // 12345
+    kIdent,  // main
+    kInt,    // 12345
+    kChar,   // 'a'
+    kString, // "abc"
     
     // Operators and delimiters:
     kAdd,   // +
@@ -99,6 +101,8 @@ typedef enum : int8_t {
     kBreak,
     kReturn,
     kFunc,
+    kPackage,
+    kImport,
 } Token;
 
 constexpr precedence_t kMaxPrecedence = 5;

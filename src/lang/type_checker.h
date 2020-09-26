@@ -9,6 +9,7 @@
 #ifndef lang_type_checker_h
 #define lang_type_checker_h
 
+#include <functional>
 #include <map>
 #include <unordered_map>
 #include <unordered_set>
@@ -28,17 +29,32 @@ public:
         std::string message_;
     };
     
-    static void Check(pos::File *pos_file,
-                      ast::File *ast_file,
+    static void Check(ast::File *ast_file,
                       types::TypeInfo *info,
+                      std::function<types::Package *(std::string)> importer,
                       std::vector<Error>& errors);
     
 private:
-    TypeChecker(pos::File *pos_file,
-                ast::File *ast_file,
+    struct ConstantEvaluationInfo {
+        types::Constant *constant_;
+        
+        ast::Ident *name_;
+        ast::Expr *type_;
+        ast::Expr *value_;
+        
+        int64_t iota_;
+        
+        std::unordered_set<types::Constant *> dependencies_;
+    };
+    
+    TypeChecker(ast::File *ast_file,
                 types::TypeInfo *info,
+                std::function<types::Package *(std::string)> importer,
                 std::vector<Error>& errors)
-        : pos_file_(pos_file), ast_file_(ast_file), info_(info), errors_(errors) {}
+        : ast_file_(ast_file),
+          info_(info),
+          importer_(importer),
+          errors_(errors) {}
     ~TypeChecker() {}
     
 // Preparation:
@@ -52,6 +68,7 @@ private:
     void AddObjectToScope(types::Object *object, types::Scope *scope);
     
     void AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl, types::Scope *scope);
+    void AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec);
     void AddDefinedObjectsFromConstSpec(ast::ValueSpec *value_spec, types::Scope *scope);
     void AddDefinedObjectsFromVarSpec(ast::ValueSpec *value_spec, types::Scope *scope);
     void AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec, types::Scope *scope);
@@ -80,12 +97,15 @@ private:
     void ResolveIdentifiersInBranchStmt(ast::BranchStmt *branch_stmt, types::Scope *scope);
     
     void ResolveIdentifiersInExpr(ast::Expr *expr, types::Scope *scope);
+    void ResolveIdentifiersInSelectionExpr(ast::SelectionExpr *sel, types::Scope *scope);
     void ResolveIdentifiersInFuncLit(ast::FuncLit *func_lit, types::Scope *scope);
     void ResolveIdentifiersInCompositeLit(ast::CompositeLit *composite_lit, types::Scope *scope);
     void ResolveIdentifiersInFuncType(ast::FuncType *func_type, types::Scope *scope);
     void ResolveIdentifiersInInterfaceType(ast::InterfaceType *interface_type, types::Scope *scope);
     void ResolveIdentifiersInStructType(ast::StructType *struct_type, types::Scope *scope);
     void ResolveIdentifier(ast::Ident *ident, types::Scope *scope);
+    
+// Type building:
     
 // Init Order:
     void FindInitOrder();
@@ -95,13 +115,35 @@ private:
                                                   std::unordered_set<types::Object *>>& deps);
     std::unordered_set<types::Object *> FindInitDependenciesOfNode(ast::Node *node);
     
-    pos::File *pos_file_;
+// Constant evaluation:
+    void EvaluateConstants();
+    
+    std::vector<ConstantEvaluationInfo>
+        FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo> info);
+    std::vector<ConstantEvaluationInfo> FindConstantEvaluationInfo();
+    std::unordered_set<types::Constant *> FindConstantDependencies(ast::Expr *expr);
+    
+    void EvaluateConstant(ConstantEvaluationInfo& info);
+    bool EvaluateConstantExpr(ast::Expr *expr, int64_t iota);
+    bool EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota);
+    bool EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iota);
+    bool EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota);
+    bool EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota);
+    bool CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
+                                                 constant::Value &x_value,
+                                                 constant::Value &y_value,
+                                                 types::Basic* &result_type);
+    
+    static constant::Value ConvertUntypedInt(constant::Value value, types::Basic::Kind kind);
+    
     ast::File *ast_file_;
     types::TypeInfo *info_;
+    std::function<types::Package *(std::string)> importer_;
     std::vector<Error>& errors_;
     
-    std::unordered_map<types::Basic::Kind, types::Basic*> basic_types_;
+    std::unordered_set<std::string> imported_;
     
+    types::Package *package_;
     types::Scope *file_scope_;
     types::Scope *current_func_scope_;
 };

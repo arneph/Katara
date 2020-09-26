@@ -1,3 +1,5 @@
+package vec
+
 const Dim = 3
 type Vector [Dim]int
 

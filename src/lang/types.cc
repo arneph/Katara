@@ -286,6 +286,10 @@ Scope * Object::parent() const {
     return parent_;
 }
 
+Package * Object::package() const {
+    return package_;
+}
+
 pos::pos_t Object::position() const {
     return position_;
 }
@@ -380,6 +384,14 @@ std::string Builtin::ToString() const {
     }
 }
 
+Package * PackageName::referenced_package() const {
+    return referenced_package_;
+}
+
+std::string PackageName::ToString() const {
+    return name_;
+}
+
 Scope * Scope::parent() const {
     return parent_;
 }
@@ -417,6 +429,22 @@ Object * Scope::Lookup(std::string name, const Scope*& scope) const {
         return parent_->Lookup(name, scope);
     }
     return nullptr;
+}
+
+std::string Package::path() const {
+    return path_;
+}
+
+std::string Package::name() const {
+    return name_;
+}
+
+Scope * Package::scope() const {
+    return scope_;
+}
+
+const std::vector<Package *>& Package::imports() const {
+    return imports_;
 }
 
 const std::unordered_map<ast::Expr *, Type *>& TypeInfo::types() const {

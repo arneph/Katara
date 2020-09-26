@@ -11,11 +11,8 @@
 namespace lang {
 namespace parser {
 
-std::unique_ptr<ast::File> Parser::ParseFile(pos::FileSet *file_set,
-                                             std::string file_name,
-                                             std::string file_contents,
+std::unique_ptr<ast::File> Parser::ParseFile(pos::File *file,
                                              std::vector<Error>& errors) {
-    pos::File *file = file_set->AddFile(file_name, file_contents);
     scanner::Scanner scanner(file);
     Parser parser(scanner, errors);
     return parser.ParseFile();
@@ -28,7 +25,37 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
     auto file = std::make_unique<ast::File>();
     file->file_start_ = scanner_.token_start();
     
+    while (scanner_.token() != token::kPackage) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected package declaration"
+        });
+        return file;
+    }
+    scanner_.Next();
+    auto name = ParseIdent();
+    if (name) {
+        file->package_name_ = std::move(name);
+    }
+    if (scanner_.token() != token::kSemicolon) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected ';' or new line"
+        });
+        return nullptr;
+    }
+    scanner_.Next();
+    
+    bool finished_imports = false;
     while (scanner_.token() != token::kEOF) {
+        if (scanner_.token() != token::kImport) {
+            finished_imports = true;
+        } else if (finished_imports) {
+            errors_.push_back(Error{
+                scanner_.token_start(),
+                "imports not allowed after non-import declarations"
+            });
+        }
         auto decl = ParseDecl();
         if (decl) {
             file->decls_.push_back(std::move(decl));
@@ -50,6 +77,7 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
 
 std::unique_ptr<ast::Decl> Parser::ParseDecl() {
     switch (scanner_.token()) {
+        case token::kImport:
         case token::kConst:
         case token::kVar:
         case token::kType:
@@ -59,7 +87,7 @@ std::unique_ptr<ast::Decl> Parser::ParseDecl() {
         default:
             errors_.push_back(Error{
                 scanner_.token_start(),
-                "expected 'const', 'var', 'type', or 'func'"
+                "expected 'import', 'const', 'var', 'type', or 'func'"
             });
             scanner_.SkipPastLine();
             return nullptr;
@@ -113,6 +141,8 @@ std::unique_ptr<ast::GenDecl> Parser::ParseGenDecl() {
 
 std::unique_ptr<ast::Spec> Parser::ParseSpec(token::Token spec_type) {
     switch (spec_type) {
+        case token::kImport:
+            return ParseImportSpec();
         case token::kConst:
         case token::kVar:
             return ParseValueSpec();
@@ -121,6 +151,33 @@ std::unique_ptr<ast::Spec> Parser::ParseSpec(token::Token spec_type) {
         default:
             throw "unexpected spec type";
     }
+}
+
+std::unique_ptr<ast::ImportSpec> Parser::ParseImportSpec() {
+    auto import_spec = std::make_unique<ast::ImportSpec>();
+    
+    if (scanner_.token() == token::kIdent) {
+        auto ident = ParseIdent();
+        if (!ident) {
+            return nullptr;
+        }
+        import_spec->name_ = std::move(ident);
+    }
+    
+    if (scanner_.token() != token::kString) {
+        errors_.push_back(Error{
+            scanner_.token_start(),
+            "expected import package path"
+        });
+        return nullptr;
+    }
+    auto path = ParseBasicLit();
+    if (!path) {
+        return nullptr;
+    }
+    import_spec->path_ = std::move(path);
+    
+    return import_spec;
 }
 
 std::unique_ptr<ast::ValueSpec> Parser::ParseValueSpec() {
@@ -914,6 +971,8 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(bool disallow_composite_lit)
     std::unique_ptr<ast::Expr> primary_expr;
     switch (scanner_.token()) {
         case token::kInt:
+        case token::kChar:
+        case token::kString:
             primary_expr = ParseBasicLit();
             break;
         case token::kLBrack:
@@ -950,7 +1009,7 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> p
                 scanner_.Next();
                 if (scanner_.token() == token::kIdent) {
                     primary_expr = ParseSelectionExpr(std::move(primary_expr));
-                } else if (scanner_.token() == token::kIdent) {
+                } else if (scanner_.token() == token::kLss) {
                     primary_expr = ParseTypeAssertExpr(std::move(primary_expr));
                 } else {
                     errors_.push_back(Error{
@@ -1837,22 +1896,26 @@ std::unique_ptr<ast::TypeParam> Parser::ParseTypeParam() {
 }
 
 std::unique_ptr<ast::BasicLit> Parser::ParseBasicLit() {
-    auto basic_lit = std::make_unique<ast::BasicLit>();
-    
-    if (scanner_.token() != token::kInt) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected literal"
-        });
-        scanner_.SkipPastLine();
-        return nullptr;
+    switch (scanner_.token()) {
+        case token::kInt:
+        case token::kChar:
+        case token::kString:{
+            auto basic_lit = std::make_unique<ast::BasicLit>();
+            basic_lit->value_start_ = scanner_.token_start();
+            basic_lit->kind_ = scanner_.token();
+            basic_lit->value_ = scanner_.token_string();
+            scanner_.Next();
+            
+            return basic_lit;
+        }
+        default:
+            errors_.push_back(Error{
+                scanner_.token_start(),
+                "expected literal"
+            });
+            scanner_.SkipPastLine();
+            return nullptr;
     }
-    basic_lit->value_start_ = scanner_.token_start();
-    basic_lit->kind_ = scanner_.token();
-    basic_lit->value_ = scanner_.token_string();
-    scanner_.Next();
-    
-    return basic_lit;
 }
 
 std::vector<std::unique_ptr<ast::Ident>> Parser::ParseIdentList() {

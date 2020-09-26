@@ -120,13 +120,15 @@ struct Ident;
 struct File : public Node {
     pos::pos_t file_start_;
     pos::pos_t file_end_;
+    std::unique_ptr<Ident> package_name_;
     std::vector<std::unique_ptr<Decl>> decls_;
     
     pos::pos_t start() const;
     pos::pos_t end() const;
 };
 
-// GenDecl ::= ("const" (ValueSpec | "(" {ValueSpec} ")" )
+// GenDecl ::= ("import" (ImportSpec | "(" {ImportSpec ";"} ")" )
+//           | ("const" (ValueSpec | "(" {ValueSpec} ")" )
 //           | ("var" (ValueSpec | "(" {ValueSpec} ")" )
 //           | ("type" (TypeSpec | "( {TypeSpec} ")" ) .
 struct GenDecl : public Decl {
@@ -140,9 +142,18 @@ struct GenDecl : public Decl {
     pos::pos_t end() const;
 };
 
-// Spec ::= ValueSpec | TypeSpec .
+// Spec ::= ImportSpec | ValueSpec | TypeSpec .
 struct Spec : public Node {
     virtual ~Spec() {}
+};
+
+// ImportSpec ::= [Ident] BasicLit .
+struct ImportSpec : public Spec {
+    std::unique_ptr<Ident> name_;
+    std::unique_ptr<BasicLit> path_;
+    
+    pos::pos_t start() const;
+    pos::pos_t end() const;
 };
 
 // ValueSpec ::= Ident {"," Ident} [Type] ["=" Expr {"," Expr}] "\n" .

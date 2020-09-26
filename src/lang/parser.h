@@ -28,9 +28,7 @@ public:
         std::string message_;
     };
     
-    static std::unique_ptr<ast::File> ParseFile(pos::FileSet *file_set,
-                                                std::string file_name,
-                                                std::string file_contents,
+    static std::unique_ptr<ast::File> ParseFile(pos::File *file,
                                                 std::vector<Error>& errors);
     
 private:
@@ -42,6 +40,7 @@ private:
     std::unique_ptr<ast::Decl> ParseDecl();
     std::unique_ptr<ast::GenDecl> ParseGenDecl();
     std::unique_ptr<ast::Spec> ParseSpec(token::Token spec_type);
+    std::unique_ptr<ast::ImportSpec> ParseImportSpec();
     std::unique_ptr<ast::ValueSpec> ParseValueSpec();
     std::unique_ptr<ast::TypeSpec> ParseTypeSpec();
     std::unique_ptr<ast::FuncDecl> ParseFuncDecl();

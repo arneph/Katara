@@ -30,6 +30,17 @@ pos::pos_t GenDecl::end() const {
     return specs_.back()->end();
 }
 
+pos::pos_t ImportSpec::start() const {
+    if (name_) {
+        return name_->start();
+    }
+    return path_->start();
+}
+
+pos::pos_t ImportSpec::end() const {
+    return path_->end();
+}
+
 pos::pos_t ValueSpec::start() const {
     return names_.front()->start();
 }

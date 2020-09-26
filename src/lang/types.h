@@ -298,12 +298,16 @@ private:
     friend type_checker::TypeChecker;
 };
 
+class Package;
+
 class Object {
 public:
     virtual ~Object() {};
     
     Scope * parent() const;
+    Package * package() const;
     pos::pos_t position() const;
+    
     std::string name() const;
     Type * type() const;
     
@@ -313,6 +317,7 @@ protected:
     Object() {}
     
     Scope *parent_;
+    Package *package_;
     pos::pos_t position_;
     std::string name_;
     Type *type_;
@@ -422,6 +427,20 @@ private:
     friend type_checker::TypeChecker;
 };
 
+class PackageName : public Object {
+public:
+    ~PackageName() {}
+    
+    Package * referenced_package() const;
+    
+    std::string ToString() const;
+    
+private:
+    Package *referenced_package_;
+    
+    friend type_checker::TypeChecker;
+};
+
 class Scope {
 public:
     ~Scope() {}
@@ -441,6 +460,26 @@ private:
     std::vector<Scope *> children_;
     std::unordered_map<std::string, Object *> named_objects_;
     std::unordered_set<Object *> unnamed_objects_;
+    
+    friend type_checker::TypeChecker;
+};
+
+class Package {
+public:
+    ~Package() {}
+    
+    std::string path() const;
+    std::string name() const;
+    Scope *scope() const;
+    const std::vector<Package *>& imports() const;
+    
+private:
+    Package() {}
+    
+    std::string path_;
+    std::string name_;
+    Scope *scope_;
+    std::vector<Package *> imports_;
     
     friend type_checker::TypeChecker;
 };
@@ -499,6 +538,7 @@ private:
     std::vector<Initializer *> init_order_;
     
     Scope *universe_;
+    std::unordered_map<types::Basic::Kind, types::Basic*> basic_types_;
     
     friend type_checker::TypeChecker;
 };

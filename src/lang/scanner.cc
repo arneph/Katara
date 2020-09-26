@@ -36,6 +36,8 @@ void Scanner::Next(bool split_shift_ops) {
     switch (tok_) {
         case token::kIdent:
         case token::kInt:
+        case token::kChar:
+        case token::kString:
         case token::kFallthrough:
         case token::kContinue:
         case token::kBreak:
@@ -239,6 +241,38 @@ void Scanner::Next(bool split_shift_ops) {
             tok_ = token::kSemicolon;
             tok_end_ = pos_ - 1;
             return;
+        case '\'':{
+            bool escaped = false;
+            for (pos_++;
+                 pos_ < file_->end() &&
+                 !escaped &&  file_->at(pos_) != '\'';
+                 pos_++) {
+                if (escaped) {
+                    escaped = false;
+                } else if (file_->at(pos_) == '\\') {
+                    escaped = true;
+                }
+            }
+            tok_ = token::kChar;
+            tok_end_ = pos_++;
+            return;
+        }
+        case '\"':{
+            bool escaped = false;
+            for (pos_++;
+                 pos_ < file_->end() &&
+                 !escaped &&  file_->at(pos_) != '\"';
+                 pos_++) {
+                if (escaped) {
+                    escaped = false;
+                } else if (file_->at(pos_) == '\\') {
+                    escaped = true;
+                }
+            }
+            tok_ = token::kString;
+            tok_end_ = pos_++;
+            return;
+        }
         case '0':
         case '1':
         case '2':
@@ -299,6 +333,10 @@ void Scanner::Next(bool split_shift_ops) {
         tok_ = token::kReturn;
     } else if (ident == "func") {
         tok_ = token::kFunc;
+    } else if (ident == "import") {
+        tok_ = token::kImport;
+    } else if (ident == "package") {
+        tok_ = token::kPackage;
     }
 }
 

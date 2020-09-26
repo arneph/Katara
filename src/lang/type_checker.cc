@@ -15,15 +15,16 @@
 namespace lang {
 namespace type_checker {
 
-void TypeChecker::Check(pos::File *pos_file,
-                        ast::File *ast_file,
+void TypeChecker::Check(ast::File *ast_file,
                         types::TypeInfo *info,
+                        std::function<types::Package *(std::string)> importer,
                         std::vector<Error>& errors) {
-    TypeChecker checker(pos_file, ast_file, info, errors);
+    TypeChecker checker(ast_file, info, importer, errors);
     
     if (info->universe_ == nullptr) {
         checker.SetupUniverse();
     }
+    
     checker.ResolveIdentifiers();
     if (!errors.empty()) {
         return;
@@ -46,29 +47,45 @@ void TypeChecker::SetupUniverse() {
 void TypeChecker::SetupPredeclaredTypes() {
     typedef struct{
         types::Basic::Kind kind_;
+        types::Basic::Info info_;
         std::string name_;
     } predeclared_type_t;
     auto predeclared_types = std::vector<predeclared_type_t>({
-        {types::Basic::kBool, "bool"},
-        {types::Basic::kInt, "int"},
-        {types::Basic::kInt8, "int8"},
-        {types::Basic::kInt16, "int16"},
-        {types::Basic::kInt32, "int32"},
-        {types::Basic::kInt64, "int64"},
-        {types::Basic::kUint, "uint"},
-        {types::Basic::kUint8, "uint8"},
-        {types::Basic::kUint16, "uint16"},
-        {types::Basic::kUint32, "uint32"},
-        {types::Basic::kUint64, "uint64"},
+        {types::Basic::kBool, types::Basic::kIsBoolean, "bool"},
+        {types::Basic::kInt, types::Basic::kIsInteger, "int"},
+        {types::Basic::kInt8, types::Basic::kIsInteger, "int8"},
+        {types::Basic::kInt16, types::Basic::kIsInteger, "int16"},
+        {types::Basic::kInt32, types::Basic::kIsInteger, "int32"},
+        {types::Basic::kInt64, types::Basic::kIsInteger, "int64"},
+        {types::Basic::kUint,
+         types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUnsigned},
+         "uint"},
+        {types::Basic::kUint8,
+         types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUnsigned},
+         "uint8"},
+        {types::Basic::kUint16,
+         types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUnsigned},
+         "uint16"},
+        {types::Basic::kUint32,
+         types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUnsigned},
+         "uint32"},
+        {types::Basic::kUint64,
+         types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUnsigned},
+         "uint64"},
         
-        {types::Basic::kUntypedBool, "untyped bool"},
-        {types::Basic::kUntypedInt, "untyped int"},
-        {types::Basic::kUntypedNil, "untyped nil"},
+        {types::Basic::kUntypedBool,
+         types::Basic::Info{types::Basic::kIsBoolean | types::Basic::kIsUntyped},
+         "untyped bool"},
+        {types::Basic::kUntypedInt,
+         types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUntyped},
+         "untyped int"},
+        {types::Basic::kUntypedNil, types::Basic::kIsUntyped, "untyped nil"},
     });
     for (auto predeclared_type : predeclared_types) {
-        auto basic = std::unique_ptr<types::Basic>(new types::Basic(predeclared_type.kind_));
+        auto basic = std::unique_ptr<types::Basic>(new types::Basic(predeclared_type.kind_,
+                                                                    predeclared_type.info_));
         
-        basic_types_.insert({predeclared_type.kind_, basic.get()});
+        info_->basic_types_.insert({predeclared_type.kind_, basic.get()});
 
         auto it = std::find(predeclared_type.name_.begin(),
                             predeclared_type.name_.end(),
@@ -79,6 +96,7 @@ void TypeChecker::SetupPredeclaredTypes() {
         
         auto type_name = std::unique_ptr<types::TypeName>(new types::TypeName());
         type_name->parent_ = info_->universe_;
+        type_name->package_ = nullptr;
         type_name->position_ = pos::kNoPos;
         type_name->name_ = predeclared_type.name_;
         type_name->type_ = basic.get();
@@ -103,11 +121,11 @@ void TypeChecker::SetupPredeclaredConstants() {
     for (auto predeclared_const : predeclared_consts) {
         auto constant = std::unique_ptr<types::Constant>(new types::Constant());
         constant->parent_ = info_->universe_;
+        constant->package_ = nullptr;
         constant->position_ = pos::kNoPos;
         constant->name_ = predeclared_const.name_;
-        constant->type_ = basic_types_.at(predeclared_const.kind_);
+        constant->type_ = info_->basic_types_.at(predeclared_const.kind_);
         constant->value_ = predeclared_const.value_;
-        
         
         info_->universe_->named_objects_.insert({predeclared_const.name_, constant.get()});
         info_->object_unique_ptrs_.push_back(std::move(constant));
@@ -117,9 +135,10 @@ void TypeChecker::SetupPredeclaredConstants() {
 void TypeChecker::SetupPredeclaredNil() {
     auto nil = std::unique_ptr<types::Nil>(new types::Nil());
     nil->parent_ = info_->universe_;
+    nil->package_ = nullptr;
     nil->position_ = pos::kNoPos;
     nil->name_ = "nil";
-    nil->type_ = basic_types_.at(types::Basic::kUntypedNil);
+    nil->type_ = info_->basic_types_.at(types::Basic::kUntypedNil);
     
     info_->universe_->named_objects_.insert({"nil", nil.get()});
     info_->object_unique_ptrs_.push_back(std::move(nil));
@@ -183,6 +202,11 @@ void TypeChecker::AddObjectToScope(types::Object *object, types::Scope *scope) {
 
 void TypeChecker::AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl, types::Scope *scope) {
     switch (gen_decl->tok_) {
+        case token::kImport:
+            for (auto& spec : gen_decl->specs_) {
+                AddDefinedObjectsFromImportSpec(static_cast<ast::ImportSpec *>(spec.get()));
+            }
+            return;
         case token::kConst:
             for (auto& spec : gen_decl->specs_) {
                 AddDefinedObjectsFromConstSpec(static_cast<ast::ValueSpec *>(spec.get()),
@@ -206,6 +230,58 @@ void TypeChecker::AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl, types::Sc
     }
 }
 
+void TypeChecker::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec) {
+    std::string name;
+    std::string path = import_spec->path_->value_;
+    path = path.substr(1, path.length()-2);
+    
+    if (imported_.find(path) != imported_.end()) {
+        errors_.push_back(Error{
+            {import_spec->path_->start()},
+            "can not import package again: \"" + path + "\""
+        });
+        return;
+    }
+    types::Package *referenced_pkg = importer_(path);
+    if (referenced_pkg == nullptr) {
+        errors_.push_back(Error{
+            {import_spec->path_->start()},
+            "could not import package: \"" + path + "\""
+        });
+    }
+    imported_.insert(path);
+    
+    if (import_spec->name_) {
+        if (import_spec->name_->name_ == "_") {
+            return;
+        }
+        
+        name = import_spec->name_->name_;
+    } else {
+        name = path;
+        if (auto pos = name.find_last_of('/'); pos != std::string::npos) {
+            path = name.substr(pos+1);
+        }
+    }
+    
+    auto package_name = std::unique_ptr<types::PackageName>(new types::PackageName());
+    package_name->parent_ = file_scope_;
+    package_name->package_ = package_;
+    package_name->position_ = import_spec->start();
+    package_name->name_ = name;
+    package_name->referenced_package_ = referenced_pkg;
+    
+    auto package_name_ptr = package_name.get();
+    info_->object_unique_ptrs_.push_back(std::move(package_name));
+    if (import_spec->name_) {
+        info_->definitions_.insert({import_spec->name_.get(), package_name_ptr});
+    } else {
+        info_->implicits_.insert({import_spec, package_name_ptr});
+    }
+    
+    AddObjectToScope(package_name_ptr, file_scope_);
+}
+
 void TypeChecker::AddDefinedObjectsFromConstSpec(ast::ValueSpec *value_spec, types::Scope *scope) {
     for (auto& ident : value_spec->names_) {
         if (ident->name_ == "_") {
@@ -214,6 +290,7 @@ void TypeChecker::AddDefinedObjectsFromConstSpec(ast::ValueSpec *value_spec, typ
         
         auto constant = std::unique_ptr<types::Constant>(new types::Constant());
         constant->parent_ = scope;
+        constant->package_ = package_;
         constant->position_ = ident->start();
         constant->name_ = ident->name_;
         
@@ -233,6 +310,7 @@ void TypeChecker::AddDefinedObjectsFromVarSpec(ast::ValueSpec *value_spec, types
         
         auto variable = std::unique_ptr<types::Variable>(new types::Variable());
         variable->parent_ = scope;
+        variable->package_ = package_;
         variable->position_ = ident->start();
         variable->name_ = ident->name_;
         variable->is_embedded_ = false;
@@ -257,6 +335,7 @@ void TypeChecker::AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec, types::
     
     auto type_name = std::unique_ptr<types::TypeName>(new types::TypeName());
     type_name->parent_ = scope;
+    type_name->package_ = package_;
     type_name->position_ = type_spec->name_->start();
     type_name->name_ = type_spec->name_->name_;
     
@@ -278,6 +357,7 @@ void TypeChecker::AddDefinedObjectFromFuncDecl(ast::FuncDecl *func_decl, types::
     
     auto func = std::unique_ptr<types::Func>(new types::Func());
     func->parent_ = scope;
+    func->package_ = package_;
     func->position_ = func_decl->name_->start();
     func->name_ = func_decl->name_->name_;
     
@@ -290,6 +370,8 @@ void TypeChecker::AddDefinedObjectFromFuncDecl(ast::FuncDecl *func_decl, types::
 
 void TypeChecker::ResolveIdentifiersInGenDecl(ast::GenDecl *gen_decl, types::Scope *scope) {
     switch (gen_decl->tok_) {
+        case token::kImport:
+            return;
         case token::kConst:
         case token::kVar:
             for (auto& spec : gen_decl->specs_) {
@@ -377,6 +459,7 @@ void TypeChecker::ResolveIdentifiersInTypeParamList(ast::TypeParamList *type_par
         
         auto type_name = std::unique_ptr<types::TypeName>(new types::TypeName());
         type_name->parent_ = scope;
+        type_name->package_ = package_;
         type_name->position_ = type_param->name_->start();
         type_name->name_ = type_param->name_->name_;
         
@@ -441,6 +524,7 @@ void TypeChecker::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *fiel
             
             auto type_name = std::unique_ptr<types::TypeName>(new types::TypeName());
             type_name->parent_ = scope;
+            type_name->package_ = package_;
             type_name->position_ = ident->start();
             type_name->name_ = ident->name_;
             
@@ -459,6 +543,7 @@ void TypeChecker::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *fiel
     
     auto variable = std::unique_ptr<types::Variable>(new types::Variable());
     variable->parent_ = scope;
+    variable->package_ = package_;
     variable->position_ = field->names_.at(0)->start();
     variable->name_ = field->names_.at(0)->name_;
     variable->is_embedded_ = false;
@@ -480,6 +565,7 @@ void TypeChecker::ResolveIdentifiersInRegularFuncFieldList(ast::FieldList *field
         for (auto& name : field->names_) {
             auto variable = std::unique_ptr<types::Variable>(new types::Variable());
             variable->parent_ = scope;
+            variable->package_ = package_;
             variable->position_ = name->start();
             variable->name_ = name->name_;
             variable->is_embedded_ = false;
@@ -533,6 +619,7 @@ void TypeChecker::ResolveIdentifiersInBlockStmt(ast::BlockStmt *body, types::Sco
         
         auto label = std::unique_ptr<types::Label>(new types::Label);
         label->parent_ = scope;
+        label->package_ = package_;
         label->position_ = labeled_stmt->start();
         label->name_ = labeled_stmt->label_->name_;
         
@@ -588,6 +675,7 @@ void TypeChecker::ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_stmt, t
                 if (defining_scope != scope) {
                     auto variable = std::unique_ptr<types::Variable>(new types::Variable());
                     variable->parent_ = scope;
+                    variable->package_ = package_;
                     variable->position_ = ident->start();
                     variable->name_ = ident->name_;
                     variable->is_embedded_ = false;
@@ -671,6 +759,7 @@ void TypeChecker::ResolveIdentifiersInCaseClause(ast::CaseClause *case_clause,
     if (type_switch_var_ident != nullptr) {
         auto variable = std::unique_ptr<types::Variable>(new types::Variable());
         variable->parent_ = case_scope_ptr;
+        variable->package_ = package_;
         variable->position_ = type_switch_var_ident->start();
         variable->name_ = type_switch_var_ident->name_;
         variable->is_embedded_ = false;
@@ -690,6 +779,7 @@ void TypeChecker::ResolveIdentifiersInCaseClause(ast::CaseClause *case_clause,
         
         auto label = std::unique_ptr<types::Label>(new types::Label);
         label->parent_ = case_scope_ptr;
+        label->package_ = package_;
         label->position_ = labeled_stmt->start();
         label->name_ = labeled_stmt->label_->name_;
         
@@ -757,7 +847,7 @@ void TypeChecker::ResolveIdentifiersInExpr(ast::Expr *expr, types::Scope *scope)
     } else if (ast::ParenExpr *paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
         ResolveIdentifiersInExpr(paren_expr->x_.get(), scope);
     } else if (ast::SelectionExpr *selection_expr = dynamic_cast<ast::SelectionExpr *>(expr)) {
-        ResolveIdentifiersInExpr(selection_expr->accessed_.get(), scope);
+        ResolveIdentifiersInSelectionExpr(selection_expr, scope);
     } else if (ast::TypeAssertExpr *type_assert_expr = dynamic_cast<ast::TypeAssertExpr *>(expr)) {
         ResolveIdentifiersInExpr(type_assert_expr->x_.get(), scope);
         if (type_assert_expr->type_) {
@@ -805,9 +895,39 @@ void TypeChecker::ResolveIdentifiersInExpr(ast::Expr *expr, types::Scope *scope)
     }
 }
 
+void TypeChecker::ResolveIdentifiersInSelectionExpr(ast::SelectionExpr *sel, types::Scope *scope) {
+    ResolveIdentifiersInExpr(sel->accessed_.get(), scope);
+    if (sel->selection_->name_ == "_") {
+        errors_.push_back(Error{
+            {sel->selection_->start()},
+            "can not select underscore"
+        });
+        return;
+    }
+    
+    ast::Ident *accessed_ident = dynamic_cast<ast::Ident *>(sel->accessed_.get());
+    if (accessed_ident == nullptr) {
+        return;
+    }
+    auto it = info_->uses_.find(accessed_ident);
+    if (it == info_->uses_.end()) {
+        return;
+    }
+    types::Object *accessed_object = it->second;
+    types::PackageName *pkg_name = dynamic_cast<types::PackageName *>(accessed_object);
+    if (pkg_name == nullptr || pkg_name->referenced_package_ == nullptr) {
+        return;
+    }
+    
+    ast::Ident *selected_ident = sel->selection_.get();
+    ResolveIdentifier(selected_ident,
+                      pkg_name->referenced_package_->scope_);
+}
+
 void TypeChecker::ResolveIdentifiersInFuncLit(ast::FuncLit *func_lit, types::Scope *scope) {
     auto func = std::unique_ptr<types::Func>(new types::Func());
     func->parent_ = scope;
+    func->package_ = package_;
     func->position_ = func_lit->start();
     func->name_ = "";
     
@@ -889,6 +1009,7 @@ void TypeChecker::ResolveIdentifiersInInterfaceType(ast::InterfaceType *interfac
     for (auto& method_spec : interface_type->methods_) {
         auto method = std::unique_ptr<types::Func>(new types::Func());
         method->parent_ = interface_scope_ptr;
+        method->package_ = package_;
         method->position_ = method_spec->start();
         method->name_ = method_spec->name_->name_;
         
@@ -940,6 +1061,7 @@ void TypeChecker::ResolveIdentifiersInStructType(ast::StructType *struct_type,
             
             auto variable = std::unique_ptr<types::Variable>(new types::Variable());
             variable->parent_ = struct_scope_ptr;
+            variable->package_ = package_;
             variable->position_ = field->type_->start();
             variable->name_ = defined_type->name_;
             variable->is_embedded_ = true;
@@ -954,6 +1076,7 @@ void TypeChecker::ResolveIdentifiersInStructType(ast::StructType *struct_type,
             for (auto& name : field->names_) {
                 auto variable = std::unique_ptr<types::Variable>(new types::Variable());
                 variable->parent_ = struct_scope_ptr;
+                variable->package_ = package_;
                 variable->position_ = name->start();
                 variable->name_ = name->name_;
                 variable->is_embedded_ = false;
@@ -1030,11 +1153,14 @@ void TypeChecker::FindInitOrder() {
             }
         }
         
-        size_t new_done_objs_after = done_objs.size();
-        if (done_objs_size_before == new_done_objs_after) {
+        size_t done_objs_size_after = done_objs.size();
+        if (done_objs_size_before == done_objs_size_after) {
             std::vector<pos::pos_t> positions;
             std::string names = "";
             for (auto [var, _] : initializers) {
+                if (done_vars.find(var) != done_vars.end()) {
+                    continue;
+                }
                 positions.push_back(var->position_);
                 if (names.empty()) {
                     names = var->name_;
@@ -1143,6 +1269,537 @@ std::unordered_set<types::Object *> TypeChecker::FindInitDependenciesOfNode(ast:
     });
     ast::Walk(node, walker);
     return objects;
+}
+
+void TypeChecker::EvaluateConstants() {
+    std::vector<ConstantEvaluationInfo> info = FindConstantEvaluationInfo();
+    info = FindConstantsEvaluationOrder(info);
+    
+    for (auto& i : info) {
+        EvaluateConstant(i);
+    }
+}
+
+std::vector<TypeChecker::ConstantEvaluationInfo>
+TypeChecker::FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo> infos) {
+    std::vector<TypeChecker::ConstantEvaluationInfo> order;
+    std::unordered_set<types::Object *> done;
+    while (infos.size() > done.size()) {
+        size_t done_size_before = done.size();
+        
+        for (auto& info : infos) {
+            if (done.find(info.constant_) != done.end()) {
+                continue;
+            }
+            bool all_dependencies_done = true;
+            for (auto dependency : info.dependencies_) {
+                if (done.find(dependency) == done.end()) {
+                    all_dependencies_done = false;
+                    break;
+                }
+            }
+            if (!all_dependencies_done) {
+                continue;
+            }
+            
+            order.push_back(info);
+        }
+        
+        size_t done_size_after = done.size();
+        if (done_size_before == done_size_after) {
+            std::vector<pos::pos_t> positions;
+            std::string names = "";
+            for (auto& info : infos) {
+                positions.push_back(info.constant_->position_);
+                if (names.empty()) {
+                    names = info.constant_->name_;
+                } else {
+                    names += ", " + info.constant_->name_;
+                }
+            }
+            errors_.push_back(Error{
+                positions,
+                "initialization loop(s) for constants: " + names
+            });
+            break;
+        }
+    }
+    return order;
+}
+
+std::vector<TypeChecker::ConstantEvaluationInfo>
+TypeChecker::FindConstantEvaluationInfo() {
+    std::vector<ConstantEvaluationInfo> info;
+    for (auto& decl : ast_file_->decls_) {
+        auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get());
+        if (gen_decl == nullptr ||
+            gen_decl->tok_ != token::kConst) {
+            continue;
+        }
+        int64_t iota = 0;
+        for (auto& spec : gen_decl->specs_) {
+            auto value_spec = static_cast<ast::ValueSpec *>(spec.get());
+            
+            for (size_t i = 0; i < value_spec->names_.size(); i++) {
+                ast::Ident *name = value_spec->names_.at(i).get();
+                types::Object *object = info_->definitions_.at(name);
+                types::Constant *constant = static_cast<types::Constant *>(object);
+                ast::Expr *type = value_spec->type_.get();
+                ast::Expr *value = nullptr;
+                std::unordered_set<types::Constant *> dependencies;
+                if (value_spec->values_.size() > i) {
+                    value = value_spec->values_.at(i).get();
+                    dependencies = FindConstantDependencies(value);
+                }
+                
+                info.push_back(ConstantEvaluationInfo{
+                    constant, name, type, value, iota, dependencies
+                });
+            }
+            iota++;
+        }
+    }
+    return info;
+}
+
+std::unordered_set<types::Constant *> TypeChecker::FindConstantDependencies(ast::Expr *expr) {
+    std::unordered_set<types::Constant *> constants;
+    ast::WalkFunction walker =
+    ast::WalkFunction([&](ast::Node *node) -> ast::WalkFunction {
+        if (node == nullptr) {
+            return walker;
+        }
+        auto ident = dynamic_cast<ast::Ident *>(node);
+        if (ident == nullptr) {
+            return walker;
+        }
+        auto it = info_->uses_.find(ident);
+        if (it == info_->uses_.end() ||
+            it->second->parent() != file_scope_ ||
+            (dynamic_cast<types::Constant *>(it->second) == nullptr &&
+             dynamic_cast<types::Variable *>(it->second) == nullptr &&
+             dynamic_cast<types::Func *>(it->second) == nullptr)) {
+            return walker;
+        }
+        auto constant = dynamic_cast<types::Constant *>(it->second);
+        if (constant == nullptr) {
+            errors_.push_back(Error{
+                {ident->start()},
+                "constant can not depend on non-constant: " + ident->name_
+            });
+            return walker;
+        }
+        constants.insert(constant);
+        return walker;
+    });
+    ast::Walk(expr, walker);
+    return constants;
+}
+
+void TypeChecker::EvaluateConstant(ConstantEvaluationInfo &info) {
+    constant::Value value(int64_t{0});
+    if (info.value_ == nullptr) {
+        if (info.type_ == nullptr) {
+            errors_.push_back(Error{
+                {info.name_->start()},
+                "constant needs a type or value: " + info.name_->name_
+            });
+            return;
+        }
+        //types::Object *type_obj = info_->uses_.at(info.type_);
+    }
+}
+
+bool TypeChecker::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
+    if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
+        types::Constant *constant = dynamic_cast<types::Constant *>(info_->uses().at(ident));
+        types::Basic *type = static_cast<types::Basic *>(constant->type_);
+        constant::Value value(0);
+        if (constant == nullptr) {
+            errors_.push_back(Error{
+                {ident->start()},
+                "constant can not depend on unknown ident: " + ident->name_
+            });
+            return false;
+        } else if (constant->parent_ == info_->universe_ &&
+                   constant->name_ == "iota") {
+            value = constant::Value(iota);
+        } else {
+            value = constant->value_;
+        }
+        
+        info_->types_.insert({expr, type});
+        info_->constant_values_.insert({expr, value});
+        return true;
+        
+    } else if (ast::BasicLit *basic_lit = dynamic_cast<ast::BasicLit *>(expr)) {
+        uint64_t v = std::stoull(basic_lit->value_);
+        
+        types::Basic *type = info_->basic_types_.at(types::Basic::kUntypedInt);
+        constant::Value value(v);
+        
+        info_->types_.insert({expr, type});
+        info_->constant_values_.insert({expr, value});
+        return true;
+        
+    } else if (ast::ParenExpr *paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
+        if (!EvaluateConstantExpr(paren_expr->x_.get(), iota)) {
+            return false;
+        }
+        
+        types::Type *type = info_->types_.at(paren_expr->x_.get());
+        constant::Value value = info_->constant_values_.at(paren_expr->x_.get());
+        
+        info_->types_.insert({expr, type});
+        info_->constant_values_.insert({expr, value});
+        return true;
+        
+    } else if (ast::UnaryExpr *unary_expr = dynamic_cast<ast::UnaryExpr *>(expr)) {
+        return EvaluateConstantUnaryExpr(unary_expr, iota);
+        
+    } else if (ast::BinaryExpr *binary_expr = dynamic_cast<ast::BinaryExpr *>(expr)) {
+        switch (binary_expr->op_) {
+            case token::kLss:
+            case token::kLeq:
+            case token::kGeq:
+            case token::kGtr:
+            case token::kEql:
+            case token::kNeq:
+                return EvaluateConstantCompareExpr(binary_expr, iota);
+            case token::kShl:
+            case token::kShr:
+                return EvaluateConstantShiftExpr(binary_expr, iota);
+            default:
+                return EvaluateConstantBinaryExpr(binary_expr, iota);
+        }
+    } else {
+        errors_.push_back(Error{
+            {expr->start()},
+            "constant expression not allowed"
+        });
+        return false;
+    }
+}
+
+bool TypeChecker::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) {
+    if (!EvaluateConstantExpr(expr->x_.get(), iota)) {
+        return false;
+    }
+    
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
+    constant::Value x_value = info_->constant_values_.at(expr->x_.get());
+    
+    switch (x_type->kind_) {
+        case types::Basic::kBool:
+        case types::Basic::kUntypedBool:
+            if (expr->op_ != token::kNot) {
+                errors_.push_back(Error{
+                    {expr->start()},
+                    "unary operator not allowed for constant expression"
+                });
+                return false;
+            }
+            info_->types_.insert({expr, x_type});
+            info_->constant_values_.insert({expr, constant::UnaryOp(expr->op_, x_value)});
+            return true;
+            
+        case types::Basic::kUint:
+        case types::Basic::kUint8:
+        case types::Basic::kUint16:
+        case types::Basic::kUint32:
+        case types::Basic::kUint64:
+        case types::Basic::kInt:
+        case types::Basic::kInt8:
+        case types::Basic::kInt16:
+        case types::Basic::kInt32:
+        case types::Basic::kInt64:
+        case types::Basic::kUntypedInt:{
+            if (expr->op_ != token::kAdd &&
+                expr->op_ != token::kSub &&
+                expr->op_ != token::kXor) {
+                errors_.push_back(Error{
+                    {expr->start()},
+                    "unary operator not allowed for constant expression"
+                });
+                return false;
+            }
+            types::Basic *result_type = x_type;
+            if (expr->op_ == token::kSub &&
+                result_type->info() & types::Basic::kIsUnsigned) {
+                constexpr types::Basic::Kind diff{types::Basic::kUint - types::Basic::kInt};
+                result_type = info_->basic_types_.at(types::Basic::Kind(result_type->kind_ - diff));
+            }
+            
+            info_->types_.insert({expr, result_type});
+            info_->constant_values_.insert({expr, constant::UnaryOp(expr->op_, x_value)});
+            return true;
+        }
+        default:
+            throw "unexpected type";
+    }
+}
+
+bool TypeChecker::EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iota) {
+    if (!EvaluateConstantExpr(expr->x_.get(), iota)) {
+        return false;
+    }
+    if (!EvaluateConstantExpr(expr->y_.get(), iota)) {
+        return false;
+    }
+    
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
+    types::Basic *y_type = static_cast<types::Basic *>(info_->types_.at(expr->y_.get()));
+    switch (expr->op_) {
+        case token::kLss:
+        case token::kLeq:
+        case token::kGeq:
+        case token::kGtr:
+            if ((x_type->info() & types::Basic::kIsOrdered) == 0 ||
+                (y_type->info() & types::Basic::kIsOrdered) == 0) {
+                errors_.push_back(Error{
+                    {expr->start()},
+                    "comparison of constant expressions with given types not allowed"
+                });
+                return false;
+            }
+        default:;
+    }
+    
+    constant::Value x_value = info_->constant_values_.at(expr->x_.get());
+    constant::Value y_value = info_->constant_values_.at(expr->y_.get());
+    types::Basic *result_type;
+    
+    if (!CheckTypesForRegualarConstantBinaryExpr(expr,
+                                                 x_value,
+                                                 y_value,
+                                                 result_type)) {
+        return false;
+    }
+    
+    bool result = constant::Compare(x_value, expr->op_, y_value);
+    
+    info_->types_.insert({expr, result_type});
+    info_->constant_values_.insert({expr, constant::Value(result)});
+    return true;
+}
+
+bool TypeChecker::EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota) {
+    if (!EvaluateConstantExpr(expr->x_.get(), iota)) {
+        return false;
+    }
+    if (!EvaluateConstantExpr(expr->y_.get(), iota)) {
+        return false;
+    }
+    
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
+    types::Basic *y_type = static_cast<types::Basic *>(info_->types_.at(expr->y_.get()));
+    
+    if ((x_type->info() & types::Basic::kIsNumeric) == 0 ||
+        (y_type->info() & types::Basic::kIsNumeric) == 0) {
+        errors_.push_back(Error{
+            {expr->start()},
+            "constant shift expressions with given types not allowed"
+        });
+        return false;
+    }
+    
+    constant::Value x_value = info_->constant_values_.at(expr->x_.get());
+    constant::Value y_value = info_->constant_values_.at(expr->y_.get());
+    
+    if ((x_type->info() & types::Basic::kIsUntyped) != 0) {
+        x_value = ConvertUntypedInt(x_value, types::Basic::kInt);
+    }
+    if ((y_type->info() & types::Basic::kIsUntyped) != 0) {
+        y_value = ConvertUntypedInt(y_value, types::Basic::kUint);
+    } else if ((y_type->info() & types::Basic::kIsUnsigned) == 0) {
+        errors_.push_back(Error{
+            {expr->start()},
+            "constant shift expressions with signed shift operand not allowed"
+        });
+        return false;
+    }
+    
+    info_->types_.insert({expr, x_type});
+    info_->constant_values_.insert({expr, constant::ShiftOp(x_value, expr->op_, y_value)});
+    return true;
+}
+
+bool TypeChecker::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota) {
+    if (!EvaluateConstantExpr(expr->x_.get(), iota)) {
+        return false;
+    }
+    if (!EvaluateConstantExpr(expr->y_.get(), iota)) {
+        return false;
+    }
+    
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
+    types::Basic *y_type = static_cast<types::Basic *>(info_->types_.at(expr->y_.get()));
+    switch (expr->op_) {
+        case token::kLAnd:
+        case token::kLOr:
+            if ((x_type->info() & types::Basic::kIsBoolean) == 0 ||
+                (y_type->info() & types::Basic::kIsBoolean) == 0) {
+                errors_.push_back(Error{
+                    {expr->start()},
+                    "binary operation with constant expressions of given types not allowed"
+                });
+                return false;
+            }
+            break;
+        case token::kAdd:
+        case token::kSub:
+        case token::kMul:
+        case token::kQuo:
+        case token::kRem:
+        case token::kAnd:
+        case token::kOr:
+        case token::kXor:
+        case token::kAndNot:
+            if ((x_type->info() & types::Basic::kIsNumeric) == 0 ||
+                (y_type->info() & types::Basic::kIsNumeric) == 0) {
+                errors_.push_back(Error{
+                    {expr->start()},
+                    "binary operation with constant expressions of given types not allowed"
+                });
+                return false;
+            }
+            break;
+        default:;
+    }
+    
+    constant::Value x_value = info_->constant_values_.at(expr->x_.get());
+    constant::Value y_value = info_->constant_values_.at(expr->y_.get());
+    types::Basic *result_type;
+    
+    if (!CheckTypesForRegualarConstantBinaryExpr(expr,
+                                                 x_value,
+                                                 y_value,
+                                                 result_type)) {
+        return false;
+    }
+    
+    info_->types_.insert({expr, result_type});
+    info_->constant_values_.insert({expr, constant::BinaryOp(x_value, expr->op_, y_value)});
+    return true;
+}
+
+
+bool TypeChecker::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
+                                                          constant::Value &x_value,
+                                                          constant::Value &y_value,
+                                                          types::Basic* &result_type) {
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
+    types::Basic *y_type = static_cast<types::Basic *>(info_->types_.at(expr->y_.get()));
+    
+    if (((x_type->info() & types::Basic::kIsBoolean) !=
+         (y_type->info() & types::Basic::kIsBoolean)) ||
+        ((x_type->info() & types::Basic::kIsNumeric) !=
+         (y_type->info() & types::Basic::kIsNumeric))) {
+        errors_.push_back(Error{
+            {expr->start()},
+            "comparison of constant expressions with given types not allowed"
+        });
+        return false;
+    }
+    
+    if ((x_type->info() & types::Basic::kIsInteger) != 0) {
+        if ((x_type->info() & types::Basic::kIsUntyped) != 0 &&
+            (y_type->info() & types::Basic::kIsUntyped) != 0) {
+            x_value = ConvertUntypedInt(x_value, types::Basic::kInt);
+            y_value = ConvertUntypedInt(y_value, types::Basic::kInt);
+            result_type = x_type;
+        } else if ((x_type->info() & types::Basic::kIsUntyped) != 0) {
+            x_value = ConvertUntypedInt(x_value, y_type->kind());
+            result_type = y_type;
+        } else if ((y_type->info() & types::Basic::kIsUntyped) != 0) {
+            y_value = ConvertUntypedInt(y_value, x_type->kind());
+            result_type = x_type;
+        } else {
+            if (x_type->kind() != y_type->kind()) {
+                errors_.push_back(Error{
+                    {expr->start()},
+                    "comparison of constant expressions of different types not allowed"
+                });
+                return false;
+            }
+            result_type = x_type;
+        }
+    } else if ((x_type->info() & types::Basic::kIsBoolean) != 0) {
+        if ((x_type->info() & types::Basic::kIsUntyped) != 0 &&
+            (y_type->info() & types::Basic::kIsUntyped) != 0) {
+            result_type = info_->basic_types_.at(types::Basic::kUntypedBool);
+        } else {
+            result_type = info_->basic_types_.at(types::Basic::kBool);
+        }
+    } else {
+        throw "internal error";
+    }
+    return true;
+}
+
+constant::Value TypeChecker::ConvertUntypedInt(constant::Value value, types::Basic::Kind kind) {
+    switch (kind) {
+        case types::Basic::kInt8:
+            switch (value.value_.index()) {
+                case 7:
+                    return constant::Value(int8_t(std::get<int64_t>(value.value_)));
+                case 8:
+                    return constant::Value(int8_t(std::get<uint64_t>(value.value_)));
+            }
+        case types::Basic::kInt16:
+            switch (value.value_.index()) {
+                case 7:
+                    return constant::Value(int16_t(std::get<int64_t>(value.value_)));
+                case 8:
+                    return constant::Value(int16_t(std::get<uint64_t>(value.value_)));
+            }
+        case types::Basic::kInt32:
+            switch (value.value_.index()) {
+                case 7:
+                    return constant::Value(int32_t(std::get<int64_t>(value.value_)));
+                case 8:
+                    return constant::Value(int32_t(std::get<uint64_t>(value.value_)));
+            }
+        case types::Basic::kInt64:
+        case types::Basic::kInt:
+            switch (value.value_.index()) {
+                case 7:
+                    return constant::Value(int64_t(std::get<int64_t>(value.value_)));
+                case 8:
+                    return constant::Value(int64_t(std::get<uint64_t>(value.value_)));
+            }
+        case types::Basic::kUint8:
+            switch (value.value_.index()) {
+                case 7:
+                    return constant::Value(uint8_t(std::get<int64_t>(value.value_)));
+                case 8:
+                    return constant::Value(uint8_t(std::get<uint64_t>(value.value_)));
+            }
+        case types::Basic::kUint16:
+            switch (value.value_.index()) {
+                case 7:
+                    return constant::Value(uint16_t(std::get<int64_t>(value.value_)));
+                case 8:
+                    return constant::Value(uint16_t(std::get<uint64_t>(value.value_)));
+            }
+        case types::Basic::kUint32:
+            switch (value.value_.index()) {
+                case 7:
+                    return constant::Value(uint32_t(std::get<int64_t>(value.value_)));
+                case 8:
+                    return constant::Value(uint32_t(std::get<uint64_t>(value.value_)));
+            }
+        case types::Basic::kUint64:
+        case types::Basic::kUint:
+            switch (value.value_.index()) {
+                case 7:
+                    return constant::Value(uint64_t(std::get<int64_t>(value.value_)));
+                case 8:
+                    return constant::Value(uint64_t(std::get<uint64_t>(value.value_)));
+            }
+        default:;
+    }
+    throw "internal error";
 }
 
 }
