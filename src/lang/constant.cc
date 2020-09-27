@@ -194,6 +194,14 @@ bool Compare(Value x, token::Token op, Value y) {
                     return std::get<std::string>(x.value_) == std::get<std::string>(y.value_);
                 case token::kNeq:
                     return std::get<std::string>(x.value_) != std::get<std::string>(y.value_);
+                case token::kLss:
+                    return std::get<std::string>(x.value_) < std::get<std::string>(y.value_);
+                case token::kLeq:
+                    return std::get<std::string>(x.value_) <= std::get<std::string>(y.value_);
+                case token::kGeq:
+                    return std::get<std::string>(x.value_) >= std::get<std::string>(y.value_);
+                case token::kGtr:
+                    return std::get<std::string>(x.value_) > std::get<std::string>(y.value_);
                 default:
                     throw "unexpected compare op";
             }
