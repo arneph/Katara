@@ -22,6 +22,7 @@
 #include "lang/ast_util.h"
 #include "lang/constant.h"
 #include "lang/types.h"
+#include "lang/types_util.h"
 #include "lang/scanner.h"
 #include "lang/parser.h"
 #include "lang/type_checker.h"
@@ -90,6 +91,10 @@ void run_lang_test(std::filesystem::path test_dir) {
         }
         return;
     }
+    // TODO: uncomment when type checker is fully implemented
+    //std::string type_info = TypeInfoToText(pkg_manager.file_set(), pkg_manager.type_info());
+    //to_file(type_info,
+    //        out_file_base.string() + ".types.txt");
 }
 
 void test_lang() {
