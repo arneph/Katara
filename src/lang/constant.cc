@@ -31,6 +31,8 @@ std::string Value::ToString() const {
             return std::to_string(std::get<int64_t>(value_));
         case 8:
             return std::to_string(std::get<uint64_t>(value_));
+        case 9:
+            return std::get<std::string>(value_);
         default:
             throw "unexpected value_t";
     }
@@ -183,6 +185,15 @@ bool Compare(Value x, token::Token op, Value y) {
                     return std::get<uint64_t>(x.value_) >= std::get<uint64_t>(y.value_);
                 case token::kGtr:
                     return std::get<uint64_t>(x.value_) > std::get<uint64_t>(y.value_);
+                default:
+                    throw "unexpected compare op";
+            }
+        case 9:
+            switch (op) {
+                case token::kEql:
+                    return std::get<std::string>(x.value_) == std::get<std::string>(y.value_);
+                case token::kNeq:
+                    return std::get<std::string>(x.value_) != std::get<std::string>(y.value_);
                 default:
                     throw "unexpected compare op";
             }
@@ -386,6 +397,13 @@ Value BinaryOp(Value x, token::Token op, Value y) {
                     return Value(uint64_t(std::get<uint64_t>(x.value_) ^ std::get<uint64_t>(y.value_)));
                 case token::kAndNot:
                     return Value(uint64_t(std::get<uint64_t>(x.value_) & ~std::get<uint64_t>(y.value_)));
+                default:
+                    throw "unexpected binary op";
+            }
+        case 9:
+            switch (op) {
+                case token::kAdd:
+                    return Value(std::get<std::string>(x.value_) + std::get<std::string>(y.value_));
                 default:
                     throw "unexpected binary op";
             }
