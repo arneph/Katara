@@ -49,12 +49,20 @@ std::string Basic::ToString() const {
             return "uint32";
         case kUint64:
             return "uint64";
+        case kString:
+            return "string";
+            
         case kUntypedBool:
             return "bool (untyped)";
         case kUntypedInt:
             return "int (untyped)";
+        case kUntypedRune:
+            return "rune (untyped)";
+        case kUntypedString:
+            return "string (untyped)";
         case kUntypedNil:
             return "nil (untyped)";
+            
         default:
             throw "unexpected Basic::Kind";
     }

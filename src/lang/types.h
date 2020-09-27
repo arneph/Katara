@@ -56,22 +56,27 @@ public:
         kUint16,
         kUint32,
         kUint64,
+        kString,
         
         kUntypedBool,
         kUntypedInt,
+        kUntypedRune,
+        kUntypedString,
         kUntypedNil,
         
         kByte = kUint8,
+        kRune = kInt32,
     } Kind;
     typedef enum : int8_t {
         kIsBoolean = 1 << 0,
         kIsInteger = 1 << 1,
         kIsUnsigned = 1 << 2,
-        kIsUntyped = 1 << 3,
+        kIsString = 1 << 3,
+        kIsUntyped = 1 << 4,
         
-        kIsOrdered = kIsInteger,
+        kIsOrdered = kIsInteger | kIsString,
         kIsNumeric = kIsInteger,
-        kIsConstant = kIsBoolean | kIsNumeric,
+        kIsConstant = kIsBoolean | kIsNumeric | kIsString,
     } Info;
     
     ~Basic() {}

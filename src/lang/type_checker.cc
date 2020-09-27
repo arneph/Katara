@@ -72,6 +72,7 @@ void TypeChecker::SetupPredeclaredTypes() {
         {types::Basic::kUint64,
          types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUnsigned},
          "uint64"},
+        {types::Basic::kString, types::Basic::kIsString, "string"},
         
         {types::Basic::kUntypedBool,
          types::Basic::Info{types::Basic::kIsBoolean | types::Basic::kIsUntyped},
@@ -79,6 +80,12 @@ void TypeChecker::SetupPredeclaredTypes() {
         {types::Basic::kUntypedInt,
          types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUntyped},
          "untyped int"},
+        {types::Basic::kUntypedRune,
+         types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUntyped},
+         "untyped rune"},
+        {types::Basic::kUntypedString,
+         types::Basic::Info{types::Basic::kIsString | types::Basic::kIsUntyped},
+         "untyped string"},
         {types::Basic::kUntypedNil, types::Basic::kIsUntyped, "untyped nil"},
     });
     for (auto predeclared_type : predeclared_types) {
