@@ -61,6 +61,7 @@ public:
     PackageManager(std::string stdlib_path);
     
     pos::FileSet * file_set() const;
+    types::TypeInfo * type_info() const;
     
     Package * LoadPackage(std::string pkg_dir);
     

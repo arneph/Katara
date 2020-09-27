@@ -52,6 +52,10 @@ pos::FileSet * PackageManager::file_set() const {
     return file_set_.get();
 }
 
+types::TypeInfo * PackageManager::type_info() const {
+    return type_info_.get();
+}
+
 Package * PackageManager::LoadPackage(std::string import_dir) {
     auto pkg_path = std::filesystem::absolute(import_dir);
     if (!std::filesystem::is_directory(pkg_path)) {
