@@ -1290,7 +1290,7 @@ void TypeChecker::EvaluateConstants() {
 std::vector<TypeChecker::ConstantEvaluationInfo>
 TypeChecker::FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo> infos) {
     std::vector<TypeChecker::ConstantEvaluationInfo> order;
-    std::unordered_set<types::Object *> done;
+    std::unordered_set<types::Constant *> done;
     while (infos.size() > done.size()) {
         size_t done_size_before = done.size();
         
@@ -1310,6 +1310,7 @@ TypeChecker::FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo> in
             }
             
             order.push_back(info);
+            done.insert(info.constant_);
         }
         
         size_t done_size_after = done.size();
