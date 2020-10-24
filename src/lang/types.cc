@@ -451,7 +451,7 @@ Scope * Package::scope() const {
     return scope_;
 }
 
-const std::vector<Package *>& Package::imports() const {
+const std::unordered_set<Package *>& Package::imports() const {
     return imports_;
 }
 
@@ -477,6 +477,10 @@ const std::unordered_map<ast::Node *, Object *>& TypeInfo::implicits() const {
 
 const std::unordered_map<ast::Node *, Scope *>& TypeInfo::scopes() const {
     return scopes_;
+}
+
+const std::unordered_set<Package *>& TypeInfo::packages() const {
+    return packages_;
 }
 
 Scope * TypeInfo::universe() const {

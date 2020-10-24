@@ -469,26 +469,6 @@ private:
     friend type_checker::TypeChecker;
 };
 
-class Package {
-public:
-    ~Package() {}
-    
-    std::string path() const;
-    std::string name() const;
-    Scope *scope() const;
-    const std::vector<Package *>& imports() const;
-    
-private:
-    Package() {}
-    
-    std::string path_;
-    std::string name_;
-    Scope *scope_;
-    std::vector<Package *> imports_;
-    
-    friend type_checker::TypeChecker;
-};
-
 class Initializer {
 public:
     ~Initializer() {}
@@ -505,6 +485,26 @@ private:
     friend type_checker::TypeChecker;
 };
 
+class Package {
+public:
+    ~Package() {}
+    
+    std::string path() const;
+    std::string name() const;
+    Scope *scope() const;
+    const std::unordered_set<Package *>& imports() const;
+    
+private:
+    Package() {}
+    
+    std::string path_;
+    std::string name_;
+    Scope *scope_;
+    std::unordered_set<Package *> imports_;
+    
+    friend type_checker::TypeChecker;
+};
+
 class TypeInfo {
 public:
     const std::unordered_map<ast::Expr *, Type *>& types() const;
@@ -513,6 +513,7 @@ public:
     const std::unordered_map<ast::Ident *, Object *>& uses() const;
     const std::unordered_map<ast::Node *, Object *>& implicits() const;
     const std::unordered_map<ast::Node *, Scope *>& scopes() const;
+    const std::unordered_set<Package *>& packages() const;
     
     Scope * universe() const;
     
@@ -530,6 +531,7 @@ private:
     std::vector<std::unique_ptr<Object>> object_unique_ptrs_;
     std::vector<std::unique_ptr<Scope>> scope_unique_ptrs_;
     std::vector<std::unique_ptr<Initializer>> initializer_unique_ptrs_;
+    std::vector<std::unique_ptr<Package>> package_unique_ptrs_;
     
     std::unordered_map<ast::Expr *, Type *> types_;
     std::unordered_map<ast::Expr *, constant::Value> constant_values_;
@@ -541,6 +543,8 @@ private:
     std::unordered_map<ast::Node *, Scope *> scopes_;
     
     std::vector<Initializer *> init_order_;
+    
+    std::unordered_set<Package *> packages_;
     
     Scope *universe_;
     std::unordered_map<types::Basic::Kind, types::Basic*> basic_types_;
