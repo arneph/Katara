@@ -35,12 +35,27 @@ types::Package * Package::types_package() const {
     return types_package_;
 }
 
-const std::vector<parser::Parser::Error>& Package::parse_errors() const {
-    return parse_errors_;
+bool Package::has_errors() const {
+    for (auto& issue : issues_) {
+        if (issue.severity() == issues::Severity::Error ||
+            issue.severity() == issues::Severity::Fatal) {
+            return true;
+        }
+    }
+    return false;
 }
- 
-const std::vector<type_checker::TypeChecker::Error>& Package::type_errors() const {
-    return type_errors_;
+
+bool Package::has_fatal_errors() const {
+    for (auto& issue : issues_) {
+        if (issue.severity() == issues::Severity::Fatal) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const std::vector<issues::Issue>& Package::issues() const {
+    return issues_;
 }
 
 PackageManager::PackageManager(std::string stdlib_path) : stdlib_path_(stdlib_path) {
@@ -71,7 +86,12 @@ Package * PackageManager::LoadPackage(std::string import_dir) {
     
     auto source_files = FindSourceFiles(pkg_path);
     if (source_files.empty()) {
-        return package.get();
+        package->issues_.push_back(
+            issues::Issue(issues::Origin::PackageManager,
+                          issues::Severity::Warning,
+                          std::vector<pos::pos_t>{},
+                          "package directory does not contain source files"));
+        return nullptr;
     }
 
     for (auto& source_file : source_files) {
@@ -83,25 +103,46 @@ Package * PackageManager::LoadPackage(std::string import_dir) {
         package->pos_files_.push_back(file_set_->AddFile(source_file.filename(),
                                                          contents));
     }
+
+    std::vector<ast::File *> ast_files;
     for (auto& pos_file : package->pos_files_) {
-        package->ast_files_.push_back(parser::Parser::ParseFile(pos_file,
-                                                                package->parse_errors_));
+        std::unique_ptr<ast::File> ast_file = parser::Parser::ParseFile(pos_file,
+                                                                        package->issues_);
+        ast_files.push_back(ast_file.get());
+        package->ast_files_.push_back(std::move(ast_file));
     }
-    if (!package->parse_errors_.empty()) {
+    if (package->has_fatal_errors()) {
         return package.get();
     }
-    for (auto& ast_file : package->ast_files_) {
-        auto importer = [&](std::string import) -> types::Package * {
-            auto import_path = FindPackagePath(import, pkg_path);
-            return LoadPackage(import_path)->types_package_;
-        };
-        type_checker::TypeChecker::Check(ast_file.get(),
+    
+    auto importer = [&](std::string import) -> types::Package * {
+        std::filesystem::path import_path = FindPackagePath(import, pkg_path);
+        Package *package = LoadPackage(import_path);
+        if (package->has_errors()) {
+            return nullptr;
+        }
+        return package->types_package_;
+    };
+    types::Package *types_package =
+        type_checker::TypeChecker::Check(import_dir,
+                                         ast_files,
                                          type_info_.get(),
                                          importer,
-                                         package->type_errors_);
+                                         package->issues_);
+    package->types_package_ = types_package;
+    if (package->has_fatal_errors()) {
+        return package.get();
     }
     
     return package.get();
+}
+
+std::vector<Package *> PackageManager::Packages() const {
+    std::vector<Package *> packages;
+    for (auto& [_, package] : packages_) {
+        packages.push_back(package.get());
+    }
+    return packages;
 }
 
 std::filesystem::path PackageManager::FindPackagePath(std::string import,

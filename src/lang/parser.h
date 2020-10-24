@@ -16,6 +16,7 @@
 #include "lang/positions.h"
 #include "lang/token.h"
 #include "lang/ast.h"
+#include "lang/issues.h"
 #include "lang/scanner.h"
 
 namespace lang {
@@ -23,17 +24,12 @@ namespace parser {
 
 class Parser {
 public:
-    struct Error {
-        pos::pos_t pos_;
-        std::string message_;
-    };
-    
     static std::unique_ptr<ast::File> ParseFile(pos::File *file,
-                                                std::vector<Error>& errors);
+                                                std::vector<issues::Issue>& issues);
     
 private:
     Parser(scanner::Scanner& scanner,
-           std::vector<Error>& errors);
+           std::vector<issues::Issue>& issues);
     
     std::unique_ptr<ast::File> ParseFile();
     
@@ -110,7 +106,7 @@ private:
     std::unique_ptr<ast::Ident> ParseIdent(bool split_shift_ops = false);
     
     scanner::Scanner& scanner_;
-    std::vector<Error>& errors_;
+    std::vector<issues::Issue>& issues_;
 };
 
 }

@@ -18,21 +18,18 @@
 #include "lang/positions.h"
 #include "lang/ast.h"
 #include "lang/types.h"
+#include "lang/issues.h"
 
 namespace lang {
 namespace type_checker {
 
 class TypeChecker {
 public:
-    struct Error {
-        std::vector<pos::pos_t> pos_;
-        std::string message_;
-    };
-    
-    static void Check(ast::File *ast_file,
-                      types::TypeInfo *info,
-                      std::function<types::Package *(std::string)> importer,
-                      std::vector<Error>& errors);
+    static types::Package * Check(std::string package_path,
+                                  std::vector<ast::File *> package_files,
+                                  types::TypeInfo *type_info,
+                                  std::function<types::Package *(std::string)> importer,
+                                  std::vector<issues::Issue>& issues);
     
 private:
     struct ConstantEvaluationInfo {
@@ -47,14 +44,16 @@ private:
         std::unordered_set<types::Constant *> dependencies_;
     };
     
-    TypeChecker(ast::File *ast_file,
-                types::TypeInfo *info,
+    TypeChecker(std::string package_path,
+                std::vector<ast::File *> package_files,
+                types::TypeInfo *type_info,
                 std::function<types::Package *(std::string)> importer,
-                std::vector<Error>& errors)
-        : ast_file_(ast_file),
-          info_(info),
+                std::vector<issues::Issue>& issues)
+        : package_path_(package_path),
+          package_files_(package_files),
+          info_(type_info),
           importer_(importer),
-          errors_(errors) {}
+          issues_(issues) {}
     ~TypeChecker() {}
     
 // Preparation:
@@ -63,12 +62,18 @@ private:
     void SetupPredeclaredConstants();
     void SetupPredeclaredNil();
     
+// Package & File Scope Creation:
+    void CreatePackageAndPackageScope();
+    void CreateFileScopes();
+    
 // Identifier Resolution:
     void ResolveIdentifiers();
     void AddObjectToScope(types::Object *object, types::Scope *scope);
     
-    void AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl, types::Scope *scope);
-    void AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec);
+    void AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl,
+                                      types::Scope *scope,
+                                      ast::File *file = nullptr);
+    void AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec, ast::File *file);
     void AddDefinedObjectsFromConstSpec(ast::ValueSpec *value_spec, types::Scope *scope);
     void AddDefinedObjectsFromVarSpec(ast::ValueSpec *value_spec, types::Scope *scope);
     void AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec, types::Scope *scope);
@@ -136,16 +141,15 @@ private:
     
     static constant::Value ConvertUntypedInt(constant::Value value, types::Basic::Kind kind);
     
-    ast::File *ast_file_;
+    std::string package_path_;
+    std::vector<ast::File *> package_files_;
     types::TypeInfo *info_;
     std::function<types::Package *(std::string)> importer_;
-    std::vector<Error>& errors_;
-    
-    std::unordered_set<std::string> imported_;
+    std::vector<issues::Issue>& issues_;
     
     types::Package *package_;
-    types::Scope *file_scope_;
-    types::Scope *current_func_scope_;
+    
+    std::unordered_map<ast::File *, std::unordered_set<std::string>> file_imports_;
 };
 
 }

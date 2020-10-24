@@ -15,21 +15,32 @@
 namespace lang {
 namespace type_checker {
 
-void TypeChecker::Check(ast::File *ast_file,
-                        types::TypeInfo *info,
-                        std::function<types::Package *(std::string)> importer,
-                        std::vector<Error>& errors) {
-    TypeChecker checker(ast_file, info, importer, errors);
+types::Package * TypeChecker::Check(std::string package_path,
+                                    std::vector<ast::File *> package_files,
+                                    types::TypeInfo *type_info,
+                                    std::function<types::Package *(std::string)> importer,
+                                    std::vector<issues::Issue>& issues) {
+    TypeChecker checker(package_path, package_files, type_info, importer, issues);
     
-    if (info->universe_ == nullptr) {
+    if (type_info->universe_ == nullptr) {
         checker.SetupUniverse();
     }
     
+    checker.CreatePackageAndPackageScope();
+    checker.CreateFileScopes();
+    
     checker.ResolveIdentifiers();
-    if (!errors.empty()) {
-        return;
+    for (issues::Issue& issue : issues) {
+        if (issue.origin() == issues::Origin::TypeChecker &&
+            issue.severity() == issues::Severity::Fatal) {
+            return nullptr;
+        }
     }
+    
     checker.FindInitOrder();
+    checker.EvaluateConstants();
+    
+    return checker.package_;
 }
 
 void TypeChecker::SetupUniverse() {
@@ -151,41 +162,75 @@ void TypeChecker::SetupPredeclaredNil() {
     info_->object_unique_ptrs_.push_back(std::move(nil));
 }
 
+void TypeChecker::CreatePackageAndPackageScope() {
+    std::string package_name = package_path_;
+    if (auto pos = package_name.find_last_of('/'); pos != std::string::npos) {
+        package_name = package_name.substr(pos);
+    }
+    
+    auto package_scope = std::unique_ptr<types::Scope>(new types::Scope());
+    package_scope->parent_ = info_->universe_;
+    
+    auto package_scope_ptr = package_scope.get();
+    info_->scope_unique_ptrs_.push_back(std::move(package_scope));
+    
+    auto package = std::unique_ptr<types::Package>(new types::Package());
+    package->path_ = package_path_;
+    package->name_ = package_name;
+    package->scope_ = package_scope_ptr;
+    
+    package_ = package.get();
+    info_->package_unique_ptrs_.push_back(std::move(package));
+    info_->packages_.insert(package_);
+}
+
+void TypeChecker::CreateFileScopes() {
+    for (ast::File *file : package_files_) {
+        auto file_scope = std::unique_ptr<types::Scope>(new types::Scope());
+        file_scope->parent_ = package_->scope_;
+        
+        auto file_scope_ptr = file_scope.get();
+        info_->scope_unique_ptrs_.push_back(std::move(file_scope));
+        info_->scopes_.insert({file, file_scope_ptr});
+        
+    }
+}
+
 void TypeChecker::ResolveIdentifiers() {
-    auto file_scope = std::unique_ptr<types::Scope>(new types::Scope());
-    file_scope->parent_ = info_->universe_;
-    
-    file_scope_ = file_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(file_scope));
-    info_->scopes_.insert({ast_file_, file_scope_});
-    
-    for (auto& decl : ast_file_->decls_) {
-        if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
-            AddDefinedObjectsFromGenDecl(gen_decl, file_scope_);
-        } else if (auto func_decl = dynamic_cast<ast::FuncDecl *>(decl.get())) {
-            AddDefinedObjectFromFuncDecl(func_decl, file_scope_);
-        } else {
-            throw "unexpected declaration";
+    for (ast::File *file : package_files_) {
+        for (auto& decl : file->decls_) {
+            if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
+                AddDefinedObjectsFromGenDecl(gen_decl, package_->scope_, file);
+            } else if (auto func_decl = dynamic_cast<ast::FuncDecl *>(decl.get())) {
+                AddDefinedObjectFromFuncDecl(func_decl, package_->scope_);
+            } else {
+                throw "unexpected declaration";
+            }
         }
     }
     
-    for (auto& decl : ast_file_->decls_) {
-        if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
-            ResolveIdentifiersInGenDecl(gen_decl, file_scope_);
-        } else if (auto func_decl = dynamic_cast<ast::FuncDecl *>(decl.get())) {
-            ResolveIdentifiersInFuncDecl(func_decl, file_scope_);
-        } else {
-            throw "unexpected declaration";
+    for (auto file : package_files_) {
+        types::Scope *file_scope = info_->scopes_.at(file);
+        
+        for (auto& decl : file->decls_) {
+            if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
+                ResolveIdentifiersInGenDecl(gen_decl, file_scope);
+            } else if (auto func_decl = dynamic_cast<ast::FuncDecl *>(decl.get())) {
+                ResolveIdentifiersInFuncDecl(func_decl, file_scope);
+            } else {
+                throw "unexpected declaration";
+            }
         }
     }
 }
 
 void TypeChecker::AddObjectToScope(types::Object *object, types::Scope *scope) {
     if (info_->universe_->Lookup(object->name_)) {
-        errors_.push_back(Error{
-            {object->position_},
-            "can not redefine predeclared identifier: " + object->name_
-        });
+        issues_.push_back(
+            issues::Issue(issues::Origin::TypeChecker,
+                          issues::Severity::Error,
+                          object->position_,
+                          "can not redefine predeclared identifier: " + object->name_));
         return;
     }
     
@@ -197,21 +242,23 @@ void TypeChecker::AddObjectToScope(types::Object *object, types::Scope *scope) {
     auto it = scope->named_objects_.find(object->name_);
     if (it != scope->named_objects_.end()) {
         types::Object *other = it->second;
-        errors_.push_back(Error{
-            {other->position_, object->position_},
-            "naming collision: " + object->name_
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        {other->position_, object->position_},
+                                        "naming collision: " + object->name_));
         return;
     }
     
     scope->named_objects_.insert({object->name_, object});
 }
 
-void TypeChecker::AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl, types::Scope *scope) {
+void TypeChecker::AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl,
+                                               types::Scope *scope,
+                                               ast::File *file) {
     switch (gen_decl->tok_) {
         case token::kImport:
             for (auto& spec : gen_decl->specs_) {
-                AddDefinedObjectsFromImportSpec(static_cast<ast::ImportSpec *>(spec.get()));
+                AddDefinedObjectsFromImportSpec(static_cast<ast::ImportSpec *>(spec.get()), file);
             }
             return;
         case token::kConst:
@@ -237,26 +284,31 @@ void TypeChecker::AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl, types::Sc
     }
 }
 
-void TypeChecker::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec) {
+void TypeChecker::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec, ast::File *file) {
     std::string name;
     std::string path = import_spec->path_->value_;
     path = path.substr(1, path.length()-2);
     
-    if (imported_.find(path) != imported_.end()) {
-        errors_.push_back(Error{
-            {import_spec->path_->start()},
-            "can not import package again: \"" + path + "\""
-        });
+    // Create import set for file if not present yet.
+    file_imports_[file];
+    
+    if (file_imports_.at(file).find(path) != file_imports_.at(file).end()) {
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        import_spec->path_->start(),
+                                        "can not import package twice: \"" + path + "\""));
         return;
     }
     types::Package *referenced_pkg = importer_(path);
     if (referenced_pkg == nullptr) {
-        errors_.push_back(Error{
-            {import_spec->path_->start()},
-            "could not import package: \"" + path + "\""
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        import_spec->path_->start(),
+                                        "could not import package: \"" + path + "\""));
     }
-    imported_.insert(path);
+    file_imports_.at(file).insert(path);
+    
+    package_->imports_.insert(referenced_pkg);
     
     if (import_spec->name_) {
         if (import_spec->name_->name_ == "_") {
@@ -271,8 +323,10 @@ void TypeChecker::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec) 
         }
     }
     
+    types::Scope *file_scope = info_->scopes_.at(file);
+    
     auto package_name = std::unique_ptr<types::PackageName>(new types::PackageName());
-    package_name->parent_ = file_scope_;
+    package_name->parent_ = file_scope;
     package_name->package_ = package_;
     package_name->position_ = import_spec->start();
     package_name->name_ = name;
@@ -286,7 +340,7 @@ void TypeChecker::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec) 
         info_->implicits_.insert({import_spec, package_name_ptr});
     }
     
-    AddObjectToScope(package_name_ptr, file_scope_);
+    AddObjectToScope(package_name_ptr, file_scope);
 }
 
 void TypeChecker::AddDefinedObjectsFromConstSpec(ast::ValueSpec *value_spec, types::Scope *scope) {
@@ -333,10 +387,10 @@ void TypeChecker::AddDefinedObjectsFromVarSpec(ast::ValueSpec *value_spec, types
 
 void TypeChecker::AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec, types::Scope *scope) {
     if (type_spec->name_->name_ == "_") {
-        errors_.push_back(Error{
-            {type_spec->name_->start()},
-            "blank type name not allowed"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        type_spec->name_->start(),
+                                        "blank type name not allowed"));
         return;
     }
     
@@ -355,10 +409,10 @@ void TypeChecker::AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec, types::
 
 void TypeChecker::AddDefinedObjectFromFuncDecl(ast::FuncDecl *func_decl, types::Scope *scope) {
     if (func_decl->name_->name_ == "_") {
-        errors_.push_back(Error{
-            {func_decl->name_->start()},
-            "blank func name not allowed"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        func_decl->name_->start(),
+                                        "blank func name not allowed"));
         return;
     }
     
@@ -428,8 +482,6 @@ void TypeChecker::ResolveIdentifiersInFuncDecl(ast::FuncDecl *func_decl, types::
     info_->scope_unique_ptrs_.push_back(std::move(func_scope));
     info_->scopes_.insert({func_decl, func_scope_ptr});
     
-    current_func_scope_ = func_scope_ptr;
-    
     if (func_decl->receiver_) {
         ResolveIdentifiersInFuncReceiverFieldList(func_decl->receiver_.get(), func_scope_ptr);
     }
@@ -443,8 +495,6 @@ void TypeChecker::ResolveIdentifiersInFuncDecl(ast::FuncDecl *func_decl, types::
     if (func_decl->body_) {
         ResolveIdentifiersInBlockStmt(func_decl->body_.get(), func_scope_ptr);
     }
-    
-    current_func_scope_ = nullptr;
 }
 
 void TypeChecker::ResolveIdentifiersInTypeParamList(ast::TypeParamList *type_param_list,
@@ -457,10 +507,10 @@ void TypeChecker::ResolveIdentifiersInTypeParamList(ast::TypeParamList *type_par
     }
     for (auto& type_param : type_param_list->params_) {
         if (type_param->name_->name_ == "_") {
-            errors_.push_back(Error{
-                {type_param->name_->start()},
-                "blank type parameter name not allowed"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            type_param->name_->start(),
+                                            "blank type parameter name not allowed"));
             continue;
         }
         
@@ -483,10 +533,10 @@ void TypeChecker::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *fiel
     if (field_list->fields_.size() != 1 ||
         (field_list->fields_.size() > 0 &&
          field_list->fields_.at(0)->names_.size() > 1)) {
-        errors_.push_back(Error{
-            {field_list->start()},
-            "expected one receiver"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        field_list->start(),
+                                        "expected one receiver"));
         if (field_list->fields_.size() == 0) {
             return;
         }
@@ -496,10 +546,11 @@ void TypeChecker::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *fiel
     if (auto ptr_type = dynamic_cast<ast::UnaryExpr *>(type)) {
         if (ptr_type->op_ != token::kMul &&
             ptr_type->op_ != token::kRem) {
-            errors_.push_back(Error{
-                {type->start()},
-                "expected receiver of defined type or pointer to defined type"
-            });
+            issues_.push_back(
+                issues::Issue(issues::Origin::TypeChecker,
+                              issues::Severity::Error,
+                              type->start(),
+                              "expected receiver of defined type or pointer to defined type"));
         }
         type = ptr_type->x_.get();
     }
@@ -510,10 +561,11 @@ void TypeChecker::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *fiel
     }
     ast::Ident *defined_type = dynamic_cast<ast::Ident *>(type);
     if (defined_type == nullptr) {
-        errors_.push_back(Error{
-            {type->start()},
-            "expected receiver of defined type or pointer to defined type"
-        });
+        issues_.push_back(
+            issues::Issue(issues::Origin::TypeChecker,
+                          issues::Severity::Error,
+                          type->start(),
+                          "expected receiver of defined type or pointer to defined type"));
     } else {
         ResolveIdentifier(defined_type, scope);
     }
@@ -522,10 +574,12 @@ void TypeChecker::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *fiel
         for (auto& type_arg : type_args->args_) {
             ast::Ident *ident = dynamic_cast<ast::Ident*>(type_arg.get());
             if (ident == nullptr) {
-                errors_.push_back(Error{
-                    {type->start()},
-                    "expected type name definition as type argument to receiver type"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  type->start(),
+                                  "expected type name definition as type argument to receiver "
+                                  "type"));
                 continue;
             }
             
@@ -818,10 +872,11 @@ void TypeChecker::ResolveIdentifiersInForStmt(ast::ForStmt *for_stmt, types::Sco
     if (for_stmt->post_) {
         if (auto assign_stmt = dynamic_cast<ast::AssignStmt *>(for_stmt->post_.get())) {
             if (assign_stmt->tok_ == token::kDefine) {
-                errors_.push_back(Error{
-                    {assign_stmt->start()},
-                    "post statements of for loops can not define variables"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  assign_stmt->start(),
+                                  "post statements of for loops can not define variables"));
             }
         }
         ResolveIdentifiersInStmt(for_stmt->post_.get(), for_scope_ptr);
@@ -836,10 +891,11 @@ void TypeChecker::ResolveIdentifiersInBranchStmt(ast::BranchStmt *branch_stmt, t
     const types::Scope* defining_scope;
     types::Object *obj = scope->Lookup(branch_stmt->label_->name_, defining_scope);
     if (dynamic_cast<types::Label *>(obj) == nullptr) {
-        errors_.push_back(Error{
-            {branch_stmt->label_->start()},
-            "branch statement does not refer to known label"
-        });
+        issues_.push_back(
+            issues::Issue(issues::Origin::TypeChecker,
+                          issues::Severity::Error,
+                          branch_stmt->label_->start(),
+                          "branch statement does not refer to known label"));
         return;
     }
     ResolveIdentifiersInExpr(branch_stmt->label_.get(), scope);
@@ -905,10 +961,10 @@ void TypeChecker::ResolveIdentifiersInExpr(ast::Expr *expr, types::Scope *scope)
 void TypeChecker::ResolveIdentifiersInSelectionExpr(ast::SelectionExpr *sel, types::Scope *scope) {
     ResolveIdentifiersInExpr(sel->accessed_.get(), scope);
     if (sel->selection_->name_ == "_") {
-        errors_.push_back(Error{
-            {sel->selection_->start()},
-            "can not select underscore"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        sel->selection_->start(),
+                                        "can not select underscore"));
         return;
     }
     
@@ -950,16 +1006,11 @@ void TypeChecker::ResolveIdentifiersInFuncLit(ast::FuncLit *func_lit, types::Sco
     info_->scope_unique_ptrs_.push_back(std::move(func_scope));
     info_->scopes_.insert({func_lit, func_scope_ptr});
     
-    auto enclosing_func_scope = current_func_scope_;
-    current_func_scope_ = func_scope_ptr;
-    
     ResolveIdentifiersInRegularFuncFieldList(func_lit->type_->params_.get(), func_scope_ptr);
     if (func_lit->type_->results_) {
         ResolveIdentifiersInRegularFuncFieldList(func_lit->type_->results_.get(), func_scope_ptr);
     }
     ResolveIdentifiersInBlockStmt(func_lit->body_.get(), func_scope_ptr);
-    
-    current_func_scope_ = enclosing_func_scope;
 }
 
 void TypeChecker::ResolveIdentifiersInCompositeLit(ast::CompositeLit *composite_lit,
@@ -1046,10 +1097,12 @@ void TypeChecker::ResolveIdentifiersInStructType(ast::StructType *struct_type,
             if (auto ptr_type = dynamic_cast<ast::UnaryExpr *>(type)) {
                 if (ptr_type->op_ != token::kMul &&
                     ptr_type->op_ != token::kRem) {
-                    errors_.push_back(Error{
-                        {type->start()},
-                        "expected embedded field to be defined type or pointer to defined type"
-                    });
+                    issues_.push_back(
+                        issues::Issue(issues::Origin::TypeChecker,
+                                      issues::Severity::Error,
+                                      type->start(),
+                                      "expected embedded field to be defined type or pointer to "
+                                      "defined type"));
                     continue;
                 }
                 type = ptr_type->x_.get();
@@ -1059,10 +1112,12 @@ void TypeChecker::ResolveIdentifiersInStructType(ast::StructType *struct_type,
             }
             ast::Ident *defined_type = dynamic_cast<ast::Ident *>(type);
             if (defined_type == nullptr) {
-                errors_.push_back(Error{
-                    {type->start()},
-                    "expected embdedded field to be defined type or pointer to defined type"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  type->start(),
+                                  "expected embdedded field to be defined type or pointer to "
+                                  "defined type"));
                 continue;
             }
             
@@ -1106,10 +1161,10 @@ void TypeChecker::ResolveIdentifier(ast::Ident *ident,
     }
     types::Object *obj = scope->Lookup(ident->name_);
     if (obj == nullptr) {
-        errors_.push_back(Error{
-            {ident->start()},
-            "could not resolve identifier: " + ident->name_
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        ident->start(),
+                                        "could not resolve identifier: " + ident->name_));
     }
     info_->uses_.insert({ident, obj});
 }
@@ -1175,10 +1230,10 @@ void TypeChecker::FindInitOrder() {
                     names += ", " + var->name_;
                 }
             }
-            errors_.push_back(Error{
-                positions,
-                "initialization loop(s) for variables: " + names
-            });
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            positions,
+                                            "initialization loop(s) for variables: " + names));
             break;
         }
     }
@@ -1187,67 +1242,69 @@ void TypeChecker::FindInitOrder() {
 void TypeChecker::FindInitializersAndDependencies(
     std::map<types::Variable *, types::Initializer *>& initializers,
     std::map<types::Object *, std::unordered_set<types::Object *>>& dependencies) {
-    for (auto& decl : ast_file_->decls_) {
-        if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
-            for (auto& spec : gen_decl->specs_) {
-                auto value_spec = dynamic_cast<ast::ValueSpec *>(spec.get());
-                if (value_spec == nullptr) {
-                    continue;
-                }
-                
-                std::vector<types::Object *> lhs_objects;
-                std::vector<std::unordered_set<types::Object *>> rhs_objects;
-                
-                for (size_t i = 0; i < value_spec->names_.size(); i++) {
-                    lhs_objects.push_back(info_->definitions_.at(value_spec->names_.at(i).get()));
-                }
-                for (auto& expr : value_spec->values_) {
-                    rhs_objects.push_back(FindInitDependenciesOfNode(expr.get()));
-                }
-                
-                for (size_t i = 0; i < lhs_objects.size(); i++) {
-                    types::Object *l = lhs_objects.at(i);
-                    std::unordered_set<types::Object *> r;
-                    if (rhs_objects.size() == 1) {
-                        r = rhs_objects.at(0);
-                    } else if (rhs_objects.size() == lhs_objects.size()) {
-                        r = rhs_objects.at(i);
+    for (ast::File *file : package_files_) {
+        for (auto& decl : file->decls_) {
+            if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
+                for (auto& spec : gen_decl->specs_) {
+                    auto value_spec = dynamic_cast<ast::ValueSpec *>(spec.get());
+                    if (value_spec == nullptr) {
+                        continue;
                     }
-                    dependencies.insert({l, r});
-                }
-                if (gen_decl->tok_ != token::kVar ||
-                    value_spec->values_.empty()) {
-                    continue;
-                }
-                
-                for (size_t i = 0; i < value_spec->values_.size(); i++) {
-                    auto initializer =
-                    std::unique_ptr<types::Initializer>(new types::Initializer());
                     
-                    auto initializer_ptr = initializer.get();
-                    info_->initializer_unique_ptrs_.push_back(std::move(initializer));
+                    std::vector<types::Object *> lhs_objects;
+                    std::vector<std::unordered_set<types::Object *>> rhs_objects;
                     
-                    if (value_spec->values_.size() == 1) {
-                        for (auto obj : lhs_objects) {
-                            auto var = static_cast<types::Variable *>(obj);
+                    for (size_t i = 0; i < value_spec->names_.size(); i++) {
+                        lhs_objects.push_back(info_->definitions_.at(value_spec->names_.at(i).get()));
+                    }
+                    for (auto& expr : value_spec->values_) {
+                        rhs_objects.push_back(FindInitDependenciesOfNode(expr.get()));
+                    }
+                    
+                    for (size_t i = 0; i < lhs_objects.size(); i++) {
+                        types::Object *l = lhs_objects.at(i);
+                        std::unordered_set<types::Object *> r;
+                        if (rhs_objects.size() == 1) {
+                            r = rhs_objects.at(0);
+                        } else if (rhs_objects.size() == lhs_objects.size()) {
+                            r = rhs_objects.at(i);
+                        }
+                        dependencies.insert({l, r});
+                    }
+                    if (gen_decl->tok_ != token::kVar ||
+                        value_spec->values_.empty()) {
+                        continue;
+                    }
+                    
+                    for (size_t i = 0; i < value_spec->values_.size(); i++) {
+                        auto initializer =
+                        std::unique_ptr<types::Initializer>(new types::Initializer());
+                        
+                        auto initializer_ptr = initializer.get();
+                        info_->initializer_unique_ptrs_.push_back(std::move(initializer));
+                        
+                        if (value_spec->values_.size() == 1) {
+                            for (auto obj : lhs_objects) {
+                                auto var = static_cast<types::Variable *>(obj);
+                                initializer_ptr->lhs_.push_back(var);
+                                initializers.insert({var, initializer_ptr});
+                            }
+                        } else {
+                            auto var = static_cast<types::Variable *>(lhs_objects.at(i));
                             initializer_ptr->lhs_.push_back(var);
                             initializers.insert({var, initializer_ptr});
                         }
-                    } else {
-                        auto var = static_cast<types::Variable *>(lhs_objects.at(i));
-                        initializer_ptr->lhs_.push_back(var);
-                        initializers.insert({var, initializer_ptr});
+                        initializer_ptr->rhs_ = value_spec->values_.at(i).get();
                     }
-                    initializer_ptr->rhs_ = value_spec->values_.at(i).get();
                 }
+            } else if (auto func_decl = dynamic_cast<ast::FuncDecl *>(decl.get())) {
+                types::Object *f = info_->definitions_.at(func_decl->name_.get());
+                std::unordered_set<types::Object *> r =
+                FindInitDependenciesOfNode(func_decl->body_.get());
+                dependencies.insert({f, r});
+            } else {
+                throw "unexpected declaration";
             }
-        } else if (auto func_decl = dynamic_cast<ast::FuncDecl *>(decl.get())) {
-            types::Object *f = info_->definitions_.at(func_decl->name_.get());
-            std::unordered_set<types::Object *> r =
-            FindInitDependenciesOfNode(func_decl->body_.get());
-            dependencies.insert({f, r});
-        } else {
-            throw "unexpected declaration";
         }
     }
 }
@@ -1265,7 +1322,7 @@ std::unordered_set<types::Object *> TypeChecker::FindInitDependenciesOfNode(ast:
         }
         auto it = info_->uses_.find(ident);
         if (it == info_->uses_.end() ||
-            it->second->parent() != file_scope_ ||
+            it->second->parent() != package_->scope_ ||
             (dynamic_cast<types::Constant *>(it->second) == nullptr &&
              dynamic_cast<types::Variable *>(it->second) == nullptr &&
              dynamic_cast<types::Func *>(it->second) == nullptr)) {
@@ -1325,10 +1382,10 @@ TypeChecker::FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo> in
                     names += ", " + info.constant_->name_;
                 }
             }
-            errors_.push_back(Error{
-                positions,
-                "initialization loop(s) for constants: " + names
-            });
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            positions,
+                                            "initialization loop(s) for constants: " + names));
             break;
         }
     }
@@ -1338,33 +1395,35 @@ TypeChecker::FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo> in
 std::vector<TypeChecker::ConstantEvaluationInfo>
 TypeChecker::FindConstantEvaluationInfo() {
     std::vector<ConstantEvaluationInfo> info;
-    for (auto& decl : ast_file_->decls_) {
-        auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get());
-        if (gen_decl == nullptr ||
-            gen_decl->tok_ != token::kConst) {
-            continue;
-        }
-        int64_t iota = 0;
-        for (auto& spec : gen_decl->specs_) {
-            auto value_spec = static_cast<ast::ValueSpec *>(spec.get());
-            
-            for (size_t i = 0; i < value_spec->names_.size(); i++) {
-                ast::Ident *name = value_spec->names_.at(i).get();
-                types::Object *object = info_->definitions_.at(name);
-                types::Constant *constant = static_cast<types::Constant *>(object);
-                ast::Expr *type = value_spec->type_.get();
-                ast::Expr *value = nullptr;
-                std::unordered_set<types::Constant *> dependencies;
-                if (value_spec->values_.size() > i) {
-                    value = value_spec->values_.at(i).get();
-                    dependencies = FindConstantDependencies(value);
-                }
-                
-                info.push_back(ConstantEvaluationInfo{
-                    constant, name, type, value, iota, dependencies
-                });
+    for (ast::File *file : package_files_) {
+        for (auto& decl : file->decls_) {
+            auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get());
+            if (gen_decl == nullptr ||
+                gen_decl->tok_ != token::kConst) {
+                continue;
             }
-            iota++;
+            int64_t iota = 0;
+            for (auto& spec : gen_decl->specs_) {
+                auto value_spec = static_cast<ast::ValueSpec *>(spec.get());
+                
+                for (size_t i = 0; i < value_spec->names_.size(); i++) {
+                    ast::Ident *name = value_spec->names_.at(i).get();
+                    types::Object *object = info_->definitions_.at(name);
+                    types::Constant *constant = static_cast<types::Constant *>(object);
+                    ast::Expr *type = value_spec->type_.get();
+                    ast::Expr *value = nullptr;
+                    std::unordered_set<types::Constant *> dependencies;
+                    if (value_spec->values_.size() > i) {
+                        value = value_spec->values_.at(i).get();
+                        dependencies = FindConstantDependencies(value);
+                    }
+                    
+                    info.push_back(ConstantEvaluationInfo{
+                        constant, name, type, value, iota, dependencies
+                    });
+                }
+                iota++;
+            }
         }
     }
     return info;
@@ -1383,7 +1442,7 @@ std::unordered_set<types::Constant *> TypeChecker::FindConstantDependencies(ast:
         }
         auto it = info_->uses_.find(ident);
         if (it == info_->uses_.end() ||
-            it->second->parent() != file_scope_ ||
+            it->second->parent() != package_->scope_ ||
             (dynamic_cast<types::Constant *>(it->second) == nullptr &&
              dynamic_cast<types::Variable *>(it->second) == nullptr &&
              dynamic_cast<types::Func *>(it->second) == nullptr)) {
@@ -1391,10 +1450,11 @@ std::unordered_set<types::Constant *> TypeChecker::FindConstantDependencies(ast:
         }
         auto constant = dynamic_cast<types::Constant *>(it->second);
         if (constant == nullptr) {
-            errors_.push_back(Error{
-                {ident->start()},
-                "constant can not depend on non-constant: " + ident->name_
-            });
+            issues_.push_back(
+                issues::Issue(issues::Origin::TypeChecker,
+                              issues::Severity::Error,
+                              ident->start(),
+                              "constant can not depend on non-constant: " + ident->name_));
             return walker;
         }
         constants.insert(constant);
@@ -1405,16 +1465,37 @@ std::unordered_set<types::Constant *> TypeChecker::FindConstantDependencies(ast:
 }
 
 void TypeChecker::EvaluateConstant(ConstantEvaluationInfo &info) {
+    types::Basic *type = nullptr;
     constant::Value value(int64_t{0});
     if (info.value_ == nullptr) {
         if (info.type_ == nullptr) {
-            errors_.push_back(Error{
-                {info.name_->start()},
-                "constant needs a type or value: " + info.name_->name_
-            });
+            issues_.push_back(
+                issues::Issue(issues::Origin::TypeChecker,
+                              issues::Severity::Error,
+                              info.name_->start(),
+                              "constant needs a type or value: " + info.name_->name_));
             return;
         }
-        //types::Object *type_obj = info_->uses_.at(info.type_);
+        type = dynamic_cast<types::Basic *>(info_->types_.at(info.type_));
+        if (type == nullptr) {
+            issues_.push_back(
+                issues::Issue(issues::Origin::TypeChecker,
+                              issues::Severity::Error,
+                              info.name_->start(),
+                              "constant can not have non-basic type: " + info.name_->name_));
+            return;
+        }
+        value = ConvertUntypedInt(value, type->kind());
+        
+    } else {
+        if (!EvaluateConstantExpr(info.value_, info.iota_)) {
+            issues_.push_back(
+                issues::Issue(issues::Origin::TypeChecker,
+                              issues::Severity::Error,
+                              info.name_->start(),
+                              "constant could not be evaluated: " + info.name_->name_));
+            return;
+        }
     }
 }
 
@@ -1424,10 +1505,11 @@ bool TypeChecker::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
         types::Basic *type = static_cast<types::Basic *>(constant->type_);
         constant::Value value(0);
         if (constant == nullptr) {
-            errors_.push_back(Error{
-                {ident->start()},
-                "constant can not depend on unknown ident: " + ident->name_
-            });
+            issues_.push_back(
+                issues::Issue(issues::Origin::TypeChecker,
+                              issues::Severity::Error,
+                              ident->start(),
+                              "constant can not depend on unknown ident: " + ident->name_));
             return false;
         } else if (constant->parent_ == info_->universe_ &&
                    constant->name_ == "iota") {
@@ -1481,10 +1563,10 @@ bool TypeChecker::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
                 return EvaluateConstantBinaryExpr(binary_expr, iota);
         }
     } else {
-        errors_.push_back(Error{
-            {expr->start()},
-            "constant expression not allowed"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        expr->start(),
+                                        "constant expression not allowed"));
         return false;
     }
 }
@@ -1501,10 +1583,11 @@ bool TypeChecker::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) 
         case types::Basic::kBool:
         case types::Basic::kUntypedBool:
             if (expr->op_ != token::kNot) {
-                errors_.push_back(Error{
-                    {expr->start()},
-                    "unary operator not allowed for constant expression"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  expr->start(),
+                                  "unary operator not allowed for constant expression"));
                 return false;
             }
             info_->types_.insert({expr, x_type});
@@ -1521,14 +1604,16 @@ bool TypeChecker::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) 
         case types::Basic::kInt16:
         case types::Basic::kInt32:
         case types::Basic::kInt64:
-        case types::Basic::kUntypedInt:{
+        case types::Basic::kUntypedInt:
+        case types::Basic::kUntypedRune:{
             if (expr->op_ != token::kAdd &&
                 expr->op_ != token::kSub &&
                 expr->op_ != token::kXor) {
-                errors_.push_back(Error{
-                    {expr->start()},
-                    "unary operator not allowed for constant expression"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  expr->start(),
+                                  "unary operator not allowed for constant expression"));
                 return false;
             }
             types::Basic *result_type = x_type;
@@ -1542,6 +1627,14 @@ bool TypeChecker::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) 
             info_->constant_values_.insert({expr, constant::UnaryOp(expr->op_, x_value)});
             return true;
         }
+        case types::Basic::kString:
+        case types::Basic::kUntypedString:
+            issues_.push_back(
+                issues::Issue(issues::Origin::TypeChecker,
+                              issues::Severity::Error,
+                              expr->start(),
+                              "unary operator not allowed for constant expression"));
+            return false;
         default:
             throw "unexpected type";
     }
@@ -1564,10 +1657,12 @@ bool TypeChecker::EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iot
         case token::kGtr:
             if ((x_type->info() & types::Basic::kIsOrdered) == 0 ||
                 (y_type->info() & types::Basic::kIsOrdered) == 0) {
-                errors_.push_back(Error{
-                    {expr->start()},
-                    "comparison of constant expressions with given types not allowed"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  expr->start(),
+                                  "comparison of constant expressions with given types not "
+                                  "allowed"));
                 return false;
             }
         default:;
@@ -1604,10 +1699,10 @@ bool TypeChecker::EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota)
     
     if ((x_type->info() & types::Basic::kIsNumeric) == 0 ||
         (y_type->info() & types::Basic::kIsNumeric) == 0) {
-        errors_.push_back(Error{
-            {expr->start()},
-            "constant shift expressions with given types not allowed"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        expr->start(),
+                                        "constant shift expressions with given types not allowed"));
         return false;
     }
     
@@ -1620,10 +1715,11 @@ bool TypeChecker::EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota)
     if ((y_type->info() & types::Basic::kIsUntyped) != 0) {
         y_value = ConvertUntypedInt(y_value, types::Basic::kUint);
     } else if ((y_type->info() & types::Basic::kIsUnsigned) == 0) {
-        errors_.push_back(Error{
-            {expr->start()},
-            "constant shift expressions with signed shift operand not allowed"
-        });
+        issues_.push_back(
+            issues::Issue(issues::Origin::TypeChecker,
+                          issues::Severity::Error,
+                          expr->start(),
+                          "constant shift expressions with signed shift operand not allowed"));
         return false;
     }
     
@@ -1647,14 +1743,20 @@ bool TypeChecker::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota
         case token::kLOr:
             if ((x_type->info() & types::Basic::kIsBoolean) == 0 ||
                 (y_type->info() & types::Basic::kIsBoolean) == 0) {
-                errors_.push_back(Error{
-                    {expr->start()},
-                    "binary operation with constant expressions of given types not allowed"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  expr->start(),
+                                  "binary operation with constant expressions of given types not "
+                                  "allowed"));
                 return false;
             }
             break;
         case token::kAdd:
+            if ((x_type->info() & types::Basic::kIsString) &&
+                (y_type->info() & types::Basic::kIsString)) {
+                break;
+            }
         case token::kSub:
         case token::kMul:
         case token::kQuo:
@@ -1665,10 +1767,12 @@ bool TypeChecker::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota
         case token::kAndNot:
             if ((x_type->info() & types::Basic::kIsNumeric) == 0 ||
                 (y_type->info() & types::Basic::kIsNumeric) == 0) {
-                errors_.push_back(Error{
-                    {expr->start()},
-                    "binary operation with constant expressions of given types not allowed"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  expr->start(),
+                                  "binary operation with constant expressions of given types not "
+                                  "allowed"));
                 return false;
             }
             break;
@@ -1699,14 +1803,17 @@ bool TypeChecker::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
     types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
     types::Basic *y_type = static_cast<types::Basic *>(info_->types_.at(expr->y_.get()));
     
-    if (((x_type->info() & types::Basic::kIsBoolean) !=
-         (y_type->info() & types::Basic::kIsBoolean)) ||
-        ((x_type->info() & types::Basic::kIsNumeric) !=
-         (y_type->info() & types::Basic::kIsNumeric))) {
-        errors_.push_back(Error{
-            {expr->start()},
-            "comparison of constant expressions with given types not allowed"
-        });
+    if (!((x_type->info() & types::Basic::kIsBoolean) &&
+          (y_type->info() & types::Basic::kIsBoolean)) ||
+        !((x_type->info() & types::Basic::kIsNumeric) &&
+          (y_type->info() & types::Basic::kIsNumeric)) ||
+        !((x_type->info() & types::Basic::kIsString) &&
+          (y_type->info() & types::Basic::kIsString))) {
+        issues_.push_back(
+            issues::Issue(issues::Origin::TypeChecker,
+                          issues::Severity::Error,
+                          expr->start(),
+                          "comparison of constant expressions with given types not allowed"));
         return false;
     }
     
@@ -1724,10 +1831,12 @@ bool TypeChecker::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
             result_type = x_type;
         } else {
             if (x_type->kind() != y_type->kind()) {
-                errors_.push_back(Error{
-                    {expr->start()},
-                    "comparison of constant expressions of different types not allowed"
-                });
+                issues_.push_back(
+                    issues::Issue(issues::Origin::TypeChecker,
+                                  issues::Severity::Error,
+                                  expr->start(),
+                                  "comparison of constant expressions of different types not "
+                                  "allowed"));
                 return false;
             }
             result_type = x_type;
@@ -1739,7 +1848,16 @@ bool TypeChecker::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
         } else {
             result_type = info_->basic_types_.at(types::Basic::kBool);
         }
-    } else {
+    } else if ((x_type->info() & types::Basic::kIsString) != 0) {
+        if ((x_type->info() & types::Basic::kIsUntyped) != 0 &&
+            (y_type->info() & types::Basic::kIsUntyped) != 0) {
+            result_type = info_->basic_types_.at(types::Basic::kUntypedString);
+        } else {
+            result_type = info_->basic_types_.at(types::Basic::kString);
+        }
+    }
+    
+    else {
         throw "internal error";
     }
     return true;

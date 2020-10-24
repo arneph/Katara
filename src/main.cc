@@ -66,13 +66,37 @@ void run_lang_test(std::filesystem::path test_dir) {
     lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib");
     lang::packages::Package *pkg = pkg_manager.LoadPackage(test_dir);
     
-    if (!pkg->parse_errors().empty()) {
-        for (auto &error : pkg->parse_errors()) {
-            lang::pos::pos_t pos = error.pos_;
-            lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
-            std::cout << position.ToString() << ": ";
-            std::cout << error.message_ << '\n';
+    for (auto pkg : pkg_manager.Packages()) {
+        for (auto &issue : pkg->issues()) {
+            switch (issue.severity()) {
+                case lang::issues::Severity::Warning:
+                    std::cout << "\033[93;1m";
+                    std::cout << "Warning:";
+                    std::cout << "\033[0;0m";
+                    std::cout << " ";
+                    break;
+                case lang::issues::Severity::Error:
+                case lang::issues::Severity::Fatal:
+                    std::cout << "\033[91;1m";
+                    std::cout << "Error:";
+                    std::cout << "\033[0;0m";
+                    std::cout << " ";
+                    break;
+            }
+            std::cout << issue.message() << "\n";
+            for (lang::pos::pos_t pos : issue.positions()) {
+                lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
+                std::string line = pkg_manager.file_set()->FileAt(pos)->LineFor(pos);
+                std::cout << "  " << position.ToString() << ": ";
+                std::cout << line;
+                for (int i = 0; i < position.ToString().size() + 4 + position.column_; i++) {
+                    std::cout << " ";
+                }
+                std::cout << "^\n";
+            }
         }
+    }
+    if (!pkg->issues().empty()) {
         return;
     }
     for (auto &ast : pkg->ast_files()) {
@@ -80,16 +104,6 @@ void run_lang_test(std::filesystem::path test_dir) {
         
         to_file(ast_graph.ToVCGFormat(),
                 out_file_base.string() + ".ast.vcg");
-    }
-    
-    if (!pkg->type_errors().empty()) {
-        for (auto &error : pkg->type_errors()) {
-            lang::pos::pos_t pos = error.pos_.at(0);
-            lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
-            std::cout << position.ToString() << ": ";
-            std::cout << error.message_ << '\n';
-        }
-        return;
     }
     // TODO: uncomment when type checker is fully implemented
     //std::string type_info = TypeInfoToText(pkg_manager.file_set(), pkg_manager.type_info());

@@ -12,24 +12,24 @@ namespace lang {
 namespace parser {
 
 std::unique_ptr<ast::File> Parser::ParseFile(pos::File *file,
-                                             std::vector<Error>& errors) {
+                                             std::vector<issues::Issue>& issues) {
     scanner::Scanner scanner(file);
-    Parser parser(scanner, errors);
+    Parser parser(scanner, issues);
     return parser.ParseFile();
 }
 
 Parser::Parser(scanner::Scanner& scanner,
-               std::vector<Error>& errors) : scanner_(scanner), errors_(errors) {}
+               std::vector<issues::Issue>& issues) : scanner_(scanner), issues_(issues) {}
 
 std::unique_ptr<ast::File> Parser::ParseFile() {
     auto file = std::make_unique<ast::File>();
     file->file_start_ = scanner_.token_start();
     
     while (scanner_.token() != token::kPackage) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected package declaration"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected package declaration"));
         return file;
     }
     scanner_.Next();
@@ -38,10 +38,10 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
         file->package_name_ = std::move(name);
     }
     if (scanner_.token() != token::kSemicolon) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected ';' or new line"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected ';' or new line"));
         return nullptr;
     }
     scanner_.Next();
@@ -51,20 +51,20 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
         if (scanner_.token() != token::kImport) {
             finished_imports = true;
         } else if (finished_imports) {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "imports not allowed after non-import declarations"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "imports not allowed after non-import declarations"));
         }
         auto decl = ParseDecl();
         if (decl) {
             file->decls_.push_back(std::move(decl));
         }
         if (scanner_.token() != token::kSemicolon) {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected ';' or new line"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected ';' or new line"));
             scanner_.SkipPastLine();
             continue;
         }
@@ -85,10 +85,11 @@ std::unique_ptr<ast::Decl> Parser::ParseDecl() {
         case token::kFunc:
             return ParseFuncDecl();
         default:
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected 'import', 'const', 'var', 'type', or 'func'"
-            });
+            issues_.push_back(
+                issues::Issue(issues::Origin::Parser,
+                              issues::Severity::Fatal,
+                              scanner_.token_start(),
+                              "expected 'import', 'const', 'var', 'type', or 'func'"));
             scanner_.SkipPastLine();
             return nullptr;
     }
@@ -110,19 +111,19 @@ std::unique_ptr<ast::GenDecl> Parser::ParseGenDecl() {
                 gen_decl->specs_.push_back(std::move(spec));
             }
             if (scanner_.token() != token::kSemicolon) {
-                errors_.push_back(Error{
-                    scanner_.token_start(),
-                    "expected ';' or new line"
-                });
+                issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                                issues::Severity::Fatal,
+                                                scanner_.token_start(),
+                                                "expected ';' or new line"));
                 return nullptr;
             }
             scanner_.Next();
         }
         if (scanner_.token() != token::kRParen) {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected ')'"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected ')'"));
             return nullptr;
         }
         gen_decl->r_paren_ = scanner_.token_end();
@@ -165,10 +166,10 @@ std::unique_ptr<ast::ImportSpec> Parser::ParseImportSpec() {
     }
     
     if (scanner_.token() != token::kString) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected import package path"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected import package path"));
         return nullptr;
     }
     auto path = ParseBasicLit();
@@ -310,10 +311,10 @@ std::vector<std::unique_ptr<ast::Stmt>> Parser::ParseStmtList() {
             scanner_.Next();
             break;
         } else {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected ';' or new line"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected ';' or new line"));
             scanner_.SkipPastLine();
         }
     }
@@ -353,10 +354,10 @@ std::unique_ptr<ast::Stmt> Parser::ParseStmt() {
         case token::kColon: {
             ast::Ident *ident_ptr = dynamic_cast<ast::Ident *>(expr.release());
             if (ident_ptr == nullptr) {
-                errors_.push_back(Error{
-                    expr->start(),
-                    "expression can not be used as label"
-                });
+                issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                                issues::Severity::Fatal,
+                                                expr->start(),
+                                                "expression can not be used as label"));
                 scanner_.SkipPastLine();
                 return nullptr;
             }
@@ -410,10 +411,10 @@ std::unique_ptr<ast::BlockStmt> Parser::ParseBlockStmt() {
     auto block_stmt = std::make_unique<ast::BlockStmt>();
     
     if (scanner_.token() != token::kLBrace) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '{'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '{'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -423,10 +424,10 @@ std::unique_ptr<ast::BlockStmt> Parser::ParseBlockStmt() {
     block_stmt->stmts_ = ParseStmtList();
     
     if (scanner_.token() != token::kRBrace) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '}'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '}'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -452,10 +453,10 @@ std::unique_ptr<ast::ReturnStmt> Parser::ParseReturnStmt() {
     auto return_stmt = std::make_unique<ast::ReturnStmt>();
     
     if (scanner_.token() != token::kReturn) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'return'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'return'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -475,10 +476,10 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
     auto if_stmt = std::make_unique<ast::IfStmt>();
     
     if (scanner_.token() != token::kIf) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'if'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'if'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -501,10 +502,10 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
         if_stmt->init_ = std::move(init);
         
         if (scanner_.token() != token::kSemicolon) {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected ';'"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected ';'"));
             scanner_.SkipPastLine();
             return nullptr;
         }
@@ -530,10 +531,10 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
     
     if (scanner_.token() != token::kIf &&
         scanner_.token() != token::kLBrace) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'if' or '{'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'if' or '{'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -551,10 +552,10 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
     auto switch_stmt = std::make_unique<ast::SwitchStmt>();
     
     if (scanner_.token() != token::kSwitch) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'switch'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'switch'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -578,10 +579,10 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
             switch_stmt->init_ = std::move(init);
             
             if (scanner_.token() != token::kSemicolon) {
-                errors_.push_back(Error{
-                    scanner_.token_start(),
-                    "expected ';'"
-                });
+                issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                                issues::Severity::Fatal,
+                                                scanner_.token_start(),
+                                                "expected ';'"));
                 scanner_.SkipPastLine();
                 return nullptr;
             }
@@ -598,10 +599,10 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
     }
     
     if (scanner_.token() != token::kLBrace) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '{'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '{'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -625,10 +626,10 @@ std::unique_ptr<ast::CaseClause> Parser::ParseCaseClause() {
     
     if (scanner_.token() != token::kCase &&
         scanner_.token() != token::kDefault) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'case' or 'default'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'case' or 'default'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -646,10 +647,10 @@ std::unique_ptr<ast::CaseClause> Parser::ParseCaseClause() {
     }
     
     if (scanner_.token() != token::kColon) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected ':'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected ':'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -665,10 +666,10 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
     auto for_stmt = std::make_unique<ast::ForStmt>();
     
     if (scanner_.token() != token::kFor) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'for'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'for'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -692,10 +693,10 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
             for_stmt->init_ = std::move(init);
             
             if (scanner_.token() != token::kSemicolon) {
-                errors_.push_back(Error{
-                    scanner_.token_start(),
-                    "expected ';'"
-                });
+                issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                                issues::Severity::Fatal,
+                                                scanner_.token_start(),
+                    "expected ';'"));
                 scanner_.SkipPastLine();
                 return nullptr;
             }
@@ -708,10 +709,10 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
             for_stmt->cond_ = std::move(cond);
             
             if (scanner_.token() != token::kSemicolon) {
-                errors_.push_back(Error{
-                    scanner_.token_start(),
-                    "expected ';'"
-                });
+                issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                                issues::Severity::Fatal,
+                                                scanner_.token_start(),
+                                                "expected ';'"));
                 scanner_.SkipPastLine();
                 return nullptr;
             }
@@ -725,10 +726,11 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
                 auto assign_stmt = dynamic_cast<ast::AssignStmt *>(post.get());
                 if (assign_stmt != nullptr &&
                     assign_stmt->tok_ == token::kDefine) {
-                    errors_.push_back(Error{
-                        assign_stmt->start(),
-                        "for loop post statement can not define variables"
-                    });
+                    issues_.push_back(
+                        issues::Issue(issues::Origin::Parser,
+                                      issues::Severity::Fatal,
+                                      assign_stmt->start(),
+                                      "for loop post statement can not define variables"));
                     return nullptr;
                 }
                 for_stmt->post_ = std::move(post);
@@ -751,10 +753,10 @@ std::unique_ptr<ast::BranchStmt> Parser::ParseBranchStmt() {
     if (scanner_.token() != token::kFallthrough &&
         scanner_.token() != token::kContinue &&
         scanner_.token() != token::kBreak) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'fallthrough', 'continue', or 'break'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'fallthrough', 'continue', or 'break'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -776,10 +778,10 @@ std::unique_ptr<ast::ExprStmt> Parser::ParseExprStmt(std::unique_ptr<ast::Expr> 
     auto expr_stmt = std::make_unique<ast::ExprStmt>();
     
     if (dynamic_cast<ast::CallExpr *>(x.get()) == nullptr) {
-        errors_.push_back(Error{
-            x->start(),
-            "expression can not be used as standalone statement"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        x->start(),
+                                        "expression can not be used as standalone statement"));
         return nullptr;
     }
     expr_stmt->x_ = std::move(x);
@@ -792,10 +794,10 @@ std::unique_ptr<ast::LabeledStmt> Parser::ParseLabeledStmt(std::unique_ptr<ast::
     labeled_stmt->label_ = std::move(label);
     
     if (scanner_.token() != token::kColon) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected ':'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected ':'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -831,10 +833,10 @@ std::unique_ptr<ast::AssignStmt> Parser::ParseAssignStmt(std::unique_ptr<ast::Ex
         case token::kDefine:
             break;
         default:
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected assignment operator"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected assignment operator"));
             scanner_.SkipPastLine();
             return nullptr;
     }
@@ -857,10 +859,10 @@ std::unique_ptr<ast::IncDecStmt> Parser::ParseIncDecStmt(std::unique_ptr<ast::Ex
     
     if (scanner_.token() != token::kInc &&
         scanner_.token() != token::kDec) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '++' or '--'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '++' or '--'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -988,10 +990,10 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(bool disallow_composite_lit)
             primary_expr = ParseParenExpr();
             break;
         default:
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected expression"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected expression"));
             scanner_.SkipPastLine();
             return nullptr;
     }
@@ -1012,10 +1014,10 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> p
                 } else if (scanner_.token() == token::kLss) {
                     primary_expr = ParseTypeAssertExpr(std::move(primary_expr));
                 } else {
-                    errors_.push_back(Error{
-                        scanner_.token_start(),
-                        "expected identifier or '<'"
-                    });
+                    issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                                    issues::Severity::Fatal,
+                                                    scanner_.token_start(),
+                                                    "expected identifier or '<'"));
                     scanner_.SkipPastLine();
                     return nullptr;
                 }
@@ -1090,10 +1092,10 @@ std::unique_ptr<ast::ParenExpr> Parser::ParseParenExpr() {
     auto paren_expr = std::make_unique<ast::ParenExpr>();
     
     if (scanner_.token() != token::kLParen) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '('"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '('"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1107,10 +1109,10 @@ std::unique_ptr<ast::ParenExpr> Parser::ParseParenExpr() {
     paren_expr->x_ = std::move(x);
     
     if (scanner_.token() != token::kRParen) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected ')'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected ')'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1138,10 +1140,10 @@ std::unique_ptr<ast::TypeAssertExpr> Parser::ParseTypeAssertExpr(std::unique_ptr
     type_assert_expr->x_ = std::move(x);
     
     if (scanner_.token() != token::kLss) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '<'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '<'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1159,10 +1161,10 @@ std::unique_ptr<ast::TypeAssertExpr> Parser::ParseTypeAssertExpr(std::unique_ptr
     }
     
     if (scanner_.token() != token::kGtr) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '>'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '>'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1177,10 +1179,10 @@ std::unique_ptr<ast::IndexExpr> Parser::ParseIndexExpr(std::unique_ptr<ast::Expr
     index_expr->accessed_ = std::move(accessed);
     
     if (scanner_.token() != token::kLBrack) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '['"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '['"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1194,10 +1196,10 @@ std::unique_ptr<ast::IndexExpr> Parser::ParseIndexExpr(std::unique_ptr<ast::Expr
     index_expr->index_ = std::move(index);
     
     if (scanner_.token() != token::kRBrack) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected ']'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected ']'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1214,10 +1216,10 @@ std::unique_ptr<ast::CallExpr> Parser::ParseCallExpr(std::unique_ptr<ast::Expr> 
     call_expr->type_args_ = std::move(type_args);
     
     if (scanner_.token() != token::kLParen) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '('"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '('"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1227,10 +1229,10 @@ std::unique_ptr<ast::CallExpr> Parser::ParseCallExpr(std::unique_ptr<ast::Expr> 
     call_expr->args_ = ParseExprList(/* disallow_composite_lit= */ false);
     
     if (scanner_.token() != token::kRParen) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected ')'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected ')'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1258,10 +1260,10 @@ std::unique_ptr<ast::CompositeLit> Parser::ParseCompositeLit(std::unique_ptr<ast
     composite_lit->type_ = std::move(type);
     
     if (scanner_.token() != token::kLBrace) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '{'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '{'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1279,10 +1281,10 @@ std::unique_ptr<ast::CompositeLit> Parser::ParseCompositeLit(std::unique_ptr<ast
             break;
         }
         if (scanner_.token() != token::kComma) {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected ',' or '}'"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected ',' or '}'"));
             scanner_.SkipPastLine();
             return nullptr;
         }
@@ -1341,10 +1343,10 @@ std::unique_ptr<ast::Expr> Parser::ParseType() {
         case token::kIdent:
             return ParseType(ParseIdent(/* split_shift_ops= */ true));
         default:
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected type"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected type"));
             scanner_.SkipPastLine();
             return nullptr;
     }
@@ -1378,10 +1380,10 @@ std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
     auto array_type = std::make_unique<ast::ArrayType>();
     
     if (scanner_.token() != token::kLBrack) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '['"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '['"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1397,10 +1399,10 @@ std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
     }
     
     if (scanner_.token() != token::kRBrack) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected ']'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected ']'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1420,10 +1422,10 @@ std::unique_ptr<ast::FuncType> Parser::ParseFuncType() {
     auto func_type = std::make_unique<ast::FuncType>();
     
     if (scanner_.token() != token::kFunc) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'func'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'func'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1463,10 +1465,10 @@ std::unique_ptr<ast::InterfaceType> Parser::ParseInterfaceType() {
     auto interface_type = std::make_unique<ast::InterfaceType>();
     
     if (scanner_.token() != token::kInterface) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'interface'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'interface'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1474,10 +1476,10 @@ std::unique_ptr<ast::InterfaceType> Parser::ParseInterfaceType() {
     scanner_.Next();
     
     if (scanner_.token() != token::kLBrace) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '{'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '{'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1492,10 +1494,10 @@ std::unique_ptr<ast::InterfaceType> Parser::ParseInterfaceType() {
         interface_type->methods_.push_back(std::move(method_spec));
         
         if (scanner_.token() != token::kSemicolon) {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected ';' or new line"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected ';' or new line"));
             scanner_.SkipPastLine();
             return nullptr;
         }
@@ -1549,10 +1551,10 @@ std::unique_ptr<ast::StructType> Parser::ParseStructType() {
     auto struct_type = std::make_unique<ast::StructType>();
     
     if (scanner_.token() != token::kStruct) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected 'struct'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected 'struct'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1560,10 +1562,10 @@ std::unique_ptr<ast::StructType> Parser::ParseStructType() {
     scanner_.Next();
     
     if (scanner_.token() != token::kLBrace) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '{'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '{'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1577,10 +1579,10 @@ std::unique_ptr<ast::StructType> Parser::ParseStructType() {
     struct_type->fields_ = std::move(fields);
     
     if (scanner_.token() != token::kRBrace) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '}'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '}'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1595,10 +1597,10 @@ std::unique_ptr<ast::UnaryExpr> Parser::ParsePointerType() {
     
     if (scanner_.token() != token::kMul &&
         scanner_.token() != token::kRem) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '*' or '%'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '*' or '%'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1633,10 +1635,10 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
     
     bool has_paren = (scanner_.token() == token::kLParen);
     if (expect_paren && !has_paren) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '('"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '('"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1673,10 +1675,10 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
     
     if (has_paren) {
         if (scanner_.token() != token::kRParen) {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected ')'"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected ')'"));
             scanner_.SkipPastLine();
             return nullptr;
         }
@@ -1698,10 +1700,10 @@ std::unique_ptr<ast::FieldList> Parser::ParseStructFieldList() {
         field_list->fields_.push_back(std::move(field));
         
         if (scanner_.token() != token::kSemicolon) {
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected ';' or new line"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected ';' or new line"));
             scanner_.SkipPastLine();
             return nullptr;
         }
@@ -1776,10 +1778,10 @@ std::unique_ptr<ast::TypeArgList> Parser::ParseTypeArgList() {
     auto type_args = std::make_unique<ast::TypeArgList>();
         
     if (scanner_.token() != token::kLss) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '<'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '<'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1805,10 +1807,10 @@ std::unique_ptr<ast::TypeArgList> Parser::ParseTypeArgList() {
     }
     
     if (scanner_.token() != token::kGtr) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '>'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '>'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1822,10 +1824,10 @@ std::unique_ptr<ast::TypeParamList> Parser::ParseTypeParamList() {
     auto type_params = std::make_unique<ast::TypeParamList>();
         
     if (scanner_.token() != token::kLss) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '<'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '<'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1851,10 +1853,10 @@ std::unique_ptr<ast::TypeParamList> Parser::ParseTypeParamList() {
     }
     
     if (scanner_.token() != token::kGtr) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected '>'"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '>'"));
         scanner_.SkipPastLine();
         return nullptr;
     }
@@ -1909,10 +1911,10 @@ std::unique_ptr<ast::BasicLit> Parser::ParseBasicLit() {
             return basic_lit;
         }
         default:
-            errors_.push_back(Error{
-                scanner_.token_start(),
-                "expected literal"
-            });
+            issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                            issues::Severity::Fatal,
+                                            scanner_.token_start(),
+                                            "expected literal"));
             scanner_.SkipPastLine();
             return nullptr;
     }
@@ -1938,10 +1940,10 @@ std::vector<std::unique_ptr<ast::Ident>> Parser::ParseIdentList() {
 
 std::unique_ptr<ast::Ident> Parser::ParseIdent(bool split_shift_ops) {
     if (scanner_.token() != token::kIdent) {
-        errors_.push_back(Error{
-            scanner_.token_start(),
-            "expected identifier"
-        });
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected identifier"));
         scanner_.SkipPastLine();
         return nullptr;
     }
