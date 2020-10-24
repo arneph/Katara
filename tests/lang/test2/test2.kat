@@ -80,8 +80,6 @@ func (n *Node<T>) ForEachNeighbor(f func(neighbor *Node<T>)) {
     n.neighbors.ForEach(f)
 }
 
-type string []uint8
-
 func Test() {
     l := NewArrayList<int>()
     m := NewHashMap<string, List<int>>(0)
