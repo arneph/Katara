@@ -1,5 +1,4 @@
 package fmt
 
 func Println(text string) {
-    // TODO: implement
 }
