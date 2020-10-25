@@ -155,39 +155,65 @@ std::unordered_set<types::Constant *> ConstantHandler::FindConstantDependencies(
 }
 
 void ConstantHandler::EvaluateConstant(EvalInfo &eval_info) {
+    if (eval_info.value_ == nullptr &&
+        eval_info.type_ == nullptr) {
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        eval_info.name_->start(),
+                                        "constant needs a type or value: " +
+                                        eval_info.name_->name_));
+        return;
+    }
+
     types::Basic *type = nullptr;
     constants::Value value(int64_t{0});
-    if (eval_info.value_ == nullptr) {
-        if (eval_info.type_ == nullptr) {
-            issues_.push_back(
-                              issues::Issue(issues::Origin::TypeChecker,
-                                            issues::Severity::Error,
-                                            eval_info.name_->start(),
-                                            "constant needs a type or value: " +
-                                                eval_info.name_->name_));
-            return;
-        }
+    
+    if (eval_info.type_ != nullptr) {
         type = dynamic_cast<types::Basic *>(info_->types_.at(eval_info.type_));
         if (type == nullptr) {
-            issues_.push_back(
-                              issues::Issue(issues::Origin::TypeChecker,
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             eval_info.name_->start(),
                                             "constant can not have non-basic type: " + eval_info.name_->name_));
             return;
         }
+    }
+    
+    if (eval_info.value_ == nullptr) {
         value = ConvertUntypedInt(value, type->kind());
         
     } else {
         if (!EvaluateConstantExpr(eval_info.value_, eval_info.iota_)) {
-            issues_.push_back(
-                              issues::Issue(issues::Origin::TypeChecker,
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             eval_info.name_->start(),
                                             "constant could not be evaluated: " + eval_info.name_->name_));
             return;
         }
+        types::Basic *given_type = static_cast<types::Basic *>(info_->types_.at(eval_info.value_));
+        constants::Value given_value = info_->constant_values_.at(eval_info.value_);
+        
+        if (type == nullptr) {
+            type = given_type;
+        }
+        
+        if (given_type == type) {
+            value = given_value;
+            
+        } else if (given_type->info() & types::Basic::kIsUntyped) {
+            value = ConvertUntypedInt(given_value, type->kind());
+            
+        } else {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            eval_info.name_->start(),
+                                            "constant can not hold a value of a different type: " + eval_info.name_->name_));
+            return;
+        }
     }
+    
+    eval_info.constant_->type_ = type;
+    eval_info.constant_->value_ = value;
 }
 
 bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
