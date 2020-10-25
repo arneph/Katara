@@ -21,7 +21,10 @@
 
 namespace lang {
 namespace type_checker {
-class TypeChecker;
+class UniverseBuilder;
+class IdentifierResolver;
+class InitHandler;
+class ConstantHandler;
 
 }
 
@@ -94,7 +97,7 @@ private:
     Kind kind_;
     Info info_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::UniverseBuilder;
 };
 
 class Pointer : public Type {
@@ -118,8 +121,6 @@ private:
     
     Kind kind_;
     Type *element_type_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class Array : public Type {
@@ -138,8 +139,6 @@ private:
     
     Type *element_type_;
     uint64_t length_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class Slice : public Type {
@@ -156,8 +155,6 @@ private:
     Slice() {}
     
     Type *element_type_;
-
-    friend type_checker::TypeChecker;
 };
 
 class NamedType;
@@ -176,8 +173,6 @@ private:
     TypeTuple() {}
     
     std::vector<NamedType *> types_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class NamedType : public Type {
@@ -199,8 +194,6 @@ private:
     std::string name_;
     Type *type_;
     TypeTuple *type_parameters_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class TypeInstance : public Type {
@@ -219,8 +212,6 @@ private:
     
     Type *instantiated_type_;
     std::vector<Type *> type_args_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class Tuple : public Type {
@@ -237,8 +228,6 @@ private:
     Tuple() {}
     
     std::vector<Variable *> variables_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class Signature : public Type {
@@ -261,8 +250,6 @@ private:
     TypeTuple *type_parameters_;
     Tuple *parameters_;
     Tuple *results_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class Struct : public Type {
@@ -279,8 +266,6 @@ private:
     Struct() {}
     
     std::vector<Variable *> fields_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class Interface : public Type {
@@ -299,8 +284,6 @@ private:
     
     std::vector<NamedType *> embedded_interfaces_;
     std::vector<Func *> methods_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class Package;
@@ -327,7 +310,9 @@ protected:
     std::string name_;
     Type *type_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::IdentifierResolver;
+    friend type_checker::InitHandler;
+    friend type_checker::ConstantHandler;
 };
 
 class TypeName : public Object {
@@ -339,7 +324,8 @@ public:
 private:
     TypeName() {}
     
-    friend type_checker::TypeChecker;
+    friend type_checker::UniverseBuilder;
+    friend type_checker::IdentifierResolver;
 };
 
 class Constant : public Object {
@@ -355,7 +341,9 @@ private:
     
     constants::Value value_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::UniverseBuilder;
+    friend type_checker::IdentifierResolver;
+    friend type_checker::ConstantHandler;
 };
 
 class Variable : public Object {
@@ -373,7 +361,7 @@ private:
     bool is_embedded_;
     bool is_field_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::IdentifierResolver;
 };
 
 class Func : public Object {
@@ -385,7 +373,7 @@ public:
 private:
     Func() {}
     
-    friend type_checker::TypeChecker;
+    friend type_checker::IdentifierResolver;
 };
 
 class Nil : public Object {
@@ -397,7 +385,7 @@ public:
 private:
     Nil() {}
     
-    friend type_checker::TypeChecker;
+    friend type_checker::UniverseBuilder;
 };
 
 class Label : public Object {
@@ -409,7 +397,7 @@ public:
 private:
     Label() {}
     
-    friend type_checker::TypeChecker;
+    friend type_checker::IdentifierResolver;
 };
 
 class Builtin : public Object {
@@ -428,8 +416,6 @@ private:
     Builtin(Kind kind);
     
     Kind kind_;
-    
-    friend type_checker::TypeChecker;
 };
 
 class PackageName : public Object {
@@ -443,7 +429,7 @@ public:
 private:
     Package *referenced_package_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::IdentifierResolver;
 };
 
 class Scope {
@@ -466,7 +452,8 @@ private:
     std::unordered_map<std::string, Object *> named_objects_;
     std::unordered_set<Object *> unnamed_objects_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::UniverseBuilder;
+    friend type_checker::IdentifierResolver;
 };
 
 class Initializer {
@@ -482,7 +469,7 @@ private:
     std::vector<Variable *> lhs_;
     ast::Expr *rhs_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::InitHandler;
 };
 
 class Package {
@@ -502,7 +489,7 @@ private:
     Scope *scope_;
     std::unordered_set<Package *> imports_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::IdentifierResolver;
 };
 
 class TypeInfo {
@@ -549,7 +536,10 @@ private:
     Scope *universe_;
     std::unordered_map<types::Basic::Kind, types::Basic*> basic_types_;
     
-    friend type_checker::TypeChecker;
+    friend type_checker::UniverseBuilder;
+    friend type_checker::IdentifierResolver;
+    friend type_checker::InitHandler;
+    friend type_checker::ConstantHandler;
 };
 
 }

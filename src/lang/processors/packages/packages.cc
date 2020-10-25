@@ -128,11 +128,11 @@ Package * PackageManager::LoadPackage(std::string import_dir) {
         return package->types_package_;
     };
     types::Package *types_package =
-        type_checker::TypeChecker::Check(import_dir,
-                                         ast_files,
-                                         type_info_.get(),
-                                         importer,
-                                         package->issues_);
+        type_checker::Check(import_dir,
+                            ast_files,
+                            importer,
+                            type_info_.get(),
+                            package->issues_);
     package->types_package_ = types_package;
     if (package->has_fatal_errors()) {
         return package.get();
