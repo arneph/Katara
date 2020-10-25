@@ -78,7 +78,9 @@ void UniverseBuilder::SetupPredeclaredTypes(types::TypeInfo *info) {
         auto basic = std::unique_ptr<types::Basic>(new types::Basic(predeclared_type.kind_,
                                                                     predeclared_type.info));
         
-        info->basic_types_.insert({predeclared_type.kind_, basic.get()});
+        auto basic_ptr = basic.get();
+        info->type_unique_ptrs_.push_back(std::move(basic));
+        info->basic_types_.insert({predeclared_type.kind_, basic_ptr});
         
         auto it = std::find(predeclared_type.name_.begin(),
                             predeclared_type.name_.end(),
@@ -92,11 +94,11 @@ void UniverseBuilder::SetupPredeclaredTypes(types::TypeInfo *info) {
         type_name->package_ = nullptr;
         type_name->position_ = pos::kNoPos;
         type_name->name_ = predeclared_type.name_;
-        type_name->type_ = basic.get();
-        
-        info->universe_->named_objects_.insert({predeclared_type.name_, type_name.get()});
-        info->type_unique_ptrs_.push_back(std::move(basic));
+        type_name->type_ = basic_ptr;
+
+        auto type_name_ptr = type_name.get();
         info->object_unique_ptrs_.push_back(std::move(type_name));
+        info->universe_->named_objects_.insert({predeclared_type.name_, type_name_ptr});
     }
 }
 
