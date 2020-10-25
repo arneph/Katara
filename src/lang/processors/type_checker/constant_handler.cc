@@ -26,22 +26,22 @@ void ConstantHandler::HandleConstants(std::vector<ast::File *> package_files,
 }
 
 void ConstantHandler::EvaluateConstants() {
-    std::vector<ConstantEvaluationInfo> info = FindConstantEvaluationInfo();
-    info = FindConstantsEvaluationOrder(info);
+    std::vector<EvalInfo> eval_infos = FindConstantEvaluationInfo();
+    eval_infos = FindConstantsEvaluationOrder(eval_infos);
     
-    for (auto& i : info) {
-        EvaluateConstant(i);
+    for (auto& eval_info : eval_infos) {
+        EvaluateConstant(eval_info);
     }
 }
 
-std::vector<ConstantHandler::ConstantEvaluationInfo>
-ConstantHandler::FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo> infos) {
-    std::vector<ConstantHandler::ConstantEvaluationInfo> order;
+std::vector<ConstantHandler::EvalInfo>
+ConstantHandler::FindConstantsEvaluationOrder(std::vector<EvalInfo> eval_infos) {
+    std::vector<ConstantHandler::EvalInfo> order;
     std::unordered_set<types::Constant *> done;
-    while (infos.size() > done.size()) {
+    while (eval_infos.size() > done.size()) {
         size_t done_size_before = done.size();
         
-        for (auto& info : infos) {
+        for (auto& info : eval_infos) {
             if (done.find(info.constant_) != done.end()) {
                 continue;
             }
@@ -64,7 +64,7 @@ ConstantHandler::FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo
         if (done_size_before == done_size_after) {
             std::vector<pos::pos_t> positions;
             std::string names = "";
-            for (auto& info : infos) {
+            for (auto& info : eval_infos) {
                 positions.push_back(info.constant_->position_);
                 if (names.empty()) {
                     names = info.constant_->name_;
@@ -82,9 +82,9 @@ ConstantHandler::FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo
     return order;
 }
 
-std::vector<ConstantHandler::ConstantEvaluationInfo>
+std::vector<ConstantHandler::EvalInfo>
 ConstantHandler::FindConstantEvaluationInfo() {
-    std::vector<ConstantEvaluationInfo> info;
+    std::vector<EvalInfo> eval_info;
     for (ast::File *file : package_files_) {
         for (auto& decl : file->decls_) {
             auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get());
@@ -108,7 +108,7 @@ ConstantHandler::FindConstantEvaluationInfo() {
                         dependencies = FindConstantDependencies(value);
                     }
                     
-                    info.push_back(ConstantEvaluationInfo{
+                    eval_info.push_back(EvalInfo{
                         constant, name, type, value, iota, dependencies
                     });
                 }
@@ -116,7 +116,7 @@ ConstantHandler::FindConstantEvaluationInfo() {
             }
         }
     }
-    return info;
+    return eval_info;
 }
 
 std::unordered_set<types::Constant *> ConstantHandler::FindConstantDependencies(ast::Expr *expr) {
@@ -154,36 +154,37 @@ std::unordered_set<types::Constant *> ConstantHandler::FindConstantDependencies(
     return constants;
 }
 
-void ConstantHandler::EvaluateConstant(ConstantEvaluationInfo &info) {
+void ConstantHandler::EvaluateConstant(EvalInfo &eval_info) {
     types::Basic *type = nullptr;
     constants::Value value(int64_t{0});
-    if (info.value_ == nullptr) {
-        if (info.type_ == nullptr) {
+    if (eval_info.value_ == nullptr) {
+        if (eval_info.type_ == nullptr) {
             issues_.push_back(
                               issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            info.name_->start(),
-                                            "constant needs a type or value: " + info.name_->name_));
+                                            eval_info.name_->start(),
+                                            "constant needs a type or value: " +
+                                                eval_info.name_->name_));
             return;
         }
-        type = dynamic_cast<types::Basic *>(info_->types_.at(info.type_));
+        type = dynamic_cast<types::Basic *>(info_->types_.at(eval_info.type_));
         if (type == nullptr) {
             issues_.push_back(
                               issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            info.name_->start(),
-                                            "constant can not have non-basic type: " + info.name_->name_));
+                                            eval_info.name_->start(),
+                                            "constant can not have non-basic type: " + eval_info.name_->name_));
             return;
         }
         value = ConvertUntypedInt(value, type->kind());
         
     } else {
-        if (!EvaluateConstantExpr(info.value_, info.iota_)) {
+        if (!EvaluateConstantExpr(eval_info.value_, eval_info.iota_)) {
             issues_.push_back(
                               issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            info.name_->start(),
-                                            "constant could not be evaluated: " + info.name_->name_));
+                                            eval_info.name_->start(),
+                                            "constant could not be evaluated: " + eval_info.name_->name_));
             return;
         }
     }

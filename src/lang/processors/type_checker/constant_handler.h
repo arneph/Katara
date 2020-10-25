@@ -27,7 +27,7 @@ public:
                                 std::vector<issues::Issue>& issues);
     
 private:
-    struct ConstantEvaluationInfo {
+    struct EvalInfo {
         types::Constant *constant_;
         
         ast::Ident *name_;
@@ -47,12 +47,12 @@ private:
     
     void EvaluateConstants();
     
-    std::vector<ConstantEvaluationInfo>
-    FindConstantsEvaluationOrder(std::vector<ConstantEvaluationInfo> info);
-    std::vector<ConstantEvaluationInfo> FindConstantEvaluationInfo();
+    std::vector<EvalInfo>
+    FindConstantsEvaluationOrder(std::vector<EvalInfo> eval_info);
+    std::vector<EvalInfo> FindConstantEvaluationInfo();
     std::unordered_set<types::Constant *> FindConstantDependencies(ast::Expr *expr);
     
-    void EvaluateConstant(ConstantEvaluationInfo& info);
+    void EvaluateConstant(EvalInfo& eval_info);
     bool EvaluateConstantExpr(ast::Expr *expr, int64_t iota);
     bool EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota);
     bool EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iota);
