@@ -13,11 +13,11 @@
 #include <string>
 #include <vector>
 
-#include "lang/positions.h"
-#include "lang/token.h"
-#include "lang/ast.h"
-#include "lang/issues.h"
-#include "lang/scanner.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/tokens/tokens.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/processors/issues/issues.h"
+#include "lang/processors/scanner/scanner.h"
 
 namespace lang {
 namespace parser {
@@ -35,7 +35,7 @@ private:
     
     std::unique_ptr<ast::Decl> ParseDecl();
     std::unique_ptr<ast::GenDecl> ParseGenDecl();
-    std::unique_ptr<ast::Spec> ParseSpec(token::Token spec_type);
+    std::unique_ptr<ast::Spec> ParseSpec(tokens::Token spec_type);
     std::unique_ptr<ast::ImportSpec> ParseImportSpec();
     std::unique_ptr<ast::ValueSpec> ParseValueSpec();
     std::unique_ptr<ast::TypeSpec> ParseTypeSpec();
@@ -64,7 +64,7 @@ private:
     std::vector<std::unique_ptr<ast::Expr>> ParseExprList(std::unique_ptr<ast::Expr> first_expr,
                                                           bool disallow_composite_lit);
     std::unique_ptr<ast::Expr> ParseExpr(bool disallow_composite_lit);
-    std::unique_ptr<ast::Expr> ParseExpr(token::precedence_t prec,
+    std::unique_ptr<ast::Expr> ParseExpr(tokens::precedence_t prec,
                                          bool disallow_composite_lit);
     std::unique_ptr<ast::Expr> ParseUnaryExpr(bool disallow_composite_lit);
     

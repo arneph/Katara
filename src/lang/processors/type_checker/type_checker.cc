@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "lang/ast_util.h"
+#include "lang/representation/ast/ast_util.h"
 
 namespace lang {
 namespace type_checker {
@@ -128,13 +128,13 @@ void TypeChecker::SetupPredeclaredTypes() {
 void TypeChecker::SetupPredeclaredConstants() {
     typedef struct{
         types::Basic::Kind kind_;
-        constant::Value value_;
+        constants::Value value_;
         std::string name_;
     } predeclared_const_t;
     auto predeclared_consts = std::vector<predeclared_const_t>({
-        {types::Basic::kUntypedBool, constant::Value(false), "false"},
-        {types::Basic::kUntypedBool, constant::Value(true), "true"},
-        {types::Basic::kUntypedInt, constant::Value(int64_t{0}), "iota"},
+        {types::Basic::kUntypedBool, constants::Value(false), "false"},
+        {types::Basic::kUntypedBool, constants::Value(true), "true"},
+        {types::Basic::kUntypedInt, constants::Value(int64_t{0}), "iota"},
     });
     for (auto predeclared_const : predeclared_consts) {
         auto constant = std::unique_ptr<types::Constant>(new types::Constant());
@@ -256,24 +256,24 @@ void TypeChecker::AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl,
                                                types::Scope *scope,
                                                ast::File *file) {
     switch (gen_decl->tok_) {
-        case token::kImport:
+        case tokens::kImport:
             for (auto& spec : gen_decl->specs_) {
                 AddDefinedObjectsFromImportSpec(static_cast<ast::ImportSpec *>(spec.get()), file);
             }
             return;
-        case token::kConst:
+        case tokens::kConst:
             for (auto& spec : gen_decl->specs_) {
                 AddDefinedObjectsFromConstSpec(static_cast<ast::ValueSpec *>(spec.get()),
                                                scope);
             }
             return;
-        case token::kVar:
+        case tokens::kVar:
             for (auto& spec : gen_decl->specs_) {
                 AddDefinedObjectsFromVarSpec(static_cast<ast::ValueSpec *>(spec.get()),
                                              scope);
             }
             return;
-        case token::kType:
+        case tokens::kType:
             for (auto& spec : gen_decl->specs_) {
                 AddDefinedObjectFromTypeSpec(static_cast<ast::TypeSpec *>(spec.get()),
                                              scope);
@@ -431,16 +431,16 @@ void TypeChecker::AddDefinedObjectFromFuncDecl(ast::FuncDecl *func_decl, types::
 
 void TypeChecker::ResolveIdentifiersInGenDecl(ast::GenDecl *gen_decl, types::Scope *scope) {
     switch (gen_decl->tok_) {
-        case token::kImport:
+        case tokens::kImport:
             return;
-        case token::kConst:
-        case token::kVar:
+        case tokens::kConst:
+        case tokens::kVar:
             for (auto& spec : gen_decl->specs_) {
                 ResolveIdentifiersInValueSpec(static_cast<ast::ValueSpec *>(spec.get()),
                                              scope);
             }
             return;
-        case token::kType:
+        case tokens::kType:
             for (auto& spec : gen_decl->specs_) {
                 ResolveIdentifiersInTypeSpec(static_cast<ast::TypeSpec *>(spec.get()),
                                             scope);
@@ -544,8 +544,8 @@ void TypeChecker::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *fiel
     ast::Field *field = field_list->fields_.at(0).get();
     ast::Expr *type = field->type_.get();
     if (auto ptr_type = dynamic_cast<ast::UnaryExpr *>(type)) {
-        if (ptr_type->op_ != token::kMul &&
-            ptr_type->op_ != token::kRem) {
+        if (ptr_type->op_ != tokens::kMul &&
+            ptr_type->op_ != tokens::kRem) {
             issues_.push_back(
                 issues::Issue(issues::Origin::TypeChecker,
                               issues::Severity::Error,
@@ -697,21 +697,21 @@ void TypeChecker::ResolveIdentifiersInBlockStmt(ast::BlockStmt *body, types::Sco
 
 void TypeChecker::ResolveIdentifiersInDeclStmt(ast::DeclStmt *decl_stmt, types::Scope *scope) {
     switch (decl_stmt->decl_->tok_) {
-        case token::kConst:
+        case tokens::kConst:
             for (auto& spec : decl_stmt->decl_->specs_) {
                 auto value_spec = static_cast<ast::ValueSpec *>(spec.get());
                 ResolveIdentifiersInValueSpec(value_spec, scope);
                 AddDefinedObjectsFromConstSpec(value_spec, scope);
             }
             return;
-        case token::kVar:
+        case tokens::kVar:
             for (auto& spec : decl_stmt->decl_->specs_) {
                 auto value_spec = static_cast<ast::ValueSpec *>(spec.get());
                 ResolveIdentifiersInValueSpec(value_spec, scope);
                 AddDefinedObjectsFromVarSpec(value_spec, scope);
             }
             return;
-        case token::kType:
+        case tokens::kType:
             for (auto& spec : decl_stmt->decl_->specs_) {
                 auto type_spec = static_cast<ast::TypeSpec *>(spec.get());
                 AddDefinedObjectFromTypeSpec(type_spec, scope);
@@ -728,7 +728,7 @@ void TypeChecker::ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_stmt, t
         ResolveIdentifiersInExpr(expr.get(), scope);
     }
     for (auto& expr : assign_stmt->lhs_) {
-        if (assign_stmt->tok_ == token::kDefine) {
+        if (assign_stmt->tok_ == tokens::kDefine) {
             auto ident = dynamic_cast<ast::Ident *>(expr.get());
             if (ident != nullptr) {
                 const types::Scope *defining_scope = nullptr;
@@ -871,7 +871,7 @@ void TypeChecker::ResolveIdentifiersInForStmt(ast::ForStmt *for_stmt, types::Sco
     }
     if (for_stmt->post_) {
         if (auto assign_stmt = dynamic_cast<ast::AssignStmt *>(for_stmt->post_.get())) {
-            if (assign_stmt->tok_ == token::kDefine) {
+            if (assign_stmt->tok_ == tokens::kDefine) {
                 issues_.push_back(
                     issues::Issue(issues::Origin::TypeChecker,
                                   issues::Severity::Error,
@@ -1095,8 +1095,8 @@ void TypeChecker::ResolveIdentifiersInStructType(ast::StructType *struct_type,
         if (field->names_.empty()) {
             ast::Expr *type = field->type_.get();
             if (auto ptr_type = dynamic_cast<ast::UnaryExpr *>(type)) {
-                if (ptr_type->op_ != token::kMul &&
-                    ptr_type->op_ != token::kRem) {
+                if (ptr_type->op_ != tokens::kMul &&
+                    ptr_type->op_ != tokens::kRem) {
                     issues_.push_back(
                         issues::Issue(issues::Origin::TypeChecker,
                                       issues::Severity::Error,
@@ -1271,7 +1271,7 @@ void TypeChecker::FindInitializersAndDependencies(
                         }
                         dependencies.insert({l, r});
                     }
-                    if (gen_decl->tok_ != token::kVar ||
+                    if (gen_decl->tok_ != tokens::kVar ||
                         value_spec->values_.empty()) {
                         continue;
                     }
@@ -1399,7 +1399,7 @@ TypeChecker::FindConstantEvaluationInfo() {
         for (auto& decl : file->decls_) {
             auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get());
             if (gen_decl == nullptr ||
-                gen_decl->tok_ != token::kConst) {
+                gen_decl->tok_ != tokens::kConst) {
                 continue;
             }
             int64_t iota = 0;
@@ -1466,7 +1466,7 @@ std::unordered_set<types::Constant *> TypeChecker::FindConstantDependencies(ast:
 
 void TypeChecker::EvaluateConstant(ConstantEvaluationInfo &info) {
     types::Basic *type = nullptr;
-    constant::Value value(int64_t{0});
+    constants::Value value(int64_t{0});
     if (info.value_ == nullptr) {
         if (info.type_ == nullptr) {
             issues_.push_back(
@@ -1503,7 +1503,7 @@ bool TypeChecker::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
     if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
         types::Constant *constant = dynamic_cast<types::Constant *>(info_->uses().at(ident));
         types::Basic *type = static_cast<types::Basic *>(constant->type_);
-        constant::Value value(0);
+        constants::Value value(0);
         if (constant == nullptr) {
             issues_.push_back(
                 issues::Issue(issues::Origin::TypeChecker,
@@ -1513,7 +1513,7 @@ bool TypeChecker::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
             return false;
         } else if (constant->parent_ == info_->universe_ &&
                    constant->name_ == "iota") {
-            value = constant::Value(iota);
+            value = constants::Value(iota);
         } else {
             value = constant->value_;
         }
@@ -1526,7 +1526,7 @@ bool TypeChecker::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
         uint64_t v = std::stoull(basic_lit->value_);
         
         types::Basic *type = info_->basic_types_.at(types::Basic::kUntypedInt);
-        constant::Value value(v);
+        constants::Value value(v);
         
         info_->types_.insert({expr, type});
         info_->constant_values_.insert({expr, value});
@@ -1538,7 +1538,7 @@ bool TypeChecker::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
         }
         
         types::Type *type = info_->types_.at(paren_expr->x_.get());
-        constant::Value value = info_->constant_values_.at(paren_expr->x_.get());
+        constants::Value value = info_->constant_values_.at(paren_expr->x_.get());
         
         info_->types_.insert({expr, type});
         info_->constant_values_.insert({expr, value});
@@ -1549,15 +1549,15 @@ bool TypeChecker::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
         
     } else if (ast::BinaryExpr *binary_expr = dynamic_cast<ast::BinaryExpr *>(expr)) {
         switch (binary_expr->op_) {
-            case token::kLss:
-            case token::kLeq:
-            case token::kGeq:
-            case token::kGtr:
-            case token::kEql:
-            case token::kNeq:
+            case tokens::kLss:
+            case tokens::kLeq:
+            case tokens::kGeq:
+            case tokens::kGtr:
+            case tokens::kEql:
+            case tokens::kNeq:
                 return EvaluateConstantCompareExpr(binary_expr, iota);
-            case token::kShl:
-            case token::kShr:
+            case tokens::kShl:
+            case tokens::kShr:
                 return EvaluateConstantShiftExpr(binary_expr, iota);
             default:
                 return EvaluateConstantBinaryExpr(binary_expr, iota);
@@ -1577,12 +1577,12 @@ bool TypeChecker::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) 
     }
     
     types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
-    constant::Value x_value = info_->constant_values_.at(expr->x_.get());
+    constants::Value x_value = info_->constant_values_.at(expr->x_.get());
     
     switch (x_type->kind_) {
         case types::Basic::kBool:
         case types::Basic::kUntypedBool:
-            if (expr->op_ != token::kNot) {
+            if (expr->op_ != tokens::kNot) {
                 issues_.push_back(
                     issues::Issue(issues::Origin::TypeChecker,
                                   issues::Severity::Error,
@@ -1591,7 +1591,7 @@ bool TypeChecker::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) 
                 return false;
             }
             info_->types_.insert({expr, x_type});
-            info_->constant_values_.insert({expr, constant::UnaryOp(expr->op_, x_value)});
+            info_->constant_values_.insert({expr, constants::UnaryOp(expr->op_, x_value)});
             return true;
             
         case types::Basic::kUint:
@@ -1606,9 +1606,9 @@ bool TypeChecker::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) 
         case types::Basic::kInt64:
         case types::Basic::kUntypedInt:
         case types::Basic::kUntypedRune:{
-            if (expr->op_ != token::kAdd &&
-                expr->op_ != token::kSub &&
-                expr->op_ != token::kXor) {
+            if (expr->op_ != tokens::kAdd &&
+                expr->op_ != tokens::kSub &&
+                expr->op_ != tokens::kXor) {
                 issues_.push_back(
                     issues::Issue(issues::Origin::TypeChecker,
                                   issues::Severity::Error,
@@ -1617,14 +1617,14 @@ bool TypeChecker::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) 
                 return false;
             }
             types::Basic *result_type = x_type;
-            if (expr->op_ == token::kSub &&
+            if (expr->op_ == tokens::kSub &&
                 result_type->info() & types::Basic::kIsUnsigned) {
                 constexpr types::Basic::Kind diff{types::Basic::kUint - types::Basic::kInt};
                 result_type = info_->basic_types_.at(types::Basic::Kind(result_type->kind_ - diff));
             }
             
             info_->types_.insert({expr, result_type});
-            info_->constant_values_.insert({expr, constant::UnaryOp(expr->op_, x_value)});
+            info_->constant_values_.insert({expr, constants::UnaryOp(expr->op_, x_value)});
             return true;
         }
         case types::Basic::kString:
@@ -1651,10 +1651,10 @@ bool TypeChecker::EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iot
     types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
     types::Basic *y_type = static_cast<types::Basic *>(info_->types_.at(expr->y_.get()));
     switch (expr->op_) {
-        case token::kLss:
-        case token::kLeq:
-        case token::kGeq:
-        case token::kGtr:
+        case tokens::kLss:
+        case tokens::kLeq:
+        case tokens::kGeq:
+        case tokens::kGtr:
             if ((x_type->info() & types::Basic::kIsOrdered) == 0 ||
                 (y_type->info() & types::Basic::kIsOrdered) == 0) {
                 issues_.push_back(
@@ -1668,8 +1668,8 @@ bool TypeChecker::EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iot
         default:;
     }
     
-    constant::Value x_value = info_->constant_values_.at(expr->x_.get());
-    constant::Value y_value = info_->constant_values_.at(expr->y_.get());
+    constants::Value x_value = info_->constant_values_.at(expr->x_.get());
+    constants::Value y_value = info_->constant_values_.at(expr->y_.get());
     types::Basic *result_type;
     
     if (!CheckTypesForRegualarConstantBinaryExpr(expr,
@@ -1679,10 +1679,10 @@ bool TypeChecker::EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iot
         return false;
     }
     
-    bool result = constant::Compare(x_value, expr->op_, y_value);
+    bool result = constants::Compare(x_value, expr->op_, y_value);
     
     info_->types_.insert({expr, result_type});
-    info_->constant_values_.insert({expr, constant::Value(result)});
+    info_->constant_values_.insert({expr, constants::Value(result)});
     return true;
 }
 
@@ -1706,8 +1706,8 @@ bool TypeChecker::EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota)
         return false;
     }
     
-    constant::Value x_value = info_->constant_values_.at(expr->x_.get());
-    constant::Value y_value = info_->constant_values_.at(expr->y_.get());
+    constants::Value x_value = info_->constant_values_.at(expr->x_.get());
+    constants::Value y_value = info_->constant_values_.at(expr->y_.get());
     
     if ((x_type->info() & types::Basic::kIsUntyped) != 0) {
         x_value = ConvertUntypedInt(x_value, types::Basic::kInt);
@@ -1724,7 +1724,7 @@ bool TypeChecker::EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota)
     }
     
     info_->types_.insert({expr, x_type});
-    info_->constant_values_.insert({expr, constant::ShiftOp(x_value, expr->op_, y_value)});
+    info_->constant_values_.insert({expr, constants::ShiftOp(x_value, expr->op_, y_value)});
     return true;
 }
 
@@ -1739,8 +1739,8 @@ bool TypeChecker::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota
     types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
     types::Basic *y_type = static_cast<types::Basic *>(info_->types_.at(expr->y_.get()));
     switch (expr->op_) {
-        case token::kLAnd:
-        case token::kLOr:
+        case tokens::kLAnd:
+        case tokens::kLOr:
             if ((x_type->info() & types::Basic::kIsBoolean) == 0 ||
                 (y_type->info() & types::Basic::kIsBoolean) == 0) {
                 issues_.push_back(
@@ -1752,19 +1752,19 @@ bool TypeChecker::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota
                 return false;
             }
             break;
-        case token::kAdd:
+        case tokens::kAdd:
             if ((x_type->info() & types::Basic::kIsString) &&
                 (y_type->info() & types::Basic::kIsString)) {
                 break;
             }
-        case token::kSub:
-        case token::kMul:
-        case token::kQuo:
-        case token::kRem:
-        case token::kAnd:
-        case token::kOr:
-        case token::kXor:
-        case token::kAndNot:
+        case tokens::kSub:
+        case tokens::kMul:
+        case tokens::kQuo:
+        case tokens::kRem:
+        case tokens::kAnd:
+        case tokens::kOr:
+        case tokens::kXor:
+        case tokens::kAndNot:
             if ((x_type->info() & types::Basic::kIsNumeric) == 0 ||
                 (y_type->info() & types::Basic::kIsNumeric) == 0) {
                 issues_.push_back(
@@ -1779,8 +1779,8 @@ bool TypeChecker::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota
         default:;
     }
     
-    constant::Value x_value = info_->constant_values_.at(expr->x_.get());
-    constant::Value y_value = info_->constant_values_.at(expr->y_.get());
+    constants::Value x_value = info_->constant_values_.at(expr->x_.get());
+    constants::Value y_value = info_->constant_values_.at(expr->y_.get());
     types::Basic *result_type;
     
     if (!CheckTypesForRegualarConstantBinaryExpr(expr,
@@ -1791,14 +1791,14 @@ bool TypeChecker::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota
     }
     
     info_->types_.insert({expr, result_type});
-    info_->constant_values_.insert({expr, constant::BinaryOp(x_value, expr->op_, y_value)});
+    info_->constant_values_.insert({expr, constants::BinaryOp(x_value, expr->op_, y_value)});
     return true;
 }
 
 
 bool TypeChecker::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
-                                                          constant::Value &x_value,
-                                                          constant::Value &y_value,
+                                                          constants::Value &x_value,
+                                                          constants::Value &y_value,
                                                           types::Basic* &result_type) {
     types::Basic *x_type = static_cast<types::Basic *>(info_->types_.at(expr->x_.get()));
     types::Basic *y_type = static_cast<types::Basic *>(info_->types_.at(expr->y_.get()));
@@ -1863,65 +1863,65 @@ bool TypeChecker::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
     return true;
 }
 
-constant::Value TypeChecker::ConvertUntypedInt(constant::Value value, types::Basic::Kind kind) {
+constants::Value TypeChecker::ConvertUntypedInt(constants::Value value, types::Basic::Kind kind) {
     switch (kind) {
         case types::Basic::kInt8:
             switch (value.value_.index()) {
                 case 7:
-                    return constant::Value(int8_t(std::get<int64_t>(value.value_)));
+                    return constants::Value(int8_t(std::get<int64_t>(value.value_)));
                 case 8:
-                    return constant::Value(int8_t(std::get<uint64_t>(value.value_)));
+                    return constants::Value(int8_t(std::get<uint64_t>(value.value_)));
             }
         case types::Basic::kInt16:
             switch (value.value_.index()) {
                 case 7:
-                    return constant::Value(int16_t(std::get<int64_t>(value.value_)));
+                    return constants::Value(int16_t(std::get<int64_t>(value.value_)));
                 case 8:
-                    return constant::Value(int16_t(std::get<uint64_t>(value.value_)));
+                    return constants::Value(int16_t(std::get<uint64_t>(value.value_)));
             }
         case types::Basic::kInt32:
             switch (value.value_.index()) {
                 case 7:
-                    return constant::Value(int32_t(std::get<int64_t>(value.value_)));
+                    return constants::Value(int32_t(std::get<int64_t>(value.value_)));
                 case 8:
-                    return constant::Value(int32_t(std::get<uint64_t>(value.value_)));
+                    return constants::Value(int32_t(std::get<uint64_t>(value.value_)));
             }
         case types::Basic::kInt64:
         case types::Basic::kInt:
             switch (value.value_.index()) {
                 case 7:
-                    return constant::Value(int64_t(std::get<int64_t>(value.value_)));
+                    return constants::Value(int64_t(std::get<int64_t>(value.value_)));
                 case 8:
-                    return constant::Value(int64_t(std::get<uint64_t>(value.value_)));
+                    return constants::Value(int64_t(std::get<uint64_t>(value.value_)));
             }
         case types::Basic::kUint8:
             switch (value.value_.index()) {
                 case 7:
-                    return constant::Value(uint8_t(std::get<int64_t>(value.value_)));
+                    return constants::Value(uint8_t(std::get<int64_t>(value.value_)));
                 case 8:
-                    return constant::Value(uint8_t(std::get<uint64_t>(value.value_)));
+                    return constants::Value(uint8_t(std::get<uint64_t>(value.value_)));
             }
         case types::Basic::kUint16:
             switch (value.value_.index()) {
                 case 7:
-                    return constant::Value(uint16_t(std::get<int64_t>(value.value_)));
+                    return constants::Value(uint16_t(std::get<int64_t>(value.value_)));
                 case 8:
-                    return constant::Value(uint16_t(std::get<uint64_t>(value.value_)));
+                    return constants::Value(uint16_t(std::get<uint64_t>(value.value_)));
             }
         case types::Basic::kUint32:
             switch (value.value_.index()) {
                 case 7:
-                    return constant::Value(uint32_t(std::get<int64_t>(value.value_)));
+                    return constants::Value(uint32_t(std::get<int64_t>(value.value_)));
                 case 8:
-                    return constant::Value(uint32_t(std::get<uint64_t>(value.value_)));
+                    return constants::Value(uint32_t(std::get<uint64_t>(value.value_)));
             }
         case types::Basic::kUint64:
         case types::Basic::kUint:
             switch (value.value_.index()) {
                 case 7:
-                    return constant::Value(uint64_t(std::get<int64_t>(value.value_)));
+                    return constants::Value(uint64_t(std::get<int64_t>(value.value_)));
                 case 8:
-                    return constant::Value(uint64_t(std::get<uint64_t>(value.value_)));
+                    return constants::Value(uint64_t(std::get<uint64_t>(value.value_)));
             }
         default:;
     }

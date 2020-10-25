@@ -11,8 +11,8 @@
 
 #include <string>
 
-#include "lang/positions.h"
-#include "lang/token.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/tokens/tokens.h"
 
 namespace lang {
 namespace scanner {
@@ -21,7 +21,7 @@ class Scanner {
 public:
     Scanner(pos::File *file);
     
-    token::Token token() const;
+    tokens::Token token() const;
     pos::pos_t token_start() const;
     pos::pos_t token_end() const;
     std::string token_string() const;
@@ -34,11 +34,11 @@ private:
     
     pos::pos_t pos_;
     
-    token::Token tok_;
+    tokens::Token tok_;
     pos::pos_t tok_start_;
     pos::pos_t tok_end_;
     
-    void NextArithmeticOrBitOpStart(token::Token tok);
+    void NextArithmeticOrBitOpStart(tokens::Token tok);
 };
 
 }

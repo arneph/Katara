@@ -177,11 +177,11 @@ pos::pos_t BranchStmt::end() const {
         return label_->end();
     }
     switch (tok_) {
-        case token::kFallthrough:
+        case tokens::kFallthrough:
             return tok_start_ + 10;
-        case token::kContinue:
+        case tokens::kContinue:
             return tok_start_ + 7;
-        case token::kBreak:
+        case tokens::kBreak:
             return tok_start_ + 4;
         default:
             throw "unexpected ast::BranchStmt token";

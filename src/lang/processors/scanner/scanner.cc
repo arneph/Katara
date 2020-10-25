@@ -11,11 +11,11 @@
 namespace lang {
 namespace scanner {
 
-Scanner::Scanner(pos::File *file) : file_(file), pos_(file->start()), tok_(token::kIllegal) {
+Scanner::Scanner(pos::File *file) : file_(file), pos_(file->start()), tok_(tokens::kIllegal) {
     Next();
 }
 
-token::Token Scanner::token() const {
+tokens::Token Scanner::token() const {
     return tok_;
 }
 
@@ -34,20 +34,20 @@ std::string Scanner::token_string() const {
 void Scanner::Next(bool split_shift_ops) {
     bool insert_semicolon = false;
     switch (tok_) {
-        case token::kIdent:
-        case token::kInt:
-        case token::kChar:
-        case token::kString:
-        case token::kFallthrough:
-        case token::kContinue:
-        case token::kBreak:
-        case token::kReturn:
-        case token::kInc:
-        case token::kDec:
-        case token::kGtr:
-        case token::kRParen:
-        case token::kRBrack:
-        case token::kRBrace:
+        case tokens::kIdent:
+        case tokens::kInt:
+        case tokens::kChar:
+        case tokens::kString:
+        case tokens::kFallthrough:
+        case tokens::kContinue:
+        case tokens::kBreak:
+        case tokens::kReturn:
+        case tokens::kInc:
+        case tokens::kDec:
+        case tokens::kGtr:
+        case tokens::kRParen:
+        case tokens::kRBrack:
+        case tokens::kRBrace:
             insert_semicolon = true;
         default:;
     }
@@ -58,43 +58,43 @@ void Scanner::Next(bool split_shift_ops) {
          pos_++);
     tok_start_ = pos_;
     if (pos_ == file_->end()) {
-        tok_ = token::kEOF;
+        tok_ = tokens::kEOF;
         tok_end_ = pos_;
         return;
     }
     
     switch (file_->at(pos_++)) {
         case '\n':
-            tok_ = token::kSemicolon;
+            tok_ = tokens::kSemicolon;
             tok_end_ = pos_ - 1;
             return;
         case '+':
             if (pos_ < file_->end() &&
                 file_->at(pos_) == '+') {
-                tok_ = token::kInc;
+                tok_ = tokens::kInc;
                 tok_end_ = pos_++;
                 return;
             }
-            NextArithmeticOrBitOpStart(token::kAdd);
+            NextArithmeticOrBitOpStart(tokens::kAdd);
             return;
         case '-':
             if (pos_ < file_->end() &&
                 file_->at(pos_) == '-') {
-                tok_ = token::kDec;
+                tok_ = tokens::kDec;
                 tok_end_ = pos_++;
                 return;
             }
-            NextArithmeticOrBitOpStart(token::kSub);
+            NextArithmeticOrBitOpStart(tokens::kSub);
             return;
         case '*':
-            NextArithmeticOrBitOpStart(token::kMul);
+            NextArithmeticOrBitOpStart(tokens::kMul);
             return;
         case '/':
             if (pos_ < file_->end() &&
                 file_->at(pos_) == '/') {
                 for (; pos_ < file_->end() && file_->at(pos_) != '\n';
                      pos_++);
-                tok_ = token::kComment;
+                tok_ = tokens::kComment;
                 tok_end_ = pos_ - 1;
                 return;
             } else if (pos_ < file_->end() &&
@@ -102,56 +102,56 @@ void Scanner::Next(bool split_shift_ops) {
                 for (; pos_ < file_->end() - 1 &&
                      (file_->at(pos_) != '*' || file_->at(pos_ + 1) != '/');
                      pos_++);
-                tok_ = token::kComment;
+                tok_ = tokens::kComment;
                 tok_end_ = (pos_ < file_->end() - 1) ? pos_ + 1 : pos_;
                 pos_ += 2;
                 return;
             }
-            NextArithmeticOrBitOpStart(token::kQuo);
+            NextArithmeticOrBitOpStart(tokens::kQuo);
             return;
         case '%':
-            NextArithmeticOrBitOpStart(token::kRem);
+            NextArithmeticOrBitOpStart(tokens::kRem);
             return;
         case '&':
             if (pos_ < file_->end() &&
                 file_->at(pos_) == '&') {
-                tok_ = token::kLAnd;
+                tok_ = tokens::kLAnd;
                 tok_end_ = pos_++;
                 return;
             } else if (pos_ < file_->end() &&
                        file_->at(pos_) == '^') {
                 pos_++;
-                NextArithmeticOrBitOpStart(token::kAndNot);
+                NextArithmeticOrBitOpStart(tokens::kAndNot);
                 return;
             }
-            NextArithmeticOrBitOpStart(token::kAnd);
+            NextArithmeticOrBitOpStart(tokens::kAnd);
             return;
         case '|':
             if (pos_ < file_->end() &&
                 file_->at(pos_) == '|') {
-                tok_ = token::kLOr;
+                tok_ = tokens::kLOr;
                 tok_end_ = pos_++;
                 return;
             }
-            NextArithmeticOrBitOpStart(token::kOr);
+            NextArithmeticOrBitOpStart(tokens::kOr);
             return;
         case '^':
-            NextArithmeticOrBitOpStart(token::kXor);
+            NextArithmeticOrBitOpStart(tokens::kXor);
             return;
         case '<':
             if (!split_shift_ops &&
                 pos_ < file_->end() &&
                 file_->at(pos_) == '<') {
                 pos_++;
-                NextArithmeticOrBitOpStart(token::kShl);
+                NextArithmeticOrBitOpStart(tokens::kShl);
                 return;
             } else if (pos_ < file_->end() &&
                        file_->at(pos_) == '=') {
-                tok_ = token::kLeq;
+                tok_ = tokens::kLeq;
                 tok_end_ = pos_++;
                 return;
             } else {
-                tok_ = token::kLss;
+                tok_ = tokens::kLss;
                 tok_end_ = pos_ - 1;
                 return;
             }
@@ -160,85 +160,85 @@ void Scanner::Next(bool split_shift_ops) {
                 pos_ < file_->end() &&
                 file_->at(pos_) == '>') {
                 pos_++;
-                NextArithmeticOrBitOpStart(token::kShr);
+                NextArithmeticOrBitOpStart(tokens::kShr);
                 return;
             } else if (pos_ < file_->end() &&
                        file_->at(pos_) == '=') {
-                tok_ = token::kGeq;
+                tok_ = tokens::kGeq;
                 tok_end_ = pos_++;
                 return;
             } else {
-                tok_ = token::kGtr;
+                tok_ = tokens::kGtr;
                 tok_end_ = pos_ - 1;
                 return;
             }
         case '=':
             if (pos_ < file_->end() &&
                 file_->at(pos_) == '=') {
-                tok_ = token::kEql;
+                tok_ = tokens::kEql;
                 tok_end_ = pos_++;
                 return;
             } else {
-                tok_ = token::kAssign;
+                tok_ = tokens::kAssign;
                 tok_end_ = pos_ - 1;
                 return;
             }
         case '!':
             if (pos_ < file_->end() &&
                 file_->at(pos_) == '=') {
-                tok_ = token::kNeq;
+                tok_ = tokens::kNeq;
                 tok_end_ = pos_++;
                 return;
             } else {
-                tok_ = token::kNot;
+                tok_ = tokens::kNot;
                 tok_end_ = pos_ - 1;
                 return;
             }
         case ':':
             if (pos_ < file_->end() &&
                 file_->at(pos_) == '=') {
-                tok_ = token::kDefine;
+                tok_ = tokens::kDefine;
                 tok_end_ = pos_++;
                 return;
             } else {
-                tok_ = token::kColon;
+                tok_ = tokens::kColon;
                 tok_end_ = pos_ - 1;
                 return;
             }
         case '(':
-            tok_ = token::kLParen;
+            tok_ = tokens::kLParen;
             tok_end_ = pos_ - 1;
             return;
         case '[':
-            tok_ = token::kLBrack;
+            tok_ = tokens::kLBrack;
             tok_end_ = pos_ - 1;
             return;
         case '{':
-            tok_ = token::kLBrace;
+            tok_ = tokens::kLBrace;
             tok_end_ = pos_ - 1;
             return;
         case ',':
-            tok_ = token::kComma;
+            tok_ = tokens::kComma;
             tok_end_ = pos_ - 1;
             return;
         case '.':
-            tok_ = token::kPeriod;
+            tok_ = tokens::kPeriod;
             tok_end_ = pos_ - 1;
             return;
         case ')':
-            tok_ = token::kRParen;
+            tok_ = tokens::kRParen;
             tok_end_ = pos_ - 1;
             return;
         case ']':
-            tok_ = token::kRBrack;
+            tok_ = tokens::kRBrack;
             tok_end_ = pos_ - 1;
             return;
         case '}':
-            tok_ = token::kRBrace;
+            tok_ = tokens::kRBrace;
             tok_end_ = pos_ - 1;
             return;
         case ';':
-            tok_ = token::kSemicolon;
+            tok_ = tokens::kSemicolon;
             tok_end_ = pos_ - 1;
             return;
         case '\'':{
@@ -253,7 +253,7 @@ void Scanner::Next(bool split_shift_ops) {
                     escaped = true;
                 }
             }
-            tok_ = token::kChar;
+            tok_ = tokens::kChar;
             tok_end_ = pos_++;
             return;
         }
@@ -269,7 +269,7 @@ void Scanner::Next(bool split_shift_ops) {
                     escaped = true;
                 }
             }
-            tok_ = token::kString;
+            tok_ = tokens::kString;
             tok_end_ = pos_++;
             return;
         }
@@ -286,7 +286,7 @@ void Scanner::Next(bool split_shift_ops) {
             for (; pos_ < file_->end() &&
                  '0' <= file_->at(pos_) && file_->at(pos_) <= '9';
                  pos_++);
-            tok_ = token::kInt;
+            tok_ = tokens::kInt;
             tok_end_ = pos_ - 1;
             return;
     }
@@ -297,53 +297,53 @@ void Scanner::Next(bool split_shift_ops) {
           ('0' <= file_->at(pos_) && file_->at(pos_) <= '9') ||
           file_->at(pos_) == '_');
          pos_++);
-    tok_ = token::kIdent;
+    tok_ = tokens::kIdent;
     tok_end_ = pos_ - 1;
     
     std::string ident = file_->contents(tok_start_, tok_end_);
     if (ident == "const") {
-        tok_ = token::kConst;
+        tok_ = tokens::kConst;
     } else if (ident == "var") {
-        tok_ = token::kVar;
+        tok_ = tokens::kVar;
     } else if (ident == "type") {
-        tok_ = token::kType;
+        tok_ = tokens::kType;
     } else if (ident == "interface") {
-        tok_ = token::kInterface;
+        tok_ = tokens::kInterface;
     } else if (ident == "struct") {
-        tok_ = token::kStruct;
+        tok_ = tokens::kStruct;
     } else if (ident == "if") {
-        tok_ = token::kIf;
+        tok_ = tokens::kIf;
     } else if (ident == "else") {
-        tok_ = token::kElse;
+        tok_ = tokens::kElse;
     } else if (ident == "for") {
-        tok_ = token::kFor;
+        tok_ = tokens::kFor;
     } else if (ident == "switch") {
-        tok_ = token::kSwitch;
+        tok_ = tokens::kSwitch;
     } else if (ident == "case") {
-        tok_ = token::kCase;
+        tok_ = tokens::kCase;
     } else if (ident == "default") {
-        tok_ = token::kDefault;
+        tok_ = tokens::kDefault;
     } else if (ident == "fallthrough") {
-        tok_ = token::kElse;
+        tok_ = tokens::kElse;
     } else if (ident == "continue") {
-        tok_ = token::kContinue;
+        tok_ = tokens::kContinue;
     } else if (ident == "break") {
-        tok_ = token::kBreak;
+        tok_ = tokens::kBreak;
     } else if (ident == "return") {
-        tok_ = token::kReturn;
+        tok_ = tokens::kReturn;
     } else if (ident == "func") {
-        tok_ = token::kFunc;
+        tok_ = tokens::kFunc;
     } else if (ident == "import") {
-        tok_ = token::kImport;
+        tok_ = tokens::kImport;
     } else if (ident == "package") {
-        tok_ = token::kPackage;
+        tok_ = tokens::kPackage;
     }
 }
 
-void Scanner::NextArithmeticOrBitOpStart(token::Token tok) {
+void Scanner::NextArithmeticOrBitOpStart(tokens::Token tok) {
     if (pos_ < file_->end() &&
         file_->at(pos_) == '=') {
-        tok_ = token::Token(tok + token::kAddAssign - token::kAdd);
+        tok_ = tokens::Token(tok + tokens::kAddAssign - tokens::kAdd);
         pos_++;
     } else {
         tok_ = tok;

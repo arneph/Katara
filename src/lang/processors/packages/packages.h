@@ -12,15 +12,10 @@
 #include <filesystem>
 #include <memory>
 
-#include "lang/positions.h"
-#include "lang/ast.h"
-#include "lang/ast_util.h"
-#include "lang/constant.h"
-#include "lang/types.h"
-#include "lang/issues.h"
-#include "lang/scanner.h"
-#include "lang/parser.h"
-#include "lang/type_checker.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/representation/types/types.h"
+#include "lang/processors/issues/issues.h"
 
 namespace lang {
 namespace packages {

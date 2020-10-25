@@ -15,10 +15,11 @@
 #include <unordered_set>
 #include <vector>
 
-#include "lang/positions.h"
-#include "lang/ast.h"
-#include "lang/types.h"
-#include "lang/issues.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/representation/constants/constants.h"
+#include "lang/representation/types/types.h"
+#include "lang/processors/issues/issues.h"
 
 namespace lang {
 namespace type_checker {
@@ -135,11 +136,11 @@ private:
     bool EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota);
     bool EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota);
     bool CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
-                                                 constant::Value &x_value,
-                                                 constant::Value &y_value,
+                                                 constants::Value &x_value,
+                                                 constants::Value &y_value,
                                                  types::Basic* &result_type);
     
-    static constant::Value ConvertUntypedInt(constant::Value value, types::Basic::Kind kind);
+    static constants::Value ConvertUntypedInt(constants::Value value, types::Basic::Kind kind);
     
     std::string package_path_;
     std::vector<ast::File *> package_files_;

@@ -1,19 +1,19 @@
 //
-//  token.h
+//  tokens.h
 //  Katara
 //
 //  Created by Arne Philipeit on 5/24/20.
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef lang_token_h
-#define lang_token_h
+#ifndef lang_tokens_h
+#define lang_tokens_h
 
 #include <memory>
 #include <string>
 
 namespace lang {
-namespace token {
+namespace tokens {
 
 typedef int8_t precedence_t;
 
@@ -112,4 +112,4 @@ precedence_t prececende(Token token);
 }
 }
 
-#endif /* lang_token_h */
+#endif /* lang_tokens_h */

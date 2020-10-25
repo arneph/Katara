@@ -11,8 +11,8 @@
 
 #include "vcg/graph.h"
 
-#include "lang/positions.h"
-#include "lang/ast.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/ast/ast.h"
 
 namespace lang {
 namespace ast {

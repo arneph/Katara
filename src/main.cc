@@ -16,17 +16,10 @@
 #include <iostream>
 #include <memory>
 
-#include "lang/positions.h"
-#include "lang/token.h"
-#include "lang/ast.h"
-#include "lang/ast_util.h"
-#include "lang/constant.h"
-#include "lang/types.h"
-#include "lang/types_util.h"
-#include "lang/scanner.h"
-#include "lang/parser.h"
-#include "lang/type_checker.h"
-#include "lang/packages.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/representation/ast/ast_util.h"
+#include "lang/processors/packages/packages.h"
 
 #include "ir/prog.h"
 #include "ir/func.h"

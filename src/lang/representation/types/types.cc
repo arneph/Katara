@@ -316,7 +316,7 @@ std::string TypeName::ToString() const {
 
 Constant::Constant() : value_(false) {}
 
-constant::Value Constant::value() const {
+constants::Value Constant::value() const {
     return value_;
 }
 
@@ -459,7 +459,7 @@ const std::unordered_map<ast::Expr *, Type *>& TypeInfo::types() const {
     return types_;
 }
 
-const std::unordered_map<ast::Expr *, constant::Value>& TypeInfo::constant_values() const {
+const std::unordered_map<ast::Expr *, constants::Value>& TypeInfo::constant_values() const {
     return constant_values_;
 }
 

@@ -25,7 +25,7 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
     auto file = std::make_unique<ast::File>();
     file->file_start_ = scanner_.token_start();
     
-    while (scanner_.token() != token::kPackage) {
+    while (scanner_.token() != tokens::kPackage) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -37,7 +37,7 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
     if (name) {
         file->package_name_ = std::move(name);
     }
-    if (scanner_.token() != token::kSemicolon) {
+    if (scanner_.token() != tokens::kSemicolon) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -47,8 +47,8 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
     scanner_.Next();
     
     bool finished_imports = false;
-    while (scanner_.token() != token::kEOF) {
-        if (scanner_.token() != token::kImport) {
+    while (scanner_.token() != tokens::kEOF) {
+        if (scanner_.token() != tokens::kImport) {
             finished_imports = true;
         } else if (finished_imports) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
@@ -60,7 +60,7 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
         if (decl) {
             file->decls_.push_back(std::move(decl));
         }
-        if (scanner_.token() != token::kSemicolon) {
+        if (scanner_.token() != tokens::kSemicolon) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
                                             issues::Severity::Fatal,
                                             scanner_.token_start(),
@@ -77,12 +77,12 @@ std::unique_ptr<ast::File> Parser::ParseFile() {
 
 std::unique_ptr<ast::Decl> Parser::ParseDecl() {
     switch (scanner_.token()) {
-        case token::kImport:
-        case token::kConst:
-        case token::kVar:
-        case token::kType:
+        case tokens::kImport:
+        case tokens::kConst:
+        case tokens::kVar:
+        case tokens::kType:
             return ParseGenDecl();
-        case token::kFunc:
+        case tokens::kFunc:
             return ParseFuncDecl();
         default:
             issues_.push_back(
@@ -102,15 +102,15 @@ std::unique_ptr<ast::GenDecl> Parser::ParseGenDecl() {
     gen_decl->tok_ = scanner_.token();
     scanner_.Next();
     
-    if (scanner_.token() == token::kLParen) {
+    if (scanner_.token() == tokens::kLParen) {
         gen_decl->l_paren_ = scanner_.token_start();
         scanner_.Next();
-        while (scanner_.token() != token::kRParen) {
+        while (scanner_.token() != tokens::kRParen) {
             auto spec = ParseSpec(gen_decl->tok_);
             if (spec) {
                 gen_decl->specs_.push_back(std::move(spec));
             }
-            if (scanner_.token() != token::kSemicolon) {
+            if (scanner_.token() != tokens::kSemicolon) {
                 issues_.push_back(issues::Issue(issues::Origin::Parser,
                                                 issues::Severity::Fatal,
                                                 scanner_.token_start(),
@@ -119,7 +119,7 @@ std::unique_ptr<ast::GenDecl> Parser::ParseGenDecl() {
             }
             scanner_.Next();
         }
-        if (scanner_.token() != token::kRParen) {
+        if (scanner_.token() != tokens::kRParen) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
                                             issues::Severity::Fatal,
                                             scanner_.token_start(),
@@ -140,14 +140,14 @@ std::unique_ptr<ast::GenDecl> Parser::ParseGenDecl() {
     return gen_decl;
 }
 
-std::unique_ptr<ast::Spec> Parser::ParseSpec(token::Token spec_type) {
+std::unique_ptr<ast::Spec> Parser::ParseSpec(tokens::Token spec_type) {
     switch (spec_type) {
-        case token::kImport:
+        case tokens::kImport:
             return ParseImportSpec();
-        case token::kConst:
-        case token::kVar:
+        case tokens::kConst:
+        case tokens::kVar:
             return ParseValueSpec();
-        case token::kType:
+        case tokens::kType:
             return ParseTypeSpec();
         default:
             throw "unexpected spec type";
@@ -157,7 +157,7 @@ std::unique_ptr<ast::Spec> Parser::ParseSpec(token::Token spec_type) {
 std::unique_ptr<ast::ImportSpec> Parser::ParseImportSpec() {
     auto import_spec = std::make_unique<ast::ImportSpec>();
     
-    if (scanner_.token() == token::kIdent) {
+    if (scanner_.token() == tokens::kIdent) {
         auto ident = ParseIdent();
         if (!ident) {
             return nullptr;
@@ -165,7 +165,7 @@ std::unique_ptr<ast::ImportSpec> Parser::ParseImportSpec() {
         import_spec->name_ = std::move(ident);
     }
     
-    if (scanner_.token() != token::kString) {
+    if (scanner_.token() != tokens::kString) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -191,7 +191,7 @@ std::unique_ptr<ast::ValueSpec> Parser::ParseValueSpec() {
     }
     value_spec->names_ = std::move(names);
     
-    if (scanner_.token() != token::kAssign) {
+    if (scanner_.token() != tokens::kAssign) {
         auto type = ParseType();
         if (!type) {
             scanner_.SkipPastLine();
@@ -200,7 +200,7 @@ std::unique_ptr<ast::ValueSpec> Parser::ParseValueSpec() {
         value_spec->type_ = std::move(type);
     }
     
-    if (scanner_.token() == token::kAssign) {
+    if (scanner_.token() == tokens::kAssign) {
         scanner_.Next();
         auto values = ParseExprList(/* disallow_composite_lit= */ false);
         if (values.empty()) {
@@ -223,7 +223,7 @@ std::unique_ptr<ast::TypeSpec> Parser::ParseTypeSpec() {
     }
     type_spec->name_ = std::move(name);
     
-    if (scanner_.token() == token::kLss) {
+    if (scanner_.token() == tokens::kLss) {
         auto type_params = ParseTypeParamList();
         if (!type_params) {
             return nullptr;
@@ -247,7 +247,7 @@ std::unique_ptr<ast::FuncDecl> Parser::ParseFuncDecl() {
     func_decl->type_->func_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() == token::kLParen) {
+    if (scanner_.token() == tokens::kLParen) {
         auto receiver = ParseFuncFieldList(/* expect_paren= */ true);
         if (!receiver) {
             return nullptr;
@@ -261,7 +261,7 @@ std::unique_ptr<ast::FuncDecl> Parser::ParseFuncDecl() {
     }
     func_decl->name_ = std::move(name);
     
-    if (scanner_.token() == token::kLss) {
+    if (scanner_.token() == tokens::kLss) {
         auto type_params = ParseTypeParamList();
         if (!type_params) {
             return nullptr;
@@ -276,7 +276,7 @@ std::unique_ptr<ast::FuncDecl> Parser::ParseFuncDecl() {
     }
     func_decl->type_->params_ = std::move(params);
     
-    if (scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kLBrace) {
         auto results = ParseFuncFieldList(/* expect_paren = */ false);
         if (!results) {
             scanner_.SkipPastLine();
@@ -297,17 +297,17 @@ std::unique_ptr<ast::FuncDecl> Parser::ParseFuncDecl() {
 
 std::vector<std::unique_ptr<ast::Stmt>> Parser::ParseStmtList() {
     std::vector<std::unique_ptr<ast::Stmt>> list;
-    while (scanner_.token() != token::kRBrace && scanner_.token() != token::kCase) {
+    while (scanner_.token() != tokens::kRBrace && scanner_.token() != tokens::kCase) {
         auto stmt = ParseStmt();
         if (!stmt) {
             continue;
         }
         list.push_back(std::move(stmt));
-        if (scanner_.token() == token::kSemicolon) {
+        if (scanner_.token() == tokens::kSemicolon) {
             scanner_.Next();
             continue;
-        } else if (scanner_.token() == token::kRBrace ||
-                   scanner_.token() == token::kCase) {
+        } else if (scanner_.token() == tokens::kRBrace ||
+                   scanner_.token() == tokens::kCase) {
             scanner_.Next();
             break;
         } else {
@@ -323,23 +323,23 @@ std::vector<std::unique_ptr<ast::Stmt>> Parser::ParseStmtList() {
            
 std::unique_ptr<ast::Stmt> Parser::ParseStmt() {
     switch (scanner_.token()) {
-        case token::kLBrace:
+        case tokens::kLBrace:
             return ParseBlockStmt();
-        case token::kConst:
-        case token::kVar:
-        case token::kType:
+        case tokens::kConst:
+        case tokens::kVar:
+        case tokens::kType:
             return ParseDeclStmt();
-        case token::kReturn:
+        case tokens::kReturn:
             return ParseReturnStmt();
-        case token::kIf:
+        case tokens::kIf:
             return ParseIfStmt();
-        case token::kSwitch:
+        case tokens::kSwitch:
             return ParseSwitchStmt();
-        case token::kFor:
+        case tokens::kFor:
             return ParseForStmt();
-        case token::kFallthrough:
-        case token::kContinue:
-        case token::kBreak:
+        case tokens::kFallthrough:
+        case tokens::kContinue:
+        case tokens::kBreak:
             return ParseBranchStmt();
         default:
             break;
@@ -351,7 +351,7 @@ std::unique_ptr<ast::Stmt> Parser::ParseStmt() {
     }
     
     switch (scanner_.token()) {
-        case token::kColon: {
+        case tokens::kColon: {
             ast::Ident *ident_ptr = dynamic_cast<ast::Ident *>(expr.release());
             if (ident_ptr == nullptr) {
                 issues_.push_back(issues::Issue(issues::Origin::Parser,
@@ -383,23 +383,23 @@ std::unique_ptr<ast::Stmt> Parser::ParseSimpleStmt(bool disallow_composite_lit) 
 std::unique_ptr<ast::Stmt> Parser::ParseSimpleStmt(std::unique_ptr<ast::Expr> expr,
                                                    bool disallow_composite_lit) {
     switch (scanner_.token()) {
-        case token::kInc:
-        case token::kDec:
+        case tokens::kInc:
+        case tokens::kDec:
             return ParseIncDecStmt(std::move(expr));
-        case token::kComma:
-        case token::kAddAssign:
-        case token::kSubAssign:
-        case token::kMulAssign:
-        case token::kQuoAssign:
-        case token::kRemAssign:
-        case token::kAndAssign:
-        case token::kOrAssign:
-        case token::kXorAssign:
-        case token::kShlAssign:
-        case token::kShrAssign:
-        case token::kAndNotAssign:
-        case token::kAssign:
-        case token::kDefine:
+        case tokens::kComma:
+        case tokens::kAddAssign:
+        case tokens::kSubAssign:
+        case tokens::kMulAssign:
+        case tokens::kQuoAssign:
+        case tokens::kRemAssign:
+        case tokens::kAndAssign:
+        case tokens::kOrAssign:
+        case tokens::kXorAssign:
+        case tokens::kShlAssign:
+        case tokens::kShrAssign:
+        case tokens::kAndNotAssign:
+        case tokens::kAssign:
+        case tokens::kDefine:
             return ParseAssignStmt(std::move(expr),
                                    disallow_composite_lit);
         default:
@@ -410,7 +410,7 @@ std::unique_ptr<ast::Stmt> Parser::ParseSimpleStmt(std::unique_ptr<ast::Expr> ex
 std::unique_ptr<ast::BlockStmt> Parser::ParseBlockStmt() {
     auto block_stmt = std::make_unique<ast::BlockStmt>();
     
-    if (scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kLBrace) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -423,7 +423,7 @@ std::unique_ptr<ast::BlockStmt> Parser::ParseBlockStmt() {
     
     block_stmt->stmts_ = ParseStmtList();
     
-    if (scanner_.token() != token::kRBrace) {
+    if (scanner_.token() != tokens::kRBrace) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -452,7 +452,7 @@ std::unique_ptr<ast::DeclStmt> Parser::ParseDeclStmt() {
 std::unique_ptr<ast::ReturnStmt> Parser::ParseReturnStmt() {
     auto return_stmt = std::make_unique<ast::ReturnStmt>();
     
-    if (scanner_.token() != token::kReturn) {
+    if (scanner_.token() != tokens::kReturn) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -463,7 +463,7 @@ std::unique_ptr<ast::ReturnStmt> Parser::ParseReturnStmt() {
     return_stmt->return_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() == token::kSemicolon) {
+    if (scanner_.token() == tokens::kSemicolon) {
         return return_stmt;
     }
     
@@ -475,7 +475,7 @@ std::unique_ptr<ast::ReturnStmt> Parser::ParseReturnStmt() {
 std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
     auto if_stmt = std::make_unique<ast::IfStmt>();
     
-    if (scanner_.token() != token::kIf) {
+    if (scanner_.token() != tokens::kIf) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -491,7 +491,7 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
         return nullptr;
     }
     
-    if (scanner_.token() == token::kLBrace) {
+    if (scanner_.token() == tokens::kLBrace) {
         if_stmt->cond_ = std::move(expr);
     } else {
         auto init = ParseSimpleStmt(std::move(expr),
@@ -501,7 +501,7 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
         }
         if_stmt->init_ = std::move(init);
         
-        if (scanner_.token() != token::kSemicolon) {
+        if (scanner_.token() != tokens::kSemicolon) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
                                             issues::Severity::Fatal,
                                             scanner_.token_start(),
@@ -524,13 +524,13 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
     }
     if_stmt->body_ = std::move(body);
     
-    if (scanner_.token() != token::kElse) {
+    if (scanner_.token() != tokens::kElse) {
         return if_stmt;
     }
     scanner_.Next();
     
-    if (scanner_.token() != token::kIf &&
-        scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kIf &&
+        scanner_.token() != tokens::kLBrace) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -551,7 +551,7 @@ std::unique_ptr<ast::IfStmt> Parser::ParseIfStmt() {
 std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
     auto switch_stmt = std::make_unique<ast::SwitchStmt>();
     
-    if (scanner_.token() != token::kSwitch) {
+    if (scanner_.token() != tokens::kSwitch) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -562,13 +562,13 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
     switch_stmt->switch_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kLBrace) {
         auto expr = ParseExpr(/* disallow_composite_lit= */ true);
         if (!expr) {
             return nullptr;
         }
         
-        if (scanner_.token() == token::kLBrace) {
+        if (scanner_.token() == tokens::kLBrace) {
             switch_stmt->tag_ = std::move(expr);
         } else {
             auto init = ParseSimpleStmt(std::move(expr),
@@ -578,7 +578,7 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
             }
             switch_stmt->init_ = std::move(init);
             
-            if (scanner_.token() != token::kSemicolon) {
+            if (scanner_.token() != tokens::kSemicolon) {
                 issues_.push_back(issues::Issue(issues::Origin::Parser,
                                                 issues::Severity::Fatal,
                                                 scanner_.token_start(),
@@ -588,7 +588,7 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
             }
             scanner_.Next();
             
-            if (scanner_.token() != token::kLBrace) {
+            if (scanner_.token() != tokens::kLBrace) {
                 auto tag = ParseExpr(/* disallow_composite_lit= */ true);
                 if (!tag) {
                     return nullptr;
@@ -598,7 +598,7 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
         }
     }
     
-    if (scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kLBrace) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -609,7 +609,7 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
     scanner_.Next();
     
     switch_stmt->body_ = std::make_unique<ast::BlockStmt>();
-    while (scanner_.token() != token::kRBrace) {
+    while (scanner_.token() != tokens::kRBrace) {
         auto clause = ParseCaseClause();
         if (!clause) {
             return nullptr;
@@ -624,8 +624,8 @@ std::unique_ptr<ast::SwitchStmt> Parser::ParseSwitchStmt() {
 std::unique_ptr<ast::CaseClause> Parser::ParseCaseClause() {
     auto case_clause = std::make_unique<ast::CaseClause>();
     
-    if (scanner_.token() != token::kCase &&
-        scanner_.token() != token::kDefault) {
+    if (scanner_.token() != tokens::kCase &&
+        scanner_.token() != tokens::kDefault) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -637,7 +637,7 @@ std::unique_ptr<ast::CaseClause> Parser::ParseCaseClause() {
     case_clause->tok_ = scanner_.token();
     scanner_.Next();
     
-    if (case_clause->tok_ == token::kCase) {
+    if (case_clause->tok_ == tokens::kCase) {
         auto cond_vals = ParseExprList(/* disallow_composite_lit= */ false);
         if (cond_vals.empty()) {
             scanner_.SkipPastLine();
@@ -646,7 +646,7 @@ std::unique_ptr<ast::CaseClause> Parser::ParseCaseClause() {
         case_clause->cond_vals_ = std::move(cond_vals);
     }
     
-    if (scanner_.token() != token::kColon) {
+    if (scanner_.token() != tokens::kColon) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -665,7 +665,7 @@ std::unique_ptr<ast::CaseClause> Parser::ParseCaseClause() {
 std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
     auto for_stmt = std::make_unique<ast::ForStmt>();
     
-    if (scanner_.token() != token::kFor) {
+    if (scanner_.token() != tokens::kFor) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -676,13 +676,13 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
     for_stmt->for_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kLBrace) {
         auto expr = ParseExpr(/* disallow_composite_lit= */ true);
         if (!expr) {
             return nullptr;
         }
         
-        if (scanner_.token() == token::kLBrace) {
+        if (scanner_.token() == tokens::kLBrace) {
             for_stmt->cond_ = std::move(expr);
         } else {
             auto init = ParseSimpleStmt(std::move(expr),
@@ -692,7 +692,7 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
             }
             for_stmt->init_ = std::move(init);
             
-            if (scanner_.token() != token::kSemicolon) {
+            if (scanner_.token() != tokens::kSemicolon) {
                 issues_.push_back(issues::Issue(issues::Origin::Parser,
                                                 issues::Severity::Fatal,
                                                 scanner_.token_start(),
@@ -708,7 +708,7 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
             }
             for_stmt->cond_ = std::move(cond);
             
-            if (scanner_.token() != token::kSemicolon) {
+            if (scanner_.token() != tokens::kSemicolon) {
                 issues_.push_back(issues::Issue(issues::Origin::Parser,
                                                 issues::Severity::Fatal,
                                                 scanner_.token_start(),
@@ -718,14 +718,14 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
             }
             scanner_.Next();
             
-            if (scanner_.token() != token::kLBrace) {
+            if (scanner_.token() != tokens::kLBrace) {
                 auto post = ParseSimpleStmt(/* disallow_composite_lit= */ true);
                 if (!post) {
                     return nullptr;
                 }
                 auto assign_stmt = dynamic_cast<ast::AssignStmt *>(post.get());
                 if (assign_stmt != nullptr &&
-                    assign_stmt->tok_ == token::kDefine) {
+                    assign_stmt->tok_ == tokens::kDefine) {
                     issues_.push_back(
                         issues::Issue(issues::Origin::Parser,
                                       issues::Severity::Fatal,
@@ -750,9 +750,9 @@ std::unique_ptr<ast::ForStmt> Parser::ParseForStmt() {
 std::unique_ptr<ast::BranchStmt> Parser::ParseBranchStmt() {
     auto branch_stmt = std::make_unique<ast::BranchStmt>();
     
-    if (scanner_.token() != token::kFallthrough &&
-        scanner_.token() != token::kContinue &&
-        scanner_.token() != token::kBreak) {
+    if (scanner_.token() != tokens::kFallthrough &&
+        scanner_.token() != tokens::kContinue &&
+        scanner_.token() != tokens::kBreak) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -764,9 +764,9 @@ std::unique_ptr<ast::BranchStmt> Parser::ParseBranchStmt() {
     branch_stmt->tok_ = scanner_.token();
     scanner_.Next();
     
-    if (branch_stmt->tok_ == token::kContinue ||
-        branch_stmt->tok_ == token::kBreak) {
-        if (scanner_.token() == token::kIdent) {
+    if (branch_stmt->tok_ == tokens::kContinue ||
+        branch_stmt->tok_ == tokens::kBreak) {
+        if (scanner_.token() == tokens::kIdent) {
             branch_stmt->label_ = ParseIdent();
         }
     }
@@ -793,7 +793,7 @@ std::unique_ptr<ast::LabeledStmt> Parser::ParseLabeledStmt(std::unique_ptr<ast::
     auto labeled_stmt = std::make_unique<ast::LabeledStmt>();
     labeled_stmt->label_ = std::move(label);
     
-    if (scanner_.token() != token::kColon) {
+    if (scanner_.token() != tokens::kColon) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -818,19 +818,19 @@ std::unique_ptr<ast::AssignStmt> Parser::ParseAssignStmt(std::unique_ptr<ast::Ex
                                       disallow_composite_lit);
     
     switch (scanner_.token()) {
-        case token::kAddAssign:
-        case token::kSubAssign:
-        case token::kMulAssign:
-        case token::kQuoAssign:
-        case token::kRemAssign:
-        case token::kAndAssign:
-        case token::kOrAssign:
-        case token::kXorAssign:
-        case token::kShlAssign:
-        case token::kShrAssign:
-        case token::kAndNotAssign:
-        case token::kAssign:
-        case token::kDefine:
+        case tokens::kAddAssign:
+        case tokens::kSubAssign:
+        case tokens::kMulAssign:
+        case tokens::kQuoAssign:
+        case tokens::kRemAssign:
+        case tokens::kAndAssign:
+        case tokens::kOrAssign:
+        case tokens::kXorAssign:
+        case tokens::kShlAssign:
+        case tokens::kShrAssign:
+        case tokens::kAndNotAssign:
+        case tokens::kAssign:
+        case tokens::kDefine:
             break;
         default:
             issues_.push_back(issues::Issue(issues::Origin::Parser,
@@ -857,8 +857,8 @@ std::unique_ptr<ast::IncDecStmt> Parser::ParseIncDecStmt(std::unique_ptr<ast::Ex
     auto inc_dec_stmt = std::make_unique<ast::IncDecStmt>();
     inc_dec_stmt->x_ = std::move(x);
     
-    if (scanner_.token() != token::kInc &&
-        scanner_.token() != token::kDec) {
+    if (scanner_.token() != tokens::kInc &&
+        scanner_.token() != tokens::kDec) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -875,9 +875,9 @@ std::unique_ptr<ast::IncDecStmt> Parser::ParseIncDecStmt(std::unique_ptr<ast::Ex
 
 std::vector<std::unique_ptr<ast::Expr>> Parser::ParseExprList(bool disallow_composite_lit) {
     switch (scanner_.token()) {
-        case token::kColon:
-        case token::kRParen:
-        case token::kSemicolon:
+        case tokens::kColon:
+        case tokens::kRParen:
+        case tokens::kSemicolon:
             return {};
         default:
             break;
@@ -894,7 +894,7 @@ std::vector<std::unique_ptr<ast::Expr>> Parser::ParseExprList(std::unique_ptr<as
                                                               bool disallow_composite_lit) {
     std::vector<std::unique_ptr<ast::Expr>> list;
     list.push_back(std::move(first_expr));
-    while (scanner_.token() == token::kComma) {
+    while (scanner_.token() == tokens::kComma) {
         scanner_.Next();
         auto expr = ParseExpr(disallow_composite_lit);
         if (!expr) {
@@ -909,7 +909,7 @@ std::unique_ptr<ast::Expr> Parser::ParseExpr(bool disallow_composite_lit) {
     return ParseExpr(0, disallow_composite_lit);
 }
 
-std::unique_ptr<ast::Expr> Parser::ParseExpr(token::precedence_t prec,
+std::unique_ptr<ast::Expr> Parser::ParseExpr(tokens::precedence_t prec,
                                              bool disallow_composite_lit) {
     auto x = ParseUnaryExpr(disallow_composite_lit);
     if (!x) {
@@ -918,8 +918,8 @@ std::unique_ptr<ast::Expr> Parser::ParseExpr(token::precedence_t prec,
     
     while (true) {
         pos::pos_t op_start = scanner_.token_start();
-        token::Token op = scanner_.token();
-        token::precedence_t op_prec = token::prececende(op);
+        tokens::Token op = scanner_.token();
+        tokens::precedence_t op_prec = tokens::prececende(op);
         if (op_prec == 0 || op_prec < prec) {
             break;
         }
@@ -943,13 +943,13 @@ std::unique_ptr<ast::Expr> Parser::ParseExpr(token::precedence_t prec,
 
 std::unique_ptr<ast::Expr> Parser::ParseUnaryExpr(bool disallow_composite_lit) {
     switch (scanner_.token()) {
-        case token::kAdd:
-        case token::kSub:
-        case token::kNot:
-        case token::kXor:
-        case token::kMul:
-        case token::kRem:
-        case token::kAnd:
+        case tokens::kAdd:
+        case tokens::kSub:
+        case tokens::kNot:
+        case tokens::kXor:
+        case tokens::kMul:
+        case tokens::kRem:
+        case tokens::kAnd:
             break;
         default:
             return ParsePrimaryExpr(disallow_composite_lit);
@@ -972,21 +972,21 @@ std::unique_ptr<ast::Expr> Parser::ParseUnaryExpr(bool disallow_composite_lit) {
 std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(bool disallow_composite_lit) {
     std::unique_ptr<ast::Expr> primary_expr;
     switch (scanner_.token()) {
-        case token::kInt:
-        case token::kChar:
-        case token::kString:
+        case tokens::kInt:
+        case tokens::kChar:
+        case tokens::kString:
             primary_expr = ParseBasicLit();
             break;
-        case token::kLBrack:
-        case token::kFunc:
-        case token::kInterface:
-        case token::kStruct:
+        case tokens::kLBrack:
+        case tokens::kFunc:
+        case tokens::kInterface:
+        case tokens::kStruct:
             primary_expr = ParseType();
             break;
-        case token::kIdent:
+        case tokens::kIdent:
             primary_expr = ParseIdent();
             break;
-        case token::kLParen:
+        case tokens::kLParen:
             primary_expr = ParseParenExpr();
             break;
         default:
@@ -1007,11 +1007,11 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> p
     bool extended_primary_expr = true;
     while (extended_primary_expr) {
         switch (scanner_.token()) {
-            case token::kPeriod:
+            case tokens::kPeriod:
                 scanner_.Next();
-                if (scanner_.token() == token::kIdent) {
+                if (scanner_.token() == tokens::kIdent) {
                     primary_expr = ParseSelectionExpr(std::move(primary_expr));
-                } else if (scanner_.token() == token::kLss) {
+                } else if (scanner_.token() == tokens::kLss) {
                     primary_expr = ParseTypeAssertExpr(std::move(primary_expr));
                 } else {
                     issues_.push_back(issues::Issue(issues::Origin::Parser,
@@ -1022,13 +1022,13 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> p
                     return nullptr;
                 }
                 break;
-            case token::kLBrack:
+            case tokens::kLBrack:
                 primary_expr = ParseIndexExpr(std::move(primary_expr));
                 break;
-            case token::kLParen:
+            case tokens::kLParen:
                 primary_expr = ParseCallExpr(std::move(primary_expr), nullptr);
                 break;
-            case token::kLBrace:
+            case tokens::kLBrace:
                 if (auto func_type_ptr = dynamic_cast<ast::FuncType *>(primary_expr.get());
                     func_type_ptr != nullptr) {
                     primary_expr.release();
@@ -1040,7 +1040,7 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> p
                     primary_expr = ParseCompositeLit(std::move(primary_expr));
                 }
                 break;
-            case token::kLss:
+            case tokens::kLss:
                 if (dynamic_cast<ast::Ident *>(primary_expr.get()) == nullptr &&
                     dynamic_cast<ast::SelectionExpr *>(primary_expr.get()) == nullptr) {
                     return primary_expr;
@@ -1070,7 +1070,7 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> p
 std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> primary_expr,
                                                     std::unique_ptr<ast::TypeArgList> type_args,
                                                     bool disallow_composite_lit) {
-    if (scanner_.token() == token::kLParen) {
+    if (scanner_.token() == tokens::kLParen) {
         auto call_epxr = ParseCallExpr(std::move(primary_expr), std::move(type_args));
         if (!call_epxr) {
             return nullptr;
@@ -1091,7 +1091,7 @@ std::unique_ptr<ast::Expr> Parser::ParsePrimaryExpr(std::unique_ptr<ast::Expr> p
 std::unique_ptr<ast::ParenExpr> Parser::ParseParenExpr() {
     auto paren_expr = std::make_unique<ast::ParenExpr>();
     
-    if (scanner_.token() != token::kLParen) {
+    if (scanner_.token() != tokens::kLParen) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1108,7 +1108,7 @@ std::unique_ptr<ast::ParenExpr> Parser::ParseParenExpr() {
     }
     paren_expr->x_ = std::move(x);
     
-    if (scanner_.token() != token::kRParen) {
+    if (scanner_.token() != tokens::kRParen) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1139,7 +1139,7 @@ std::unique_ptr<ast::TypeAssertExpr> Parser::ParseTypeAssertExpr(std::unique_ptr
     auto type_assert_expr = std::make_unique<ast::TypeAssertExpr>();
     type_assert_expr->x_ = std::move(x);
     
-    if (scanner_.token() != token::kLss) {
+    if (scanner_.token() != tokens::kLss) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1150,7 +1150,7 @@ std::unique_ptr<ast::TypeAssertExpr> Parser::ParseTypeAssertExpr(std::unique_ptr
     type_assert_expr->l_angle_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() == token::kType) {
+    if (scanner_.token() == tokens::kType) {
         scanner_.Next();
     } else {
         auto type = ParseType();
@@ -1160,7 +1160,7 @@ std::unique_ptr<ast::TypeAssertExpr> Parser::ParseTypeAssertExpr(std::unique_ptr
         type_assert_expr->type_ = std::move(type);
     }
     
-    if (scanner_.token() != token::kGtr) {
+    if (scanner_.token() != tokens::kGtr) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1178,7 +1178,7 @@ std::unique_ptr<ast::IndexExpr> Parser::ParseIndexExpr(std::unique_ptr<ast::Expr
     auto index_expr = std::make_unique<ast::IndexExpr>();
     index_expr->accessed_ = std::move(accessed);
     
-    if (scanner_.token() != token::kLBrack) {
+    if (scanner_.token() != tokens::kLBrack) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1195,7 +1195,7 @@ std::unique_ptr<ast::IndexExpr> Parser::ParseIndexExpr(std::unique_ptr<ast::Expr
     }
     index_expr->index_ = std::move(index);
     
-    if (scanner_.token() != token::kRBrack) {
+    if (scanner_.token() != tokens::kRBrack) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1215,7 +1215,7 @@ std::unique_ptr<ast::CallExpr> Parser::ParseCallExpr(std::unique_ptr<ast::Expr> 
     call_expr->func_ = std::move(func);
     call_expr->type_args_ = std::move(type_args);
     
-    if (scanner_.token() != token::kLParen) {
+    if (scanner_.token() != tokens::kLParen) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1228,7 +1228,7 @@ std::unique_ptr<ast::CallExpr> Parser::ParseCallExpr(std::unique_ptr<ast::Expr> 
     
     call_expr->args_ = ParseExprList(/* disallow_composite_lit= */ false);
     
-    if (scanner_.token() != token::kRParen) {
+    if (scanner_.token() != tokens::kRParen) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1259,7 +1259,7 @@ std::unique_ptr<ast::CompositeLit> Parser::ParseCompositeLit(std::unique_ptr<ast
     auto composite_lit = std::make_unique<ast::CompositeLit>();
     composite_lit->type_ = std::move(type);
     
-    if (scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kLBrace) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1270,17 +1270,17 @@ std::unique_ptr<ast::CompositeLit> Parser::ParseCompositeLit(std::unique_ptr<ast
     composite_lit->l_brace_ = scanner_.token_start();
     scanner_.Next();
     
-    while (scanner_.token() != token::kRBrace) {
+    while (scanner_.token() != tokens::kRBrace) {
         auto element = ParseCompositeLitElement();
         if (!element) {
             return nullptr;
         }
         composite_lit->values_.push_back(std::move(element));
         
-        if (scanner_.token() == token::kRBrace) {
+        if (scanner_.token() == tokens::kRBrace) {
             break;
         }
-        if (scanner_.token() != token::kComma) {
+        if (scanner_.token() != tokens::kComma) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
                                             issues::Severity::Fatal,
                                             scanner_.token_start(),
@@ -1297,7 +1297,7 @@ std::unique_ptr<ast::CompositeLit> Parser::ParseCompositeLit(std::unique_ptr<ast
 }
 
 std::unique_ptr<ast::Expr> Parser::ParseCompositeLitElement() {
-    if (scanner_.token() == token::kLBrace) {
+    if (scanner_.token() == tokens::kLBrace) {
         return ParseCompositeLit(nullptr);
     }
     
@@ -1306,7 +1306,7 @@ std::unique_ptr<ast::Expr> Parser::ParseCompositeLitElement() {
         return nullptr;
     }
     
-    if (scanner_.token() != token::kColon) {
+    if (scanner_.token() != tokens::kColon) {
         return expr;
     }
     auto key_value_expr = std::make_unique<ast::KeyValueExpr>();
@@ -1314,7 +1314,7 @@ std::unique_ptr<ast::Expr> Parser::ParseCompositeLitElement() {
     key_value_expr->colon_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() == token::kLBrace) {
+    if (scanner_.token() == tokens::kLBrace) {
         expr = ParseCompositeLit(nullptr);
     } else {
         expr = ParseExpr(/* disallow_composite_lit= */ false);
@@ -1329,18 +1329,18 @@ std::unique_ptr<ast::Expr> Parser::ParseCompositeLitElement() {
 
 std::unique_ptr<ast::Expr> Parser::ParseType() {
     switch (scanner_.token()) {
-        case token::kLBrack:
+        case tokens::kLBrack:
             return ParseArrayType();
-        case token::kFunc:
+        case tokens::kFunc:
             return ParseFuncType();
-        case token::kInterface:
+        case tokens::kInterface:
             return ParseInterfaceType();
-        case token::kStruct:
+        case tokens::kStruct:
             return ParseStructType();
-        case token::kMul:
-        case token::kRem:
+        case tokens::kMul:
+        case tokens::kRem:
             return ParsePointerType();
-        case token::kIdent:
+        case tokens::kIdent:
             return ParseType(ParseIdent(/* split_shift_ops= */ true));
         default:
             issues_.push_back(issues::Issue(issues::Origin::Parser,
@@ -1355,7 +1355,7 @@ std::unique_ptr<ast::Expr> Parser::ParseType() {
 std::unique_ptr<ast::Expr> Parser::ParseType(std::unique_ptr<ast::Ident> ident) {
     std::unique_ptr<ast::Expr> type = std::move(ident);
     
-    if (scanner_.token() == token::kPeriod) {
+    if (scanner_.token() == tokens::kPeriod) {
         scanner_.Next();
 
         auto selection = ParseIdent(/* split_shift_ops= */ true);
@@ -1369,7 +1369,7 @@ std::unique_ptr<ast::Expr> Parser::ParseType(std::unique_ptr<ast::Ident> ident) 
         type = std::move(selection_expr);
     }
     
-    if (scanner_.token() == token::kLss) {
+    if (scanner_.token() == tokens::kLss) {
         type = ParseTypeInstance(std::move(type));
     }
     
@@ -1379,7 +1379,7 @@ std::unique_ptr<ast::Expr> Parser::ParseType(std::unique_ptr<ast::Ident> ident) 
 std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
     auto array_type = std::make_unique<ast::ArrayType>();
     
-    if (scanner_.token() != token::kLBrack) {
+    if (scanner_.token() != tokens::kLBrack) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1390,7 +1390,7 @@ std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
     array_type->l_brack_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() != token::kRBrack) {
+    if (scanner_.token() != tokens::kRBrack) {
         auto len = ParseExpr(/* disallow_composite_lit= */ false);
         if (!len) {
             return nullptr;
@@ -1398,7 +1398,7 @@ std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
         array_type->len_ = std::move(len);
     }
     
-    if (scanner_.token() != token::kRBrack) {
+    if (scanner_.token() != tokens::kRBrack) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1421,7 +1421,7 @@ std::unique_ptr<ast::ArrayType> Parser::ParseArrayType() {
 std::unique_ptr<ast::FuncType> Parser::ParseFuncType() {
     auto func_type = std::make_unique<ast::FuncType>();
     
-    if (scanner_.token() != token::kFunc) {
+    if (scanner_.token() != tokens::kFunc) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1439,14 +1439,14 @@ std::unique_ptr<ast::FuncType> Parser::ParseFuncType() {
     func_type->params_ = std::move(params);
     
     switch (scanner_.token()) {
-        case token::kLParen:
-        case token::kLBrack:
-        case token::kFunc:
-        case token::kInterface:
-        case token::kStruct:
-        case token::kMul:
-        case token::kRem:
-        case token::kIdent:{
+        case tokens::kLParen:
+        case tokens::kLBrack:
+        case tokens::kFunc:
+        case tokens::kInterface:
+        case tokens::kStruct:
+        case tokens::kMul:
+        case tokens::kRem:
+        case tokens::kIdent:{
             auto results = ParseFuncFieldList(/* expect_paren= */ false);
             if (!results) {
                 return nullptr;
@@ -1464,7 +1464,7 @@ std::unique_ptr<ast::FuncType> Parser::ParseFuncType() {
 std::unique_ptr<ast::InterfaceType> Parser::ParseInterfaceType() {
     auto interface_type = std::make_unique<ast::InterfaceType>();
     
-    if (scanner_.token() != token::kInterface) {
+    if (scanner_.token() != tokens::kInterface) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1475,7 +1475,7 @@ std::unique_ptr<ast::InterfaceType> Parser::ParseInterfaceType() {
     interface_type->interface_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kLBrace) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1486,14 +1486,14 @@ std::unique_ptr<ast::InterfaceType> Parser::ParseInterfaceType() {
     interface_type->l_brace_ = scanner_.token_start();
     scanner_.Next();
     
-    while (scanner_.token() != token::kRBrace) {
+    while (scanner_.token() != tokens::kRBrace) {
         auto method_spec = ParseMethodSpec();
         if (!method_spec) {
             return nullptr;
         }
         interface_type->methods_.push_back(std::move(method_spec));
         
-        if (scanner_.token() != token::kSemicolon) {
+        if (scanner_.token() != tokens::kSemicolon) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
                                             issues::Severity::Fatal,
                                             scanner_.token_start(),
@@ -1525,14 +1525,14 @@ std::unique_ptr<ast::MethodSpec> Parser::ParseMethodSpec() {
     method_spec->params_ = std::move(params);
     
     switch (scanner_.token()) {
-        case token::kLParen:
-        case token::kLBrack:
-        case token::kFunc:
-        case token::kInterface:
-        case token::kStruct:
-        case token::kMul:
-        case token::kRem:
-        case token::kIdent:{
+        case tokens::kLParen:
+        case tokens::kLBrack:
+        case tokens::kFunc:
+        case tokens::kInterface:
+        case tokens::kStruct:
+        case tokens::kMul:
+        case tokens::kRem:
+        case tokens::kIdent:{
             auto results = ParseFuncFieldList(/* expect_paren= */ false);
             if (!results) {
                 return nullptr;
@@ -1550,7 +1550,7 @@ std::unique_ptr<ast::MethodSpec> Parser::ParseMethodSpec() {
 std::unique_ptr<ast::StructType> Parser::ParseStructType() {
     auto struct_type = std::make_unique<ast::StructType>();
     
-    if (scanner_.token() != token::kStruct) {
+    if (scanner_.token() != tokens::kStruct) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1561,7 +1561,7 @@ std::unique_ptr<ast::StructType> Parser::ParseStructType() {
     struct_type->struct_ = scanner_.token_start();
     scanner_.Next();
     
-    if (scanner_.token() != token::kLBrace) {
+    if (scanner_.token() != tokens::kLBrace) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1578,7 +1578,7 @@ std::unique_ptr<ast::StructType> Parser::ParseStructType() {
     }
     struct_type->fields_ = std::move(fields);
     
-    if (scanner_.token() != token::kRBrace) {
+    if (scanner_.token() != tokens::kRBrace) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1595,8 +1595,8 @@ std::unique_ptr<ast::StructType> Parser::ParseStructType() {
 std::unique_ptr<ast::UnaryExpr> Parser::ParsePointerType() {
     auto pointer_type = std::make_unique<ast::UnaryExpr>();
     
-    if (scanner_.token() != token::kMul &&
-        scanner_.token() != token::kRem) {
+    if (scanner_.token() != tokens::kMul &&
+        scanner_.token() != tokens::kRem) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1633,7 +1633,7 @@ std::unique_ptr<ast::TypeInstance> Parser::ParseTypeInstance(std::unique_ptr<ast
 std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
     auto field_list = std::make_unique<ast::FieldList>();
     
-    bool has_paren = (scanner_.token() == token::kLParen);
+    bool has_paren = (scanner_.token() == tokens::kLParen);
     if (expect_paren && !has_paren) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
@@ -1646,7 +1646,7 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
         field_list->l_paren_ = scanner_.token_start();
         scanner_.Next();
         
-        if (scanner_.token() == token::kRParen) {
+        if (scanner_.token() == tokens::kRParen) {
             field_list->r_paren_ = scanner_.token_start();
             scanner_.Next();
             
@@ -1663,7 +1663,7 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
         return field_list;
     }
     
-    while (scanner_.token() == token::kComma) {
+    while (scanner_.token() == tokens::kComma) {
         scanner_.Next();
         
         auto field = ParseField();
@@ -1674,7 +1674,7 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
     }
     
     if (has_paren) {
-        if (scanner_.token() != token::kRParen) {
+        if (scanner_.token() != tokens::kRParen) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
                                             issues::Severity::Fatal,
                                             scanner_.token_start(),
@@ -1692,14 +1692,14 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
 std::unique_ptr<ast::FieldList> Parser::ParseStructFieldList() {
     auto field_list = std::make_unique<ast::FieldList>();
     
-    while (scanner_.token() != token::kRBrace) {
+    while (scanner_.token() != tokens::kRBrace) {
         auto field = ParseField();
         if (!field) {
             return nullptr;
         }
         field_list->fields_.push_back(std::move(field));
         
-        if (scanner_.token() != token::kSemicolon) {
+        if (scanner_.token() != tokens::kSemicolon) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
                                             issues::Severity::Fatal,
                                             scanner_.token_start(),
@@ -1716,7 +1716,7 @@ std::unique_ptr<ast::FieldList> Parser::ParseStructFieldList() {
 std::unique_ptr<ast::Field> Parser::ParseField() {
     auto field = std::make_unique<ast::Field>();
     
-    if (scanner_.token() != token::kIdent) {
+    if (scanner_.token() != tokens::kIdent) {
         auto type = ParseType();
         if (!type) {
             return nullptr;
@@ -1726,15 +1726,15 @@ std::unique_ptr<ast::Field> Parser::ParseField() {
     }
     
     auto ident = ParseIdent();
-    if (scanner_.token() != token::kComma) {
+    if (scanner_.token() != tokens::kComma) {
         switch (scanner_.token()) {
-            case token::kLBrack:
-            case token::kFunc:
-            case token::kInterface:
-            case token::kStruct:
-            case token::kMul:
-            case token::kRem:
-            case token::kIdent:{
+            case tokens::kLBrack:
+            case tokens::kFunc:
+            case tokens::kInterface:
+            case tokens::kStruct:
+            case tokens::kMul:
+            case tokens::kRem:
+            case tokens::kIdent:{
                 auto type = ParseType();
                 if (!type) {
                     return nullptr;
@@ -1755,7 +1755,7 @@ std::unique_ptr<ast::Field> Parser::ParseField() {
     }
     field->names_.push_back(std::move(ident));
     
-    while (scanner_.token() == token::kComma) {
+    while (scanner_.token() == tokens::kComma) {
         scanner_.Next();
         
         auto name = ParseIdent();
@@ -1777,7 +1777,7 @@ std::unique_ptr<ast::Field> Parser::ParseField() {
 std::unique_ptr<ast::TypeArgList> Parser::ParseTypeArgList() {
     auto type_args = std::make_unique<ast::TypeArgList>();
         
-    if (scanner_.token() != token::kLss) {
+    if (scanner_.token() != tokens::kLss) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1788,14 +1788,14 @@ std::unique_ptr<ast::TypeArgList> Parser::ParseTypeArgList() {
     type_args->l_angle_ = scanner_.token_start();
     scanner_.Next(/* split_shift_ops= */ true);
     
-    if (scanner_.token() != token::kGtr) {
+    if (scanner_.token() != tokens::kGtr) {
         auto type_arg = ParseType();
         if (!type_arg) {
             return nullptr;
         }
         type_args->args_.push_back(std::move(type_arg));
         
-        while (scanner_.token() == token::kComma) {
+        while (scanner_.token() == tokens::kComma) {
             scanner_.Next();
             
             auto type_arg = ParseType();
@@ -1806,7 +1806,7 @@ std::unique_ptr<ast::TypeArgList> Parser::ParseTypeArgList() {
         }
     }
     
-    if (scanner_.token() != token::kGtr) {
+    if (scanner_.token() != tokens::kGtr) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1823,7 +1823,7 @@ std::unique_ptr<ast::TypeArgList> Parser::ParseTypeArgList() {
 std::unique_ptr<ast::TypeParamList> Parser::ParseTypeParamList() {
     auto type_params = std::make_unique<ast::TypeParamList>();
         
-    if (scanner_.token() != token::kLss) {
+    if (scanner_.token() != tokens::kLss) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1834,14 +1834,14 @@ std::unique_ptr<ast::TypeParamList> Parser::ParseTypeParamList() {
     type_params->l_angle_ = scanner_.token_start();
     scanner_.Next(/* split_shift_ops= */ true);
     
-    if (scanner_.token() != token::kGtr) {
+    if (scanner_.token() != tokens::kGtr) {
         auto type_param = ParseTypeParam();
         if (!type_param) {
             return nullptr;
         }
         type_params->params_.push_back(std::move(type_param));
         
-        while (scanner_.token() == token::kComma) {
+        while (scanner_.token() == tokens::kComma) {
             scanner_.Next();
             
             auto type_param = ParseTypeParam();
@@ -1852,7 +1852,7 @@ std::unique_ptr<ast::TypeParamList> Parser::ParseTypeParamList() {
         }
     }
     
-    if (scanner_.token() != token::kGtr) {
+    if (scanner_.token() != tokens::kGtr) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),
@@ -1876,13 +1876,13 @@ std::unique_ptr<ast::TypeParam> Parser::ParseTypeParam() {
     type_param->name_ = std::move(name);
     
     switch (scanner_.token()) {
-        case token::kLBrack:
-        case token::kFunc:
-        case token::kInterface:
-        case token::kStruct:
-        case token::kMul:
-        case token::kRem:
-        case token::kIdent:{
+        case tokens::kLBrack:
+        case tokens::kFunc:
+        case tokens::kInterface:
+        case tokens::kStruct:
+        case tokens::kMul:
+        case tokens::kRem:
+        case tokens::kIdent:{
             auto type = ParseType();
             if (!type) {
                 return nullptr;
@@ -1899,9 +1899,9 @@ std::unique_ptr<ast::TypeParam> Parser::ParseTypeParam() {
 
 std::unique_ptr<ast::BasicLit> Parser::ParseBasicLit() {
     switch (scanner_.token()) {
-        case token::kInt:
-        case token::kChar:
-        case token::kString:{
+        case tokens::kInt:
+        case tokens::kChar:
+        case tokens::kString:{
             auto basic_lit = std::make_unique<ast::BasicLit>();
             basic_lit->value_start_ = scanner_.token_start();
             basic_lit->kind_ = scanner_.token();
@@ -1927,7 +1927,7 @@ std::vector<std::unique_ptr<ast::Ident>> Parser::ParseIdentList() {
         return {};
     }
     list.push_back(std::move(ident));
-    while (scanner_.token() == token::kComma) {
+    while (scanner_.token() == tokens::kComma) {
         scanner_.Next();
         auto ident = ParseIdent();
         if (!ident) {
@@ -1939,7 +1939,7 @@ std::vector<std::unique_ptr<ast::Ident>> Parser::ParseIdentList() {
 }
 
 std::unique_ptr<ast::Ident> Parser::ParseIdent(bool split_shift_ops) {
-    if (scanner_.token() != token::kIdent) {
+    if (scanner_.token() != tokens::kIdent) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         scanner_.token_start(),

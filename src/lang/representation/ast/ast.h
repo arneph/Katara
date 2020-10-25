@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-#include "lang/positions.h"
-#include "lang/token.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/tokens/tokens.h"
 
 namespace lang {
 namespace ast {
@@ -133,7 +133,7 @@ struct File : public Node {
 //           | ("type" (TypeSpec | "( {TypeSpec} ")" ) .
 struct GenDecl : public Decl {
     pos::pos_t tok_start_;
-    token::Token tok_;
+    tokens::Token tok_;
     pos::pos_t l_paren_;
     std::vector<std::unique_ptr<Spec>> specs_;
     pos::pos_t r_paren_;
@@ -210,7 +210,7 @@ struct DeclStmt : public Stmt {
 struct AssignStmt : public Stmt {
     std::vector<std::unique_ptr<Expr>> lhs_;
     pos::pos_t tok_start_;
-    token::Token tok_;
+    tokens::Token tok_;
     std::vector<std::unique_ptr<Expr>> rhs_;
     
     pos::pos_t start() const;
@@ -229,7 +229,7 @@ struct ExprStmt : public Stmt {
 struct IncDecStmt : public Stmt {
     std::unique_ptr<Expr> x_;
     pos::pos_t tok_start_;
-    token::Token tok_;
+    tokens::Token tok_;
     
     pos::pos_t start() const;
     pos::pos_t end() const;
@@ -271,7 +271,7 @@ struct SwitchStmt : public Stmt {
 // CaseClause ::= (("case" Expr {"," Expr}) | "default") ":" {Stmt} .
 struct CaseClause : public Stmt {
     pos::pos_t tok_start_;
-    token::Token tok_;
+    tokens::Token tok_;
     std::vector<std::unique_ptr<Expr>> cond_vals_;
     pos::pos_t colon_;
     std::vector<std::unique_ptr<Stmt>> body_;
@@ -307,7 +307,7 @@ struct LabeledStmt : public Stmt {
 //             | "break" [Ident] .
 struct BranchStmt : public Stmt {
     pos::pos_t tok_start_;
-    token::Token tok_;
+    tokens::Token tok_;
     std::unique_ptr<Ident> label_;
     
     pos::pos_t start() const;
@@ -317,7 +317,7 @@ struct BranchStmt : public Stmt {
 // UnaryExpr ::= UnaryOp Expr .
 struct UnaryExpr : public Expr {
     pos::pos_t op_start_;
-    token::Token op_;
+    tokens::Token op_;
     std::unique_ptr<Expr> x_;
     
     pos::pos_t start() const;
@@ -328,7 +328,7 @@ struct UnaryExpr : public Expr {
 struct BinaryExpr : public Expr {
     std::unique_ptr<Expr> x_;
     pos::pos_t op_start_;
-    token::Token op_;
+    tokens::Token op_;
     std::unique_ptr<Expr> y_;
     
     pos::pos_t start() const;
@@ -532,7 +532,7 @@ struct TypeParam : public Node {
 
 struct BasicLit : public Expr {
     pos::pos_t value_start_;
-    token::Token kind_;
+    tokens::Token kind_;
     std::string value_;
     
     pos::pos_t start() const;

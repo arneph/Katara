@@ -585,7 +585,7 @@ bool IsTypeSwitchStmt(SwitchStmt *switch_stmt) {
     if (switch_stmt->init_) {
         auto assign_stmt = dynamic_cast<AssignStmt *>(switch_stmt->init_.get());
         if (assign_stmt == nullptr ||
-            assign_stmt->tok_ != token::kDefine ||
+            assign_stmt->tok_ != tokens::kDefine ||
             assign_stmt->lhs_.size() != 1 ||
             assign_stmt->rhs_.size() != 1) {
             return false;

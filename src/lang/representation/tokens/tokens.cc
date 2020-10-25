@@ -1,15 +1,15 @@
 //
-//  token.cc
+//  tokens.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 6/7/20.
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#include "token.h"
+#include "tokens.h"
 
 namespace lang {
-namespace token {
+namespace tokens {
 
 precedence_t prececende(Token token) {
     switch (token) {

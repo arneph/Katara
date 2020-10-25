@@ -12,6 +12,10 @@
 #include <iostream>
 #include <sstream>
 
+#include "lang/representation/ast/ast_util.h"
+#include "lang/processors/parser/parser.h"
+#include "lang/processors/type_checker/type_checker.h"
+
 namespace lang {
 namespace packages {
 

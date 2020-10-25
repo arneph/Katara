@@ -1,22 +1,22 @@
 //
-//  constant.h
+//  constants.h
 //  Katara
 //
 //  Created by Arne Philipeit on 7/25/20.
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef lang_constant_h
-#define lang_constant_h
+#ifndef lang_constants_h
+#define lang_constants_h
 
 #include <memory>
 #include <string>
 #include <variant>
 
-#include "lang/token.h"
+#include "lang/representation/tokens/tokens.h"
 
 namespace lang {
-namespace constant {
+namespace constants {
 
 typedef std::variant<bool,
                      int8_t, uint8_t,
@@ -34,12 +34,12 @@ public:
     value_t value_;
 };
 
-bool Compare(Value x, token::Token op, Value y);
-Value BinaryOp(Value x, token::Token op, Value y);
-Value ShiftOp(Value x, token::Token op, Value y);
-Value UnaryOp(token::Token op, Value x);
+bool Compare(Value x, tokens::Token op, Value y);
+Value BinaryOp(Value x, tokens::Token op, Value y);
+Value ShiftOp(Value x, tokens::Token op, Value y);
+Value UnaryOp(tokens::Token op, Value x);
 
 }
 }
 
-#endif /* lang_constant_h */
+#endif /* lang_constants_h */

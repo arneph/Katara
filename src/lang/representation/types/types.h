@@ -15,9 +15,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "lang/positions.h"
-#include "lang/ast.h"
-#include "lang/constant.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/representation/constants/constants.h"
 
 namespace lang {
 namespace type_checker {
@@ -346,14 +346,14 @@ class Constant : public Object {
 public:
     ~Constant() {}
     
-    constant::Value value() const;
+    constants::Value value() const;
     
     std::string ToString() const;
     
 private:
     Constant();
     
-    constant::Value value_;
+    constants::Value value_;
     
     friend type_checker::TypeChecker;
 };
@@ -508,7 +508,7 @@ private:
 class TypeInfo {
 public:
     const std::unordered_map<ast::Expr *, Type *>& types() const;
-    const std::unordered_map<ast::Expr *, constant::Value>& constant_values() const;
+    const std::unordered_map<ast::Expr *, constants::Value>& constant_values() const;
     const std::unordered_map<ast::Ident *, Object *>& definitions() const;
     const std::unordered_map<ast::Ident *, Object *>& uses() const;
     const std::unordered_map<ast::Node *, Object *>& implicits() const;
@@ -534,7 +534,7 @@ private:
     std::vector<std::unique_ptr<Package>> package_unique_ptrs_;
     
     std::unordered_map<ast::Expr *, Type *> types_;
-    std::unordered_map<ast::Expr *, constant::Value> constant_values_;
+    std::unordered_map<ast::Expr *, constants::Value> constant_values_;
     
     std::unordered_map<ast::Ident *, Object *> definitions_;
     std::unordered_map<ast::Ident *, Object *> uses_;
