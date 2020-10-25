@@ -10,14 +10,10 @@
 #define lang_type_checker_h
 
 #include <functional>
-#include <map>
-#include <unordered_map>
-#include <unordered_set>
+#include <string>
 #include <vector>
 
-#include "lang/representation/positions/positions.h"
 #include "lang/representation/ast/ast.h"
-#include "lang/representation/constants/constants.h"
 #include "lang/representation/types/types.h"
 #include "lang/processors/issues/issues.h"
 

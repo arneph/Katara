@@ -8,9 +8,6 @@
 
 #include "type_checker.h"
 
-#include <string>
-
-#include "lang/representation/ast/ast_util.h"
 #include "lang/processors/type_checker/universe_builder.h"
 #include "lang/processors/type_checker/identifier_resolver.h"
 #include "lang/processors/type_checker/init_handler.h"
