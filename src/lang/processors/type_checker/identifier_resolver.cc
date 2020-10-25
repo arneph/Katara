@@ -35,7 +35,7 @@ types::Package * IdentifierResolver::CreatePackageAndResolveIdentifiers(
 void IdentifierResolver::CreatePackageAndPackageScope() {
     std::string package_name = package_path_;
     if (auto pos = package_name.find_last_of('/'); pos != std::string::npos) {
-        package_name = package_name.substr(pos);
+        package_name = package_name.substr(pos + 1);
     }
     
     auto package_scope = std::unique_ptr<types::Scope>(new types::Scope());
