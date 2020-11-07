@@ -110,8 +110,12 @@ void test_lang() {
     std::filesystem::path lang_tests = "/Users/arne/Documents/Xcode/Katara/tests/lang";
     
     std::cout << "running lang-tests\n";
-    
+    std::vector<std::filesystem::directory_entry> entries;
     for (auto entry : std::filesystem::directory_iterator(lang_tests)) {
+        entries.push_back(entry);
+    }
+    std::sort(entries.begin(), entries.end());
+    for (auto entry : entries) {
         if (!entry.is_directory()) {
             continue;
         }
