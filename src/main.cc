@@ -19,6 +19,7 @@
 #include "lang/representation/positions/positions.h"
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/ast/ast_util.h"
+#include "lang/representation/types/types_util.h"
 #include "lang/processors/packages/packages.h"
 
 #include "ir/prog.h"
@@ -99,9 +100,10 @@ void run_lang_test(std::filesystem::path test_dir) {
                 out_file_base.string() + ".ast.vcg");
     }
     // TODO: uncomment when type checker is fully implemented
-    //std::string type_info = TypeInfoToText(pkg_manager.file_set(), pkg_manager.type_info());
-    //to_file(type_info,
-    //        out_file_base.string() + ".types.txt");
+//    std::string type_info = lang::types::TypeInfoToText(pkg_manager.file_set(),
+//                                                        pkg_manager.type_info());
+//    to_file(type_info,
+//            out_file_base.string() + ".types.txt");
 }
 
 void test_lang() {
