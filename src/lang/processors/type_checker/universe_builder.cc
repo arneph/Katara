@@ -95,6 +95,7 @@ void UniverseBuilder::SetupPredeclaredTypes(types::TypeInfo *info) {
         type_name->position_ = pos::kNoPos;
         type_name->name_ = predeclared_type.name_;
         type_name->type_ = basic_ptr;
+        type_name->is_alias_ = false;
 
         auto type_name_ptr = type_name.get();
         info->object_unique_ptrs_.push_back(std::move(type_name));

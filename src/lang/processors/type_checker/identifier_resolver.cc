@@ -224,6 +224,7 @@ void IdentifierResolver::AddDefinedObjectsFromConstSpec(ast::ValueSpec *value_sp
         constant->package_ = package_;
         constant->position_ = ident->start();
         constant->name_ = ident->name_;
+        constant->type_ = nullptr;
         
         auto constant_ptr = constant.get();
         info_->object_unique_ptrs_.push_back(std::move(constant));
@@ -244,6 +245,7 @@ void IdentifierResolver::AddDefinedObjectsFromVarSpec(ast::ValueSpec *value_spec
         variable->package_ = package_;
         variable->position_ = ident->start();
         variable->name_ = ident->name_;
+        variable->type_ = nullptr;
         variable->is_embedded_ = false;
         variable->is_field_ = false;
         
@@ -269,6 +271,8 @@ void IdentifierResolver::AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec, 
     type_name->package_ = package_;
     type_name->position_ = type_spec->name_->start();
     type_name->name_ = type_spec->name_->name_;
+    type_name->type_ = nullptr;
+    type_name->is_alias_ = false; // TODO: set correctly when type aliases are implemented
     
     auto type_name_ptr = type_name.get();
     info_->object_unique_ptrs_.push_back(std::move(type_name));
@@ -291,12 +295,15 @@ void IdentifierResolver::AddDefinedObjectFromFuncDecl(ast::FuncDecl *func_decl, 
     func->package_ = package_;
     func->position_ = func_decl->name_->start();
     func->name_ = func_decl->name_->name_;
+    func->type_ = nullptr;
     
     auto func_ptr = func.get();
     info_->object_unique_ptrs_.push_back(std::move(func));
     info_->definitions_.insert({func_decl->name_.get(), func_ptr});
     
-    AddObjectToScope(func_ptr, scope);
+    if (!func_decl->receiver_) {
+        AddObjectToScope(func_ptr, scope);
+    }
 }
 
 void IdentifierResolver::ResolveIdentifiersInGenDecl(ast::GenDecl *gen_decl, types::Scope *scope) {
@@ -389,6 +396,8 @@ void IdentifierResolver::ResolveIdentifiersInTypeParamList(ast::TypeParamList *t
         type_name->package_ = package_;
         type_name->position_ = type_param->name_->start();
         type_name->name_ = type_param->name_->name_;
+        type_name->type_ = nullptr;
+        type_name->is_alias_ = false;
         
         auto type_name_ptr = type_name.get();
         info_->object_unique_ptrs_.push_back(std::move(type_name));
@@ -399,7 +408,7 @@ void IdentifierResolver::ResolveIdentifiersInTypeParamList(ast::TypeParamList *t
 }
 
 void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *field_list,
-                                                            types::Scope *scope) {
+                                                                   types::Scope *scope) {
     if (field_list->fields_.size() != 1 ||
         (field_list->fields_.size() > 0 &&
          field_list->fields_.at(0)->names_.size() > 1)) {
@@ -416,11 +425,11 @@ void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldLis
     if (auto ptr_type = dynamic_cast<ast::UnaryExpr *>(type)) {
         if (ptr_type->op_ != tokens::kMul &&
             ptr_type->op_ != tokens::kRem) {
-            issues_.push_back(
-                              issues::Issue(issues::Origin::TypeChecker,
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             type->start(),
-                                            "expected receiver of defined type or pointer to defined type"));
+                                            "expected receiver of defined type or pointer to "
+                                            "defined type"));
         }
         type = ptr_type->x_.get();
     }
@@ -431,11 +440,11 @@ void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldLis
     }
     ast::Ident *defined_type = dynamic_cast<ast::Ident *>(type);
     if (defined_type == nullptr) {
-        issues_.push_back(
-                          issues::Issue(issues::Origin::TypeChecker,
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         type->start(),
-                                        "expected receiver of defined type or pointer to defined type"));
+                                        "expected receiver of defined type or pointer to "
+                                        "defined type"));
     } else {
         ResolveIdentifier(defined_type, scope);
     }
@@ -444,12 +453,11 @@ void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldLis
         for (auto& type_arg : type_args->args_) {
             ast::Ident *ident = dynamic_cast<ast::Ident*>(type_arg.get());
             if (ident == nullptr) {
-                issues_.push_back(
-                                  issues::Issue(issues::Origin::TypeChecker,
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 type->start(),
-                                                "expected type name definition as type argument to receiver "
-                                                "type"));
+                                                "expected type name definition as type argument to "
+                                                "receiver type"));
                 continue;
             }
             
@@ -458,6 +466,8 @@ void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldLis
             type_name->package_ = package_;
             type_name->position_ = ident->start();
             type_name->name_ = ident->name_;
+            type_name->type_ = nullptr;
+            type_name->is_alias_ = false;
             
             auto type_name_ptr = type_name.get();
             info_->object_unique_ptrs_.push_back(std::move(type_name));
@@ -477,6 +487,7 @@ void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldLis
     variable->package_ = package_;
     variable->position_ = field->names_.at(0)->start();
     variable->name_ = field->names_.at(0)->name_;
+    variable->type_ = nullptr;
     variable->is_embedded_ = false;
     variable->is_field_ = false;
     
@@ -499,12 +510,29 @@ void IdentifierResolver::ResolveIdentifiersInRegularFuncFieldList(ast::FieldList
             variable->package_ = package_;
             variable->position_ = name->start();
             variable->name_ = name->name_;
+            variable->type_ = nullptr;
             variable->is_embedded_ = false;
             variable->is_field_ = false;
             
             auto variable_ptr = variable.get();
             info_->object_unique_ptrs_.push_back(std::move(variable));
             info_->definitions_.insert({name.get(), variable_ptr});
+            
+            AddObjectToScope(variable_ptr, scope);
+        }
+        if (field->names_.empty()) {
+            auto variable = std::unique_ptr<types::Variable>(new types::Variable());
+            variable->parent_ = scope;
+            variable->package_ = package_;
+            variable->position_ = field->type_->start();
+            variable->name_ = "";
+            variable->type_ = nullptr;
+            variable->is_embedded_ = false;
+            variable->is_field_ = false;
+            
+            auto variable_ptr = variable.get();
+            info_->object_unique_ptrs_.push_back(std::move(variable));
+            info_->implicits_.insert({field.get(), variable_ptr});
             
             AddObjectToScope(variable_ptr, scope);
         }
@@ -609,6 +637,7 @@ void IdentifierResolver::ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_
                     variable->package_ = package_;
                     variable->position_ = ident->start();
                     variable->name_ = ident->name_;
+                    variable->type_ = nullptr;
                     variable->is_embedded_ = false;
                     variable->is_field_ = false;
                     
@@ -693,6 +722,7 @@ void IdentifierResolver::ResolveIdentifiersInCaseClause(ast::CaseClause *case_cl
         variable->package_ = package_;
         variable->position_ = type_switch_var_ident->start();
         variable->name_ = type_switch_var_ident->name_;
+        variable->type_ = nullptr;
         variable->is_embedded_ = false;
         variable->is_field_ = false;
         
@@ -863,6 +893,7 @@ void IdentifierResolver::ResolveIdentifiersInFuncLit(ast::FuncLit *func_lit, typ
     func->package_ = package_;
     func->position_ = func_lit->start();
     func->name_ = "";
+    func->type_ = nullptr;
     
     auto func_ptr = func.get();
     info_->object_unique_ptrs_.push_back(std::move(func));
@@ -940,6 +971,7 @@ void IdentifierResolver::ResolveIdentifiersInInterfaceType(ast::InterfaceType *i
         method->package_ = package_;
         method->position_ = method_spec->start();
         method->name_ = method_spec->name_->name_;
+        method->type_ = nullptr;
         
         auto method_ptr = method.get();
         info_->object_unique_ptrs_.push_back(std::move(method));
@@ -996,6 +1028,7 @@ void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType *struct_
             variable->package_ = package_;
             variable->position_ = field->type_->start();
             variable->name_ = defined_type->name_;
+            variable->type_ = nullptr;
             variable->is_embedded_ = true;
             variable->is_field_ = true;
             
@@ -1011,6 +1044,7 @@ void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType *struct_
                 variable->package_ = package_;
                 variable->position_ = name->start();
                 variable->name_ = name->name_;
+                variable->type_ = nullptr;
                 variable->is_embedded_ = false;
                 variable->is_field_ = true;
                 
@@ -1032,7 +1066,7 @@ void IdentifierResolver::ResolveIdentifier(ast::Ident *ident,
     types::Object *obj = scope->Lookup(ident->name_);
     if (obj == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
+                                        issues::Severity::Fatal,
                                         ident->start(),
                                         "could not resolve identifier: " + ident->name_));
     }
