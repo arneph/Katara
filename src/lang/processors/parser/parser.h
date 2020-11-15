@@ -95,8 +95,9 @@ private:
     std::unique_ptr<ast::TypeInstance> ParseTypeInstance(std::unique_ptr<ast::Expr> type);
     
     std::unique_ptr<ast::FieldList> ParseFuncFieldList(bool expect_paren);
+    std::vector<std::unique_ptr<ast::Field>> ParseFuncFields();
     std::unique_ptr<ast::FieldList> ParseStructFieldList();
-    std::unique_ptr<ast::Field> ParseField();
+    std::unique_ptr<ast::Field> ParseStructField();
     std::unique_ptr<ast::TypeArgList> ParseTypeArgList();
     std::unique_ptr<ast::TypeParamList> ParseTypeParamList();
     std::unique_ptr<ast::TypeParam> ParseTypeParam();

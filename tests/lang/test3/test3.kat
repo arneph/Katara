@@ -16,6 +16,12 @@ func f() int {
 	return d
 }
 
+var x, y = g()
+
+func g() (string, bool) {
+    return "hello", false
+}
+
 func main() {
     fmt.Println("hello")
 }

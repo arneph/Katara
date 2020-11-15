@@ -1653,12 +1653,14 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
             return field_list;
         }
     }
-    
-    auto first_field = ParseField();
-    if (!first_field) {
+        
+    auto first_fields = ParseFuncFields();
+    if (first_fields.empty()) {
         return nullptr;
     }
-    field_list->fields_.push_back(std::move(first_field));
+    for (auto& field : first_fields) {
+        field_list->fields_.push_back(std::move(field));
+    }
     if (!has_paren) {
         return field_list;
     }
@@ -1666,11 +1668,13 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
     while (scanner_.token() == tokens::kComma) {
         scanner_.Next();
         
-        auto field = ParseField();
-        if (!field) {
+        auto fields = ParseFuncFields();
+        if (fields.empty()) {
             return nullptr;
         }
-        field_list->fields_.push_back(std::move(field));
+        for (auto& field : fields) {
+            field_list->fields_.push_back(std::move(field));
+        }
     }
     
     if (has_paren) {
@@ -1689,11 +1693,113 @@ std::unique_ptr<ast::FieldList> Parser::ParseFuncFieldList(bool expect_paren) {
     return field_list;
 }
 
+std::vector<std::unique_ptr<ast::Field>> Parser::ParseFuncFields() {
+    if (scanner_.token() != tokens::kIdent) {
+        auto type = ParseType();
+        if (!type) {
+            return {};
+        }
+        std::vector<std::unique_ptr<ast::Field>> fields;
+        fields.emplace_back(std::make_unique<ast::Field>());
+        fields.back()->type_ = std::move(type);
+        return fields;
+    }
+    
+    auto ident = ParseIdent();
+    if (scanner_.token() != tokens::kComma) {
+        switch (scanner_.token()) {
+            case tokens::kLBrack:
+            case tokens::kFunc:
+            case tokens::kInterface:
+            case tokens::kStruct:
+            case tokens::kMul:
+            case tokens::kRem:
+            case tokens::kIdent:{
+                auto type = ParseType();
+                if (!type) {
+                    return {};
+                }
+                std::vector<std::unique_ptr<ast::Field>> fields;
+                fields.emplace_back(std::make_unique<ast::Field>());
+                fields.back()->names_.push_back(std::move(ident));
+                fields.back()->type_ = std::move(type);
+                return fields;
+            }
+            default:{
+                auto named_type = ParseType(std::move(ident));
+                if (!named_type) {
+                    return {};
+                }
+                std::vector<std::unique_ptr<ast::Field>> fields;
+                fields.emplace_back(std::make_unique<ast::Field>());
+                fields.back()->type_ = std::move(named_type);
+                return fields;
+            }
+        }
+    }
+    std::vector<std::unique_ptr<ast::Ident>> idents;
+    idents.push_back(std::move(ident));
+    
+    while (scanner_.token() == tokens::kComma) {
+        scanner_.Next();
+        
+        if (scanner_.token() != tokens::kIdent) {
+            auto type = ParseType();
+            if (!type) {
+                return {};
+            }
+            
+            std::vector<std::unique_ptr<ast::Field>> fields;
+            for (auto& ident : idents) {
+                fields.emplace_back(std::make_unique<ast::Field>());
+                fields.back()->type_ = std::move(ident);
+            }
+            fields.emplace_back(std::make_unique<ast::Field>());
+            fields.back()->type_ = std::move(type);
+            return fields;
+        }
+        
+        auto ident = ParseIdent();
+        if (!ident) {
+            return {};
+        }
+        idents.push_back(std::move(ident));
+    }
+    
+    switch (scanner_.token()) {
+        case tokens::kLBrack:
+        case tokens::kFunc:
+        case tokens::kInterface:
+        case tokens::kStruct:
+        case tokens::kMul:
+        case tokens::kRem:
+        case tokens::kIdent:{
+            auto type = ParseType();
+            if (!type) {
+                return {};
+            }
+            std::vector<std::unique_ptr<ast::Field>> fields;
+            fields.emplace_back(std::make_unique<ast::Field>());
+            fields.back()->names_ = std::move(idents);
+            fields.back()->type_ = std::move(type);
+            return fields;
+        }
+        default:{
+            std::vector<std::unique_ptr<ast::Field>> fields;
+            for (auto& ident : idents) {
+                fields.emplace_back(std::make_unique<ast::Field>());
+                fields.back()->type_ = std::move(ident);
+            }
+            return fields;
+        }
+    }
+}
+
 std::unique_ptr<ast::FieldList> Parser::ParseStructFieldList() {
     auto field_list = std::make_unique<ast::FieldList>();
     
     while (scanner_.token() != tokens::kRBrace) {
-        auto field = ParseField();
+        auto field = ParseStructField();
         if (!field) {
             return nullptr;
         }
@@ -1713,7 +1819,7 @@ std::unique_ptr<ast::FieldList> Parser::ParseStructFieldList() {
     return field_list;
 }
 
-std::unique_ptr<ast::Field> Parser::ParseField() {
+std::unique_ptr<ast::Field> Parser::ParseStructField() {
     auto field = std::make_unique<ast::Field>();
     
     if (scanner_.token() != tokens::kIdent) {
