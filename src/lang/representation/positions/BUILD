@@ -4,7 +4,7 @@ cc_library(
     name = "positions",
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
-    copts = ["-Isrc/ -std=c++17"],
+    copts = ["-Isrc/ -std=c++2a"],
     visibility = [
         "//src/lang/representation:__subpackages__",
     ],

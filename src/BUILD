@@ -2,7 +2,7 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 cc_library(
     name = "katara_lib",
-    copts = ["-Isrc/ -std=c++17"],
+    copts = ["-Isrc/ -std=c++2a"],
     deps = [
         "//src/common:katara_common_lib",
         "//src/lang:katara_lang_lib",
@@ -17,7 +17,7 @@ cc_library(
 cc_binary(
     name = "katara",
     srcs = ["main.cc"],
-    copts = ["-Isrc/ -std=c++17"],
+    copts = ["-Isrc/ -std=c++2a"],
     deps = [
         ":katara_lib",
     ],

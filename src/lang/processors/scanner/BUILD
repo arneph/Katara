@@ -4,7 +4,7 @@ cc_library(
     name = "scanner",
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
-    copts = ["-Isrc/ -std=c++17"],
+    copts = ["-Isrc/ -std=c++2a"],
     deps = [
         "//src/lang/representation",
      ],

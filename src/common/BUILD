@@ -4,7 +4,7 @@ cc_library(
     name = "katara_common_lib",
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
-    copts = ["-Isrc/ -std=c++17"],
+    copts = ["-Isrc/ -std=c++2a"],
     visibility = [
         "//src/x86_64:__pkg__",
 	"//src:__pkg__",

@@ -4,7 +4,7 @@ cc_library(
     name = "katara_ir_lib",
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
-    copts = ["-Isrc/ -std=c++17"],
+    copts = ["-Isrc/ -std=c++2a"],
     deps = [
 	"//src/vcg:katara_vcg_lib",
      ],
