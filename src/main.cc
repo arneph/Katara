@@ -99,11 +99,11 @@ void run_lang_test(std::filesystem::path test_dir) {
         to_file(ast_graph.ToVCGFormat(),
                 out_file_base.string() + ".ast.vcg");
     }
-    // TODO: uncomment when type checker is fully implemented
-//    std::string type_info = lang::types::TypeInfoToText(pkg_manager.file_set(),
-//                                                        pkg_manager.type_info());
-//    to_file(type_info,
-//            out_file_base.string() + ".types.txt");
+    
+    std::string type_info = lang::types::TypeInfoToText(pkg_manager.file_set(),
+                                                        pkg_manager.type_info());
+    to_file(type_info,
+            out_file_base.string() + ".types.txt");
 }
 
 void test_lang() {
