@@ -222,7 +222,7 @@ bool TypeHandler::EvaluatePointerType(ast::UnaryExpr *pointer_expr) {
 
 bool TypeHandler::EvaluateArrayType(ast::ArrayType *array_expr) {
     bool is_slice = (array_expr->len_ == nullptr);
-    uint64_t length;
+    uint64_t length = -1;
     if (!is_slice) {
         if (!ConstantHandler::ProcessConstantExpr(array_expr->len_.get(),
                                                   /* iota= */0,
@@ -251,6 +251,7 @@ bool TypeHandler::EvaluateArrayType(ast::ArrayType *array_expr) {
     
     if (!is_slice) {
         std::unique_ptr<types::Array> array_type(new types::Array());
+        array_type->length_ = length;
         array_type->element_type_ = element_type;
         
         types::Array *array_type_ptr = array_type.get();
