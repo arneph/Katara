@@ -67,6 +67,10 @@ func NewCustomHashMap<K, V>(hashFunc HashFunc<K>) *HashMap<K, V> {
     
 }
 
+type Set<T> struct {
+    values []T
+}
+
 type Graph<T> struct {
     nodes Set<*Node<T>>
 }
