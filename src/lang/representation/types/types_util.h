@@ -19,6 +19,9 @@ namespace types {
 
 std::string TypeInfoToText(pos::FileSet *file_set, TypeInfo *type_info);
 
+bool IsAssignableTo(Type *v, Type *t);
+bool IsAssertableTo(Interface *interface, Type *t);
+
 }
 }
 

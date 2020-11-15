@@ -9,7 +9,6 @@
 #ifndef lang_type_checker_constant_handler_h
 #define lang_type_checker_constant_handler_h
 
-#include <unordered_set>
 #include <vector>
 
 #include "lang/representation/ast/ast.h"
@@ -21,43 +20,33 @@ namespace type_checker {
 
 class ConstantHandler {
 public:
-    static void HandleConstants(std::vector<ast::File *> package_files,
-                                types::Package *package,
+    static bool ProcessConstant(types::Constant *constant,
+                                types::Type *type,
+                                ast::Expr *value,
+                                int64_t iota,
                                 types::TypeInfo *info,
                                 std::vector<issues::Issue>& issues);
     
-private:
-    struct EvalInfo {
-        types::Constant *constant_;
-        
-        ast::Ident *name_;
-        ast::Expr *type_;
-        ast::Expr *value_;
-        
-        int64_t iota_;
-        
-        std::unordered_set<types::Constant *> dependencies_;
-    };
+    static bool ProcessConstantExpr(ast::Expr *constant_expr,
+                                    int64_t iota,
+                                    types::TypeInfo *info,
+                                    std::vector<issues::Issue>& issues);
     
-    ConstantHandler(std::vector<ast::File *> package_files,
-                    types::Package *package,
+private:
+    ConstantHandler(int64_t iota,
                     types::TypeInfo *info,
                     std::vector<issues::Issue>& issues)
-        : package_files_(package_files), package_(package), info_(info), issues_(issues) {}
+    : iota_(iota), info_(info), issues_(issues) {}
     
-    void EvaluateConstants();
+    bool ProcessConstantDefinition(types::Constant *constant,
+                                   types::Type *type,
+                                   ast::Expr *value);
     
-    std::vector<EvalInfo>
-    FindConstantsEvaluationOrder(std::vector<EvalInfo> eval_info);
-    std::vector<EvalInfo> FindConstantEvaluationInfo();
-    std::unordered_set<types::Constant *> FindConstantDependencies(ast::Expr *expr);
-    
-    void EvaluateConstant(EvalInfo& eval_info);
-    bool EvaluateConstantExpr(ast::Expr *expr, int64_t iota);
-    bool EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota);
-    bool EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iota);
-    bool EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota);
-    bool EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota);
+    bool EvaluateConstantExpr(ast::Expr *expr);
+    bool EvaluateConstantUnaryExpr(ast::UnaryExpr *expr);
+    bool EvaluateConstantCompareExpr(ast::BinaryExpr *expr);
+    bool EvaluateConstantShiftExpr(ast::BinaryExpr *expr);
+    bool EvaluateConstantBinaryExpr(ast::BinaryExpr *expr);
     bool CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
                                                  constants::Value &x_value,
                                                  constants::Value &y_value,
@@ -65,8 +54,7 @@ private:
     
     static constants::Value ConvertUntypedInt(constants::Value value, types::Basic::Kind kind);
     
-    std::vector<ast::File *> package_files_;
-    types::Package *package_;
+    int64_t iota_;
     types::TypeInfo *info_;
     std::vector<issues::Issue>& issues_;
 };

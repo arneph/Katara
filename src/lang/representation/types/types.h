@@ -23,8 +23,10 @@ namespace lang {
 namespace type_checker {
 class UniverseBuilder;
 class IdentifierResolver;
-class InitHandler;
+class TypeHandler;
 class ConstantHandler;
+class VariableHandler;
+class ExprHandler;
 
 }
 
@@ -121,6 +123,8 @@ private:
     
     Kind kind_;
     Type *element_type_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class Array : public Type {
@@ -139,6 +143,8 @@ private:
     
     Type *element_type_;
     uint64_t length_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class Slice : public Type {
@@ -155,6 +161,8 @@ private:
     Slice() {}
     
     Type *element_type_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class NamedType;
@@ -173,6 +181,8 @@ private:
     TypeTuple() {}
     
     std::vector<NamedType *> types_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class NamedType : public Type {
@@ -194,6 +204,8 @@ private:
     std::string name_;
     Type *type_;
     TypeTuple *type_parameters_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class TypeInstance : public Type {
@@ -212,6 +224,8 @@ private:
     
     Type *instantiated_type_;
     std::vector<Type *> type_args_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class Tuple : public Type {
@@ -228,6 +242,8 @@ private:
     Tuple() {}
     
     std::vector<Variable *> variables_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class Signature : public Type {
@@ -250,6 +266,8 @@ private:
     TypeTuple *type_parameters_;
     Tuple *parameters_;
     Tuple *results_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class Struct : public Type {
@@ -266,6 +284,8 @@ private:
     Struct() {}
     
     std::vector<Variable *> fields_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class Interface : public Type {
@@ -284,6 +304,8 @@ private:
     
     std::vector<NamedType *> embedded_interfaces_;
     std::vector<Func *> methods_;
+    
+    friend type_checker::TypeHandler;
 };
 
 class Package;
@@ -311,18 +333,23 @@ protected:
     Type *type_;
     
     friend type_checker::IdentifierResolver;
-    friend type_checker::InitHandler;
+    friend type_checker::TypeHandler;
     friend type_checker::ConstantHandler;
+    friend type_checker::VariableHandler;
 };
 
 class TypeName : public Object {
 public:
     ~TypeName() {}
     
+    bool is_alias() const;
+    
     std::string ToString() const;
     
 private:
     TypeName() {}
+    
+    bool is_alias_;
     
     friend type_checker::UniverseBuilder;
     friend type_checker::IdentifierResolver;
@@ -362,6 +389,7 @@ private:
     bool is_field_;
     
     friend type_checker::IdentifierResolver;
+    friend type_checker::TypeHandler;
 };
 
 class Func : public Object {
@@ -469,7 +497,7 @@ private:
     std::vector<Variable *> lhs_;
     ast::Expr *rhs_;
     
-    friend type_checker::InitHandler;
+    friend type_checker::VariableHandler;
 };
 
 class Package {
@@ -538,8 +566,9 @@ private:
     
     friend type_checker::UniverseBuilder;
     friend type_checker::IdentifierResolver;
-    friend type_checker::InitHandler;
+    friend type_checker::TypeHandler;
     friend type_checker::ConstantHandler;
+    friend type_checker::VariableHandler;
 };
 
 }

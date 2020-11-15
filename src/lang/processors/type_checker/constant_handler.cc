@@ -8,229 +8,112 @@
 
 #include "constant_handler.h"
 
-#include "lang/representation/ast/ast_util.h"
-
 namespace lang {
 namespace type_checker {
 
-void ConstantHandler::HandleConstants(std::vector<ast::File *> package_files,
-                                      types::Package *package,
+bool ConstantHandler::ProcessConstant(types::Constant *constant,
+                                      types::Type *type,
+                                      ast::Expr *value,
+                                      int64_t iota,
                                       types::TypeInfo *info,
-                                      std::vector<issues::Issue> &issues) {
-    ConstantHandler handler(package_files,
-                            package,
-                            info,
-                            issues);
+                                      std::vector<issues::Issue>& issues) {
+    ConstantHandler handler(iota, info, issues);
     
-    handler.EvaluateConstants();
+    return handler.ProcessConstantDefinition(constant, type, value);
 }
 
-void ConstantHandler::EvaluateConstants() {
-    std::vector<EvalInfo> eval_infos = FindConstantEvaluationInfo();
-    eval_infos = FindConstantsEvaluationOrder(eval_infos);
+bool ConstantHandler::ProcessConstantExpr(ast::Expr *constant_expr,
+                                          int64_t iota,
+                                          types::TypeInfo *info,
+                                          std::vector<issues::Issue>& issues) {
+    ConstantHandler handler(iota, info, issues);
     
-    for (auto& eval_info : eval_infos) {
-        EvaluateConstant(eval_info);
-    }
+    return handler.EvaluateConstantExpr(constant_expr);
 }
 
-std::vector<ConstantHandler::EvalInfo>
-ConstantHandler::FindConstantsEvaluationOrder(std::vector<EvalInfo> eval_infos) {
-    std::vector<ConstantHandler::EvalInfo> order;
-    std::unordered_set<types::Constant *> done;
-    while (eval_infos.size() > done.size()) {
-        size_t done_size_before = done.size();
-        
-        for (auto& info : eval_infos) {
-            if (done.find(info.constant_) != done.end()) {
-                continue;
-            }
-            bool all_dependencies_done = true;
-            for (auto dependency : info.dependencies_) {
-                if (done.find(dependency) == done.end()) {
-                    all_dependencies_done = false;
-                    break;
-                }
-            }
-            if (!all_dependencies_done) {
-                continue;
-            }
-            
-            order.push_back(info);
-            done.insert(info.constant_);
-        }
-        
-        size_t done_size_after = done.size();
-        if (done_size_before == done_size_after) {
-            std::vector<pos::pos_t> positions;
-            std::string names = "";
-            for (auto& info : eval_infos) {
-                positions.push_back(info.constant_->position_);
-                if (names.empty()) {
-                    names = info.constant_->name_;
-                } else {
-                    names += ", " + info.constant_->name_;
-                }
-            }
-            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                            issues::Severity::Error,
-                                            positions,
-                                            "initialization loop(s) for constants: " + names));
-            break;
-        }
-    }
-    return order;
-}
-
-std::vector<ConstantHandler::EvalInfo>
-ConstantHandler::FindConstantEvaluationInfo() {
-    std::vector<EvalInfo> eval_info;
-    for (ast::File *file : package_files_) {
-        for (auto& decl : file->decls_) {
-            auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get());
-            if (gen_decl == nullptr ||
-                gen_decl->tok_ != tokens::kConst) {
-                continue;
-            }
-            int64_t iota = 0;
-            for (auto& spec : gen_decl->specs_) {
-                auto value_spec = static_cast<ast::ValueSpec *>(spec.get());
-                
-                for (size_t i = 0; i < value_spec->names_.size(); i++) {
-                    ast::Ident *name = value_spec->names_.at(i).get();
-                    types::Object *object = info_->definitions_.at(name);
-                    types::Constant *constant = static_cast<types::Constant *>(object);
-                    ast::Expr *type = value_spec->type_.get();
-                    ast::Expr *value = nullptr;
-                    std::unordered_set<types::Constant *> dependencies;
-                    if (value_spec->values_.size() > i) {
-                        value = value_spec->values_.at(i).get();
-                        dependencies = FindConstantDependencies(value);
-                    }
-                    
-                    eval_info.push_back(EvalInfo{
-                        constant, name, type, value, iota, dependencies
-                    });
-                }
-                iota++;
-            }
-        }
-    }
-    return eval_info;
-}
-
-std::unordered_set<types::Constant *> ConstantHandler::FindConstantDependencies(ast::Expr *expr) {
-    std::unordered_set<types::Constant *> constants;
-    ast::WalkFunction walker =
-    ast::WalkFunction([&](ast::Node *node) -> ast::WalkFunction {
-        if (node == nullptr) {
-            return walker;
-        }
-        auto ident = dynamic_cast<ast::Ident *>(node);
-        if (ident == nullptr) {
-            return walker;
-        }
-        auto it = info_->uses_.find(ident);
-        if (it == info_->uses_.end() ||
-            it->second->parent() != package_->scope() ||
-            (dynamic_cast<types::Constant *>(it->second) == nullptr &&
-             dynamic_cast<types::Variable *>(it->second) == nullptr &&
-             dynamic_cast<types::Func *>(it->second) == nullptr)) {
-            return walker;
-        }
-        auto constant = dynamic_cast<types::Constant *>(it->second);
-        if (constant == nullptr) {
-            issues_.push_back(
-                              issues::Issue(issues::Origin::TypeChecker,
-                                            issues::Severity::Error,
-                                            ident->start(),
-                                            "constant can not depend on non-constant: " + ident->name_));
-            return walker;
-        }
-        constants.insert(constant);
-        return walker;
-    });
-    ast::Walk(expr, walker);
-    return constants;
-}
-
-void ConstantHandler::EvaluateConstant(EvalInfo &eval_info) {
-    if (eval_info.value_ == nullptr &&
-        eval_info.type_ == nullptr) {
+bool ConstantHandler::ProcessConstantDefinition(types::Constant *constant,
+                                                types::Type *type,
+                                                ast::Expr *value_expr) {
+    if (type == nullptr && value_expr == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
-                                        eval_info.name_->start(),
-                                        "constant needs a type or value: " +
-                                        eval_info.name_->name_));
-        return;
+                                        constant->position(),
+                                        "constant needs a type or value: "
+                                        + constant->name()));
+        return false;
     }
-
-    types::Basic *type = nullptr;
+    
+    types::Basic *basic_type = nullptr;
     constants::Value value(int64_t{0});
     
-    if (eval_info.type_ != nullptr) {
-        type = dynamic_cast<types::Basic *>(info_->types_.at(eval_info.type_));
+    if (type != nullptr) {
+        basic_type = dynamic_cast<types::Basic *>(type->Underlying());
         if (type == nullptr) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            eval_info.name_->start(),
-                                            "constant can not have non-basic type: " + eval_info.name_->name_));
-            return;
+                                            constant->position(),
+                                            "constant can not have non-basic type: "
+                                            + constant->name()));
+            return false;
         }
     }
     
-    if (eval_info.value_ == nullptr) {
-        value = ConvertUntypedInt(value, type->kind());
+    if (value_expr == nullptr) {
+        value = ConvertUntypedInt(value, basic_type->kind());
         
     } else {
-        if (!EvaluateConstantExpr(eval_info.value_, eval_info.iota_)) {
+        if (!EvaluateConstantExpr(value_expr)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            eval_info.name_->start(),
-                                            "constant could not be evaluated: " + eval_info.name_->name_));
-            return;
+                                            constant->position(),
+                                            "constant could not be evaluated: "
+                                            + constant->name()));
+            return false;
         }
-        types::Basic *given_type = static_cast<types::Basic *>(info_->types_.at(eval_info.value_));
-        constants::Value given_value = info_->constant_values_.at(eval_info.value_);
+        types::Basic *given_type = static_cast<types::Basic *>(info_->types_.at(value_expr));
+        constants::Value given_value = info_->constant_values_.at(value_expr);
         
-        if (type == nullptr) {
-            type = given_type;
+        if (basic_type == nullptr) {
+            basic_type = given_type;
         }
         
-        if (given_type == type) {
+        if (given_type == basic_type) {
             value = given_value;
             
         } else if (given_type->info() & types::Basic::kIsUntyped) {
-            value = ConvertUntypedInt(given_value, type->kind());
+            value = ConvertUntypedInt(given_value, basic_type->kind());
             
         } else {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            eval_info.name_->start(),
-                                            "constant can not hold a value of a different type: " + eval_info.name_->name_));
-            return;
+                                            constant->position(),
+                                            "constant can not hold a value of a different type: "
+                                            + constant->name()));
+            return false;
         }
     }
     
-    eval_info.constant_->type_ = type;
-    eval_info.constant_->value_ = value;
+    constant->type_ = type;
+    constant->value_ = value;
+    return true;
 }
 
-bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
+bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
     if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
         types::Constant *constant = dynamic_cast<types::Constant *>(info_->uses().at(ident));
-        types::Basic *type = static_cast<types::Basic *>(constant->type_);
+        types::Type *type = constant->type_;
         constants::Value value(0);
         if (constant == nullptr) {
             issues_.push_back(
                               issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             ident->start(),
-                                            "constant can not depend on unknown ident: " + ident->name_));
+                                            "constant can not depend on unknown ident: "
+                                            + ident->name_));
             return false;
         } else if (constant->parent_ == info_->universe_ &&
                    constant->name_ == "iota") {
-            value = constants::Value(iota);
+            value = constants::Value(iota_);
         } else {
             value = constant->value_;
         }
@@ -250,7 +133,7 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
         return true;
         
     } else if (ast::ParenExpr *paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
-        if (!EvaluateConstantExpr(paren_expr->x_.get(), iota)) {
+        if (!EvaluateConstantExpr(paren_expr->x_.get())) {
             return false;
         }
         
@@ -262,7 +145,7 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
         return true;
         
     } else if (ast::UnaryExpr *unary_expr = dynamic_cast<ast::UnaryExpr *>(expr)) {
-        return EvaluateConstantUnaryExpr(unary_expr, iota);
+        return EvaluateConstantUnaryExpr(unary_expr);
         
     } else if (ast::BinaryExpr *binary_expr = dynamic_cast<ast::BinaryExpr *>(expr)) {
         switch (binary_expr->op_) {
@@ -272,12 +155,12 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
             case tokens::kGtr:
             case tokens::kEql:
             case tokens::kNeq:
-                return EvaluateConstantCompareExpr(binary_expr, iota);
+                return EvaluateConstantCompareExpr(binary_expr);
             case tokens::kShl:
             case tokens::kShr:
-                return EvaluateConstantShiftExpr(binary_expr, iota);
+                return EvaluateConstantShiftExpr(binary_expr);
             default:
-                return EvaluateConstantBinaryExpr(binary_expr, iota);
+                return EvaluateConstantBinaryExpr(binary_expr);
         }
     } else {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -288,8 +171,8 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr, int64_t iota) {
     }
 }
 
-bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t iota) {
-    if (!EvaluateConstantExpr(expr->x_.get(), iota)) {
+bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
+    if (!EvaluateConstantExpr(expr->x_.get())) {
         return false;
     }
     
@@ -358,11 +241,11 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr, int64_t io
     }
 }
 
-bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t iota) {
-    if (!EvaluateConstantExpr(expr->x_.get(), iota)) {
+bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr) {
+    if (!EvaluateConstantExpr(expr->x_.get())) {
         return false;
     }
-    if (!EvaluateConstantExpr(expr->y_.get(), iota)) {
+    if (!EvaluateConstantExpr(expr->y_.get())) {
         return false;
     }
     
@@ -404,11 +287,11 @@ bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr, int64_t
     return true;
 }
 
-bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t iota) {
-    if (!EvaluateConstantExpr(expr->x_.get(), iota)) {
+bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr *expr) {
+    if (!EvaluateConstantExpr(expr->x_.get())) {
         return false;
     }
-    if (!EvaluateConstantExpr(expr->y_.get(), iota)) {
+    if (!EvaluateConstantExpr(expr->y_.get())) {
         return false;
     }
     
@@ -446,11 +329,11 @@ bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr *expr, int64_t i
     return true;
 }
 
-bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr, int64_t iota) {
-    if (!EvaluateConstantExpr(expr->x_.get(), iota)) {
+bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr) {
+    if (!EvaluateConstantExpr(expr->x_.get())) {
         return false;
     }
-    if (!EvaluateConstantExpr(expr->y_.get(), iota)) {
+    if (!EvaluateConstantExpr(expr->y_.get())) {
         return false;
     }
     

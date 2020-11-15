@@ -250,6 +250,10 @@ const std::vector<Variable *>& Struct::fields() const {
     return fields_;
 }
 
+Type * Struct::Underlying() {
+    return this;
+}
+
 std::string Struct::ToString() const {
     std::string s = "struct{";
     for (size_t i = 0; i < fields_.size(); i++) {
@@ -310,7 +314,14 @@ Type * Object::type() const {
     return type_;
 }
 
+bool TypeName::is_alias() const {
+    return is_alias_;
+}
+
 std::string TypeName::ToString() const {
+    if (is_alias_) {
+        return "type " + name_ + " = " + type_->ToString();
+    }
     return "type " + name_ + " " + type_->ToString();
 }
 

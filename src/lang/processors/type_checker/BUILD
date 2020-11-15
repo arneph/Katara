@@ -20,8 +20,7 @@ cc_library(
     srcs = [
         "universe_builder.cc",
         "identifier_resolver.cc",
-        "package_action.cc",
-        "package_action_manager.cc",
+        "package_handler.cc",
         "type_handler.cc",
         "constant_handler.cc",
         "variable_handler.cc",
@@ -30,8 +29,7 @@ cc_library(
     hdrs = [
         "universe_builder.h",
         "identifier_resolver.h",
-        "package_action.h",
-        "package_action_manager.h",
+        "package_handler.h",
         "type_handler.h",
         "constant_handler.h",
         "variable_handler.h",

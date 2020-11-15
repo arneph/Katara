@@ -10,8 +10,7 @@
 
 #include "lang/processors/type_checker/universe_builder.h"
 #include "lang/processors/type_checker/identifier_resolver.h"
-#include "lang/processors/type_checker/init_handler.h"
-#include "lang/processors/type_checker/constant_handler.h"
+#include "lang/processors/type_checker/package_handler.h"
 
 namespace lang {
 namespace type_checker {
@@ -36,15 +35,10 @@ types::Package * Check(std::string package_path,
         }
     }
     
-    InitHandler::HandleInits(package_files,
-                             package,
-                             type_info,
-                             issues);
-    
-    ConstantHandler::HandleConstants(package_files,
-                                     package,
-                                     type_info,
-                                     issues);
+    bool ok = PackageHandler::ProcessPackage(package_files, package, type_info, issues);
+    if (!ok) {
+        return nullptr;
+    }
     
     return package;
 }
