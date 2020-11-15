@@ -501,7 +501,7 @@ struct Field : public Node {
     pos::pos_t end() const;
 };
 
-// TypeArgList ::= "<" [Type {"," Type} ">" .
+// TypeArgList ::= "<" Type {"," Type} ">" .
 struct TypeArgList : public Node {
     pos::pos_t l_angle_;
     std::vector<std::unique_ptr<Expr>> args_;
