@@ -29,6 +29,9 @@ class Value {
 public:
     Value(value_t value) : value_(value) {}
     
+    bool CanConvertToArraySize() const;
+    uint64_t ConvertToArraySize() const;
+    
     std::string ToString() const;
     
     value_t value_;

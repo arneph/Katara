@@ -11,6 +11,56 @@
 namespace lang {
 namespace constants {
 
+bool Value::CanConvertToArraySize() const {
+    switch (value_.index()) {
+        case 0:
+            return false;
+        case 1:
+            return std::get<int8_t>(value_) >= 0;
+        case 2:
+            return true;
+        case 3:
+            return std::get<int16_t>(value_) >= 0;
+        case 4:
+            return true;
+        case 5:
+            return std::get<int32_t>(value_) >= 0;
+        case 6:
+            return true;
+        case 7:
+            return std::get<int64_t>(value_) >= 0;
+        case 8:
+            return true;
+        case 9:
+            return false;
+        default:
+            throw "unexpected value_t";
+    }
+}
+
+uint64_t Value::ConvertToArraySize() const {
+    switch (value_.index()) {
+        case 1:
+            return std::get<int8_t>(value_);
+        case 2:
+            return std::get<uint8_t>(value_);
+        case 3:
+            return std::get<int16_t>(value_);
+        case 4:
+            return std::get<uint16_t>(value_);
+        case 5:
+            return std::get<int32_t>(value_);
+        case 6:
+            return std::get<uint32_t>(value_);
+        case 7:
+            return std::get<int64_t>(value_);
+        case 8:
+            return std::get<uint64_t>(value_);
+        default:
+            throw "unexpected value_t";
+    }
+}
+
 std::string Value::ToString() const {
     switch (value_.index()) {
         case 0:
