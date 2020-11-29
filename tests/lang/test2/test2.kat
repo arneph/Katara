@@ -32,7 +32,7 @@ type CompareFunc<T> func(a, b T) ComparisonResult
 
 func SortInts(l List<int>) {
     Sort<int>(l, func(a, b int) ComparisonResult {
-        return
+        return 0
     })
 }
 
