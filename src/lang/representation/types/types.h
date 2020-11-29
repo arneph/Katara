@@ -10,6 +10,7 @@
 #define lang_types_h
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -27,7 +28,7 @@ class TypeHandler;
 class ConstantHandler;
 class VariableHandler;
 class ExprHandler;
-
+class StmtHandler;
 }
 
 namespace types {
@@ -125,6 +126,7 @@ private:
     Type *element_type_;
     
     friend type_checker::TypeHandler;
+    friend type_checker::ExprHandler;
 };
 
 class Array : public Type {
@@ -244,6 +246,7 @@ private:
     std::vector<Variable *> variables_;
     
     friend type_checker::TypeHandler;
+    friend type_checker::ExprHandler;
 };
 
 class Signature : public Type {
@@ -336,6 +339,7 @@ protected:
     friend type_checker::TypeHandler;
     friend type_checker::ConstantHandler;
     friend type_checker::VariableHandler;
+    friend type_checker::ExprHandler;
 };
 
 class TypeName : public Object {
@@ -390,6 +394,8 @@ private:
     
     friend type_checker::IdentifierResolver;
     friend type_checker::TypeHandler;
+    friend type_checker::ExprHandler;
+    friend type_checker::StmtHandler;
 };
 
 class Func : public Object {
@@ -444,6 +450,8 @@ private:
     Builtin(Kind kind);
     
     Kind kind_;
+    
+    friend type_checker::UniverseBuilder;
 };
 
 class PackageName : public Object {
@@ -520,9 +528,21 @@ private:
     friend type_checker::IdentifierResolver;
 };
 
+enum class ExprKind {
+    kInvalid,
+    kNoValue,
+    kBuiltin,
+    kType,
+    kConstant,
+    kVariable,
+    kValue,
+    kValueOk,
+};
+
 class TypeInfo {
 public:
     const std::unordered_map<ast::Expr *, Type *>& types() const;
+    const std::unordered_map<ast::Expr *, ExprKind>& expr_kinds() const;
     const std::unordered_map<ast::Expr *, constants::Value>& constant_values() const;
     const std::unordered_map<ast::Ident *, Object *>& definitions() const;
     const std::unordered_map<ast::Ident *, Object *>& uses() const;
@@ -540,6 +560,8 @@ public:
     Scope * ScopeOf(ast::Node *node) const;
     
     Type * TypeOf(ast::Expr *expr) const;
+    std::optional<ExprKind> ExprKindOf(ast::Expr *expr) const;
+    std::optional<constants::Value> ConstantValueOf(ast::Expr *expr) const;
     
 private:
     std::vector<std::unique_ptr<Type>> type_unique_ptrs_;
@@ -549,6 +571,7 @@ private:
     std::vector<std::unique_ptr<Package>> package_unique_ptrs_;
     
     std::unordered_map<ast::Expr *, Type *> types_;
+    std::unordered_map<ast::Expr *, ExprKind> expr_kinds_;
     std::unordered_map<ast::Expr *, constants::Value> constant_values_;
     
     std::unordered_map<ast::Ident *, Object *> definitions_;
@@ -569,6 +592,8 @@ private:
     friend type_checker::TypeHandler;
     friend type_checker::ConstantHandler;
     friend type_checker::VariableHandler;
+    friend type_checker::ExprHandler;
+    friend type_checker::StmtHandler;
 };
 
 }

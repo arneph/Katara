@@ -470,6 +470,10 @@ const std::unordered_map<ast::Expr *, Type *>& TypeInfo::types() const {
     return types_;
 }
 
+const std::unordered_map<ast::Expr *, ExprKind>& TypeInfo::expr_kinds() const {
+    return expr_kinds_;
+}
+
 const std::unordered_map<ast::Expr *, constants::Value>& TypeInfo::constant_values() const {
     return constant_values_;
 }
@@ -554,6 +558,22 @@ Type * TypeInfo::TypeOf(ast::Expr *expr) const {
         }
     }
     return nullptr;
+}
+
+std::optional<ExprKind> TypeInfo::ExprKindOf(ast::Expr *expr) const {
+    auto it = expr_kinds_.find(expr);
+    if (it != expr_kinds_.end()) {
+        return it->second;
+    }
+    return std::nullopt;
+}
+
+std::optional<constants::Value> TypeInfo::ConstantValueOf(ast::Expr *expr) const {
+    auto it = constant_values_.find(expr);
+    if (it != constant_values_.end()) {
+        return it->second;
+    }
+    return std::nullopt;
 }
 
 }

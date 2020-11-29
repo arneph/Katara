@@ -11,13 +11,18 @@
 #include "lang/representation/tokens/tokens.h"
 #include "lang/representation/ast/ast_util.h"
 
+#include "lang/processors/type_checker/type_handler.h"
+#include "lang/processors/type_checker/constant_handler.h"
+#include "lang/processors/type_checker/variable_handler.h"
+#include "lang/processors/type_checker/stmt_handler.h"
+
 namespace lang {
 namespace type_checker {
 
 bool PackageHandler::ProcessPackage(std::vector<ast::File *> package_files,
-                                          types::Package *package,
-                                          types::TypeInfo *type_info,
-                                          std::vector<issues::Issue> &issues) {
+                                    types::Package *package,
+                                    types::TypeInfo *type_info,
+                                    std::vector<issues::Issue> &issues) {
     PackageHandler manager(package_files, package, type_info, issues);
     
     manager.FindActions();
@@ -267,10 +272,12 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
 
 void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
     ast::Ident *name = func_decl->name_.get();
+    ast::BlockStmt *body = func_decl->body_.get();
     types::Func *func = static_cast<types::Func *>(type_info_->definitions().at(name));
     
     std::unordered_set<types::Object *> prerequisites = FindPrerequisites(func_decl);
-    std::unique_ptr<Action> action =
+    
+    std::unique_ptr<Action> decl_action =
     std::make_unique<Action>(prerequisites,
                              func,
                              [=]() -> bool {
@@ -280,9 +287,25 @@ void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
                                             issues_);
     });
     
-    Action *action_ptr = action.get();
-    actions_.push_back(std::move(action));
-    variable_and_func_decl_actions_.push_back(action_ptr);
+    Action *decl_action_ptr = decl_action.get();
+    actions_.push_back(std::move(decl_action));
+    variable_and_func_decl_actions_.push_back(decl_action_ptr);
+    
+    std::unique_ptr<Action> body_action =
+    std::make_unique<Action>(prerequisites,
+                             func,
+                             [=]() -> bool {
+        types::Signature *signature = static_cast<types::Signature *>(func->type());
+        StmtHandler::ProcessFuncBody(body,
+                                     signature->results(),
+                                     type_info_,
+                                     issues_);
+        return true;
+    });
+    
+    Action *body_action_ptr = body_action.get();
+    actions_.push_back(std::move(body_action));
+    func_body_actions_.push_back(body_action_ptr);
 }
 
 std::unordered_set<types::Object *> PackageHandler::FindPrerequisites(ast::Node *node) {

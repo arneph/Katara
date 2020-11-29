@@ -51,7 +51,7 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
     }
     
     if (type != nullptr) {
-        for (auto variable :variables) {
+        for (auto variable : variables) {
             variable->type_ = type;
         }
     }
@@ -59,7 +59,7 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
         return true;
     }
     
-    if (!ExprHandler::ProcessExpr(value, /* ignore_func_lit_bodies= */ true)) {
+    if (!ExprHandler::ProcessExpr(value, info_, issues_)) {
         return false;
     }
     

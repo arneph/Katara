@@ -11,10 +11,11 @@
 
 #include <memory>
 #include <vector>
+#include <unordered_set>
 
-#include "lang/processors/type_checker/constant_handler.h"
-#include "lang/processors/type_checker/type_handler.h"
-#include "lang/processors/type_checker/variable_handler.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/representation/types/types.h"
+#include "lang/processors/issues/issues.h"
 
 namespace lang {
 namespace type_checker {

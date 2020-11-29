@@ -74,6 +74,7 @@ bool ConstantHandler::ProcessConstantDefinition(types::Constant *constant,
         constants::Value given_value = info_->constant_values_.at(value_expr);
         
         if (basic_type == nullptr) {
+            type = given_type;
             basic_type = given_type;
         }
         
@@ -119,16 +120,19 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
         }
         
         info_->types_.insert({expr, type});
+        info_->expr_kinds_.insert({expr, types::ExprKind::kConstant});
         info_->constant_values_.insert({expr, value});
         return true;
         
     } else if (ast::BasicLit *basic_lit = dynamic_cast<ast::BasicLit *>(expr)) {
         uint64_t v = std::stoull(basic_lit->value_);
         
+        // TODO: support strings and other basic literals
         types::Basic *type = info_->basic_types_.at(types::Basic::kUntypedInt);
         constants::Value value(v);
         
         info_->types_.insert({expr, type});
+        info_->expr_kinds_.insert({expr, types::ExprKind::kConstant});
         info_->constant_values_.insert({expr, value});
         return true;
         
@@ -141,6 +145,7 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
         constants::Value value = info_->constant_values_.at(paren_expr->x_.get());
         
         info_->types_.insert({expr, type});
+        info_->expr_kinds_.insert({expr, types::ExprKind::kConstant});
         info_->constant_values_.insert({expr, value});
         return true;
         
@@ -191,6 +196,7 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
                 return false;
             }
             info_->types_.insert({expr, x_type});
+            info_->expr_kinds_.insert({expr, types::ExprKind::kConstant});
             info_->constant_values_.insert({expr, constants::UnaryOp(expr->op_, x_value)});
             return true;
             
@@ -225,6 +231,7 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
             }
             
             info_->types_.insert({expr, result_type});
+            info_->expr_kinds_.insert({expr, types::ExprKind::kConstant});
             info_->constant_values_.insert({expr, constants::UnaryOp(expr->op_, x_value)});
             return true;
         }
@@ -283,6 +290,7 @@ bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr) {
     bool result = constants::Compare(x_value, expr->op_, y_value);
     
     info_->types_.insert({expr, result_type});
+    info_->expr_kinds_.insert({expr, types::ExprKind::kConstant});
     info_->constant_values_.insert({expr, constants::Value(result)});
     return true;
 }
@@ -325,6 +333,7 @@ bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr *expr) {
     }
     
     info_->types_.insert({expr, x_type});
+    info_->expr_kinds_.insert({expr, types::ExprKind::kConstant});
     info_->constant_values_.insert({expr, constants::ShiftOp(x_value, expr->op_, y_value)});
     return true;
 }
@@ -392,6 +401,7 @@ bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr) {
     }
     
     info_->types_.insert({expr, result_type});
+    info_->expr_kinds_.insert({expr, types::ExprKind::kConstant});
     info_->constant_values_.insert({expr, constants::BinaryOp(x_value, expr->op_, y_value)});
     return true;
 }

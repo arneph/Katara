@@ -25,6 +25,7 @@ cc_library(
         "constant_handler.cc",
         "variable_handler.cc",
         "expr_handler.cc",
+        "stmt_handler.cc",
     ],
     hdrs = [
         "universe_builder.h",
@@ -34,6 +35,7 @@ cc_library(
         "constant_handler.h",
         "variable_handler.h",
         "expr_handler.h",
+        "stmt_handler.h",
     ],
     copts = ["-Isrc/ -std=c++2a"],
     deps = [

@@ -56,14 +56,12 @@ void TypesToText(pos::FileSet *file_set,
     size_t max_expr = 0;
     size_t max_type = 0;
     for (auto& [expr, type] : type_info->types()) {
-        if (type == nullptr) continue;
         pos::Position pos = file_set->PositionFor(expr->start());
         max_pos = std::max(max_pos, pos.ToString().size());
         max_expr = std::max(max_expr, size_t(expr->end() - expr->start() + 1));
         max_type = std::max(max_type, type->ToString().size());
     }
     for (auto& [expr, type] : type_info->types()) {
-        if (type == nullptr) continue;
         pos::Position pos = file_set->PositionFor(expr->start());
         pos::File *file = file_set->FileAt(expr->start());
         
@@ -134,7 +132,9 @@ void DefinitionsToText(pos::FileSet *file_set,
     size_t max_ident = 0;
     size_t max_obj = 0;
     for (auto& [ident, obj] : type_info->definitions()) {
-        if (obj->type() == nullptr) continue;
+        if (obj->type() == nullptr) {
+            continue;
+        }
         pos::Position pos = file_set->PositionFor(ident->start());
         max_pos = std::max(max_pos, pos.ToString().size());
         max_ident = std::max(max_ident, ident->name_.size());
@@ -198,14 +198,36 @@ void ImplicitsToText(pos::FileSet *file_set,
     ss << "\n";
 }
 
-bool IsAssignableTo(Type *v, Type *t) {
-    // TODO:implement
+bool IsAssignableTo(Type *src, Type *dst) {
+    // TODO: implement
     return true;
 }
 
-bool IsAssertableTo(Interface *interface, Type *t) {
-    // TODO:implement
+bool IsAssertableTo(Type *general, Type *specialised) {
+    // TODO: implement
     return true;
+}
+
+bool IsComparable(Type *t) {
+    // TODO: implement
+    return true;
+}
+
+bool IsComparable(Type *t, Type *v, tokens::Token op) {
+    // TODO: implement
+    return true;
+}
+
+bool IsConvertibleTo(Type *src, Type *dst) {
+    // TODO: implement
+    return true;
+}
+
+Type * InstantiateType(Type *parameterized_type,
+                       std::unordered_map<NamedType *, Type *> type_params_to_args,
+                       TypeInfo *info) {
+    // TODO: implement
+    return nullptr;
 }
 
 }
