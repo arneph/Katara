@@ -186,7 +186,7 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
             }
         }
         
-        if (value_spec->names_.size() > 1 && value_spec->names_.size() == 1) {
+        if (value_spec->names_.size() > 1 && value_spec->values_.size() == 1) {
             std::vector<types::Variable *> variables;
             std::unordered_set<types::Object *> objects;
             for (auto& name : value_spec->names_) {
