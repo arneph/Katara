@@ -22,6 +22,7 @@ private:
     static void SetupPredeclaredTypes(types::TypeInfo *info);
     static void SetupPredeclaredConstants(types::TypeInfo *info);
     static void SetupPredeclaredNil(types::TypeInfo *info);
+    static void SetupPredeclaredFuncs(types::TypeInfo *info);
 };
 
 }

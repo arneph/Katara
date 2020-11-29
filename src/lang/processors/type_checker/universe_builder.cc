@@ -28,6 +28,7 @@ void UniverseBuilder::SetupUniverse(types::TypeInfo *info) {
     SetupPredeclaredTypes(info);
     SetupPredeclaredConstants(info);
     SetupPredeclaredNil(info);
+    SetupPredeclaredFuncs(info);
 }
 
 void UniverseBuilder::SetupPredeclaredTypes(types::TypeInfo *info) {
@@ -138,6 +139,29 @@ void UniverseBuilder::SetupPredeclaredNil(types::TypeInfo *info) {
     
     info->universe_->named_objects_.insert({"nil", nil.get()});
     info->object_unique_ptrs_.push_back(std::move(nil));
+}
+
+void UniverseBuilder::SetupPredeclaredFuncs(types::TypeInfo *info) {
+    typedef struct{
+        types::Builtin::Kind kind_;
+        std::string name_;
+    } predeclared_builtin_t;
+    auto predeclared_builtins = std::vector<predeclared_builtin_t>({
+        {types::Builtin::Kind::kLen, "len"},
+        {types::Builtin::Kind::kMake, "make"},
+        {types::Builtin::Kind::kNew, "new"},
+    });
+    for (auto predeclared_builtin : predeclared_builtins) {
+        std::unique_ptr<types::Builtin> builtin(new types::Builtin(predeclared_builtin.kind_));
+        builtin->parent_ = info->universe_;
+        builtin->package_ = nullptr;
+        builtin->position_ = pos::kNoPos;
+        builtin->name_ = predeclared_builtin.name_;
+        builtin->type_ = nullptr;
+        
+        info->universe_->named_objects_.insert({predeclared_builtin.name_, builtin.get()});
+        info->object_unique_ptrs_.push_back(std::move(builtin));
+    }
 }
 
 }
