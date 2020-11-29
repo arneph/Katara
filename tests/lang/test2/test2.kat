@@ -11,8 +11,8 @@ type List<T> interface {
 type ArrayList<T> struct{
     data []T
     start int
-    len int
-    cap int
+    length int
+    capacity int
 }
 
 func NewArrayList<T>() *List<T> {

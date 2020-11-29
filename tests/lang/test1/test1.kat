@@ -54,7 +54,7 @@ func ForEachDimRev(a Vector, f func(i, x int)) {
     }
 }
 
-type Func func(int, int) int
+type Func func(int) int
 
 func Line(x, m, b int) int {
     return b + m * x
