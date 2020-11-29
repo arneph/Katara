@@ -605,5 +605,12 @@ bool IsTypeSwitchStmt(SwitchStmt *switch_stmt) {
     return true;
 }
 
+ast::Expr * Unparen(ast::Expr *expr) {
+    while (auto paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
+        expr = paren_expr->x_.get();
+    }
+    return expr;
+}
+
 }
 }

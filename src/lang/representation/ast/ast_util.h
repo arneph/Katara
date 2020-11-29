@@ -79,6 +79,8 @@ void Walk(Ident *ident, WalkFunction f);
 
 bool IsTypeSwitchStmt(SwitchStmt *switch_stmt);
 
+ast::Expr * Unparen(ast::Expr *expr);
+
 }
 }
 
