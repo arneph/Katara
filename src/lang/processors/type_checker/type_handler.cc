@@ -33,6 +33,18 @@ bool TypeHandler::ProcessFuncDecl(types::Func *func,
     return handler.ProcessFuncDefinition(func, func_decl);
 }
 
+bool TypeHandler::ProcessTypeArgs(ast::TypeArgList *type_args,
+                                  types::TypeInfo *info,
+                                  std::vector<issues::Issue> &issues) {
+    TypeHandler handler(info, issues);
+    
+    bool ok = true;
+    for (auto& arg : type_args->args_) {
+        ok = handler.EvaluateTypeExpr(arg.get()) && ok;
+    }
+    return ok;
+}
+
 bool TypeHandler::ProcessTypeExpr(ast::Expr *type_expr,
                                   types::TypeInfo *info,
                                   std::vector<issues::Issue>& issues) {
@@ -94,9 +106,6 @@ bool TypeHandler::ProcessFuncDefinition(types::Func *func,
     }
     
     types::Tuple *parameters = EvaluateTuple(func_decl->type_->params_.get());
-    if (parameters == nullptr) {
-        return false;
-    }
     types::Tuple *results = nullptr;
     if (func_decl->type_->results_) {
         results = EvaluateTuple(func_decl->type_->results_.get());
@@ -380,7 +389,7 @@ types::NamedType * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parameter_
             return nullptr;
         }
         types::Type *given_type = info_->TypeOf(parameter_expr->type_.get());
-        type_constraint = dynamic_cast<types::Interface *>(given_type);
+        type_constraint = dynamic_cast<types::Interface *>(given_type->Underlying());
         if (type_constraint == nullptr) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
@@ -413,9 +422,6 @@ types::NamedType * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parameter_
 
 types::Func * TypeHandler::EvaluateMethodSpec(ast::MethodSpec *method_spec) {
     types::Tuple *parameters = EvaluateTuple(method_spec->params_.get());
-    if (parameters == nullptr) {
-        return nullptr;
-    }
     types::Tuple *results = nullptr;
     if (method_spec->results_) {
         results = EvaluateTuple(method_spec->results_.get());

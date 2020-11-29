@@ -24,12 +24,14 @@ public:
                                 ast::TypeSpec *type_spec,
                                 types::TypeInfo *info,
                                 std::vector<issues::Issue>& issues);
-    
     static bool ProcessFuncDecl(types::Func *func,
                                 ast::FuncDecl *func_decl,
                                 types::TypeInfo *info,
                                 std::vector<issues::Issue>& issues);
     
+    static bool ProcessTypeArgs(ast::TypeArgList *type_args,
+                                types::TypeInfo *info,
+                                std::vector<issues::Issue>& issues);
     static bool ProcessTypeExpr(ast::Expr *type_expr,
                                 types::TypeInfo *info,
                                 std::vector<issues::Issue>& issues);
