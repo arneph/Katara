@@ -51,7 +51,7 @@ public:
     Interface * CreateInterface(std::vector<NamedType *> embedded_interfaces,
                                 std::vector<Func *> methods);
     Type * InstantiateType(Type *parameterized_type,
-                           std::unordered_map<NamedType *, Type *> type_params_to_args);
+                           std::unordered_map<NamedType *, Type *>& type_params_to_args);
     
     TypeName * CreateTypeName(Scope *parent,
                               Package *package,
@@ -111,6 +111,10 @@ private:
     
     void CheckObjectArgs(Scope *parent,
                          Package *package) const;
+    
+    std::vector<Type *>
+    InstantiateTypeTupleMembers(TypeTuple *type_tuple,
+                                std::unordered_map<NamedType *, Type *>& type_params_to_args);
     
     Info *info_;
     
