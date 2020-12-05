@@ -86,5 +86,5 @@ func (n *Node<T>) ForEachNeighbor(f func(neighbor *Node<T>)) {
 
 func Test() {
     l := NewArrayList<int>()
-    m := NewHashMap<string, List<int>>(0)
+    m := NewHashMap<string, List<int>>()
 }
