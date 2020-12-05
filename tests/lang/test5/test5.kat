@@ -1,4 +1,8 @@
-package std
+package main
+
+import (
+    "fmt"
+)
 
 type Int = int
 type ComparisonResult int
@@ -49,8 +53,16 @@ type Range<T> struct {
     min, max T
 }
 
+func (r Range<T>) String() string {
+    return "implement"
+}
+
 func RangeOf<T Comparable>(xs []T) Range<T> {
     min := T.Min(xs)
     max := T.Max(xs)
     return Range<T>{min, max}
+}
+
+func main() {
+    fmt.Println(RangeOf<Int>([]Int{2, 1, 4, 3, 5, 4, 2}).String())
 }
