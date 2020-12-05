@@ -1,11 +1,11 @@
 package std
 
 type List<T> interface {
-    Get(index int) T
-    Set(index int, T)
-    Len() int
+    () Get(index int) T
+    () Set(index int, T)
+    () Len() int
     
-    SubList(start, end int) List<T>
+    () SubList(start, end int) List<T>
 }
 
 type ArrayList<T> struct{
@@ -41,16 +41,16 @@ func Sort<T>(l List<T>, compareFunc CompareFunc<T>) {
 }
 
 type Map<K, V> interface {
-    Get(key K) V
-    Set(key K, value V)
-    Delete(key K) V
+    () Get(key K) V
+    () Set(key K, value V)
+    () Delete(key K) V
     
-    ForEach(f func(key K, value V))
+    () ForEach(f func(key K, value V))
 }
 
 type HashValue int64
 type Hashable interface {
-    Hash() HashValue
+    () Hash() HashValue
 }
 type HashFunc<T> func(value T) HashValue
 
