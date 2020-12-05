@@ -482,8 +482,8 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr *index_expr) {
         info_builder_.SetExprKind(index_expr, types::ExprKind::kVariable);
         return true;
         
-    } else if (auto slice_type = dynamic_cast<types::Array *>(accessed_type->Underlying())) {
-        types::Type *element_type = array_type->element_type();
+    } else if (auto slice_type = dynamic_cast<types::Slice *>(accessed_type->Underlying())) {
+        types::Type *element_type = slice_type->element_type();
         
         info_builder_.SetExprType(index_expr, element_type);
         info_builder_.SetExprKind(index_expr, types::ExprKind::kVariable);
@@ -582,8 +582,107 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr,
                                            ast::Expr *func_expr,
                                            ast::TypeArgList *type_args_expr,
                                            std::vector<ast::Expr *> arg_exprs) {
-    // TODO: implement
-    throw "interal error: unimplemented";
+    ast::Ident *builtin_ident = static_cast<ast::Ident *>(ast::Unparen(func_expr));
+    types::Builtin *builtin = static_cast<types::Builtin *>(info_->UseOf(builtin_ident));
+    
+    switch (builtin->kind()) {
+        case types::Builtin::Kind::kLen:{
+            if (type_args_expr != nullptr) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                call_expr->start(),
+                                                "len does not accept type arguments"));
+                return false;
+            }
+            if (arg_exprs.size() != 1) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                call_expr->l_paren_,
+                                                "len expected one argument"));
+                return false;
+            }
+            ast::Expr *arg_expr = arg_exprs.at(0);
+            types::Type *arg_type = info_->TypeOf(arg_expr)->Underlying();
+            types::Basic *basic = dynamic_cast<types::Basic *>(arg_type);
+            if (!(basic != nullptr && basic->kind() == types::Basic::kString) &&
+                dynamic_cast<types::Array *>(arg_type) == nullptr &&
+                dynamic_cast<types::Slice *>(arg_type) == nullptr) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                arg_expr->start(),
+                                                "len expected array, slice, or string"));
+                return false;
+            }
+            info_builder_.SetExprType(call_expr, info_->basic_type(types::Basic::kInt));
+            info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+            return true;
+        }
+        case types::Builtin::Kind::kMake:{
+            if (type_args_expr == nullptr ||
+                type_args_expr->args_.size() != 1) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                call_expr->start(),
+                                                "make expected one type argument"));
+                return false;
+            }
+            if (arg_exprs.size() != 1) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                call_expr->l_paren_,
+                                                "make expected one argument"));
+                return false;
+            }
+            ast::Expr *slice_expr = type_args_expr->args_.at(0).get();
+            types::Slice *slice = dynamic_cast<types::Slice *>(info_->TypeOf(slice_expr));
+            if (slice == nullptr) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                slice_expr->start(),
+                                                "make expected slice type argument"));
+                return false;
+            }
+            ast::Expr *length_expr = arg_exprs.at(0);
+            types::Basic *length_type = dynamic_cast<types::Basic *>(info_->TypeOf(length_expr));
+            if (length_type == nullptr || (length_type->kind() != types::Basic::kInt &&
+                                           length_type->kind() != types::Basic::kUntypedInt)) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                length_expr->start(),
+                                                "make expected length of type int"));
+                return false;
+            }
+            info_builder_.SetExprType(call_expr, slice);
+            info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+            return true;
+        }
+        case types::Builtin::Kind::kNew:{
+            if (type_args_expr == nullptr ||
+                type_args_expr->args_.size() != 1) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                call_expr->start(),
+                                                "new expected one type argument"));
+                return false;
+            }
+            if (!arg_exprs.empty()) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                call_expr->l_paren_,
+                                                "new did not expect any arguments"));
+                return false;
+            }
+            ast::Expr *element_type_expr = type_args_expr->args_.at(0).get();
+            types::Type *element_type = info_->TypeOf(element_type_expr);
+            types::Pointer *pointer = info_builder_.CreatePointer(types::Pointer::Kind::kStrong,
+                                                                  element_type);
+            info_builder_.SetExprType(call_expr, pointer);
+            info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+            return true;
+        }
+        default:
+            throw "interal error: unexpected builtin kind";
+    }
 }
 
 bool ExprHandler::CheckCallExprWithFuncCall(ast::CallExpr *call_expr,
@@ -767,7 +866,7 @@ bool ExprHandler::CheckIdent(ast::Ident *ident) {
     } else {
         throw "internal error: unexpected object type";
     }
-    if (object->type() == nullptr) {
+    if (expr_kind != types::ExprKind::kBuiltin && object->type() == nullptr) {
         // TODO: uncomment exception when stmt handler is fully implemented
         throw "internal error: expect to know type at this point";
         return false;

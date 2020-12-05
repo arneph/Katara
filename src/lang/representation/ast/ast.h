@@ -166,19 +166,22 @@ struct ValueSpec : public Spec {
     pos::pos_t end() const;
 };
 
-// TypeSpec ::= Ident [TypeParamList] Type "\n" .
+// TypeSpec ::= Ident [TypeParamList] ["="] Type "\n" .
 struct TypeSpec : public Spec {
     std::unique_ptr<Ident> name_;
     std::unique_ptr<TypeParamList> type_params_;
+    pos::pos_t assign_;
     std::unique_ptr<Expr> type_;
     
     pos::pos_t start() const;
     pos::pos_t end() const;
 };
 
-// FuncDecl ::= "func" [FieldList] Ident [TypeParamList] FieldList [FieldList] BlockStmt .
+// FuncDecl ::= "func" [FieldList | TypeArgList]
+//              Ident [TypeParamList] FieldList [FieldList] BlockStmt .
 struct FuncDecl : public Decl {
     std::unique_ptr<FieldList> receiver_;
+    std::unique_ptr<TypeArgList> type_receiver_;
     std::unique_ptr<Ident> name_;
     std::unique_ptr<TypeParamList> type_params_;
     std::unique_ptr<FuncType> type_;
@@ -450,8 +453,10 @@ struct InterfaceType : public Expr {
     pos::pos_t end() const;
 };
 
-// MethodSpec ::= Ident FieldList [FieldList] .
+// MethodSpec ::= ("()" | "<>") Ident FieldList [FieldList] .
 struct MethodSpec : public Node {
+    pos::pos_t kind_start_;
+    tokens::Token kind_;
     std::unique_ptr<Ident> name_;
     std::unique_ptr<FieldList> params_;
     std::unique_ptr<FieldList> results_;

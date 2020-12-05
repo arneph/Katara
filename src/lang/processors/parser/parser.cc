@@ -231,6 +231,13 @@ std::unique_ptr<ast::TypeSpec> Parser::ParseTypeSpec() {
         type_spec->type_params_ = std::move(type_params);
     }
     
+    if (scanner_.token() == tokens::kAssign) {
+        type_spec->assign_ = scanner_.token_start();
+        scanner_.Next();
+    } else {
+        type_spec->assign_ = pos::kNoPos;
+    }
+    
     auto type = ParseType();
     if (!type) {
         scanner_.SkipPastLine();
@@ -253,6 +260,12 @@ std::unique_ptr<ast::FuncDecl> Parser::ParseFuncDecl() {
             return nullptr;
         }
         func_decl->receiver_ = std::move(receiver);
+    } else if (scanner_.token() == tokens::kLss) {
+        auto type_receiver = ParseTypeArgList();
+        if (!type_receiver) {
+            return nullptr;
+        }
+        func_decl->type_receiver_ = std::move(type_receiver);
     }
     
     auto name = ParseIdent();
@@ -1511,6 +1524,37 @@ std::unique_ptr<ast::InterfaceType> Parser::ParseInterfaceType() {
 
 std::unique_ptr<ast::MethodSpec> Parser::ParseMethodSpec() {
     auto method_spec = std::make_unique<ast::MethodSpec>();
+    
+    if (scanner_.token() != tokens::kLParen &&
+        scanner_.token() != tokens::kLss) {
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '()' or '<>'"));
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    method_spec->kind_start_ = scanner_.token_start();
+    method_spec->kind_ = scanner_.token();
+    scanner_.Next();
+    if (method_spec->kind_ == tokens::kLParen &&
+        scanner_.token() != tokens::kRParen) {
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected ')'"));
+        scanner_.SkipPastLine();
+        return nullptr;
+    } else if (method_spec->kind_ == tokens::kLss &&
+               scanner_.token() != tokens::kGtr) {
+        issues_.push_back(issues::Issue(issues::Origin::Parser,
+                                        issues::Severity::Fatal,
+                                        scanner_.token_start(),
+                                        "expected '>'"));
+        scanner_.SkipPastLine();
+        return nullptr;
+    }
+    scanner_.Next();
     
     auto name = ParseIdent();
     if (!name) {

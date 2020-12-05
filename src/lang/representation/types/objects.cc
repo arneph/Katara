@@ -86,7 +86,7 @@ std::string Func::ToString() const {
     }
     s += "(";
     if (sig->parameters() != nullptr) {
-        s += sig->parameters()->ToString();        
+        s += sig->parameters()->ToString();
     }
     s += ")";
     if (sig->results()) {
@@ -114,14 +114,18 @@ std::string Label::ToString() const {
 
 Builtin::Builtin() {}
 
+Builtin::Kind Builtin::kind() const {
+    return kind_;
+}
+
 std::string Builtin::ToString() const {
     switch (kind_) {
         case Kind::kLen:
             return "len()";
         case Kind::kMake:
-            return "make()";
+            return "make<[]T>()";
         case Kind::kNew:
-            return "new()";
+            return "new<T>()";
         default:
             break;
     }

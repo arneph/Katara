@@ -175,6 +175,10 @@ void InfoBuilder::CreatePredeclaredFuncs() {
 }
 
 Pointer * InfoBuilder::CreatePointer(Pointer::Kind kind, Type *element_type) {
+    if (element_type == nullptr) {
+        throw "internal error: attempted to create pointer without element type";
+    }
+    
     std::unique_ptr<Pointer> pointer(new Pointer());
     pointer->kind_ = kind;
     pointer->element_type_ = element_type;
@@ -186,6 +190,10 @@ Pointer * InfoBuilder::CreatePointer(Pointer::Kind kind, Type *element_type) {
 }
 
 Array * InfoBuilder::CreateArray(Type *element_type, uint64_t length) {
+    if (element_type == nullptr) {
+        throw "internal error: attempted to create array without element type";
+    }
+    
     std::unique_ptr<Array> array(new Array());
     array->element_type_ = element_type;
     array->length_ = length;
@@ -197,6 +205,10 @@ Array * InfoBuilder::CreateArray(Type *element_type, uint64_t length) {
 }
 
 Slice * InfoBuilder::CreateSlice(Type *element_type) {
+    if (element_type == nullptr) {
+        throw "internal error: attempted to create slice without element type";
+    }
+    
     std::unique_ptr<Slice> slice(new Slice());
     slice->element_type_ = element_type;
     
@@ -306,7 +318,7 @@ Type * InfoBuilder::InstantiateType(Type *parameterized_type,
         return CreatePointer(pointer_type->kind(), element_type_instance);
         
     } else if (auto array_type = dynamic_cast<Array *>(parameterized_type)) {
-        Type *element_type = pointer_type->element_type();
+        Type *element_type = array_type->element_type();
         Type *element_type_instance = InstantiateType(element_type, type_params_to_args);
         if (element_type == element_type_instance) {
             return array_type;
@@ -314,7 +326,7 @@ Type * InfoBuilder::InstantiateType(Type *parameterized_type,
         return CreateArray(element_type_instance, array_type->length());
         
     } else if (auto slice_type = dynamic_cast<Slice *>(parameterized_type)) {
-        Type *element_type = pointer_type->element_type();
+        Type *element_type = slice_type->element_type();
         Type *element_type_instance = InstantiateType(element_type, type_params_to_args);
         if (element_type == element_type_instance) {
             return slice_type;
