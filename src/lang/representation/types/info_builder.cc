@@ -77,6 +77,11 @@ void InfoBuilder::CreatePredeclaredTypes() {
             types::Basic::Info{types::Basic::kIsString | types::Basic::kIsUntyped},
             "untyped string"},
         {types::Basic::kUntypedNil, types::Basic::kIsUntyped, "untyped nil"},
+        
+        {types::Basic::kByte,
+            types::Basic::Info{types::Basic::kIsInteger | types::Basic::kIsUnsigned},
+            "byte"},
+        {types::Basic::kRune, types::Basic::kIsInteger, "rune"},
     });
     for (auto predeclared_type : predeclared_types) {
         auto basic = std::unique_ptr<types::Basic>(new Basic());
