@@ -17,6 +17,11 @@
 
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/types/types.h"
+#include "lang/representation/types/objects.h"
+#include "lang/representation/types/scope.h"
+#include "lang/representation/types/package.h"
+#include "lang/representation/types/info.h"
+#include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
 
 namespace lang {
@@ -28,23 +33,23 @@ public:
     CreatePackageAndResolveIdentifiers(std::string package_path,
                                        std::vector<ast::File *> package_files,
                                        std::function<types::Package *(std::string)> importer,
-                                       types::TypeInfo* info,
+                                       types::InfoBuilder& info_builder,
                                        std::vector<issues::Issue>& issues);
     
 private:
     IdentifierResolver(std::string package_path,
                        std::vector<ast::File *> package_files,
                        std::function<types::Package *(std::string)> importer,
-                       types::TypeInfo* info,
+                       types::InfoBuilder& info_builder,
                        std::vector<issues::Issue>& issues)
     : package_path_(package_path), package_files_(package_files), importer_(importer),
-      info_(info), issues_(issues) {}
+      info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
     
-    void CreatePackageAndPackageScope();
+    void CreatePackage();
     void CreateFileScopes();
 
     void ResolveIdentifiers();
-    void AddObjectToScope(types::Object *object, types::Scope *scope);
+    void AddObjectToScope(types::Scope *scope, types::Object *object);
     
     void AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl,
                                       types::Scope *scope,
@@ -89,7 +94,8 @@ private:
     const std::string package_path_;
     const std::vector<ast::File *> package_files_;
     const std::function<types::Package *(std::string)> importer_;
-    types::TypeInfo* info_;
+    types::Info *info_;
+    types::InfoBuilder& info_builder_;
     std::vector<issues::Issue>& issues_;
     
     types::Package *package_;

@@ -13,6 +13,9 @@
 
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/types/types.h"
+#include "lang/representation/types/objects.h"
+#include "lang/representation/types/info.h"
+#include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
 
 namespace lang {
@@ -23,24 +26,25 @@ public:
     static bool ProcessVariable(types::Variable * variable,
                                 types::Type *type,
                                 ast::Expr *value,
-                                types::TypeInfo *info,
+                                types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
     static bool ProcessVariables(std::vector<types::Variable *> variables,
                                  types::Type *type,
                                  ast::Expr *value,
-                                 types::TypeInfo *info,
+                                 types::InfoBuilder& info_builder,
                                  std::vector<issues::Issue>& issues);
     
 private:
-    VariableHandler(types::TypeInfo *info,
+    VariableHandler(types::InfoBuilder& info_builder,
                     std::vector<issues::Issue>& issues)
-    : info_(info), issues_(issues) {}
+    : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
     
     bool ProcessVariableDefinitions(std::vector<types::Variable *> variables,
                                     types::Type *type,
                                     ast::Expr *value);
     
-    types::TypeInfo *info_;
+    types::Info *info_;
+    types::InfoBuilder& info_builder_;
     std::vector<issues::Issue>& issues_;
 };
 

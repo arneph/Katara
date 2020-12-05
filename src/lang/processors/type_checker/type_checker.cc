@@ -8,7 +8,7 @@
 
 #include "type_checker.h"
 
-#include "lang/processors/type_checker/universe_builder.h"
+#include "lang/representation/types/info_builder.h"
 #include "lang/processors/type_checker/identifier_resolver.h"
 #include "lang/processors/type_checker/package_handler.h"
 
@@ -18,15 +18,16 @@ namespace type_checker {
 types::Package * Check(std::string package_path,
                        std::vector<ast::File *> package_files,
                        std::function<types::Package *(std::string)> importer,
-                       types::TypeInfo *type_info,
+                       types::Info *info,
                        std::vector<issues::Issue>& issues) {
-    UniverseBuilder::SetupUniverse(type_info);
+    types::InfoBuilder info_builder = info->builder();
+    info_builder.CreateUniverse();
     
     types::Package *package =
         IdentifierResolver::CreatePackageAndResolveIdentifiers(package_path,
                                                                package_files,
                                                                importer,
-                                                               type_info,
+                                                               info_builder,
                                                                issues);
     for (issues::Issue& issue : issues) {
         if (issue.origin() == issues::Origin::TypeChecker &&
@@ -35,7 +36,7 @@ types::Package * Check(std::string package_path,
         }
     }
     
-    bool ok = PackageHandler::ProcessPackage(package_files, package, type_info, issues);
+    bool ok = PackageHandler::ProcessPackage(package_files, package, info_builder, issues);
     if (!ok) {
         return nullptr;
     }

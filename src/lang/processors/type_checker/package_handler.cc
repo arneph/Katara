@@ -21,9 +21,9 @@ namespace type_checker {
 
 bool PackageHandler::ProcessPackage(std::vector<ast::File *> package_files,
                                     types::Package *package,
-                                    types::TypeInfo *type_info,
+                                    types::InfoBuilder& info_builder,
                                     std::vector<issues::Issue> &issues) {
-    PackageHandler manager(package_files, package, type_info, issues);
+    PackageHandler manager(package_files, package, info_builder, issues);
     
     manager.FindActions();
     
@@ -33,10 +33,11 @@ bool PackageHandler::ProcessPackage(std::vector<ast::File *> package_files,
 }
 
 PackageHandler::PackageHandler(std::vector<ast::File *> package_files,
-                                           types::Package *package,
-                                           types::TypeInfo *type_info,
-                                           std::vector<issues::Issue> &issues)
-    : package_files_(package_files), package_(package), type_info_(type_info), issues_(issues) {}
+                               types::Package *package,
+                               types::InfoBuilder& info_builder,
+                               std::vector<issues::Issue> &issues)
+    : package_files_(package_files), package_(package),
+      info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
 
 void PackageHandler::FindActions() {
     for (ast::File *file : package_files_) {
@@ -68,7 +69,7 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
     for (auto& spec : type_decl->specs_) {
         ast::TypeSpec *type_spec = static_cast<ast::TypeSpec *>(spec.get());
         types::TypeName *type_name =
-            static_cast<types::TypeName *>(type_info_->definitions().at(type_spec->name_.get()));
+            static_cast<types::TypeName *>(info_->definitions().at(type_spec->name_.get()));
         
         std::unordered_set<types::Object *> prerequisites = FindPrerequisites(type_spec);
         prerequisites.erase(type_name);
@@ -88,7 +89,7 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
                                      [=]() -> bool {
                 return TypeHandler::ProcessTypeName(type_name,
                                                     type_spec,
-                                                    type_info_,
+                                                    info_builder_,
                                                     issues_);
         });
         
@@ -106,7 +107,7 @@ void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
         for (size_t i = 0; i < value_spec->names_.size(); i++) {
             ast::Ident *name = value_spec->names_.at(i).get();
             types::Constant *constant =
-                static_cast<types::Constant *>(type_info_->definitions().at(name));
+                static_cast<types::Constant *>(info_->definitions().at(name));
             
             ast::Expr *type_expr = nullptr;
             ast::Expr *value = nullptr;
@@ -143,17 +144,17 @@ void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
                                          [=]() -> bool {
                     types::Type *type = nullptr;
                     if (type_expr != nullptr) {
-                        if (!TypeHandler::ProcessTypeExpr(type_expr, type_info_, issues_)) {
+                        if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
                             return false;
                         }
-                        type = type_info_->TypeOf(type_expr);
+                        type = info_->TypeOf(type_expr);
                     }
                     
                     return ConstantHandler::ProcessConstant(constant,
                                                             type,
                                                             value,
                                                             iota,
-                                                            type_info_,
+                                                            info_builder_,
                                                             issues_);
             });
             
@@ -191,7 +192,7 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
             std::unordered_set<types::Object *> objects;
             for (auto& name : value_spec->names_) {
                 types::Variable *variable =
-                    static_cast<types::Variable *>(type_info_->definitions().at(name.get()));
+                    static_cast<types::Variable *>(info_->definitions().at(name.get()));
                 
                 variables.push_back(variable);
                 objects.insert(variable);
@@ -208,16 +209,16 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
                                          [=]() -> bool {
                     types::Type *type = nullptr;
                     if (type_expr != nullptr) {
-                        if (!TypeHandler::ProcessTypeExpr(type_expr, type_info_, issues_)) {
+                        if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
                             return false;
                         }
-                        type = type_info_->TypeOf(type_expr);
+                        type = info_->TypeOf(type_expr);
                     }
                     
                     return VariableHandler::ProcessVariables(variables,
                                                              type,
                                                              value,
-                                                             type_info_,
+                                                             info_builder_,
                                                              issues_);
             });
             
@@ -229,7 +230,7 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
             for (size_t i = 0; i < value_spec->names_.size(); i++) {
                 ast::Ident *name = value_spec->names_.at(i).get();
                 types::Variable *variable =
-                    static_cast<types::Variable *>(type_info_->definitions().at(name));
+                    static_cast<types::Variable *>(info_->definitions().at(name));
                 
                 ast::Expr *value = nullptr;
                 std::unordered_set<types::Object *> prerequisites;
@@ -249,16 +250,16 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
                                              [=]() -> bool {
                         types::Type *type = nullptr;
                         if (type_expr != nullptr) {
-                            if (!TypeHandler::ProcessTypeExpr(type_expr, type_info_, issues_)) {
+                            if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
                                 return false;
                             }
-                            type = type_info_->TypeOf(type_expr);
+                            type = info_->TypeOf(type_expr);
                         }
                         
                         return VariableHandler::ProcessVariable(variable,
                                                                 type,
                                                                 value,
-                                                                type_info_,
+                                                                info_builder_,
                                                                 issues_);
                 });
                 
@@ -273,7 +274,7 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
 void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
     ast::Ident *name = func_decl->name_.get();
     ast::BlockStmt *body = func_decl->body_.get();
-    types::Func *func = static_cast<types::Func *>(type_info_->definitions().at(name));
+    types::Func *func = static_cast<types::Func *>(info_->definitions().at(name));
     
     std::unordered_set<types::Object *> prerequisites = FindPrerequisites(func_decl);
     
@@ -283,7 +284,7 @@ void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
                              [=]() -> bool {
         return TypeHandler::ProcessFuncDecl(func,
                                             func_decl,
-                                            type_info_,
+                                            info_builder_,
                                             issues_);
     });
     
@@ -298,7 +299,7 @@ void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
         types::Signature *signature = static_cast<types::Signature *>(func->type());
         StmtHandler::ProcessFuncBody(body,
                                      signature->results(),
-                                     type_info_,
+                                     info_builder_,
                                      issues_);
         return true;
     });
@@ -319,8 +320,8 @@ std::unordered_set<types::Object *> PackageHandler::FindPrerequisites(ast::Node 
         if (ident == nullptr) {
             return walker;
         }
-        auto it = type_info_->uses().find(ident);
-        if (it == type_info_->uses().end() ||
+        auto it = info_->uses().find(ident);
+        if (it == info_->uses().end() ||
             it->second->parent() != package_->scope()) {
             return walker;
         }

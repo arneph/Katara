@@ -11,10 +11,13 @@
 
 #include <filesystem>
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
 #include "lang/representation/positions/positions.h"
 #include "lang/representation/ast/ast.h"
-#include "lang/representation/types/types.h"
+#include "lang/representation/types/package.h"
+#include "lang/representation/types/info.h"
 #include "lang/processors/issues/issues.h"
 
 namespace lang {
@@ -53,7 +56,7 @@ public:
     PackageManager(std::string stdlib_path);
     
     pos::FileSet * file_set() const;
-    types::TypeInfo * type_info() const;
+    types::Info * type_info() const;
     
     // GetPackage returns the package in the given package directory if is already loaded,
     // otherwise nullptr is returned.
@@ -69,7 +72,7 @@ private:
     
     std::filesystem::path stdlib_path_;
     std::unique_ptr<pos::FileSet> file_set_;
-    std::unique_ptr<types::TypeInfo> type_info_;
+    std::unique_ptr<types::Info> type_info_;
     std::unordered_map<std::string, std::unique_ptr<Package>> packages_;
 };
 

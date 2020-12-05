@@ -15,6 +15,10 @@
 
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/types/types.h"
+#include "lang/representation/types/objects.h"
+#include "lang/representation/types/package.h"
+#include "lang/representation/types/info.h"
+#include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
 
 namespace lang {
@@ -24,7 +28,7 @@ class PackageHandler {
 public:
     static bool ProcessPackage(std::vector<ast::File *> package_files,
                                types::Package *package,
-                               types::TypeInfo *type_info,
+                               types::InfoBuilder& info_builder,
                                std::vector<issues::Issue>& issues);
     
 private:
@@ -61,7 +65,7 @@ private:
     
     PackageHandler(std::vector<ast::File *> package_files,
                    types::Package *package,
-                   types::TypeInfo *type_info,
+                   types::InfoBuilder& info_builder,
                    std::vector<issues::Issue>& issues);
     
     void FindActions();
@@ -84,7 +88,8 @@ private:
 
     std::vector<ast::File *> package_files_;
     types::Package *package_;
-    types::TypeInfo *type_info_;
+    types::Info *info_;
+    types::InfoBuilder& info_builder_;
     std::vector<issues::Issue> &issues_;
     
     std::vector<std::unique_ptr<Action>> actions_;

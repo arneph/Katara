@@ -17,26 +17,26 @@ namespace type_checker {
 
 bool TypeHandler::ProcessTypeName(types::TypeName *type_name,
                                   ast::TypeSpec *type_spec,
-                                  types::TypeInfo *info,
+                                  types::InfoBuilder& info_builder,
                                   std::vector<issues::Issue>& issues) {
-    TypeHandler handler(info, issues);
+    TypeHandler handler(info_builder, issues);
     
     return handler.ProcessTypeDefinition(type_name, type_spec);
 }
 
 bool TypeHandler::ProcessFuncDecl(types::Func *func,
                                   ast::FuncDecl *func_decl,
-                                  types::TypeInfo *info,
+                                  types::InfoBuilder& info_builder,
                                   std::vector<issues::Issue>& issues) {
-    TypeHandler handler(info, issues);
+    TypeHandler handler(info_builder, issues);
     
     return handler.ProcessFuncDefinition(func, func_decl);
 }
 
 bool TypeHandler::ProcessTypeArgs(ast::TypeArgList *type_args,
-                                  types::TypeInfo *info,
+                                  types::InfoBuilder& info_builder,
                                   std::vector<issues::Issue> &issues) {
-    TypeHandler handler(info, issues);
+    TypeHandler handler(info_builder, issues);
     
     bool ok = true;
     for (auto& arg : type_args->args_) {
@@ -46,9 +46,9 @@ bool TypeHandler::ProcessTypeArgs(ast::TypeArgList *type_args,
 }
 
 bool TypeHandler::ProcessTypeExpr(ast::Expr *type_expr,
-                                  types::TypeInfo *info,
+                                  types::InfoBuilder& info_builder,
                                   std::vector<issues::Issue>& issues) {
-    TypeHandler handler(info, issues);
+    TypeHandler handler(info_builder, issues);
     
     return handler.EvaluateTypeExpr(type_expr);
 }
@@ -67,16 +67,11 @@ bool TypeHandler::ProcessTypeDefinition(types::TypeName *type_name,
         return false;
     }
     types::Type *type = info_->TypeOf(type_spec->type_.get());
-    
-    std::unique_ptr<types::NamedType> named_type(new types::NamedType());
-    named_type->is_type_parameter_ = false;
-    named_type->name_ = type_name->name_;
-    named_type->type_ = type;
-    named_type->type_parameters_ = type_parameters;
-    
-    types::NamedType *named_type_ptr = named_type.get();
-    info_->type_unique_ptrs_.push_back(std::move(named_type));
-    type_name->type_ = named_type_ptr;
+    types::NamedType *named_type = info_builder_.CreateNamedType(/* is_type_parameter= */ false,
+                                                                 type_name->name(),
+                                                                 type,
+                                                                 type_parameters);
+    info_builder_.SetObjectType(type_name, named_type);
     return true;
 }
 
@@ -113,15 +108,12 @@ bool TypeHandler::ProcessFuncDefinition(types::Func *func,
             return false;
         }
     }
-    std::unique_ptr<types::Signature> signature(new types::Signature());
-    signature->receiver_ = receiver;
-    signature->type_parameters_ = type_parameters;
-    signature->parameters_ = parameters;
-    signature->results_ = results;
     
-    types::Signature *signature_ptr = signature.get();
-    info_->type_unique_ptrs_.push_back(std::move(signature));
-    func->type_ = signature_ptr;
+    types::Signature *signature = info_builder_.CreateSignature(receiver,
+                                                                type_parameters,
+                                                                parameters,
+                                                                results);
+    info_builder_.SetObjectType(func, signature);
     return true;
 }
 
@@ -131,7 +123,7 @@ bool TypeHandler::EvaluateTypeExpr(ast::Expr *expr) {
             return false;
         }
         types::Type *type = info_->types().at(paren_expr->x_.get());
-        info_->types_.insert({expr, type});
+        info_builder_.SetExprType(expr, type);
         return true;
         
     } else if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
@@ -193,8 +185,7 @@ bool TypeHandler::EvaluateTypeIdent(ast::Ident *ident) {
                                         "expected type name"));
         return false;
     }
-    
-    info_->types_.insert({ident, type_name->type()});
+    info_builder_.SetExprType(ident, type_name->type());
     return true;
 }
 
@@ -218,14 +209,8 @@ bool TypeHandler::EvaluatePointerType(ast::UnaryExpr *pointer_expr) {
         return false;
     }
     types::Type *element_type = info_->TypeOf(pointer_expr->x_.get());
-    
-    std::unique_ptr<types::Pointer> pointer_type(new types::Pointer());
-    pointer_type->kind_ = kind;
-    pointer_type->element_type_ = element_type;
-    
-    types::Pointer *pointer_type_ptr = pointer_type.get();
-    info_->type_unique_ptrs_.push_back(std::move(pointer_type));
-    info_->types_.insert({pointer_expr, pointer_type_ptr});
+    types::Pointer *pointer_type = info_builder_.CreatePointer(kind, element_type);
+    info_builder_.SetExprType(pointer_expr, pointer_type);
     return true;
 }
 
@@ -235,7 +220,7 @@ bool TypeHandler::EvaluateArrayType(ast::ArrayType *array_expr) {
     if (!is_slice) {
         if (!ConstantHandler::ProcessConstantExpr(array_expr->len_.get(),
                                                   /* iota= */0,
-                                                  info_,
+                                                  info_builder_,
                                                   issues_)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
@@ -259,22 +244,13 @@ bool TypeHandler::EvaluateArrayType(ast::ArrayType *array_expr) {
     types::Type *element_type = info_->TypeOf(array_expr->element_type_.get());
     
     if (!is_slice) {
-        std::unique_ptr<types::Array> array_type(new types::Array());
-        array_type->length_ = length;
-        array_type->element_type_ = element_type;
-        
-        types::Array *array_type_ptr = array_type.get();
-        info_->type_unique_ptrs_.push_back(std::move(array_type));
-        info_->types_.insert({array_expr, array_type_ptr});
+        types::Array *array_type = info_builder_.CreateArray(element_type, length);
+        info_builder_.SetExprType(array_expr, array_type);
         return true;
         
     } else {
-        std::unique_ptr<types::Slice> slice_type(new types::Slice());
-        slice_type->element_type_ = element_type;
-        
-        types::Slice *slice_type_ptr = slice_type.get();
-        info_->type_unique_ptrs_.push_back(std::move(slice_type));
-        info_->types_.insert({array_expr, slice_type_ptr});
+        types::Slice *slice_type = info_builder_.CreateSlice(element_type);
+        info_builder_.SetExprType(array_expr, slice_type);
         return true;
     }
 }
@@ -291,15 +267,11 @@ bool TypeHandler::EvaluateFuncType(ast::FuncType *func_expr) {
             return false;
         }
     }
-    std::unique_ptr<types::Signature> signature(new types::Signature());
-    signature->receiver_ = nullptr;
-    signature->type_parameters_ = nullptr;
-    signature->parameters_ = parameters;
-    signature->results_ = results;
-    
-    types::Signature *signature_ptr = signature.get();
-    info_->type_unique_ptrs_.push_back(std::move(signature));
-    info_->types_.insert({func_expr, signature_ptr});
+    types::Signature *signature = info_builder_.CreateSignature(/* receiver= */ nullptr,
+                                                                /* type_parameters= */ nullptr,
+                                                                parameters,
+                                                                results);
+    info_builder_.SetExprType(func_expr, signature);
     return true;
 }
 
@@ -313,12 +285,9 @@ bool TypeHandler::EvaluateInterfaceType(ast::InterfaceType *interface_expr) {
         }
         methods.push_back(method);
     }
-    std::unique_ptr<types::Interface> interface_type(new types::Interface());
-    interface_type->methods_ = methods;
-    
-    types::Interface *interface_type_ptr = interface_type.get();
-    info_->type_unique_ptrs_.push_back(std::move(interface_type));
-    info_->types_.insert({interface_expr, interface_type_ptr});
+    types::Interface *interface_type =
+        info_builder_.CreateInterface(/* embedded_interfaces= */ {}, methods);
+    info_builder_.SetExprType(interface_expr, interface_type);
     return true;
 }
 
@@ -328,12 +297,8 @@ bool TypeHandler::EvaluateStructType(ast::StructType *struct_expr) {
     if (fields.empty()) {
         return false;
     }
-    std::unique_ptr<types::Struct> struct_type(new types::Struct());
-    struct_type->fields_ = fields;
-    
-    types::Struct *struct_type_ptr = struct_type.get();
-    info_->type_unique_ptrs_.push_back(std::move(struct_type));
-    info_->types_.insert({struct_expr, struct_type_ptr});
+    types::Struct *struct_type = info_builder_.CreateStruct(fields);
+    info_builder_.SetExprType(struct_expr, struct_type);
     return true;
 }
 
@@ -353,13 +318,9 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance *type_instance_expr) {
         type_args.push_back(type_arg);
     }
     
-    std::unique_ptr<types::TypeInstance> type_instance(new types::TypeInstance());
-    type_instance->instantiated_type_ = instantiated_type;
-    type_instance->type_args_ = type_args;
-    
-    types::TypeInstance *type_instance_ptr = type_instance.get();
-    info_->type_unique_ptrs_.push_back(std::move(type_instance));
-    info_->types_.insert({type_instance_expr, type_instance_ptr});
+    types::TypeInstance *type_instance = info_builder_.CreateTypeInstance(instantiated_type,
+                                                                          type_args);
+    info_builder_.SetExprType(type_instance_expr, type_instance);
     return true;
 }
 
@@ -373,13 +334,7 @@ types::TypeTuple * TypeHandler::EvaluateTypeParameters(ast::TypeParamList *param
         }
         types.push_back(type);
     }
-    
-    std::unique_ptr<types::TypeTuple> tuple(new types::TypeTuple());
-    tuple->types_ = types;
-    
-    types::TypeTuple *tuple_ptr = tuple.get();
-    info_->type_unique_ptrs_.push_back(std::move(tuple));
-    return tuple_ptr;
+    return info_builder_.CreateTypeTuple(types);
 }
 
 types::NamedType * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parameter_expr) {
@@ -398,26 +353,18 @@ types::NamedType * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parameter_
             return nullptr;
         }
     } else {
-        std::unique_ptr<types::Interface> empty_interface(new types::Interface());
-        
-        types::Interface *empty_interface_ptr = empty_interface.get();
-        info_->type_unique_ptrs_.push_back(std::move(empty_interface));
-        type_constraint = empty_interface_ptr;
+        type_constraint = info_builder_.CreateInterface(/* embedded_interfaces= */ {},
+                                                        /* methods= */ {});
     }
     
     types::TypeName *type_name =
         static_cast<types::TypeName *>(info_->DefinitionOf(parameter_expr->name_.get()));
-
-    std::unique_ptr<types::NamedType> named_type(new types::NamedType());
-    named_type->is_type_parameter_ = true;
-    named_type->name_ = type_name->name_;
-    named_type->type_ = type_constraint;
-    named_type->type_parameters_ = nullptr;
-    
-    types::NamedType *named_type_ptr = named_type.get();
-    info_->type_unique_ptrs_.push_back(std::move(named_type));
-    type_name->type_ = named_type_ptr;
-    return named_type_ptr;
+    types::NamedType *named_type = info_builder_.CreateNamedType(/* is_type_parameter= */ true,
+                                                                 type_name->name(),
+                                                                 type_constraint,
+                                                                 /* type_parameters= */ nullptr);
+    info_builder_.SetObjectType(type_name, named_type);
+    return named_type;
 }
 
 types::Func * TypeHandler::EvaluateMethodSpec(ast::MethodSpec *method_spec) {
@@ -429,19 +376,14 @@ types::Func * TypeHandler::EvaluateMethodSpec(ast::MethodSpec *method_spec) {
             return nullptr;
         }
     }
-    std::unique_ptr<types::Signature> signature(new types::Signature());
-    signature->receiver_ = nullptr; // TODO: point at enclosing interface
-    signature->type_parameters_ = nullptr;
-    signature->parameters_ = parameters;
-    signature->results_ = results;
-    
-    types::Signature *signature_ptr = signature.get();
-    info_->type_unique_ptrs_.push_back(std::move(signature));
-    
     ast::Ident *name = method_spec->name_.get();
-    types::Func *func =
-     static_cast<types::Func *>(info_->DefinitionOf(name));
-    func->type_ = signature_ptr;
+    types::Func *func = static_cast<types::Func *>(info_->DefinitionOf(name));
+    // TODO: set receiver to enclosing interface
+    types::Signature *signature = info_builder_.CreateSignature(/* receiver= */ nullptr,
+                                                                /* type_parameters= */ nullptr,
+                                                                parameters,
+                                                                results);
+    info_builder_.SetObjectType(func, signature);
     return func;
 }
 
@@ -450,14 +392,7 @@ types::Tuple * TypeHandler::EvaluateTuple(ast::FieldList *field_list) {
     if (variables.empty()) {
         return nullptr;
     }
-    
-    std::unique_ptr<types::Tuple> tuple(new types::Tuple());
-    tuple->variables_ = variables;
-    
-    types::Tuple *tuple_ptr = tuple.get();
-    info_->type_unique_ptrs_.push_back(std::move(tuple));
-    
-    return tuple_ptr;
+    return info_builder_.CreateTuple(variables);
 }
 
 std::vector<types::Variable *> TypeHandler::EvaluateFieldList(ast::FieldList *field_list) {
@@ -485,14 +420,14 @@ std::vector<types::Variable *> TypeHandler::EvaluateField(ast::Field *field) {
         for (auto& name : field->names_) {
             types::Variable *variable =
                 static_cast<types::Variable *>(info_->DefinitionOf(name.get()));
-            variable->type_ = type;
+            info_builder_.SetObjectType(variable, type);
             variables.push_back(variable);
         }
         
     } else {
         types::Variable *variable =
             static_cast<types::Variable *>(info_->ImplicitOf(field));
-        variable->type_ = type;
+        info_builder_.SetObjectType(variable, type);
         variables.push_back(variable);
     }
     return variables;
@@ -549,18 +484,14 @@ types::Variable * TypeHandler::EvaluateReceiver(ast::FieldList *receiver_list_ex
             
             types::TypeName *type_arg =
                 static_cast<types::TypeName *>(info_->DefinitionOf(type_arg_name));
-            type_arg->type_ = type_arg_type;
+            info_builder_.SetObjectType(type_arg, type_arg_type);
             type_instance_args.push_back(type_arg_type);
         }
         
-        std::unique_ptr<types::TypeInstance> type_instance(new types::TypeInstance());
-        type_instance->instantiated_type_ = instantiated_type;
-        type_instance->type_args_ = type_instance_args;
-        
-        types::TypeInstance *type_instance_ptr = type_instance.get();
-        info_->type_unique_ptrs_.push_back(std::move(type_instance));
-        info_->types_.insert({type_instance_expr, type_instance_ptr});
-        type = type_instance_ptr;
+        types::TypeInstance *type_instance = info_builder_.CreateTypeInstance(instantiated_type,
+                                                                              type_instance_args);
+        info_builder_.SetExprType(type_instance_expr, type_instance);
+        type = type_instance;
     }
     
     if (pointer_type_expr != nullptr) {
@@ -575,18 +506,13 @@ types::Variable * TypeHandler::EvaluateReceiver(ast::FieldList *receiver_list_ex
                 throw "unexpected pointer type";
         }
 
-        std::unique_ptr<types::Pointer> pointer_type(new types::Pointer());
-        pointer_type->kind_ = kind;
-        pointer_type->element_type_ = type;
-        
-        types::Pointer *pointer_type_ptr = pointer_type.get();
-        info_->type_unique_ptrs_.push_back(std::move(pointer_type));
-        info_->types_.insert({pointer_type_expr, pointer_type_ptr});
-        type = pointer_type_ptr;
+        types::Pointer *pointer_type = info_builder_.CreatePointer(kind, type);
+        info_builder_.SetExprType(pointer_type_expr, pointer_type);
+        type = pointer_type;
     }
     
     types::Variable *receiver = static_cast<types::Variable *>(info_->DefinitionOf(name));
-    receiver->type_ = type;
+    info_builder_.SetObjectType(receiver, type);
     return receiver;
 }
 

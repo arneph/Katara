@@ -14,7 +14,8 @@
 #include <vector>
 
 #include "lang/representation/ast/ast.h"
-#include "lang/representation/types/types.h"
+#include "lang/representation/types/package.h"
+#include "lang/representation/types/info.h"
 #include "lang/processors/issues/issues.h"
 
 namespace lang {
@@ -23,7 +24,7 @@ namespace type_checker {
 types::Package * Check(std::string package_path,
                        std::vector<ast::File *> package_files,
                        std::function<types::Package *(std::string)> importer,
-                       types::TypeInfo *type_info,
+                       types::Info *info,
                        std::vector<issues::Issue>& issues);
 
 }

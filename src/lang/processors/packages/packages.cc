@@ -64,14 +64,14 @@ const std::vector<issues::Issue>& Package::issues() const {
 
 PackageManager::PackageManager(std::string stdlib_path) : stdlib_path_(stdlib_path) {
     file_set_ = std::make_unique<pos::FileSet>();
-    type_info_ = std::make_unique<types::TypeInfo>();
+    type_info_ = std::make_unique<types::Info>();
 }
 
 pos::FileSet * PackageManager::file_set() const {
     return file_set_.get();
 }
 
-types::TypeInfo * PackageManager::type_info() const {
+types::Info * PackageManager::type_info() const {
     return type_info_.get();
 }
 

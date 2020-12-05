@@ -17,52 +17,33 @@ types::Package * IdentifierResolver::CreatePackageAndResolveIdentifiers(
         std::string package_path,
         std::vector<ast::File *> package_files,
         std::function<types::Package *(std::string)> importer,
-        types::TypeInfo *info,
+        types::InfoBuilder& info_builder,
         std::vector<issues::Issue> &issues) {
     IdentifierResolver resolver(package_path,
                                 package_files,
                                 importer,
-                                info,
+                                info_builder,
                                 issues);
     
-    resolver.CreatePackageAndPackageScope();
+    resolver.CreatePackage();
     resolver.CreateFileScopes();
     resolver.ResolveIdentifiers();
     
     return resolver.package_;
 }
 
-void IdentifierResolver::CreatePackageAndPackageScope() {
+void IdentifierResolver::CreatePackage() {
     std::string package_name = package_path_;
     if (auto pos = package_name.find_last_of('/'); pos != std::string::npos) {
         package_name = package_name.substr(pos + 1);
     }
     
-    auto package_scope = std::unique_ptr<types::Scope>(new types::Scope());
-    package_scope->parent_ = info_->universe_;
-    
-    auto package_scope_ptr = package_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(package_scope));
-    
-    auto package = std::unique_ptr<types::Package>(new types::Package());
-    package->path_ = package_path_;
-    package->name_ = package_name;
-    package->scope_ = package_scope_ptr;
-    
-    package_ = package.get();
-    info_->package_unique_ptrs_.push_back(std::move(package));
-    info_->packages_.insert(package_);
+    package_ = info_builder_.CreatePackage(package_path_, package_name);
 }
 
 void IdentifierResolver::CreateFileScopes() {
     for (ast::File *file : package_files_) {
-        auto file_scope = std::unique_ptr<types::Scope>(new types::Scope());
-        file_scope->parent_ = package_->scope_;
-        
-        auto file_scope_ptr = file_scope.get();
-        info_->scope_unique_ptrs_.push_back(std::move(file_scope));
-        info_->scopes_.insert({file, file_scope_ptr});
-        
+        info_builder_.CreateScope(file, package_->scope());
     }
 }
 
@@ -70,9 +51,9 @@ void IdentifierResolver::ResolveIdentifiers() {
     for (ast::File *file : package_files_) {
         for (auto& decl : file->decls_) {
             if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
-                AddDefinedObjectsFromGenDecl(gen_decl, package_->scope_, file);
+                AddDefinedObjectsFromGenDecl(gen_decl, package_->scope(), file);
             } else if (auto func_decl = dynamic_cast<ast::FuncDecl *>(decl.get())) {
-                AddDefinedObjectFromFuncDecl(func_decl, package_->scope_);
+                AddDefinedObjectFromFuncDecl(func_decl, package_->scope());
             } else {
                 throw "unexpected declaration";
             }
@@ -80,7 +61,7 @@ void IdentifierResolver::ResolveIdentifiers() {
     }
     
     for (auto file : package_files_) {
-        types::Scope *file_scope = info_->scopes_.at(file);
+        types::Scope *file_scope = info_->scopes().at(file);
         
         for (auto& decl : file->decls_) {
             if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
@@ -94,32 +75,25 @@ void IdentifierResolver::ResolveIdentifiers() {
     }
 }
 
-void IdentifierResolver::AddObjectToScope(types::Object *object, types::Scope *scope) {
-    if (info_->universe_->Lookup(object->name_)) {
+void IdentifierResolver::AddObjectToScope(types::Scope *scope, types::Object *object) {
+    if (info_->universe()->Lookup(object->name())) {
         issues_.push_back(
             issues::Issue(issues::Origin::TypeChecker,
                           issues::Severity::Error,
-                          object->position_,
-                          "can not redefine predeclared identifier: " + object->name_));
+                          object->position(),
+                          "can not redefine predeclared identifier: " + object->name()));
         return;
-    }
-    
-    if (object->name_.empty()) {
-        scope->unnamed_objects_.insert(object);
-        return;
-    }
-    
-    auto it = scope->named_objects_.find(object->name_);
-    if (it != scope->named_objects_.end()) {
-        types::Object *other = it->second;
+        
+    } else if (scope->named_objects().contains(object->name())) {
+        types::Object *other = scope->named_objects().at(object->name());
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                             issues::Severity::Error,
-                                             {other->position_, object->position_},
-                                             "naming collision: " + object->name_));
+                                        issues::Severity::Error,
+                                        {other->position(), object->position()},
+                                        "naming collision: " + object->name()));
         return;
     }
     
-    scope->named_objects_.insert({object->name_, object});
+    info_builder_.AddObjectToScope(scope, object);
 }
 
 void IdentifierResolver::AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl,
@@ -154,7 +128,8 @@ void IdentifierResolver::AddDefinedObjectsFromGenDecl(ast::GenDecl *gen_decl,
     }
 }
 
-void IdentifierResolver::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec, ast::File *file) {
+void IdentifierResolver::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import_spec,
+                                                         ast::File *file) {
     std::string name;
     std::string path = import_spec->path_->value_;
     path = path.substr(1, path.length()-2);
@@ -169,8 +144,8 @@ void IdentifierResolver::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import
                                         "can not import package twice: \"" + path + "\""));
         return;
     }
-    types::Package *referenced_pkg = importer_(path);
-    if (referenced_pkg == nullptr) {
+    types::Package *referenced_package = importer_(path);
+    if (referenced_package == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         import_spec->path_->start(),
@@ -178,13 +153,12 @@ void IdentifierResolver::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import
     }
     file_imports_.at(file).insert(path);
     
-    package_->imports_.insert(referenced_pkg);
-    
+    info_builder_.AddImportToPackage(package_, referenced_package);
+        
     if (import_spec->name_) {
         if (import_spec->name_->name_ == "_") {
             return;
         }
-        
         name = import_spec->name_->name_;
     } else {
         name = path;
@@ -193,71 +167,56 @@ void IdentifierResolver::AddDefinedObjectsFromImportSpec(ast::ImportSpec *import
         }
     }
     
-    types::Scope *file_scope = info_->scopes_.at(file);
-    
-    auto package_name = std::unique_ptr<types::PackageName>(new types::PackageName());
-    package_name->parent_ = file_scope;
-    package_name->package_ = package_;
-    package_name->position_ = import_spec->start();
-    package_name->name_ = name;
-    package_name->referenced_package_ = referenced_pkg;
-    
-    auto package_name_ptr = package_name.get();
-    info_->object_unique_ptrs_.push_back(std::move(package_name));
+    types::Scope *file_scope = info_->scopes().at(file);
+    types::PackageName *package_name = info_builder_.CreatePackageName(file_scope,
+                                                                       package_,
+                                                                       import_spec->start(),
+                                                                       name,
+                                                                       referenced_package);
     if (import_spec->name_) {
-        info_->definitions_.insert({import_spec->name_.get(), package_name_ptr});
+        info_builder_.SetDefinedObject(import_spec->name_.get(), package_name);
     } else {
-        info_->implicits_.insert({import_spec, package_name_ptr});
+        info_builder_.SetImplicitObject(import_spec, package_name);
     }
-    
-    AddObjectToScope(package_name_ptr, file_scope);
+    AddObjectToScope(file_scope, package_name);
 }
 
-void IdentifierResolver::AddDefinedObjectsFromConstSpec(ast::ValueSpec *value_spec, types::Scope *scope) {
+void IdentifierResolver::AddDefinedObjectsFromConstSpec(ast::ValueSpec *value_spec,
+                                                        types::Scope *scope) {
     for (auto& ident : value_spec->names_) {
         if (ident->name_ == "_") {
             continue;
         }
         
-        auto constant = std::unique_ptr<types::Constant>(new types::Constant());
-        constant->parent_ = scope;
-        constant->package_ = package_;
-        constant->position_ = ident->start();
-        constant->name_ = ident->name_;
-        constant->type_ = nullptr;
-        
-        auto constant_ptr = constant.get();
-        info_->object_unique_ptrs_.push_back(std::move(constant));
-        info_->definitions_.insert({ident.get(), constant_ptr});
-        
-        AddObjectToScope(constant_ptr, scope);
+        types::Constant *constant = info_builder_.CreateConstant(scope,
+                                                                 package_,
+                                                                 ident->start(),
+                                                                 ident->name_);
+        info_builder_.SetDefinedObject(ident.get(), constant);
+        AddObjectToScope(scope, constant);
     }
 }
 
-void IdentifierResolver::AddDefinedObjectsFromVarSpec(ast::ValueSpec *value_spec, types::Scope *scope) {
+void IdentifierResolver::AddDefinedObjectsFromVarSpec(ast::ValueSpec *value_spec,
+                                                      types::Scope *scope) {
     for (auto& ident : value_spec->names_) {
         if (ident->name_ == "_") {
             continue;
         }
         
-        auto variable = std::unique_ptr<types::Variable>(new types::Variable());
-        variable->parent_ = scope;
-        variable->package_ = package_;
-        variable->position_ = ident->start();
-        variable->name_ = ident->name_;
-        variable->type_ = nullptr;
-        variable->is_embedded_ = false;
-        variable->is_field_ = false;
-        
-        auto variable_ptr = variable.get();
-        info_->object_unique_ptrs_.push_back(std::move(variable));
-        info_->definitions_.insert({ident.get(), variable_ptr});
-        
-        AddObjectToScope(variable_ptr, scope);
+        types::Variable *variable = info_builder_.CreateVariable(scope,
+                                                                 package_,
+                                                                 ident->start(),
+                                                                 ident->name_,
+                                                                 /* is_embedded= */ false,
+                                                                 /* is_field= */ false);
+        info_builder_.SetDefinedObject(ident.get(), variable);
+        AddObjectToScope(scope, variable);
     }
 }
 
-void IdentifierResolver::AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec, types::Scope *scope) {
+void IdentifierResolver::AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec,
+                                                      types::Scope *scope) {
     if (type_spec->name_->name_ == "_") {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
@@ -266,22 +225,18 @@ void IdentifierResolver::AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec, 
         return;
     }
     
-    auto type_name = std::unique_ptr<types::TypeName>(new types::TypeName());
-    type_name->parent_ = scope;
-    type_name->package_ = package_;
-    type_name->position_ = type_spec->name_->start();
-    type_name->name_ = type_spec->name_->name_;
-    type_name->type_ = nullptr;
-    type_name->is_alias_ = false; // TODO: set correctly when type aliases are implemented
-    
-    auto type_name_ptr = type_name.get();
-    info_->object_unique_ptrs_.push_back(std::move(type_name));
-    info_->definitions_.insert({type_spec->name_.get(), type_name_ptr});
-    
-    AddObjectToScope(type_name_ptr, scope);
+    // TODO: set is_alias correctly when type aliases are implemented
+    types::TypeName *type_name = info_builder_.CreateTypeName(scope,
+                                                              package_,
+                                                              type_spec->name_->start(),
+                                                              type_spec->name_->name_,
+                                                              /* is_alias= */ false);
+    info_builder_.SetDefinedObject(type_spec->name_.get(), type_name);
+    AddObjectToScope(scope, type_name);
 }
 
-void IdentifierResolver::AddDefinedObjectFromFuncDecl(ast::FuncDecl *func_decl, types::Scope *scope) {
+void IdentifierResolver::AddDefinedObjectFromFuncDecl(ast::FuncDecl *func_decl,
+                                                      types::Scope *scope) {
     if (func_decl->name_->name_ == "_") {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
@@ -290,19 +245,13 @@ void IdentifierResolver::AddDefinedObjectFromFuncDecl(ast::FuncDecl *func_decl, 
         return;
     }
     
-    auto func = std::unique_ptr<types::Func>(new types::Func());
-    func->parent_ = scope;
-    func->package_ = package_;
-    func->position_ = func_decl->name_->start();
-    func->name_ = func_decl->name_->name_;
-    func->type_ = nullptr;
-    
-    auto func_ptr = func.get();
-    info_->object_unique_ptrs_.push_back(std::move(func));
-    info_->definitions_.insert({func_decl->name_.get(), func_ptr});
-    
+    types::Func *func = info_builder_.CreateFunc(scope,
+                                                 package_,
+                                                 func_decl->name_->start(),
+                                                 func_decl->name_->name_);
+    info_builder_.SetDefinedObject(func_decl->name_.get(), func);
     if (!func_decl->receiver_) {
-        AddObjectToScope(func_ptr, scope);
+        AddObjectToScope(scope, func);
     }
 }
 
@@ -328,7 +277,8 @@ void IdentifierResolver::ResolveIdentifiersInGenDecl(ast::GenDecl *gen_decl, typ
     }
 }
 
-void IdentifierResolver::ResolveIdentifiersInValueSpec(ast::ValueSpec *value_spec, types::Scope *scope) {
+void IdentifierResolver::ResolveIdentifiersInValueSpec(ast::ValueSpec *value_spec,
+                                                       types::Scope *scope) {
     if (value_spec->type_) {
         ResolveIdentifiersInExpr(value_spec->type_.get(), scope);
     }
@@ -337,40 +287,32 @@ void IdentifierResolver::ResolveIdentifiersInValueSpec(ast::ValueSpec *value_spe
     }
 }
 
-void IdentifierResolver::ResolveIdentifiersInTypeSpec(ast::TypeSpec *type_spec, types::Scope *scope) {
-    auto type_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    type_scope->parent_ = scope;
-    
-    auto type_scope_ptr = type_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(type_scope));
-    info_->scopes_.insert({type_spec, type_scope_ptr});
+void IdentifierResolver::ResolveIdentifiersInTypeSpec(ast::TypeSpec *type_spec,
+                                                      types::Scope *scope) {
+    types::Scope *type_scope = info_builder_.CreateScope(type_spec, scope);
     
     if (type_spec->type_params_) {
-        ResolveIdentifiersInTypeParamList(type_spec->type_params_.get(), type_scope_ptr);
+        ResolveIdentifiersInTypeParamList(type_spec->type_params_.get(), type_scope);
     }
-    ResolveIdentifiersInExpr(type_spec->type_.get(), type_scope_ptr);
+    ResolveIdentifiersInExpr(type_spec->type_.get(), type_scope);
 }
 
-void IdentifierResolver::ResolveIdentifiersInFuncDecl(ast::FuncDecl *func_decl, types::Scope *scope) {
-    auto func_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    func_scope->parent_ = scope;
-    
-    auto func_scope_ptr = func_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(func_scope));
-    info_->scopes_.insert({func_decl, func_scope_ptr});
+void IdentifierResolver::ResolveIdentifiersInFuncDecl(ast::FuncDecl *func_decl,
+                                                      types::Scope *scope) {
+    types::Scope *func_scope = info_builder_.CreateScope(func_decl, scope);
     
     if (func_decl->receiver_) {
-        ResolveIdentifiersInFuncReceiverFieldList(func_decl->receiver_.get(), func_scope_ptr);
+        ResolveIdentifiersInFuncReceiverFieldList(func_decl->receiver_.get(), func_scope);
     }
     if (func_decl->type_params_) {
-        ResolveIdentifiersInTypeParamList(func_decl->type_params_.get(), func_scope_ptr);
+        ResolveIdentifiersInTypeParamList(func_decl->type_params_.get(), func_scope);
     }
-    ResolveIdentifiersInRegularFuncFieldList(func_decl->type_->params_.get(), func_scope_ptr);
+    ResolveIdentifiersInRegularFuncFieldList(func_decl->type_->params_.get(), func_scope);
     if (func_decl->type_->results_) {
-        ResolveIdentifiersInRegularFuncFieldList(func_decl->type_->results_.get(), func_scope_ptr);
+        ResolveIdentifiersInRegularFuncFieldList(func_decl->type_->results_.get(), func_scope);
     }
     if (func_decl->body_) {
-        ResolveIdentifiersInBlockStmt(func_decl->body_.get(), func_scope_ptr);
+        ResolveIdentifiersInBlockStmt(func_decl->body_.get(), func_scope);
     }
 }
 
@@ -391,19 +333,13 @@ void IdentifierResolver::ResolveIdentifiersInTypeParamList(ast::TypeParamList *t
             continue;
         }
         
-        auto type_name = std::unique_ptr<types::TypeName>(new types::TypeName());
-        type_name->parent_ = scope;
-        type_name->package_ = package_;
-        type_name->position_ = type_param->name_->start();
-        type_name->name_ = type_param->name_->name_;
-        type_name->type_ = nullptr;
-        type_name->is_alias_ = false;
-        
-        auto type_name_ptr = type_name.get();
-        info_->object_unique_ptrs_.push_back(std::move(type_name));
-        info_->definitions_.insert({type_param->name_.get(), type_name_ptr});
-        
-        AddObjectToScope(type_name_ptr, scope);
+        types::TypeName *type_name = info_builder_.CreateTypeName(scope,
+                                                                  package_,
+                                                                  type_param->name_->start(),
+                                                                  type_param->name_->name_,
+                                                                  /* is_alias= */ false);
+        info_builder_.SetDefinedObject(type_param->name_.get(), type_name);
+        AddObjectToScope(scope, type_name);
     }
 }
 
@@ -461,19 +397,13 @@ void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldLis
                 continue;
             }
             
-            auto type_name = std::unique_ptr<types::TypeName>(new types::TypeName());
-            type_name->parent_ = scope;
-            type_name->package_ = package_;
-            type_name->position_ = ident->start();
-            type_name->name_ = ident->name_;
-            type_name->type_ = nullptr;
-            type_name->is_alias_ = false;
-            
-            auto type_name_ptr = type_name.get();
-            info_->object_unique_ptrs_.push_back(std::move(type_name));
-            info_->definitions_.insert({ident, type_name_ptr});
-            
-            AddObjectToScope(type_name_ptr, scope);
+            types::TypeName *type_name = info_builder_.CreateTypeName(scope,
+                                                                      package_,
+                                                                      ident->start(),
+                                                                      ident->name_,
+                                                                      /* is_alias= */ false);
+            info_builder_.SetDefinedObject(ident, type_name);
+            AddObjectToScope(scope, type_name);
         }
     }
     
@@ -482,20 +412,14 @@ void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldLis
         return;
     }
     
-    auto variable = std::unique_ptr<types::Variable>(new types::Variable());
-    variable->parent_ = scope;
-    variable->package_ = package_;
-    variable->position_ = field->names_.at(0)->start();
-    variable->name_ = field->names_.at(0)->name_;
-    variable->type_ = nullptr;
-    variable->is_embedded_ = false;
-    variable->is_field_ = false;
-    
-    auto variable_ptr = variable.get();
-    info_->object_unique_ptrs_.push_back(std::move(variable));
-    info_->definitions_.insert({field->names_.at(0).get(), variable_ptr});
-    
-    AddObjectToScope(variable_ptr, scope);
+    types::Variable *variable = info_builder_.CreateVariable(scope,
+                                                             package_,
+                                                             field->names_.at(0)->start(),
+                                                             field->names_.at(0)->name_,
+                                                             /* is_embedded= */ false,
+                                                             /* is_field= */ false);
+    info_builder_.SetDefinedObject(field->names_.at(0).get(), variable);
+    AddObjectToScope(scope, variable);
 }
 
 void IdentifierResolver::ResolveIdentifiersInRegularFuncFieldList(ast::FieldList *field_list,
@@ -505,36 +429,24 @@ void IdentifierResolver::ResolveIdentifiersInRegularFuncFieldList(ast::FieldList
     }
     for (auto& field : field_list->fields_) {
         for (auto& name : field->names_) {
-            auto variable = std::unique_ptr<types::Variable>(new types::Variable());
-            variable->parent_ = scope;
-            variable->package_ = package_;
-            variable->position_ = name->start();
-            variable->name_ = name->name_;
-            variable->type_ = nullptr;
-            variable->is_embedded_ = false;
-            variable->is_field_ = false;
-            
-            auto variable_ptr = variable.get();
-            info_->object_unique_ptrs_.push_back(std::move(variable));
-            info_->definitions_.insert({name.get(), variable_ptr});
-            
-            AddObjectToScope(variable_ptr, scope);
+            types::Variable *variable = info_builder_.CreateVariable(scope,
+                                                                     package_,
+                                                                     name->start(),
+                                                                     name->name_,
+                                                                     /* is_embedded= */ false,
+                                                                     /* is_field= */ false);
+            info_builder_.SetDefinedObject(name.get(), variable);
+            AddObjectToScope(scope, variable);
         }
         if (field->names_.empty()) {
-            auto variable = std::unique_ptr<types::Variable>(new types::Variable());
-            variable->parent_ = scope;
-            variable->package_ = package_;
-            variable->position_ = field->type_->start();
-            variable->name_ = "";
-            variable->type_ = nullptr;
-            variable->is_embedded_ = false;
-            variable->is_field_ = false;
-            
-            auto variable_ptr = variable.get();
-            info_->object_unique_ptrs_.push_back(std::move(variable));
-            info_->implicits_.insert({field.get(), variable_ptr});
-            
-            AddObjectToScope(variable_ptr, scope);
+            types::Variable *variable = info_builder_.CreateVariable(scope,
+                                                                     package_,
+                                                                     field->type_->start(),
+                                                                     /* name= */ "",
+                                                                     /* is_embedded= */ false,
+                                                                     /* is_field= */ false);
+            info_builder_.SetImplicitObject(field.get(), variable);
+            AddObjectToScope(scope, variable);
         }
     }
 }
@@ -576,24 +488,20 @@ void IdentifierResolver::ResolveIdentifiersInBlockStmt(ast::BlockStmt *body, typ
             continue;
         }
         
-        auto label = std::unique_ptr<types::Label>(new types::Label);
-        label->parent_ = scope;
-        label->package_ = package_;
-        label->position_ = labeled_stmt->start();
-        label->name_ = labeled_stmt->label_->name_;
-        
-        auto label_ptr = label.get();
-        info_->object_unique_ptrs_.push_back(std::move(label));
-        info_->definitions_.insert({labeled_stmt->label_.get(), label_ptr});
-        
-        AddObjectToScope(label_ptr, scope);
+        types::Label *label = info_builder_.CreateLabel(scope,
+                                                        package_,
+                                                        labeled_stmt->start(),
+                                                        labeled_stmt->label_->name_);
+        info_builder_.SetDefinedObject(labeled_stmt->label_.get(), label);
+        AddObjectToScope(scope, label);
     }
     for (auto& stmt : body->stmts_) {
         ResolveIdentifiersInStmt(stmt.get(), scope);
     }
 }
 
-void IdentifierResolver::ResolveIdentifiersInDeclStmt(ast::DeclStmt *decl_stmt, types::Scope *scope) {
+void IdentifierResolver::ResolveIdentifiersInDeclStmt(ast::DeclStmt *decl_stmt,
+                                                      types::Scope *scope) {
     switch (decl_stmt->decl_->tok_) {
         case tokens::kConst:
             for (auto& spec : decl_stmt->decl_->specs_) {
@@ -621,7 +529,8 @@ void IdentifierResolver::ResolveIdentifiersInDeclStmt(ast::DeclStmt *decl_stmt, 
     }
 }
 
-void IdentifierResolver::ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_stmt, types::Scope *scope) {
+void IdentifierResolver::ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_stmt,
+                                                        types::Scope *scope) {
     for (auto& expr : assign_stmt->rhs_) {
         ResolveIdentifiersInExpr(expr.get(), scope);
     }
@@ -632,20 +541,15 @@ void IdentifierResolver::ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_
                 const types::Scope *defining_scope = nullptr;
                 scope->Lookup(ident->name_, defining_scope);
                 if (defining_scope != scope) {
-                    auto variable = std::unique_ptr<types::Variable>(new types::Variable());
-                    variable->parent_ = scope;
-                    variable->package_ = package_;
-                    variable->position_ = ident->start();
-                    variable->name_ = ident->name_;
-                    variable->type_ = nullptr;
-                    variable->is_embedded_ = false;
-                    variable->is_field_ = false;
-                    
-                    auto variable_ptr = variable.get();
-                    info_->object_unique_ptrs_.push_back(std::move(variable));
-                    info_->definitions_.insert({ident, variable_ptr});
-                    
-                    AddObjectToScope(variable_ptr, scope);
+                    types::Variable *variable =
+                        info_builder_.CreateVariable(scope,
+                                                     package_,
+                                                     ident->start(),
+                                                     ident->name_,
+                                                     /* is_embedded= */ false,
+                                                     /* is_field= */ false);
+                    info_builder_.SetDefinedObject(ident, variable);
+                    AddObjectToScope(scope, variable);
                 }
             }
         }
@@ -654,36 +558,27 @@ void IdentifierResolver::ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_
 }
 
 void IdentifierResolver::ResolveIdentifiersInIfStmt(ast::IfStmt *if_stmt, types::Scope *scope) {
-    auto if_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    if_scope->parent_ = scope;
-    
-    auto if_scope_ptr = if_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(if_scope));
-    info_->scopes_.insert({if_stmt, if_scope_ptr});
+    types::Scope *if_scope = info_builder_.CreateScope(if_stmt, scope);
     
     if (if_stmt->init_) {
-        ResolveIdentifiersInStmt(if_stmt->init_.get(), if_scope_ptr);
+        ResolveIdentifiersInStmt(if_stmt->init_.get(), if_scope);
     }
-    ResolveIdentifiersInExpr(if_stmt->cond_.get(), if_scope_ptr);
-    ResolveIdentifiersInBlockStmt(if_stmt->body_.get(), if_scope_ptr);
+    ResolveIdentifiersInExpr(if_stmt->cond_.get(), if_scope);
+    ResolveIdentifiersInBlockStmt(if_stmt->body_.get(), if_scope);
     if (if_stmt->else_) {
         ResolveIdentifiersInStmt(if_stmt->else_.get(), scope);
     }
 }
 
-void IdentifierResolver::ResolveIdentifiersInSwitchStmt(ast::SwitchStmt *switch_stmt, types::Scope *scope) {
-    auto switch_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    switch_scope->parent_ = scope;
-    
-    auto switch_scope_ptr = switch_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(switch_scope));
-    info_->scopes_.insert({switch_stmt, switch_scope_ptr});
+void IdentifierResolver::ResolveIdentifiersInSwitchStmt(ast::SwitchStmt *switch_stmt,
+                                                        types::Scope *scope) {
+    types::Scope *switch_scope = info_builder_.CreateScope(switch_stmt, scope);
     
     if (switch_stmt->init_) {
-        ResolveIdentifiersInStmt(switch_stmt->init_.get(), switch_scope_ptr);
+        ResolveIdentifiersInStmt(switch_stmt->init_.get(), switch_scope);
     }
     if (switch_stmt->tag_) {
-        ResolveIdentifiersInExpr(switch_stmt->tag_.get(), switch_scope_ptr);
+        ResolveIdentifiersInExpr(switch_stmt->tag_.get(), switch_scope);
     }
     if (ast::IsTypeSwitchStmt(switch_stmt)) {
         ast::Ident *ident = nullptr;
@@ -693,44 +588,33 @@ void IdentifierResolver::ResolveIdentifiersInSwitchStmt(ast::SwitchStmt *switch_
         }
         for (auto& stmt : switch_stmt->body_->stmts_) {
             auto case_clause = static_cast<ast::CaseClause *>(stmt.get());
-            ResolveIdentifiersInCaseClause(case_clause, switch_scope_ptr, ident);
+            ResolveIdentifiersInCaseClause(case_clause, switch_scope, ident);
         }
     } else {
         for (auto& stmt : switch_stmt->body_->stmts_) {
             auto case_clause = static_cast<ast::CaseClause *>(stmt.get());
-            ResolveIdentifiersInCaseClause(case_clause, switch_scope_ptr);
+            ResolveIdentifiersInCaseClause(case_clause, switch_scope);
         }
     }
 }
 
 void IdentifierResolver::ResolveIdentifiersInCaseClause(ast::CaseClause *case_clause,
-                                                 types::Scope *scope,
-                                                 ast::Ident *type_switch_var_ident) {
-    auto case_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    case_scope->parent_ = scope;
-    
-    auto case_scope_ptr = case_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(case_scope));
-    info_->scopes_.insert({case_clause, case_scope_ptr});
-    
+                                                        types::Scope *scope,
+                                                        ast::Ident *type_switch_var_ident) {
+    types::Scope *case_scope = info_builder_.CreateScope(case_clause, scope);
+        
     for (auto& expr : case_clause->cond_vals_) {
-        ResolveIdentifiersInExpr(expr.get(), case_scope_ptr);
+        ResolveIdentifiersInExpr(expr.get(), case_scope);
     }
     if (type_switch_var_ident != nullptr) {
-        auto variable = std::unique_ptr<types::Variable>(new types::Variable());
-        variable->parent_ = case_scope_ptr;
-        variable->package_ = package_;
-        variable->position_ = type_switch_var_ident->start();
-        variable->name_ = type_switch_var_ident->name_;
-        variable->type_ = nullptr;
-        variable->is_embedded_ = false;
-        variable->is_field_ = false;
-        
-        auto variable_ptr = variable.get();
-        info_->object_unique_ptrs_.push_back(std::move(variable));
-        info_->implicits_.insert({case_clause, variable_ptr});
-        
-        AddObjectToScope(variable_ptr, scope);
+        types::Variable *variable = info_builder_.CreateVariable(case_scope,
+                                                                 package_,
+                                                                 type_switch_var_ident->start(),
+                                                                 type_switch_var_ident->name_,
+                                                                 /* is_embedded= */ false,
+                                                                 /* is_field= */ false);
+        info_builder_.SetImplicitObject(case_clause, variable);
+        AddObjectToScope(case_scope, variable);
     }
     for (auto& stmt : case_clause->body_) {
         auto labeled_stmt = dynamic_cast<ast::LabeledStmt *>(stmt.get());
@@ -738,36 +622,26 @@ void IdentifierResolver::ResolveIdentifiersInCaseClause(ast::CaseClause *case_cl
             continue;
         }
         
-        auto label = std::unique_ptr<types::Label>(new types::Label);
-        label->parent_ = case_scope_ptr;
-        label->package_ = package_;
-        label->position_ = labeled_stmt->start();
-        label->name_ = labeled_stmt->label_->name_;
-        
-        auto label_ptr = label.get();
-        info_->object_unique_ptrs_.push_back(std::move(label));
-        info_->definitions_.insert({labeled_stmt->label_.get(), label_ptr});
-        
-        AddObjectToScope(label_ptr, case_scope_ptr);
+        types::Label *label = info_builder_.CreateLabel(case_scope,
+                                                        package_,
+                                                        labeled_stmt->start(),
+                                                        labeled_stmt->label_->name_);
+        info_builder_.SetDefinedObject(labeled_stmt->label_.get(), label);
+        AddObjectToScope(case_scope, label);
     }
     for (auto& stmt : case_clause->body_) {
-        ResolveIdentifiersInStmt(stmt.get(), case_scope_ptr);
+        ResolveIdentifiersInStmt(stmt.get(), case_scope);
     }
 }
 
 void IdentifierResolver::ResolveIdentifiersInForStmt(ast::ForStmt *for_stmt, types::Scope *scope) {
-    auto for_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    for_scope->parent_ = scope;
-    
-    auto for_scope_ptr = for_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(for_scope));
-    info_->scopes_.insert({for_stmt, for_scope_ptr});
+    types::Scope *for_scope = info_builder_.CreateScope(for_stmt, scope);
     
     if (for_stmt->init_) {
-        ResolveIdentifiersInStmt(for_stmt->init_.get(), for_scope_ptr);
+        ResolveIdentifiersInStmt(for_stmt->init_.get(), for_scope);
     }
     if (for_stmt->cond_) {
-        ResolveIdentifiersInExpr(for_stmt->cond_.get(), for_scope_ptr);
+        ResolveIdentifiersInExpr(for_stmt->cond_.get(), for_scope);
     }
     if (for_stmt->post_) {
         if (auto assign_stmt = dynamic_cast<ast::AssignStmt *>(for_stmt->post_.get())) {
@@ -776,15 +650,17 @@ void IdentifierResolver::ResolveIdentifiersInForStmt(ast::ForStmt *for_stmt, typ
                                   issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 assign_stmt->start(),
-                                                "post statements of for loops can not define variables"));
+                                                "post statements of for loops can not define "
+                                                "variables"));
             }
         }
-        ResolveIdentifiersInStmt(for_stmt->post_.get(), for_scope_ptr);
+        ResolveIdentifiersInStmt(for_stmt->post_.get(), for_scope);
     }
-    ResolveIdentifiersInBlockStmt(for_stmt->body_.get(), for_scope_ptr);
+    ResolveIdentifiersInBlockStmt(for_stmt->body_.get(), for_scope);
 }
 
-void IdentifierResolver::ResolveIdentifiersInBranchStmt(ast::BranchStmt *branch_stmt, types::Scope *scope) {
+void IdentifierResolver::ResolveIdentifiersInBranchStmt(ast::BranchStmt *branch_stmt,
+                                                        types::Scope *scope) {
     if (!branch_stmt->label_) {
         return;
     }
@@ -858,7 +734,8 @@ void IdentifierResolver::ResolveIdentifiersInExpr(ast::Expr *expr, types::Scope 
     }
 }
 
-void IdentifierResolver::ResolveIdentifiersInSelectionExpr(ast::SelectionExpr *sel, types::Scope *scope) {
+void IdentifierResolver::ResolveIdentifiersInSelectionExpr(ast::SelectionExpr *sel,
+                                                           types::Scope *scope) {
     ResolveIdentifiersInExpr(sel->accessed_.get(), scope);
     if (sel->selection_->name_ == "_") {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -872,46 +749,36 @@ void IdentifierResolver::ResolveIdentifiersInSelectionExpr(ast::SelectionExpr *s
     if (accessed_ident == nullptr) {
         return;
     }
-    auto it = info_->uses_.find(accessed_ident);
-    if (it == info_->uses_.end()) {
+    auto it = info_->uses().find(accessed_ident);
+    if (it == info_->uses().end()) {
         return;
     }
     types::Object *accessed_object = it->second;
     types::PackageName *pkg_name = dynamic_cast<types::PackageName *>(accessed_object);
-    if (pkg_name == nullptr || pkg_name->referenced_package_ == nullptr) {
+    if (pkg_name == nullptr || pkg_name->referenced_package() == nullptr) {
         return;
     }
     
     ast::Ident *selected_ident = sel->selection_.get();
     ResolveIdentifier(selected_ident,
-                      pkg_name->referenced_package_->scope_);
+                      pkg_name->referenced_package()->scope());
 }
 
 void IdentifierResolver::ResolveIdentifiersInFuncLit(ast::FuncLit *func_lit, types::Scope *scope) {
-    auto func = std::unique_ptr<types::Func>(new types::Func());
-    func->parent_ = scope;
-    func->package_ = package_;
-    func->position_ = func_lit->start();
-    func->name_ = "";
-    func->type_ = nullptr;
+    types::Func *func = info_builder_.CreateFunc(scope,
+                                                 package_,
+                                                 func_lit->start(),
+                                                 /* name= */ "");
+    info_builder_.SetImplicitObject(func_lit, func);
+    AddObjectToScope(scope, func);
     
-    auto func_ptr = func.get();
-    info_->object_unique_ptrs_.push_back(std::move(func));
+    types::Scope *func_scope = info_builder_.CreateScope(func_lit, scope);
     
-    AddObjectToScope(func_ptr, scope);
-    
-    auto func_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    func_scope->parent_ = scope;
-    
-    auto func_scope_ptr = func_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(func_scope));
-    info_->scopes_.insert({func_lit, func_scope_ptr});
-    
-    ResolveIdentifiersInRegularFuncFieldList(func_lit->type_->params_.get(), func_scope_ptr);
+    ResolveIdentifiersInRegularFuncFieldList(func_lit->type_->params_.get(), func_scope);
     if (func_lit->type_->results_) {
-        ResolveIdentifiersInRegularFuncFieldList(func_lit->type_->results_.get(), func_scope_ptr);
+        ResolveIdentifiersInRegularFuncFieldList(func_lit->type_->results_.get(), func_scope);
     }
-    ResolveIdentifiersInBlockStmt(func_lit->body_.get(), func_scope_ptr);
+    ResolveIdentifiersInBlockStmt(func_lit->body_.get(), func_scope);
 }
 
 void IdentifierResolver::ResolveIdentifiersInCompositeLit(ast::CompositeLit *composite_lit,
@@ -927,68 +794,42 @@ void IdentifierResolver::ResolveIdentifiersInCompositeLit(ast::CompositeLit *com
 }
 
 void IdentifierResolver::ResolveIdentifiersInFuncType(ast::FuncType *func_type,
-                                               types::Scope *scope) {
-    auto func_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    func_scope->parent_ = scope;
+                                                      types::Scope *scope) {
+    types::Scope *func_scope = info_builder_.CreateScope(func_type, scope);
     
-    auto func_scope_ptr = func_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(func_scope));
-    info_->scopes_.insert({func_type, func_scope_ptr});
-    
-    ResolveIdentifiersInRegularFuncFieldList(func_type->params_.get(), func_scope_ptr);
+    ResolveIdentifiersInRegularFuncFieldList(func_type->params_.get(), func_scope);
     if (func_type->results_) {
-        ResolveIdentifiersInRegularFuncFieldList(func_type->results_.get(), func_scope_ptr);
+        ResolveIdentifiersInRegularFuncFieldList(func_type->results_.get(), func_scope);
     }
 }
 
 void IdentifierResolver::ResolveIdentifiersInInterfaceType(ast::InterfaceType *interface_type,
-                                                    types::Scope *scope) {
-    auto interface_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    interface_scope->parent_ = scope;
-    
-    auto interface_scope_ptr = interface_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(interface_scope));
-    info_->scopes_.insert({interface_type, interface_scope_ptr});
+                                                           types::Scope *scope) {
+    types::Scope *interface_scope = info_builder_.CreateScope(interface_type, scope);
     
     for (auto& method_spec : interface_type->methods_) {
-        auto method_scope = std::unique_ptr<types::Scope>(new types::Scope);
-        method_scope->parent_ = interface_scope_ptr;
-        
-        auto method_scope_ptr = method_scope.get();
-        info_->scope_unique_ptrs_.push_back(std::move(method_scope));
-        info_->scopes_.insert({method_spec.get(), method_scope_ptr});
+        types::Scope *method_scope = info_builder_.CreateScope(method_spec.get(), interface_scope);
         
         ResolveIdentifiersInRegularFuncFieldList(method_spec->params_.get(),
-                                                 method_scope_ptr);
+                                                 method_scope);
         if (method_spec->results_) {
             ResolveIdentifiersInRegularFuncFieldList(method_spec->results_.get(),
-                                                     method_scope_ptr);
+                                                     method_scope);
         }
     }
     for (auto& method_spec : interface_type->methods_) {
-        auto method = std::unique_ptr<types::Func>(new types::Func());
-        method->parent_ = interface_scope_ptr;
-        method->package_ = package_;
-        method->position_ = method_spec->start();
-        method->name_ = method_spec->name_->name_;
-        method->type_ = nullptr;
-        
-        auto method_ptr = method.get();
-        info_->object_unique_ptrs_.push_back(std::move(method));
-        info_->definitions_.insert({method_spec->name_.get(), method_ptr});
-        
-        AddObjectToScope(method_ptr, interface_scope_ptr);
+        types::Func *method = info_builder_.CreateFunc(interface_scope,
+                                                       package_,
+                                                       method_spec->start(),
+                                                       method_spec->name_->name_);
+        info_builder_.SetDefinedObject(method_spec->name_.get(), method);
+        AddObjectToScope(interface_scope, method);
     }
 }
 
 void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType *struct_type,
-                                                 types::Scope *scope) {
-    auto struct_scope = std::unique_ptr<types::Scope>(new types::Scope);
-    struct_scope->parent_ = scope;
-    
-    auto struct_scope_ptr = struct_scope.get();
-    info_->scope_unique_ptrs_.push_back(std::move(struct_scope));
-    info_->scopes_.insert({struct_type, struct_scope_ptr});
+                                                        types::Scope *scope) {
+    types::Scope *struct_scope = info_builder_.CreateScope(struct_type, scope);
     
     for (auto& field : struct_type->fields_->fields_) {
         ResolveIdentifiersInExpr(field->type_.get(), scope);
@@ -1003,8 +844,8 @@ void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType *struct_
                                       issues::Issue(issues::Origin::TypeChecker,
                                                     issues::Severity::Error,
                                                     type->start(),
-                                                    "expected embedded field to be defined type or pointer to "
-                                                    "defined type"));
+                                                    "expected embedded field to be defined type or "
+                                                    "pointer to defined type"));
                     continue;
                 }
                 type = ptr_type->x_.get();
@@ -1018,59 +859,47 @@ void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType *struct_
                                   issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 type->start(),
-                                                "expected embdedded field to be defined type or pointer to "
-                                                "defined type"));
+                                                "expected embdedded field to be defined type or "
+                                                "pointer to defined type"));
                 continue;
             }
             
-            auto variable = std::unique_ptr<types::Variable>(new types::Variable());
-            variable->parent_ = struct_scope_ptr;
-            variable->package_ = package_;
-            variable->position_ = field->type_->start();
-            variable->name_ = defined_type->name_;
-            variable->type_ = nullptr;
-            variable->is_embedded_ = true;
-            variable->is_field_ = true;
-            
-            auto variable_ptr = variable.get();
-            info_->object_unique_ptrs_.push_back(std::move(variable));
-            info_->implicits_.insert({field.get(), variable_ptr});
-            
-            AddObjectToScope(variable_ptr, struct_scope_ptr);
+            types::Variable *variable = info_builder_.CreateVariable(struct_scope,
+                                                                     package_,
+                                                                     field->type_->start(),
+                                                                     defined_type->name_,
+                                                                     /* is_embedded= */ true,
+                                                                     /* is_field= */ true);
+            info_builder_.SetImplicitObject(field.get(), variable);
+            AddObjectToScope(struct_scope, variable);
         } else {
             for (auto& name : field->names_) {
-                auto variable = std::unique_ptr<types::Variable>(new types::Variable());
-                variable->parent_ = struct_scope_ptr;
-                variable->package_ = package_;
-                variable->position_ = name->start();
-                variable->name_ = name->name_;
-                variable->type_ = nullptr;
-                variable->is_embedded_ = false;
-                variable->is_field_ = true;
-                
-                auto variable_ptr = variable.get();
-                info_->object_unique_ptrs_.push_back(std::move(variable));
-                info_->definitions_.insert({name.get(), variable_ptr});
-                
-                AddObjectToScope(variable_ptr, struct_scope_ptr);
+                types::Variable *variable = info_builder_.CreateVariable(struct_scope,
+                                                                         package_,
+                                                                         name->start(),
+                                                                         name->name_,
+                                                                         /* is_embedded= */ false,
+                                                                         /* is_field= */ true);
+                info_builder_.SetDefinedObject(name.get(), variable);
+                AddObjectToScope(struct_scope, variable);
             }
         }
     }
 }
 
 void IdentifierResolver::ResolveIdentifier(ast::Ident *ident,
-                                    types::Scope *scope) {
+                                           types::Scope *scope) {
     if (ident->name_ == "_") {
         return;
     }
-    types::Object *obj = scope->Lookup(ident->name_);
-    if (obj == nullptr) {
+    types::Object *object = scope->Lookup(ident->name_);
+    if (object == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Fatal,
                                         ident->start(),
                                         "could not resolve identifier: " + ident->name_));
     }
-    info_->uses_.insert({ident, obj});
+    info_builder_.SetUsedObject(ident, object);
 }
 
 }

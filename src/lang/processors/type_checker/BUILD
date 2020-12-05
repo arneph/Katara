@@ -18,7 +18,6 @@ cc_library(
 cc_library(
     name = "type_checker_internal",
     srcs = [
-        "universe_builder.cc",
         "identifier_resolver.cc",
         "package_handler.cc",
         "type_handler.cc",
@@ -28,7 +27,6 @@ cc_library(
         "stmt_handler.cc",
     ],
     hdrs = [
-        "universe_builder.h",
         "identifier_resolver.h",
         "package_handler.h",
         "type_handler.h",

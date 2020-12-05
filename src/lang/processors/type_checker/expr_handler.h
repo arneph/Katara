@@ -13,6 +13,9 @@
 
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/types/types.h"
+#include "lang/representation/types/objects.h"
+#include "lang/representation/types/info.h"
+#include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
 
 namespace lang {
@@ -21,13 +24,13 @@ namespace type_checker {
 class ExprHandler {
 public:
     static bool ProcessExpr(ast::Expr *expr,
-                            types::TypeInfo *info,
+                            types::InfoBuilder& info_builder,
                             std::vector<issues::Issue>& issues);
     
 private:
-    ExprHandler(types::TypeInfo *info,
+    ExprHandler(types::InfoBuilder& info_builder,
                 std::vector<issues::Issue>& issues)
-    : info_(info), issues_(issues) {}
+    : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
     
     bool CheckExprs(std::vector<ast::Expr *> exprs);
     bool CheckExpr(ast::Expr *expr);
@@ -72,7 +75,8 @@ private:
     bool CheckBasicLit(ast::BasicLit *basic_lit);
     bool CheckIdent(ast::Ident *ident);
     
-    types::TypeInfo *info_;
+    types::Info *info_;
+    types::InfoBuilder& info_builder_;
     std::vector<issues::Issue>& issues_;
 };
 

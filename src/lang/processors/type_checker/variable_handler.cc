@@ -17,21 +17,21 @@ namespace type_checker {
 bool VariableHandler::ProcessVariable(types::Variable *variable,
                                       types::Type *type,
                                       ast::Expr *value_expr,
-                                      types::TypeInfo *info,
+                                      types::InfoBuilder& info_builder,
                                       std::vector<issues::Issue> &issues) {
     return ProcessVariables(std::vector<types::Variable *>{variable},
                             type,
                             value_expr,
-                            info,
+                            info_builder,
                             issues);
 }
 
 bool VariableHandler::ProcessVariables(std::vector<types::Variable *> variables,
                                        types::Type *type,
                                        ast::Expr *value_expr,
-                                       types::TypeInfo *info,
+                                       types::InfoBuilder& info_builder,
                                        std::vector<issues::Issue> &issues) {
-    VariableHandler handler(info, issues);
+    VariableHandler handler(info_builder, issues);
     
     return handler.ProcessVariableDefinitions(variables, type, value_expr);
 }
@@ -52,18 +52,18 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
     
     if (type != nullptr) {
         for (auto variable : variables) {
-            variable->type_ = type;
+            info_builder_.SetObjectType(variable, type);
         }
     }
     if (value == nullptr) {
         return true;
     }
     
-    if (!ExprHandler::ProcessExpr(value, info_, issues_)) {
+    if (!ExprHandler::ProcessExpr(value, info_builder_, issues_)) {
         return false;
     }
     
-    types::Type *value_type = info_->types_.at(value);
+    types::Type *value_type = info_->types().at(value);
     if (variables.size() == 1) {
         types::Variable * variable = variables.at(0);
         if (type != nullptr &&
@@ -76,17 +76,10 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
             return false;
         }
         if (type == nullptr) {
-            variable->type_ = value_type;
+            info_builder_.SetObjectType(variable, value_type);
         }
         if (variable->parent() == variable->package()->scope()) {
-            auto initializer =
-                std::unique_ptr<types::Initializer>(new types::Initializer());
-            initializer->lhs_.push_back(variable);
-            initializer->rhs_ = value;
-            
-            auto initializer_ptr = initializer.get();
-            info_->initializer_unique_ptrs_.push_back(std::move(initializer));
-            info_->init_order_.push_back(initializer_ptr);
+            info_builder_.AddInitializer({variable}, value);
         }
         return true;
     }
@@ -115,18 +108,11 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
             return false;
         }
         if (type == nullptr) {
-            variable->type_ = value_type;
+            info_builder_.SetObjectType(variable, value_type);
         }
     }
     if (variables.at(0)->parent() == variables.at(0)->package()->scope()) {
-        auto initializer =
-        std::unique_ptr<types::Initializer>(new types::Initializer());
-        initializer->lhs_ = variables;
-        initializer->rhs_ = value;
-        
-        auto initializer_ptr = initializer.get();
-        info_->initializer_unique_ptrs_.push_back(std::move(initializer));
-        info_->init_order_.push_back(initializer_ptr);
+        info_builder_.AddInitializer(variables, value);
     }
     return true;
 }

@@ -13,6 +13,9 @@
 
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/types/types.h"
+#include "lang/representation/types/objects.h"
+#include "lang/representation/types/info.h"
+#include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
 
 namespace lang {
@@ -24,19 +27,19 @@ public:
                                 types::Type *type,
                                 ast::Expr *value,
                                 int64_t iota,
-                                types::TypeInfo *info,
+                                types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
     
     static bool ProcessConstantExpr(ast::Expr *constant_expr,
                                     int64_t iota,
-                                    types::TypeInfo *info,
+                                    types::InfoBuilder& info_builder,
                                     std::vector<issues::Issue>& issues);
     
 private:
     ConstantHandler(int64_t iota,
-                    types::TypeInfo *info,
+                    types::InfoBuilder& info_builder,
                     std::vector<issues::Issue>& issues)
-    : iota_(iota), info_(info), issues_(issues) {}
+    : iota_(iota), info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
     
     bool ProcessConstantDefinition(types::Constant *constant,
                                    types::Type *type,
@@ -55,7 +58,8 @@ private:
     static constants::Value ConvertUntypedInt(constants::Value value, types::Basic::Kind kind);
     
     int64_t iota_;
-    types::TypeInfo *info_;
+    types::Info *info_;
+    types::InfoBuilder& info_builder_;
     std::vector<issues::Issue>& issues_;
 };
 

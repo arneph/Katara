@@ -18,9 +18,9 @@ namespace lang {
 namespace type_checker {
 
 bool ExprHandler::ProcessExpr(ast::Expr *expr,
-                              types::TypeInfo *info,
+                              types::InfoBuilder& info_builder,
                               std::vector<issues::Issue>& issues) {
-    ExprHandler handler(info, issues);
+    ExprHandler handler(info_builder, issues);
     
     return handler.CheckExpr(expr);
 }
@@ -114,8 +114,8 @@ bool ExprHandler::CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr *unary_expr) {
                                         "invalid operation: expected integer type"));
         return false;
     }
-    info_->types_.insert({unary_expr, x_type});
-    info_->expr_kinds_.insert({unary_expr, types::ExprKind::kValue});
+    info_builder_.SetExprType(unary_expr, x_type);
+    info_builder_.SetExprKind(unary_expr, types::ExprKind::kValue);
     return true;
 }
 
@@ -133,8 +133,8 @@ bool ExprHandler::CheckUnaryLogicExpr(ast::UnaryExpr *unary_expr) {
                                         "invalid operation: expected boolean type"));
         return false;
     }
-    info_->types_.insert({unary_expr, x_type});
-    info_->expr_kinds_.insert({unary_expr, types::ExprKind::kValue});
+    info_builder_.SetExprType(unary_expr, x_type);
+    info_builder_.SetExprKind(unary_expr, types::ExprKind::kValue);
     return true;
 }
 
@@ -151,14 +151,10 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
                                             "invalid operation: expected addressable value"));
             return false;
         }
-        std::unique_ptr<types::Pointer> pointer_type(new types::Pointer());
-        pointer_type->kind_ = types::Pointer::Kind::kStrong;
-        pointer_type->element_type_ = x_type;
-        
-        types::Pointer *pointer_type_ptr = pointer_type.get();
-        info_->type_unique_ptrs_.push_back(std::move(pointer_type));
-        info_->types_.insert({unary_expr, pointer_type_ptr});
-        info_->expr_kinds_.insert({unary_expr, types::ExprKind::kValue});
+        types::Pointer *pointer_type = info_builder_.CreatePointer(types::Pointer::Kind::kStrong,
+                                                                   x_type);
+        info_builder_.SetExprType(unary_expr, pointer_type);
+        info_builder_.SetExprKind(unary_expr, types::ExprKind::kValue);
         return true;
         
     } else if (unary_expr->op_ == tokens::kMul ||
@@ -188,8 +184,8 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
                                             "pointer"));
             return false;
         }
-        info_->types_.insert({unary_expr, x_pointer_type->element_type()});
-        info_->expr_kinds_.insert({unary_expr, types::ExprKind::kVariable});
+        info_builder_.SetExprType(unary_expr, x_pointer_type->element_type());
+        info_builder_.SetExprKind(unary_expr, types::ExprKind::kVariable);
         return true;
         
     } else {
@@ -246,8 +242,8 @@ bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr *binary_expr) {
     } else {
         expr_type = y_type;
     }
-    info_->types_.insert({binary_expr, expr_type});
-    info_->expr_kinds_.insert({binary_expr, types::ExprKind::kValue});
+    info_builder_.SetExprType(binary_expr, expr_type);
+    info_builder_.SetExprKind(binary_expr, types::ExprKind::kValue);
     return true;
 }
 
@@ -272,10 +268,10 @@ bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr *binary_expr) {
 
     types::Type *expr_type = x_type;
     if (x_underlying_type->info() & types::Basic::Info::kIsUntyped) {
-        expr_type = info_->basic_types_.at(types::Basic::Kind::kInt);
+        expr_type = info_->basic_type(types::Basic::Kind::kInt);
     }
-    info_->types_.insert({binary_expr, expr_type});
-    info_->expr_kinds_.insert({binary_expr, types::ExprKind::kValue});
+    info_builder_.SetExprType(binary_expr, expr_type);
+    info_builder_.SetExprKind(binary_expr, types::ExprKind::kValue);
     return true;
 }
 
@@ -311,8 +307,8 @@ bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr *binary_expr) {
     } else {
         expr_type = y_type;
     }
-    info_->types_.insert({binary_expr, expr_type});
-    info_->expr_kinds_.insert({binary_expr, types::ExprKind::kValue});
+    info_builder_.SetExprType(binary_expr, expr_type);
+    info_builder_.SetExprKind(binary_expr, types::ExprKind::kValue);
     return true;
 }
 
@@ -353,8 +349,8 @@ bool ExprHandler::CheckBinaryComparisonExpr(ast::BinaryExpr *binary_expr) {
             return false;
         }
     }
-    info_->types_.insert({binary_expr, info_->basic_types_.at(types::Basic::Kind::kBool)});
-    info_->expr_kinds_.insert({binary_expr, types::ExprKind::kValue});
+    info_builder_.SetExprType(binary_expr, info_->basic_type(types::Basic::Kind::kBool));
+    info_builder_.SetExprKind(binary_expr, types::ExprKind::kValue);
     return true;
 }
 
@@ -364,8 +360,8 @@ bool ExprHandler::CheckParenExpr(ast::ParenExpr *paren_expr) {
     }
     types::Type *x_type = info_->TypeOf(paren_expr->x_.get());
     types::ExprKind x_expr_kind = info_->ExprKindOf(paren_expr->x_.get()).value();
-    info_->types_.insert({paren_expr, x_type});
-    info_->expr_kinds_.insert({paren_expr, x_expr_kind});
+    info_builder_.SetExprType(paren_expr, x_type);
+    info_builder_.SetExprKind(paren_expr, x_expr_kind);
     return true;
 }
 
@@ -379,8 +375,8 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
             }
             types::Type *type = info_->TypeOf(selection_expr->selection_.get());
             types::ExprKind expr_kind = info_->ExprKindOf(selection_expr->selection_.get()).value();
-            info_->types_.insert({selection_expr, type});
-            info_->expr_kinds_.insert({selection_expr, expr_kind});
+            info_builder_.SetExprType(selection_expr, type);
+            info_builder_.SetExprKind(selection_expr, expr_kind);
             return true;
         }
     }
@@ -440,8 +436,8 @@ bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr *type_assert_expr) {
         return false;
     }
     
-    info_->types_.insert({type_assert_expr, asserted_type});
-    info_->expr_kinds_.insert({type_assert_expr, types::ExprKind::kValueOk});
+    info_builder_.SetExprType(type_assert_expr, asserted_type);
+    info_builder_.SetExprKind(type_assert_expr, types::ExprKind::kValueOk);
     return true;
 }
 
@@ -482,15 +478,15 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr *index_expr) {
     if (auto array_type = dynamic_cast<types::Array *>(accessed_type->Underlying())) {
         types::Type *element_type = array_type->element_type();
         
-        info_->types_.insert({index_expr, element_type});
-        info_->expr_kinds_.insert({index_expr, types::ExprKind::kVariable});
+        info_builder_.SetExprType(index_expr, element_type);
+        info_builder_.SetExprKind(index_expr, types::ExprKind::kVariable);
         return true;
         
     } else if (auto slice_type = dynamic_cast<types::Array *>(accessed_type->Underlying())) {
         types::Type *element_type = array_type->element_type();
         
-        info_->types_.insert({index_expr, element_type});
-        info_->expr_kinds_.insert({index_expr, types::ExprKind::kVariable});
+        info_builder_.SetExprType(index_expr, element_type);
+        info_builder_.SetExprKind(index_expr, types::ExprKind::kVariable);
         return true;
         
     } else if (auto string_type = dynamic_cast<types::Basic *>(accessed_type->Underlying())) {
@@ -499,8 +495,8 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr *index_expr) {
             return false;
         }
         
-        info_->types_.insert({index_expr, info_->basic_types_.at(types::Basic::Kind::kByte)});
-        info_->expr_kinds_.insert({index_expr, types::ExprKind::kValue});
+        info_builder_.SetExprType(index_expr, info_->basic_type(types::Basic::Kind::kByte));
+        info_builder_.SetExprKind(index_expr, types::ExprKind::kValue);
         return true;
         
     } else {
@@ -520,7 +516,7 @@ bool ExprHandler::CheckCallExpr(ast::CallExpr *call_expr) {
     
     if (!CheckExpr(func_expr) ||
         (type_args_expr != nullptr &&
-         !TypeHandler::ProcessTypeArgs(type_args_expr, info_, issues_)) ||
+         !TypeHandler::ProcessTypeArgs(type_args_expr, info_builder_, issues_)) ||
         !CheckExprs(arg_exprs)) {
         return false;
     }
@@ -577,8 +573,8 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr *call_expr,
         return false;
     }
     
-    info_->types_.insert({call_expr, conversion_result_type});
-    info_->expr_kinds_.insert({call_expr, types::ExprKind::kValue});
+    info_builder_.SetExprType(call_expr, conversion_result_type);
+    info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
     return true;
 }
 
@@ -641,9 +637,9 @@ types::Signature * ExprHandler::CheckFuncCallTypeArgs(types::Signature *signatur
         }
         type_params_to_args.insert({type_param, type_arg});
     }
-    return static_cast<types::Signature *>(types::InstantiateType(signature,
-                                                                  type_params_to_args,
-                                                                  info_));
+    types::Type *instantiated_signature = info_builder_.InstantiateType(signature,
+                                                                        type_params_to_args);
+    return static_cast<types::Signature *>(instantiated_signature);
 }
 
 void ExprHandler::CheckFuncCallArgs(types::Signature *signature,
@@ -661,7 +657,10 @@ void ExprHandler::CheckFuncCallArgs(types::Signature *signature,
             }
         }
     }
-    size_t expected_args = signature->parameters()->variables().size();
+    size_t expected_args = 0;
+    if (signature->parameters() != nullptr) {
+        expected_args = signature->parameters()->variables().size();
+    }
     if (arg_types.size() != expected_args) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
@@ -694,72 +693,72 @@ void ExprHandler::CheckFuncCallArgs(types::Signature *signature,
 void ExprHandler::CheckFuncCallResultType(types::Signature *signature,
                                           ast::CallExpr *call_expr) {
     if (signature->results() == nullptr) {
-        info_->expr_kinds_.insert({call_expr, types::ExprKind::kNoValue});
+        info_builder_.SetExprKind(call_expr, types::ExprKind::kNoValue);
         return;
     }
     
     if (signature->results()->variables().size() == 1) {
-        info_->types_.insert({call_expr, signature->results()->variables().at(0)->type()});
-        info_->expr_kinds_.insert({call_expr, types::ExprKind::kValue});
+        info_builder_.SetExprType(call_expr, signature->results()->variables().at(0)->type());
+        info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
         return;
     }
     
-    info_->types_.insert({call_expr, signature->results()});
-    info_->expr_kinds_.insert({call_expr, types::ExprKind::kValue});
+    info_builder_.SetExprType(call_expr, signature->results());
+    info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
 }
 
 bool ExprHandler::CheckFuncLit(ast::FuncLit *func_lit) {
     ast::FuncType *func_type_expr = func_lit->type_.get();
     ast::BlockStmt *func_body = func_lit->body_.get();
-    if (!TypeHandler::ProcessTypeExpr(func_type_expr, info_, issues_)) {
+    if (!TypeHandler::ProcessTypeExpr(func_type_expr, info_builder_, issues_)) {
         return false;
     }
     types::Signature *func_type = static_cast<types::Signature *>(info_->TypeOf(func_type_expr));
     
-    StmtHandler::ProcessFuncBody(func_body, func_type->results(), info_, issues_);
+    StmtHandler::ProcessFuncBody(func_body, func_type->results(), info_builder_, issues_);
     
-    info_->types_.insert({func_lit, func_type});
-    info_->expr_kinds_.insert({func_lit, types::ExprKind::kValue});
+    info_builder_.SetExprType(func_lit, func_type);
+    info_builder_.SetExprKind(func_lit, types::ExprKind::kValue);
     return true;
 }
 
 bool ExprHandler::CheckCompositeLit(ast::CompositeLit *composite_lit) {
-    if (!TypeHandler::ProcessTypeExpr(composite_lit->type_.get(), info_, issues_)) {
+    if (!TypeHandler::ProcessTypeExpr(composite_lit->type_.get(), info_builder_, issues_)) {
         return false;
     }
     types::Type *type = info_->TypeOf(composite_lit->type_.get());
     
     // TODO: check contents of composite lit
     
-    info_->types_.insert({composite_lit, type});
-    info_->expr_kinds_.insert({composite_lit, types::ExprKind::kValue});
+    info_builder_.SetExprType(composite_lit, type);
+    info_builder_.SetExprKind(composite_lit, types::ExprKind::kValue);
     return true;
 }
 
 bool ExprHandler::CheckBasicLit(ast::BasicLit *basic_lit) {
-    return ConstantHandler::ProcessConstantExpr(basic_lit, /* iota= */ 0, info_, issues_);
+    return ConstantHandler::ProcessConstantExpr(basic_lit, /* iota= */ 0, info_builder_, issues_);
 }
 
 bool ExprHandler::CheckIdent(ast::Ident *ident) {
-    types::Object *obj = info_->ObjectOf(ident);
+    types::Object *object = info_->ObjectOf(ident);
     types::ExprKind expr_kind = types::ExprKind::kInvalid;
-    if (dynamic_cast<types::TypeName *>(obj) != nullptr) {
+    if (dynamic_cast<types::TypeName *>(object) != nullptr) {
         expr_kind = types::ExprKind::kType;
         
-    } else if (dynamic_cast<types::Constant *>(obj) != nullptr) {
+    } else if (dynamic_cast<types::Constant *>(object) != nullptr) {
         expr_kind = types::ExprKind::kConstant;
         
-    } else if (dynamic_cast<types::Variable *>(obj) != nullptr) {
+    } else if (dynamic_cast<types::Variable *>(object) != nullptr) {
         expr_kind = types::ExprKind::kVariable;
         
-    } else if (dynamic_cast<types::Func *>(obj) != nullptr ||
-               dynamic_cast<types::Nil *>(obj) != nullptr) {
+    } else if (dynamic_cast<types::Func *>(object) != nullptr ||
+               dynamic_cast<types::Nil *>(object) != nullptr) {
         expr_kind = types::ExprKind::kValue;
         
-    } else if (dynamic_cast<types::Builtin *>(obj) != nullptr) {
+    } else if (dynamic_cast<types::Builtin *>(object) != nullptr) {
         expr_kind = types::ExprKind::kBuiltin;
         
-    } else if (dynamic_cast<types::PackageName *>(obj) != nullptr) {
+    } else if (dynamic_cast<types::PackageName *>(object) != nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         ident->start(),
@@ -768,14 +767,14 @@ bool ExprHandler::CheckIdent(ast::Ident *ident) {
     } else {
         throw "internal error: unexpected object type";
     }
-    if (obj->type() == nullptr) {
+    if (object->type() == nullptr) {
         // TODO: uncomment exception when stmt handler is fully implemented
         throw "internal error: expect to know type at this point";
         return false;
     }
     
-    info_->types_.insert({ident, obj->type()});
-    info_->expr_kinds_.insert({ident, expr_kind});
+    info_builder_.SetExprType(ident, object->type());
+    info_builder_.SetExprKind(ident, expr_kind);
     return true;
 }
 

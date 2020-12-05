@@ -13,6 +13,9 @@
 
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/types/types.h"
+#include "lang/representation/types/objects.h"
+#include "lang/representation/types/info.h"
+#include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
 
 namespace lang {
@@ -22,24 +25,24 @@ class TypeHandler {
 public:
     static bool ProcessTypeName(types::TypeName *type_name,
                                 ast::TypeSpec *type_spec,
-                                types::TypeInfo *info,
+                                types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
     static bool ProcessFuncDecl(types::Func *func,
                                 ast::FuncDecl *func_decl,
-                                types::TypeInfo *info,
+                                types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
     
     static bool ProcessTypeArgs(ast::TypeArgList *type_args,
-                                types::TypeInfo *info,
+                                types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
     static bool ProcessTypeExpr(ast::Expr *type_expr,
-                                types::TypeInfo *info,
+                                types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
     
 private:
-    TypeHandler(types::TypeInfo *info,
+    TypeHandler(types::InfoBuilder& info_builder,
                 std::vector<issues::Issue>& issues)
-    : info_(info), issues_(issues) {}
+    : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
     
     bool ProcessTypeDefinition(types::TypeName *type_name,
                                ast::TypeSpec *type_spec);
@@ -67,7 +70,8 @@ private:
 
     types::Variable * EvaluateReceiver(ast::FieldList *receiver_expr);
 
-    types::TypeInfo *info_;
+    types::Info *info_;
+    types::InfoBuilder&info_builder_;
     std::vector<issues::Issue>& issues_;
 };
 

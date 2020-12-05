@@ -8,7 +8,11 @@ cc_library(
         "//src/lang/representation/tokens",
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
-        "//src/lang/representation/types",
+        "//src/lang/representation/types:base",
+        "//src/lang/representation/types:types_util",
+        "//src/lang/representation/types:initializer",
+        "//src/lang/representation/types:info",
+        "//src/lang/representation/types:info_util",
      ],
     visibility = [
         "//visibility:public",
