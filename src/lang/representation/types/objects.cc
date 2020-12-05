@@ -84,7 +84,11 @@ std::string Func::ToString() const {
     if (sig->type_parameters()) {
         s += sig->type_parameters()->ToString();
     }
-    s += "(" + sig->parameters()->ToString() + ")";
+    s += "(";
+    if (sig->parameters() != nullptr) {
+        s += sig->parameters()->ToString();        
+    }
+    s += ")";
     if (sig->results()) {
         s += " ";
         if (sig->results()->variables().size() == 1 &&

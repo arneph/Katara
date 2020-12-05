@@ -235,7 +235,11 @@ std::string Signature::ToString() const {
     if (type_parameters_) {
         s += type_parameters_->ToString();
     }
-    s += "(" + parameters_->ToString() + ")";
+    s += "(";
+    if (parameters_ != nullptr) {
+        s += parameters_->ToString();
+    }
+    s += ")";
     if (results_) {
         s += " ";
         if (results_->variables().size() == 1 &&

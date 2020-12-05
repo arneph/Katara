@@ -124,18 +124,26 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
         return true;
         
     } else if (ast::BasicLit *basic_lit = dynamic_cast<ast::BasicLit *>(expr)) {
-        if (basic_lit->kind_ != tokens::kInt) {
-            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                            issues::Severity::Error,
-                                            basic_lit->start(),
-                                            "type checking unimplemented"));
-            return false;
+        types::Basic *type;
+        constants::Value value(0);
+        switch (basic_lit->kind_) {
+            case tokens::kInt:
+                type = info_->basic_type(types::Basic::kUntypedInt);
+                value = constants::Value(std::stoull(basic_lit->value_));
+                break;
+            case tokens::kChar:
+                // TODO: support UTF-8 and character literals
+                type = info_->basic_type(types::Basic::kUntypedRune);
+                value = constants::Value(int32_t(basic_lit->value_.at(1)));
+                break;
+            case tokens::kString:
+                type = info_->basic_type(types::Basic::kUntypedString);
+                value = constants::Value(basic_lit->value_.substr(1,
+                                                                  basic_lit->value_.length() - 2));
+                break;
+            default:
+                throw "internal error: unexpected basic literal kind";
         }
-        uint64_t v = std::stoull(basic_lit->value_);
-        
-        // TODO: support strings and other basic literals
-        types::Basic *type = info_->basic_type(types::Basic::kUntypedInt);
-        constants::Value value(v);
         
         info_builder_.SetExprType(expr, type);
         info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
