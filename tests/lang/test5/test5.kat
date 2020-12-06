@@ -43,10 +43,10 @@ func <Int> Max(nums []Int) Int {
     return max
 }
 
-type Comparable<T> interface {
-    <> Compare(a, b T) ComparisonResult
-    <> Min(instances []T) T
-    <> Max(instances []T) T
+type Comparable interface {
+    <T> Compare(a, b T) ComparisonResult
+    <T> Min(instances []T) T
+    <T> Max(instances []T) T
 }
 
 type Range<T> struct {
