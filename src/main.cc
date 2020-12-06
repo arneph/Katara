@@ -81,9 +81,17 @@ void run_lang_test(std::filesystem::path test_dir) {
             for (lang::pos::pos_t pos : issue.positions()) {
                 lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
                 std::string line = pkg_manager.file_set()->FileAt(pos)->LineFor(pos);
+                int whitespace = 0;
+                for (; whitespace < line.length(); whitespace++) {
+                    if (line.at(whitespace) != ' ' &&
+                        line.at(whitespace) != '\t') {
+                        break;
+                    }
+                }
                 std::cout << "  " << position.ToString() << ": ";
-                std::cout << line;
-                for (int i = 0; i < position.ToString().size() + 4 + position.column_; i++) {
+                std::cout << line.substr(whitespace);
+                size_t pointer = 4 + position.ToString().size() + position.column_ - whitespace;
+                for (int i = 0; i < pointer; i++) {
                     std::cout << " ";
                 }
                 std::cout << "^\n";
