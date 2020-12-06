@@ -34,14 +34,7 @@ Type * Object::type() const {
     return type_;
 }
 
-bool TypeName::is_alias() const {
-    return is_alias_;
-}
-
 std::string TypeName::ToString() const {
-    if (is_alias_) {
-        return "type " + name_ + " = " + type_->ToString();
-    }
     return "type " + name_ + " " + type_->ToString();
 }
 
@@ -81,8 +74,15 @@ std::string Func::ToString() const {
         s += "(" + sig->receiver()->ToString() + ") ";
     }
     s += name_;
-    if (sig->type_parameters()) {
-        s += sig->type_parameters()->ToString();
+    if (!sig->type_parameters().empty()) {
+        s += "<";
+        for (int i = 0; i < sig->type_parameters().size(); i++) {
+            if (i > 0) {
+                s += ", ";
+            }
+            s += sig->type_parameters().at(i)->ToString();
+        }
+        s += ">";
     }
     s += "(";
     if (sig->parameters() != nullptr) {

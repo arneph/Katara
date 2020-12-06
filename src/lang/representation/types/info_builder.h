@@ -28,6 +28,8 @@ namespace types {
 
 class InfoBuilder {
 public:
+    typedef std::unordered_map<TypeParameter *, Type *> TypeParamsToArgsMap;
+    
     Info * info() const;
     
     void CreateUniverse();
@@ -35,29 +37,38 @@ public:
     Pointer * CreatePointer(Pointer::Kind kind, Type *element_type);
     Array * CreateArray(Type *element_type, uint64_t length);
     Slice * CreateSlice(Type *element_type);
-    TypeTuple * CreateTypeTuple(std::vector<NamedType *> types);
-    NamedType * CreateNamedType(bool is_type_parameter,
-                                std::string name,
-                                Type *type,
-                                TypeTuple *type_parameters);
-    TypeInstance * CreateTypeInstance(Type *instantiated_type,
+    TypeInstance * CreateTypeInstance(NamedType *instantiated_type,
                                       std::vector<Type *> type_args);
     Tuple * CreateTuple(std::vector<Variable *> variables);
     Signature * CreateSignature(Variable *receiver,
-                                TypeTuple *type_parameters,
+                                std::vector<TypeParameter *> type_parameters,
                                 Tuple *parameters,
                                 Tuple *results);
     Struct * CreateStruct(std::vector<Variable *> fields);
     Interface * CreateInterface(std::vector<NamedType *> embedded_interfaces,
                                 std::vector<Func *> methods);
-    Type * InstantiateType(Type *parameterized_type,
-                           std::unordered_map<NamedType *, Type *>& type_params_to_args);
     
-    TypeName * CreateTypeName(Scope *parent,
-                              Package *package,
-                              pos::pos_t position,
-                              std::string name,
-                              bool is_alias);
+    TypeInstance * InstantiateNamedType(NamedType *parameterized_type,
+                                        TypeParamsToArgsMap& type_params_to_args);
+    Signature * InstantiateSignature(Signature * parameterized_signature,
+                                     TypeParamsToArgsMap& type_params_to_args);
+    
+    void SetInterfaceOfTypeParameter(TypeParameter *type_parameter,
+                                     Type *interface);
+    void SetTypeParametersOfNamedType(NamedType *named_type,
+                                      std::vector<TypeParameter *> type_parameters);
+    void SetUnderlyingTypeOfNamedType(NamedType *named_type,
+                                      Type *underlying_type);
+    
+    TypeName * CreateTypeNameForTypeParameter(Scope *parent,
+                                              Package *package,
+                                              pos::pos_t position,
+                                              std::string name);
+    TypeName * CreateTypeNameForNamedType(Scope *parent,
+                                          Package *package,
+                                          pos::pos_t position,
+                                          std::string name,
+                                          bool is_alias);
     Constant * CreateConstant(Scope *parent,
                               Package *package,
                               pos::pos_t position,
@@ -109,12 +120,17 @@ private:
     void CreatePredeclaredNil();
     void CreatePredeclaredFuncs();
     
+    TypeParameter * CreateTypeParameter(std::string name);
+    NamedType * CreateNamedType(bool is_alias,
+                                std::string name);
+    
+    Type * InstantiateType(Type *parameterized_type,
+                           TypeParamsToArgsMap& type_params_to_args);
+    std::vector<Type *> InstantiateTypeParameters(std::vector<TypeParameter *> type_params,
+                                                  TypeParamsToArgsMap& type_params_to_args);
+    
     void CheckObjectArgs(Scope *parent,
                          Package *package) const;
-    
-    std::vector<Type *>
-    InstantiateTypeTupleMembers(TypeTuple *type_tuple,
-                                std::unordered_map<NamedType *, Type *>& type_params_to_args);
     
     Info *info_;
     

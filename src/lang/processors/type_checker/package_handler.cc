@@ -39,6 +39,27 @@ PackageHandler::PackageHandler(std::vector<ast::File *> package_files,
     : package_files_(package_files), package_(package),
       info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
 
+PackageHandler::Action *
+PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
+                             types::Object *defined_object,
+                             std::function<bool ()> executor) {
+    return CreateAction(prerequisites,
+                        std::unordered_set<types::Object *>{defined_object},
+                        executor);
+}
+
+PackageHandler::Action *
+PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
+                             std::unordered_set<types::Object *> defined_objects,
+                             std::function<bool ()> executor) {
+    std::unique_ptr<Action> action = std::make_unique<Action>(prerequisites,
+                                                              defined_objects,
+                                                              executor);
+    Action *action_ptr = action.get();
+    actions_.push_back(std::move(action));
+    return action_ptr;
+}
+
 void PackageHandler::FindActions() {
     for (ast::File *file : package_files_) {
         for (auto& decl : file->decls_) {
@@ -71,9 +92,31 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
         types::TypeName *type_name =
             static_cast<types::TypeName *>(info_->definitions().at(type_spec->name_.get()));
         
-        std::unordered_set<types::Object *> prerequisites = FindPrerequisites(type_spec);
-        prerequisites.erase(type_name);
-        for (types::Object *prerequisite : prerequisites) {
+        std::unordered_set<types::Object *> defined_objects;
+        defined_objects.insert(type_name);
+        std::unordered_set<types::Object *> param_prerequisites;
+        if (type_spec->type_params_) {
+            for (auto &type_param_expr : type_spec->type_params_->params_) {
+                ast::Ident *type_param_name = type_param_expr->name_.get();
+                types::Object *type_param = info_->DefinitionOf(type_param_name);
+                defined_objects.insert(type_param);
+            }
+            
+            param_prerequisites = FindPrerequisites(type_spec->type_params_.get());
+            for (types::Object *prerequisite : param_prerequisites) {
+                if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
+                    dynamic_cast<types::Constant *>(prerequisite) == nullptr) {
+                    issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                    issues::Severity::Error,
+                                                    {type_name->position(), prerequisite->position()},
+                                                    "type can only depend on types and constants"));
+                }
+            }
+        }
+        
+        std::unordered_set<types::Object *> underlying_prerequisites =
+            FindPrerequisites(type_spec->type_.get());
+        for (types::Object *prerequisite : underlying_prerequisites) {
             if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
                 dynamic_cast<types::Constant *>(prerequisite) == nullptr) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -83,19 +126,27 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
             }
         }
         
-        std::unique_ptr<Action> action =
-            std::make_unique<Action>(prerequisites,
-                                     type_name,
-                                     [=]() -> bool {
-                return TypeHandler::ProcessTypeName(type_name,
-                                                    type_spec,
-                                                    info_builder_,
-                                                    issues_);
+        Action *param_action = CreateAction(param_prerequisites,
+                                            defined_objects,
+                                            [=]() -> bool {
+            if (type_spec->type_params_ == nullptr) {
+                return true;
+            }
+            return TypeHandler::ProcessTypeParametersOfTypeName(type_name,
+                                                                type_spec,
+                                                                info_builder_,
+                                                                issues_);
         });
-        
-        Action *action_ptr = action.get();
-        actions_.push_back(std::move(action));
-        const_and_type_actions_.push_back(action_ptr);
+        Action *underlying_action = CreateAction(underlying_prerequisites,
+                                                 std::unordered_set<types::Object *>{},
+                                                 [=]() -> bool {
+            return TypeHandler::ProcessUnderlyingTypeOfTypeName(type_name,
+                                                                type_spec,
+                                                                info_builder_,
+                                                                issues_);
+        });
+        const_and_type_actions_.push_back(param_action);
+        const_and_type_actions_.push_back(underlying_action);
     }
 }
 
@@ -138,29 +189,25 @@ void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
                 }
             }
             
-            std::unique_ptr<Action> action =
-                std::make_unique<Action>(prerequisites,
-                                         constant,
-                                         [=]() -> bool {
-                    types::Type *type = nullptr;
-                    if (type_expr != nullptr) {
-                        if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
-                            return false;
-                        }
-                        type = info_->TypeOf(type_expr);
+            Action *action = CreateAction(prerequisites,
+                                          constant,
+                                          [=]() -> bool {
+                types::Type *type = nullptr;
+                if (type_expr != nullptr) {
+                    if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
+                        return false;
                     }
-                    
-                    return ConstantHandler::ProcessConstant(constant,
-                                                            type,
-                                                            value,
-                                                            iota,
-                                                            info_builder_,
-                                                            issues_);
+                    type = info_->TypeOf(type_expr);
+                }
+                
+                return ConstantHandler::ProcessConstant(constant,
+                                                        type,
+                                                        value,
+                                                        iota,
+                                                        info_builder_,
+                                                        issues_);
             });
-            
-            Action *action_ptr = action.get();
-            actions_.push_back(std::move(action));
-            const_and_type_actions_.push_back(action_ptr);
+            const_and_type_actions_.push_back(action);
         }
         iota++;
     }
@@ -203,28 +250,24 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
             prerequisites.insert(type_prerequisites.begin(),
                                  type_prerequisites.end());
             
-            std::unique_ptr<Action> action =
-                std::make_unique<Action>(prerequisites,
-                                         objects,
-                                         [=]() -> bool {
-                    types::Type *type = nullptr;
-                    if (type_expr != nullptr) {
-                        if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
-                            return false;
-                        }
-                        type = info_->TypeOf(type_expr);
+            Action *action = CreateAction(prerequisites,
+                                          objects,
+                                          [=]() -> bool {
+                types::Type *type = nullptr;
+                if (type_expr != nullptr) {
+                    if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
+                        return false;
                     }
-                    
-                    return VariableHandler::ProcessVariables(variables,
-                                                             type,
-                                                             value,
-                                                             info_builder_,
-                                                             issues_);
+                    type = info_->TypeOf(type_expr);
+                }
+                
+                return VariableHandler::ProcessVariables(variables,
+                                                         type,
+                                                         value,
+                                                         info_builder_,
+                                                         issues_);
             });
-            
-            Action *action_ptr = action.get();
-            actions_.push_back(std::move(action));
-            variable_and_func_decl_actions_.push_back(action_ptr);
+            variable_and_func_decl_actions_.push_back(action);
             
         } else {
             for (size_t i = 0; i < value_spec->names_.size(); i++) {
@@ -244,28 +287,24 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
                                          value_prerequisites.end());
                 }
                 
-                std::unique_ptr<Action> action =
-                    std::make_unique<Action>(prerequisites,
-                                             variable,
-                                             [=]() -> bool {
-                        types::Type *type = nullptr;
-                        if (type_expr != nullptr) {
-                            if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
-                                return false;
-                            }
-                            type = info_->TypeOf(type_expr);
+                Action *action = CreateAction(prerequisites,
+                                              variable,
+                                              [=]() -> bool {
+                    types::Type *type = nullptr;
+                    if (type_expr != nullptr) {
+                        if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
+                            return false;
                         }
-                        
-                        return VariableHandler::ProcessVariable(variable,
-                                                                type,
-                                                                value,
-                                                                info_builder_,
-                                                                issues_);
+                        type = info_->TypeOf(type_expr);
+                    }
+                    
+                    return VariableHandler::ProcessVariable(variable,
+                                                            type,
+                                                            value,
+                                                            info_builder_,
+                                                            issues_);
                 });
-                
-                Action *action_ptr = action.get();
-                actions_.push_back(std::move(action));
-                variable_and_func_decl_actions_.push_back(action_ptr);
+                variable_and_func_decl_actions_.push_back(action);
             }
         }
     }
@@ -278,24 +317,17 @@ void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
     
     std::unordered_set<types::Object *> prerequisites = FindPrerequisites(func_decl);
     
-    std::unique_ptr<Action> decl_action =
-    std::make_unique<Action>(prerequisites,
-                             func,
-                             [=]() -> bool {
+    Action *decl_action = CreateAction(prerequisites,
+                                       func,
+                                       [=]() -> bool {
         return TypeHandler::ProcessFuncDecl(func,
                                             func_decl,
                                             info_builder_,
                                             issues_);
     });
-    
-    Action *decl_action_ptr = decl_action.get();
-    actions_.push_back(std::move(decl_action));
-    variable_and_func_decl_actions_.push_back(decl_action_ptr);
-    
-    std::unique_ptr<Action> body_action =
-    std::make_unique<Action>(prerequisites,
-                             func,
-                             [=]() -> bool {
+    Action *body_action = CreateAction(prerequisites,
+                                       func,
+                                       [=]() -> bool {
         types::Signature *signature = static_cast<types::Signature *>(func->type());
         StmtHandler::ProcessFuncBody(body,
                                      signature->results(),
@@ -303,10 +335,8 @@ void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
                                      issues_);
         return true;
     });
-    
-    Action *body_action_ptr = body_action.get();
-    actions_.push_back(std::move(body_action));
-    func_body_actions_.push_back(body_action_ptr);
+    variable_and_func_decl_actions_.push_back(decl_action);
+    func_body_actions_.push_back(body_action);
 }
 
 std::unordered_set<types::Object *> PackageHandler::FindPrerequisites(ast::Node *node) {

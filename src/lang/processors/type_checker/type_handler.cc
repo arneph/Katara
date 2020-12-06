@@ -21,7 +21,28 @@ bool TypeHandler::ProcessTypeName(types::TypeName *type_name,
                                   std::vector<issues::Issue>& issues) {
     TypeHandler handler(info_builder, issues);
     
-    return handler.ProcessTypeDefinition(type_name, type_spec);
+    if (!handler.ProcessTypeParameters(type_name, type_spec)) {
+        return false;
+    }
+    return handler.ProcessUnderlyingType(type_name, type_spec);
+}
+
+bool TypeHandler::ProcessTypeParametersOfTypeName(types::TypeName *type_name,
+                                                  ast::TypeSpec *type_spec,
+                                                  types::InfoBuilder& info_builder,
+                                                  std::vector<issues::Issue>& issues) {
+    TypeHandler handler(info_builder, issues);
+    
+    return handler.ProcessTypeParameters(type_name, type_spec);
+}
+
+bool TypeHandler::ProcessUnderlyingTypeOfTypeName(types::TypeName *type_name,
+                                                  ast::TypeSpec *type_spec,
+                                                  types::InfoBuilder& info_builder,
+                                                  std::vector<issues::Issue>& issues) {
+    TypeHandler handler(info_builder, issues);
+    
+    return handler.ProcessUnderlyingType(type_name, type_spec);
 }
 
 bool TypeHandler::ProcessFuncDecl(types::Func *func,
@@ -53,25 +74,28 @@ bool TypeHandler::ProcessTypeExpr(ast::Expr *type_expr,
     return handler.EvaluateTypeExpr(type_expr);
 }
 
-bool TypeHandler::ProcessTypeDefinition(types::TypeName *type_name,
+bool TypeHandler::ProcessTypeParameters(types::TypeName *type_name,
                                         ast::TypeSpec *type_spec) {
-    types::TypeTuple *type_parameters = nullptr;
+    std::vector<types::TypeParameter *> type_parameters;
     if (type_spec->type_params_) {
         type_parameters = EvaluateTypeParameters(type_spec->type_params_.get());
-        if (type_parameters == nullptr) {
+        if (type_parameters.empty()) {
             return false;
         }
     }
-    
+    types::NamedType *named_type = static_cast<types::NamedType *>(type_name->type());
+    info_builder_.SetTypeParametersOfNamedType(named_type, type_parameters);
+    return true;
+}
+
+bool TypeHandler::ProcessUnderlyingType(types::TypeName *type_name,
+                                        ast::TypeSpec *type_spec) {
     if (!EvaluateTypeExpr(type_spec->type_.get())) {
         return false;
     }
-    types::Type *type = info_->TypeOf(type_spec->type_.get());
-    types::NamedType *named_type = info_builder_.CreateNamedType(/* is_type_parameter= */ false,
-                                                                 type_name->name(),
-                                                                 type,
-                                                                 type_parameters);
-    info_builder_.SetObjectType(type_name, named_type);
+    types::Type *underlying_type = info_->TypeOf(type_spec->type_.get());
+    types::NamedType *named_type = static_cast<types::NamedType *>(type_name->type());
+    info_builder_.SetUnderlyingTypeOfNamedType(named_type, underlying_type);
     return true;
 }
 
@@ -92,10 +116,10 @@ bool TypeHandler::ProcessFuncDefinition(types::Func *func,
         }
     }
     
-    types::TypeTuple *type_parameters = nullptr;
+    std::vector<types::TypeParameter *> type_parameters;
     if (func_decl->type_params_) {
         type_parameters = EvaluateTypeParameters(func_decl->type_params_.get());
-        if (type_parameters == nullptr) {
+        if (type_parameters.empty()) {
             return false;
         }
     }
@@ -268,7 +292,7 @@ bool TypeHandler::EvaluateFuncType(ast::FuncType *func_expr) {
         }
     }
     types::Signature *signature = info_builder_.CreateSignature(/* receiver= */ nullptr,
-                                                                /* type_parameters= */ nullptr,
+                                                                /* type_parameters= */ {},
                                                                 parameters,
                                                                 results);
     info_builder_.SetExprType(func_expr, signature);
@@ -306,7 +330,8 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance *type_instance_expr) {
     if (!EvaluateTypeExpr(type_instance_expr->type_.get())) {
         return false;
     }
-    types::Type *instantiated_type = info_->TypeOf(type_instance_expr->type_.get());
+    types::NamedType *instantiated_type =
+        static_cast<types::NamedType *>(info_->TypeOf(type_instance_expr->type_.get()));
     
     std::vector<types::Type *> type_args;
     type_args.reserve(type_instance_expr->type_args_->args_.size());
@@ -324,28 +349,29 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance *type_instance_expr) {
     return true;
 }
 
-types::TypeTuple * TypeHandler::EvaluateTypeParameters(ast::TypeParamList *parameters_expr) {
-    std::vector<types::NamedType *> types;
-    types.reserve(parameters_expr->params_.size());
+std::vector<types::TypeParameter *> TypeHandler::EvaluateTypeParameters(ast::TypeParamList *parameters_expr) {
+    std::vector<types::TypeParameter *> type_parameters;
+    type_parameters.reserve(parameters_expr->params_.size());
     for (auto& parameter_expr : parameters_expr->params_) {
-        types::NamedType *type = EvaluateTypeParameter(parameter_expr.get());
-        if (type == nullptr) {
-            return nullptr;
+        types::TypeParameter *type_parameter = EvaluateTypeParameter(parameter_expr.get());
+        if (type_parameter == nullptr) {
+            return {};
         }
-        types.push_back(type);
+        type_parameters.push_back(type_parameter);
     }
-    return info_builder_.CreateTypeTuple(types);
+    return type_parameters;
 }
 
-types::NamedType * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parameter_expr) {
-    types::Interface *type_constraint = nullptr;
+types::TypeParameter * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parameter_expr) {
+    types::Type *interface = nullptr;
     if (parameter_expr->type_) {
         if (!EvaluateTypeExpr(parameter_expr->type_.get())) {
             return nullptr;
         }
-        types::Type *given_type = info_->TypeOf(parameter_expr->type_.get());
-        type_constraint = dynamic_cast<types::Interface *>(given_type->Underlying());
-        if (type_constraint == nullptr) {
+        interface = info_->TypeOf(parameter_expr->type_.get());
+        
+        types::Interface *underlying = dynamic_cast<types::Interface *>(interface->Underlying());
+        if (underlying == nullptr) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             parameter_expr->type_->start(),
@@ -353,18 +379,16 @@ types::NamedType * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parameter_
             return nullptr;
         }
     } else {
-        type_constraint = info_builder_.CreateInterface(/* embedded_interfaces= */ {},
-                                                        /* methods= */ {});
+        interface = info_builder_.CreateInterface(/* embedded_interfaces= */ {},
+                                                  /* methods= */ {});
     }
     
     types::TypeName *type_name =
         static_cast<types::TypeName *>(info_->DefinitionOf(parameter_expr->name_.get()));
-    types::NamedType *named_type = info_builder_.CreateNamedType(/* is_type_parameter= */ true,
-                                                                 type_name->name(),
-                                                                 type_constraint,
-                                                                 /* type_parameters= */ nullptr);
-    info_builder_.SetObjectType(type_name, named_type);
-    return named_type;
+    
+    types::TypeParameter *type_parameter = static_cast<types::TypeParameter *>(type_name->type());
+    info_builder_.SetInterfaceOfTypeParameter(type_parameter, interface);
+    return type_parameter;
 }
 
 types::Func * TypeHandler::EvaluateMethodSpec(ast::MethodSpec *method_spec) {
@@ -380,7 +404,7 @@ types::Func * TypeHandler::EvaluateMethodSpec(ast::MethodSpec *method_spec) {
     types::Func *func = static_cast<types::Func *>(info_->DefinitionOf(name));
     // TODO: set receiver to enclosing interface
     types::Signature *signature = info_builder_.CreateSignature(/* receiver= */ nullptr,
-                                                                /* type_parameters= */ nullptr,
+                                                                /* type_parameters= */ {},
                                                                 parameters,
                                                                 results);
     info_builder_.SetObjectType(func, signature);
@@ -466,7 +490,8 @@ types::Variable * TypeHandler::EvaluateReceiver(ast::FieldList *receiver_list_ex
     if (type_instance_expr != nullptr) {
         types::NamedType *instantiated_type = static_cast<types::NamedType *>(type);
         
-        if (instantiated_type->type_parameters()->types().size() != type_instance_expr->type_args_->args_.size()) {
+        if (instantiated_type->type_parameters().size() !=
+            type_instance_expr->type_args_->args_.size()) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             type_instance_expr->start(),
@@ -478,7 +503,7 @@ types::Variable * TypeHandler::EvaluateReceiver(ast::FieldList *receiver_list_ex
         type_instance_args.reserve(type_instance_expr->type_args_->args_.size());
         for (int i = 0; i < type_instance_expr->type_args_->args_.size(); i++) {
             types::Type *type_arg_type =
-                instantiated_type->type_parameters()->types().at(i)->type();
+                instantiated_type->type_parameters().at(i)->interface();
             ast::Ident *type_arg_name =
                 static_cast<ast::Ident *>(type_instance_expr->type_args_->args_.at(i).get());
             

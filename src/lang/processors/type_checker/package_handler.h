@@ -35,11 +35,6 @@ private:
     class Action {
     public:
         Action(std::unordered_set<types::Object *> prerequisites,
-               types::Object *defined_object,
-               std::function<bool ()> executor)
-        : Action(prerequisites, std::unordered_set<types::Object *>{defined_object}, executor) {}
-        
-        Action(std::unordered_set<types::Object *> prerequisites,
                std::unordered_set<types::Object *> defined_objects,
                std::function<bool ()> executor)
             : prerequisites_(prerequisites),
@@ -67,6 +62,13 @@ private:
                    types::Package *package,
                    types::InfoBuilder& info_builder,
                    std::vector<issues::Issue>& issues);
+    
+    Action * CreateAction(std::unordered_set<types::Object *> prerequisites,
+                          types::Object *defined_object,
+                          std::function<bool ()> executor);
+    Action * CreateAction(std::unordered_set<types::Object *> prerequisites,
+                          std::unordered_set<types::Object *> defined_objects,
+                          std::function<bool ()> executor);
     
     void FindActions();
     void FindActionsForTypeDecl(ast::GenDecl *type_decl);

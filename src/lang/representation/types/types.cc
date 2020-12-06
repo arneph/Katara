@@ -119,26 +119,31 @@ std::string Slice::ToString() const {
     return "[]" + element_type_->ToString();
 }
 
-const std::vector<NamedType *>& TypeTuple::types() const {
-    return types_;
+std::string TypeParameter::name() const {
+    return name_;
 }
 
-Type * TypeTuple::Underlying() {
-    return this;
+Type * TypeParameter::interface() const {
+    return interface_;
 }
 
-std::string TypeTuple::ToString() const {
-    std::string s = "<";
-    for (size_t i = 0; i < types_.size(); i++) {
-        if (i > 0) s += ", ";
-        s += types_.at(i)->name() + " " + types_.at(i)->type()->ToString();
+Type * TypeParameter::Underlying() {
+    return interface_;
+}
+
+std::string TypeParameter::ToString() const {
+    std::string s = name_;
+    auto interface = dynamic_cast<Interface *>(interface_);
+    if (interface == nullptr ||
+        !interface->embedded_interfaces().empty() ||
+        !interface->methods().empty()) {
+        s += " " + interface_->ToString();
     }
-    s += ">";
     return s;
 }
 
-bool NamedType::is_type_parameter() const {
-    return is_type_parameter_;
+bool NamedType::is_alias() const {
+    return is_alias_;
 }
 
 std::string NamedType::name() const {
@@ -149,7 +154,7 @@ Type * NamedType::type() const {
     return type_;
 }
 
-TypeTuple * NamedType::type_parameters() const {
+const std::vector<TypeParameter *>& NamedType::type_parameters() const {
     return type_parameters_;
 }
 
@@ -158,13 +163,23 @@ Type * NamedType::Underlying() {
 }
 
 std::string NamedType::ToString() const {
-    if (type_parameters_) {
-        return name_ + type_parameters_->ToString();
+    std::string s;
+    if (is_alias_) {
+        s += "=";
     }
-    return name_;
+    s += name_;
+    if (!type_parameters_.empty()) {
+        s += "<";
+        for (size_t i = 0; i < type_parameters_.size(); i++) {
+            if (i > 0) s += ", ";
+            s += type_parameters_.at(i)->ToString();
+        }
+        s += ">";
+    }
+    return s;
 }
 
-Type * TypeInstance::instantiated_type() const {
+NamedType * TypeInstance::instantiated_type() const {
     return instantiated_type_;
 }
 
@@ -211,7 +226,7 @@ Variable * Signature::receiver() const {
     return receiver_;
 }
 
-TypeTuple * Signature::type_parameters() const {
+const std::vector<TypeParameter *>& Signature::type_parameters() const {
     return type_parameters_;
 }
 
@@ -232,8 +247,13 @@ std::string Signature::ToString() const {
     if (receiver_) {
         s += "(" + receiver_->ToString() + ") ";
     }
-    if (type_parameters_) {
-        s += type_parameters_->ToString();
+    if (!type_parameters_.empty()) {
+        s += "<";
+        for (size_t i = 0; i < type_parameters_.size(); i++) {
+            if (i > 0) s += ", ";
+            s += type_parameters_.at(i)->ToString();
+        }
+        s += ">";
     }
     s += "(";
     if (parameters_ != nullptr) {

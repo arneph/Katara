@@ -27,6 +27,14 @@ public:
                                 ast::TypeSpec *type_spec,
                                 types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
+    static bool ProcessTypeParametersOfTypeName(types::TypeName *type_name,
+                                                ast::TypeSpec *type_spec,
+                                                types::InfoBuilder& info_builder,
+                                                std::vector<issues::Issue>& issues);
+    static bool ProcessUnderlyingTypeOfTypeName(types::TypeName *type_name,
+                                                ast::TypeSpec *type_spec,
+                                                types::InfoBuilder& info_builder,
+                                                std::vector<issues::Issue>& issues);
     static bool ProcessFuncDecl(types::Func *func,
                                 ast::FuncDecl *func_decl,
                                 types::InfoBuilder& info_builder,
@@ -44,7 +52,9 @@ private:
                 std::vector<issues::Issue>& issues)
     : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
     
-    bool ProcessTypeDefinition(types::TypeName *type_name,
+    bool ProcessTypeParameters(types::TypeName *type_name,
+                               ast::TypeSpec *type_spec);
+    bool ProcessUnderlyingType(types::TypeName *type_name,
                                ast::TypeSpec *type_spec);
     
     bool ProcessFuncDefinition(types::Func *func,
@@ -58,10 +68,9 @@ private:
     bool EvaluateInterfaceType(ast::InterfaceType *interface_type);
     bool EvaluateStructType(ast::StructType *struct_type);
     bool EvaluateTypeInstance(ast::TypeInstance *type_instance);
-    
-    
-    types::TypeTuple * EvaluateTypeParameters(ast::TypeParamList *type_parameters);
-    types::NamedType * EvaluateTypeParameter(ast::TypeParam *type_parameter);
+        
+    std::vector<types::TypeParameter *> EvaluateTypeParameters(ast::TypeParamList *type_parameters);
+    types::TypeParameter * EvaluateTypeParameter(ast::TypeParam *type_parameter);
     
     types::Func * EvaluateMethodSpec(ast::MethodSpec *method_spec);
     types::Tuple * EvaluateTuple(ast::FieldList *field_list);

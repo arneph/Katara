@@ -85,10 +85,14 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
                 types::TypeName *type_name =
                     static_cast<types::TypeName *>(info_->definitions().at(type_spec->name_.get()));
                 
-                TypeHandler::ProcessTypeName(type_name,
-                                             type_spec,
-                                             info_builder_,
-                                             issues_);
+                TypeHandler::ProcessTypeParametersOfTypeName(type_name,
+                                                             type_spec,
+                                                             info_builder_,
+                                                             issues_);
+                TypeHandler::ProcessUnderlyingTypeOfTypeName(type_name,
+                                                             type_spec,
+                                                             info_builder_,
+                                                             issues_);
             }
             return;
         case tokens::kConst:{

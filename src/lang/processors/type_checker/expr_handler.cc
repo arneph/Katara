@@ -698,7 +698,7 @@ bool ExprHandler::CheckCallExprWithFuncCall(ast::CallExpr *call_expr,
                                         "expected type, function or function variable"));
         return false;
     }
-    if (signature->type_parameters() != nullptr) {
+    if (!signature->type_parameters().empty()) {
         signature = CheckFuncCallTypeArgs(signature, type_args_expr);
         if (signature == nullptr) {
             return false;
@@ -712,7 +712,7 @@ bool ExprHandler::CheckCallExprWithFuncCall(ast::CallExpr *call_expr,
 types::Signature * ExprHandler::CheckFuncCallTypeArgs(types::Signature *signature,
                                                       ast::TypeArgList *type_args_expr) {
     size_t given_type_args = (type_args_expr != nullptr) ? type_args_expr->args_.size() : 0;
-    size_t expected_type_args = signature->type_parameters()->types().size();
+    size_t expected_type_args = signature->type_parameters().size();
     if (given_type_args != expected_type_args) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
@@ -721,11 +721,11 @@ types::Signature * ExprHandler::CheckFuncCallTypeArgs(types::Signature *signatur
                                         " type arugments"));
         return nullptr;
     }
-    std::unordered_map<types::NamedType *, types::Type *> type_params_to_args;
+    std::unordered_map<types::TypeParameter *, types::Type *> type_params_to_args;
     for (int i = 0; i < expected_type_args; i++) {
         ast::Expr *type_arg_expr = type_args_expr->args_.at(i).get();
         types::Type *type_arg = info_->TypeOf(type_arg_expr);
-        types::NamedType *type_param = signature->type_parameters()->types().at(i);
+        types::TypeParameter *type_param = signature->type_parameters().at(i);
         
         if (!types::IsAssignableTo(type_arg, type_param)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -736,8 +736,8 @@ types::Signature * ExprHandler::CheckFuncCallTypeArgs(types::Signature *signatur
         }
         type_params_to_args.insert({type_param, type_arg});
     }
-    types::Type *instantiated_signature = info_builder_.InstantiateType(signature,
-                                                                        type_params_to_args);
+    types::Type *instantiated_signature = info_builder_.InstantiateSignature(signature,
+                                                                             type_params_to_args);
     return static_cast<types::Signature *>(instantiated_signature);
 }
 
@@ -872,7 +872,9 @@ bool ExprHandler::CheckIdent(ast::Ident *ident) {
         return false;
     }
     
-    info_builder_.SetExprType(ident, object->type());
+    if (expr_kind != types::ExprKind::kBuiltin) {
+        info_builder_.SetExprType(ident, object->type());        
+    }
     info_builder_.SetExprKind(ident, expr_kind);
     return true;
 }

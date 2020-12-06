@@ -225,12 +225,12 @@ void IdentifierResolver::AddDefinedObjectFromTypeSpec(ast::TypeSpec *type_spec,
         return;
     }
     
-    // TODO: set is_alias correctly when type aliases are implemented
-    types::TypeName *type_name = info_builder_.CreateTypeName(scope,
-                                                              package_,
-                                                              type_spec->name_->start(),
-                                                              type_spec->name_->name_,
-                                                              /* is_alias= */ false);
+    bool is_alias = type_spec->assign_ != pos::kNoPos;
+    types::TypeName *type_name = info_builder_.CreateTypeNameForNamedType(scope,
+                                                                          package_,
+                                                                          type_spec->name_->start(),
+                                                                          type_spec->name_->name_,
+                                                                          is_alias);
     info_builder_.SetDefinedObject(type_spec->name_.get(), type_name);
     AddObjectToScope(scope, type_name);
 }
@@ -333,11 +333,11 @@ void IdentifierResolver::ResolveIdentifiersInTypeParamList(ast::TypeParamList *t
             continue;
         }
         
-        types::TypeName *type_name = info_builder_.CreateTypeName(scope,
-                                                                  package_,
-                                                                  type_param->name_->start(),
-                                                                  type_param->name_->name_,
-                                                                  /* is_alias= */ false);
+        types::TypeName *type_name =
+            info_builder_.CreateTypeNameForTypeParameter(scope,
+                                                         package_,
+                                                         type_param->name_->start(),
+                                                         type_param->name_->name_);
         info_builder_.SetDefinedObject(type_param->name_.get(), type_name);
         AddObjectToScope(scope, type_name);
     }
@@ -397,11 +397,11 @@ void IdentifierResolver::ResolveIdentifiersInFuncReceiverFieldList(ast::FieldLis
                 continue;
             }
             
-            types::TypeName *type_name = info_builder_.CreateTypeName(scope,
-                                                                      package_,
-                                                                      ident->start(),
-                                                                      ident->name_,
-                                                                      /* is_alias= */ false);
+            types::TypeName *type_name =
+                info_builder_.CreateTypeNameForTypeParameter(scope,
+                                                             package_,
+                                                             ident->start(),
+                                                             ident->name_);
             info_builder_.SetDefinedObject(ident, type_name);
             AddObjectToScope(scope, type_name);
         }

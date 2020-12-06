@@ -89,17 +89,17 @@ void Walk(Node *node, WalkFunction f) {
         Walk(value_spec, f);
     } else if (TypeSpec *type_spec = dynamic_cast<TypeSpec *>(node)) {
         Walk(type_spec, f);
-    } else if (MethodSpec *method_spec = dynamic_cast<MethodSpec *>(expr)) {
+    } else if (MethodSpec *method_spec = dynamic_cast<MethodSpec *>(node)) {
         Walk(method_spec, f);
-    } else if (FieldList *field_list = dynamic_cast<FieldList *>(expr)) {
+    } else if (FieldList *field_list = dynamic_cast<FieldList *>(node)) {
         Walk(field_list, f);
     } else if (Field *field = dynamic_cast<Field *>(expr)) {
         Walk(field, f);
-    } else if (TypeArgList *type_arg_list = dynamic_cast<TypeArgList *>(expr)) {
+    } else if (TypeArgList *type_arg_list = dynamic_cast<TypeArgList *>(node)) {
         Walk(type_arg_list, f);
-    } else if (TypeParamList *type_param_list = dynamic_cast<TypeParamList *>(expr)) {
+    } else if (TypeParamList *type_param_list = dynamic_cast<TypeParamList *>(node)) {
         Walk(type_param_list, f);
-    } else if (TypeParam *type_param = dynamic_cast<TypeParam *>(expr)) {
+    } else if (TypeParam *type_param = dynamic_cast<TypeParam *>(node)) {
         Walk(type_param, f);
     } else {
         throw "unexpected AST node";

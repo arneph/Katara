@@ -90,9 +90,6 @@ void run_lang_test(std::filesystem::path test_dir) {
             }
         }
     }
-    if (!pkg->issues().empty()) {
-        return;
-    }
     for (auto &ast : pkg->ast_files()) {
         vcg::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast.get());
         

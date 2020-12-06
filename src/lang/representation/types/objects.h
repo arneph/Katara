@@ -51,14 +51,10 @@ class TypeName : public Object {
 public:
     ~TypeName() {}
     
-    bool is_alias() const;
-    
     std::string ToString() const;
     
 private:
     TypeName() {}
-    
-    bool is_alias_;
     
     friend class InfoBuilder;
 };

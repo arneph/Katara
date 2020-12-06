@@ -146,22 +146,23 @@ private:
     friend class InfoBuilder;
 };
 
-class NamedType;
-
-class TypeTuple : public Type {
+class TypeParameter : public Type {
 public:
-    ~TypeTuple() {}
+    ~TypeParameter() {}
     
-    const std::vector<NamedType *>& types() const;
+    std::string name() const;
+    Type * interface() const;
+    // Note: interface might return a NamedType, but the Underlying type should always be Interface
     
     Type * Underlying();
     
     std::string ToString() const;
     
 private:
-    TypeTuple() {}
+    TypeParameter() {}
     
-    std::vector<NamedType *> types_;
+    std::string name_;
+    Type *interface_;
     
     friend class InfoBuilder;
 };
@@ -170,10 +171,10 @@ class NamedType : public Type {
 public:
     ~NamedType() {}
     
-    bool is_type_parameter() const;
+    bool is_alias() const;
     std::string name() const;
     Type * type() const;
-    TypeTuple * type_parameters() const;
+    const std::vector<TypeParameter *>& type_parameters() const;
     
     Type * Underlying();
     
@@ -181,10 +182,10 @@ public:
 private:
     NamedType() {}
     
-    bool is_type_parameter_;
+    bool is_alias_;
     std::string name_;
     Type *type_;
-    TypeTuple *type_parameters_;
+    std::vector<TypeParameter *> type_parameters_;
     
     friend class InfoBuilder;
 };
@@ -193,7 +194,7 @@ class TypeInstance : public Type {
 public:
     ~TypeInstance() {}
     
-    Type * instantiated_type() const;
+    NamedType * instantiated_type() const;
     const std::vector<Type *>& type_args() const;
     
     Type * Underlying();
@@ -203,7 +204,7 @@ public:
 private:
     TypeInstance() {}
     
-    Type *instantiated_type_;
+    NamedType *instantiated_type_;
     std::vector<Type *> type_args_;
     
     friend class InfoBuilder;
@@ -232,7 +233,7 @@ public:
     ~Signature() {}
     
     Variable * receiver() const;
-    TypeTuple * type_parameters() const;
+    const std::vector<TypeParameter *>& type_parameters() const;
     Tuple * parameters() const;
     Tuple * results() const;
     
@@ -244,7 +245,7 @@ private:
     Signature() {}
     
     Variable *receiver_;
-    TypeTuple *type_parameters_;
+    std::vector<TypeParameter *> type_parameters_;
     Tuple *parameters_;
     Tuple *results_;
     
