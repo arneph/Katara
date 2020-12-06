@@ -385,23 +385,154 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
         return false;
     }
     types::Type *accessed_type = info_->TypeOf(selection_expr->accessed_.get());
+    types::ExprKind accessed_kind = info_->ExprKindOf(selection_expr->accessed_.get()).value();
     if (auto pointer_type = dynamic_cast<types::Pointer *>(accessed_type)) {
         accessed_type = pointer_type->element_type();
-        if (dynamic_cast<types::Interface *>(accessed_type)) {
+        if (nullptr != dynamic_cast<types::Interface *>(accessed_type->Underlying()) ||
+            nullptr != dynamic_cast<types::TypeParameter *>(accessed_type)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             selection_expr->selection_->start(),
                                             "invalid operation: selection from pointer to "
-                                            "interface not allowed"));
+                                            "interface or type parameter not allowed"));
             return false;
         }
     }
     
-    // TODO: implement
+    std::string selection_name = selection_expr->selection_->name_;
+    types::NamedType *named_type = dynamic_cast<types::NamedType *>(accessed_type);
+    types::InfoBuilder::TypeParamsToArgsMap type_params_to_args;
+    if (auto type_instance = dynamic_cast<types::TypeInstance *>(accessed_type)) {
+        accessed_type = type_instance->instantiated_type();
+        named_type = type_instance->instantiated_type();
+        for (int i = 0; i < type_instance->type_args().size(); i++) {
+            types::TypeParameter *type_param = named_type->type_parameters().at(i);
+            types::Type *type_arg = type_instance->type_args().at(i);
+            type_params_to_args.insert({type_param, type_arg});
+        }
+        
+    } else if (auto type_parameter = dynamic_cast<types::TypeParameter *>(accessed_type)) {
+        accessed_type = type_parameter->interface();
+        named_type = dynamic_cast<types::NamedType *>(accessed_type);
+    }
+    
+    while (named_type != nullptr) {
+        if (named_type->methods().contains(selection_name)) {
+            types::Func *method = named_type->methods().at(selection_name);
+            types::Signature *signature = static_cast<types::Signature *>(method->type());
+            if (signature->receiver() != nullptr) {
+                types::Type *receiver_type = signature->receiver()->type();
+                if (auto pointer = dynamic_cast<types::Pointer *>(receiver_type)) {
+                    receiver_type = pointer->element_type();
+                }
+                if (auto type_instance = dynamic_cast<types::TypeInstance *>(receiver_type)) {
+                    types::InfoBuilder::TypeParamsToArgsMap method_type_params_to_args;
+                    method_type_params_to_args.reserve(type_params_to_args.size());
+                    for (int i = 0; i < type_instance->type_args().size(); i++) {
+                        types::TypeParameter *original_type_param = named_type->type_parameters().at(i);
+                        types::TypeParameter *method_type_param =
+                        static_cast<types::TypeParameter *>(type_instance->type_args().at(i));
+                        types::Type *type_arg = type_params_to_args.at(original_type_param);
+                        method_type_params_to_args[method_type_param] = type_arg;
+                    }
+                    type_params_to_args = method_type_params_to_args;
+                }
+            }
+            
+            types::Selection *selection = nullptr;
+            switch (accessed_kind) {
+                case types::ExprKind::kConstant:
+                case types::ExprKind::kVariable:
+                case types::ExprKind::kValue:
+                case types::ExprKind::kValueOk:{
+                    signature =
+                    info_builder_.InstantiateMethodSignature(signature,
+                                                             type_params_to_args,
+                                                             /* receiver_to_arg= */ false);
+                    selection = info_builder_.CreateSelection(types::Selection::Kind::kMethodVal,
+                                                              named_type,
+                                                              signature,
+                                                              method);
+                    break;
+                }
+                case types::ExprKind::kType:{
+                    bool receiver_to_arg = (signature->receiver() != nullptr);
+                    signature = info_builder_.InstantiateMethodSignature(signature,
+                                                                         type_params_to_args,
+                                                                         receiver_to_arg);
+                    selection = info_builder_.CreateSelection(types::Selection::Kind::kMethodExpr,
+                                                              named_type,
+                                                              signature,
+                                                              method);
+                    break;
+                }
+                default:
+                    throw "internal error: unexpected expr kind of named type with method";
+            }
+            info_builder_.SetSelection(selection_expr, selection);
+            info_builder_.SetExprType(selection_expr, signature);
+            info_builder_.SetExprKind(selection_expr, types::ExprKind::kValue);
+            return true;
+        }
+        accessed_type = named_type->type();
+        named_type = dynamic_cast<types::NamedType *>(accessed_type);
+    }
+    
+    switch (accessed_kind) {
+        case types::ExprKind::kVariable:
+        case types::ExprKind::kValue:
+        case types::ExprKind::kValueOk:
+            if (auto struct_type = dynamic_cast<types::Struct *>(accessed_type)) {
+                for (types::Variable *field : struct_type->fields()) {
+                    if (field->name() != selection_name) {
+                        continue;
+                    }
+                    types::Type *field_type = field->type();
+                    field_type = info_builder_.InstantiateType(field_type,
+                                                               type_params_to_args);
+                    types::Selection *selection =
+                        info_builder_.CreateSelection(types::Selection::Kind::kFieldVal,
+                                                      struct_type,
+                                                      field_type,
+                                                      field);
+                    info_builder_.SetSelection(selection_expr, selection);
+                    info_builder_.SetExprType(selection_expr, field_type);
+                    info_builder_.SetExprKind(selection_expr, types::ExprKind::kVariable);
+                    return true;
+                }
+                
+            }
+            // fallthrough
+        case types::ExprKind::kType:
+            if (auto interface_type = dynamic_cast<types::Interface *>(accessed_type)) {
+                for (types::Func *method : interface_type->methods()) {
+                    if (method->name() != selection_name) {
+                        continue;
+                    }
+                    types::Signature *signature = static_cast<types::Signature *>(method->type());
+                    signature =
+                        info_builder_.InstantiateMethodSignature(signature,
+                                                                 type_params_to_args,
+                                                                 /* receiver_to_arg= */ false);
+                    types::Selection *selection =
+                        info_builder_.CreateSelection(types::Selection::Kind::kMethodVal,
+                                                      interface_type,
+                                                      method->type(),
+                                                      method);
+                    info_builder_.SetSelection(selection_expr, selection);
+                    info_builder_.SetExprType(selection_expr, signature);
+                    info_builder_.SetExprKind(selection_expr, types::ExprKind::kValue);
+                    return true;
+                }
+            }
+        default:
+            break;
+    }
+    
     issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                     issues::Severity::Error,
-                                    selection_expr->start(),
-                                    "type checking unimplemented"));
+                                    selection_expr->selection_->start(),
+                                    "could not resolve selection"));
     return false;
 }
 
@@ -736,8 +867,9 @@ types::Signature * ExprHandler::CheckFuncCallTypeArgs(types::Signature *signatur
         }
         type_params_to_args.insert({type_param, type_arg});
     }
-    types::Type *instantiated_signature = info_builder_.InstantiateSignature(signature,
-                                                                             type_params_to_args);
+    types::Type *instantiated_signature =
+        info_builder_.InstantiateFuncSignature(signature,
+                                               type_params_to_args);
     return static_cast<types::Signature *>(instantiated_signature);
 }
 

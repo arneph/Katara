@@ -51,8 +51,13 @@ public:
     
     TypeInstance * InstantiateNamedType(NamedType *parameterized_type,
                                         TypeParamsToArgsMap& type_params_to_args);
-    Signature * InstantiateSignature(Signature * parameterized_signature,
-                                     TypeParamsToArgsMap& type_params_to_args);
+    Signature * InstantiateFuncSignature(Signature * parameterized_signature,
+                                         TypeParamsToArgsMap& type_params_to_args);
+    Signature * InstantiateMethodSignature(Signature * parameterized_signature,
+                                           TypeParamsToArgsMap& type_params_to_args,
+                                           bool receiver_to_arg);
+    Type * InstantiateType(Type *parameterized_type,
+                           TypeParamsToArgsMap& type_params_to_args);
     
     void SetInterfaceOfTypeParameter(TypeParameter *type_parameter,
                                      Type *interface);
@@ -60,6 +65,8 @@ public:
                                       std::vector<TypeParameter *> type_parameters);
     void SetUnderlyingTypeOfNamedType(NamedType *named_type,
                                       Type *underlying_type);
+    void AddMethodToNamedType(NamedType *named_type,
+                              Func *method);
     
     TypeName * CreateTypeNameForTypeParameter(Scope *parent,
                                               Package *package,
@@ -111,12 +118,14 @@ public:
     Package * CreatePackage(std::string path, std::string name);
     void AddImportToPackage(Package *importer, Package *imported);
     
-    void AddInitializer(std::vector<Variable *> lhs, ast::Expr *rhs);
-    
     Selection * CreateSelection(Selection::Kind kind,
                                 Type *receiver_type,
                                 Type *type,
                                 Object *object);
+    void SetSelection(ast::SelectionExpr *selection_expr,
+                      types::Selection *selection);
+    
+    void AddInitializer(std::vector<Variable *> lhs, ast::Expr *rhs);
     
 private:
     InfoBuilder(Info *info);
@@ -130,8 +139,6 @@ private:
     NamedType * CreateNamedType(bool is_alias,
                                 std::string name);
     
-    Type * InstantiateType(Type *parameterized_type,
-                           TypeParamsToArgsMap& type_params_to_args);
     std::vector<Type *> InstantiateTypeParameters(std::vector<TypeParameter *> type_params,
                                                   TypeParamsToArgsMap& type_params_to_args);
     

@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace lang {
@@ -175,6 +176,7 @@ public:
     std::string name() const;
     Type * type() const;
     const std::vector<TypeParameter *>& type_parameters() const;
+    const std::unordered_map<std::string, Func *>& methods() const;
     
     Type * Underlying();
     
@@ -186,6 +188,7 @@ private:
     std::string name_;
     Type *type_;
     std::vector<TypeParameter *> type_parameters_;
+    std::unordered_map<std::string, Func *> methods_;
     
     friend class InfoBuilder;
 };

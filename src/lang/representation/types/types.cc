@@ -158,6 +158,10 @@ const std::vector<TypeParameter *>& NamedType::type_parameters() const {
     return type_parameters_;
 }
 
+const std::unordered_map<std::string, Func *>& NamedType::methods() const {
+    return methods_;
+}
+
 Type * NamedType::Underlying() {
     return type_;
 }

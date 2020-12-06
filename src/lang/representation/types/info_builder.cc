@@ -317,27 +317,12 @@ TypeInstance * InfoBuilder::InstantiateNamedType(NamedType *parameterized_type,
     return CreateTypeInstance(parameterized_type, type_args);
 }
 
-Signature * InfoBuilder::InstantiateSignature(Signature * parameterized_signature,
-                                              TypeParamsToArgsMap& type_params_to_args) {
+Signature * InfoBuilder::InstantiateFuncSignature(Signature * parameterized_signature,
+                                                  TypeParamsToArgsMap& type_params_to_args) {
     if (parameterized_signature->type_parameters().empty()) {
-        throw "internal error: attempted to instantiate signature without type parameters";
-    }
-    
-    Variable *receiver = parameterized_signature->receiver();
-    if (receiver != nullptr) {
-        Type *receiver_type = receiver->type();
-        Type *receiver_type_instance = InstantiateType(receiver_type,
-                                                       type_params_to_args);
-        if (receiver_type != receiver_type_instance) {
-            Variable *receiver_instance = CreateVariable(receiver->parent(),
-                                                         receiver->package(),
-                                                         receiver->position(),
-                                                         receiver->name(),
-                                                         receiver->is_embedded(),
-                                                         receiver->is_field());
-            SetObjectType(receiver_instance, receiver_type_instance);
-            receiver = receiver_instance;
-        }
+        throw "internal error: attempted to instantiate func signature without type parameters";
+    } else if (parameterized_signature->receiver() != nullptr) {
+        throw "internal error: attempted to instantiate func signature with receiver";
     }
     Tuple *parameters = parameterized_signature->parameters();
     if (parameters != nullptr) {
@@ -347,7 +332,42 @@ Signature * InfoBuilder::InstantiateSignature(Signature * parameterized_signatur
     if (results != nullptr) {
         results = static_cast<Tuple *>(InstantiateType(results, type_params_to_args));
     }
-    return CreateSignature(receiver, {}, parameters, results);
+    return CreateSignature(nullptr, {}, parameters, results);
+}
+
+Signature * InfoBuilder::InstantiateMethodSignature(Signature * parameterized_signature,
+                                                    TypeParamsToArgsMap& type_params_to_args,
+                                                    bool receiver_to_arg) {
+    if (!parameterized_signature->type_parameters().empty()) {
+        throw "internal error: attempted to instantiate method signature with type parameters";
+    }
+    Tuple *parameters = parameterized_signature->parameters();
+    if (parameters != nullptr) {
+        parameters = static_cast<Tuple *>(InstantiateType(parameters, type_params_to_args));
+    }
+    Tuple *results = parameterized_signature->results();
+    if (results != nullptr) {
+        results = static_cast<Tuple *>(InstantiateType(results, type_params_to_args));
+    }
+    if (receiver_to_arg) {
+        if (parameterized_signature->receiver() == nullptr) {
+            throw "internal error: attempted to instantiate missing method receiver";
+        }
+        Variable *receiver = parameterized_signature->receiver();
+        Type *receiver_type = receiver->type();
+        receiver_type = InstantiateType(receiver_type, type_params_to_args);
+        receiver = CreateVariable(receiver->parent(),
+                                  receiver->package(),
+                                  receiver->position(),
+                                  receiver->name(),
+                                  receiver->is_embedded(),
+                                  receiver->is_field());
+        SetObjectType(receiver, receiver_type);
+        std::vector<types::Variable *> params = parameters->variables();
+        params.insert(params.begin(), receiver);
+        parameters = CreateTuple(params);
+    }
+    return CreateSignature(nullptr, {}, parameters, results);
 }
 
 Type *
@@ -530,6 +550,8 @@ void InfoBuilder::SetInterfaceOfTypeParameter(TypeParameter *type_parameter, Typ
         throw "internal error: attempted to set interface of type parameter twice";
     } else if (interface == nullptr) {
         throw "internal error: attempted to set interface of type parameter to nullptr";
+    } else if (dynamic_cast<TypeParameter *>(interface)) {
+        throw "internal error: attempted to set interface of type parameter to type parameter";
     }
     type_parameter->interface_ = interface;
 }
@@ -549,6 +571,13 @@ void InfoBuilder::SetUnderlyingTypeOfNamedType(NamedType *named_type, Type *unde
         throw "internal error: attempted to set underlying type of named type to nullptr";
     }
     named_type->type_ = underlying_type;
+}
+
+void InfoBuilder::AddMethodToNamedType(NamedType *named_type, Func *method) {
+    if (named_type->methods().contains(method->name())) {
+        throw "internal error: attempted to add two methods with the same name to named type";
+    }
+    named_type->methods_[method->name()] = method;
 }
 
 TypeName * InfoBuilder::CreateTypeNameForTypeParameter(Scope *parent,
@@ -702,15 +731,9 @@ void InfoBuilder::CheckObjectArgs(Scope *parent,
 void InfoBuilder::SetObjectType(Object *object, Type *type) {
     if (auto type_name = dynamic_cast<TypeName *>(object)) {
         if (auto named_type = dynamic_cast<NamedType *>(type_name->type())) {
-            if (named_type->type() != nullptr) {
-                throw "internal error: attempted to set underlying type of named type twice";
-            }
-            named_type->type_ = type;
+            SetUnderlyingTypeOfNamedType(named_type, type);
         } else if (auto type_parameter = dynamic_cast<TypeParameter *>(type_name->type())) {
-            if (type_parameter->interface() != nullptr) {
-                throw "internal error: attempted to set interface of type parameter twice";
-            }
-            type_parameter->interface_ = type;
+            SetInterfaceOfTypeParameter(type_parameter, type);
         } else {
             throw "internal error: unexpected type name type";
         }
@@ -828,16 +851,6 @@ void InfoBuilder::AddImportToPackage(Package *importer, Package *imported) {
     importer->imports_.insert(imported);
 }
 
-void InfoBuilder::AddInitializer(std::vector<Variable *> lhs, ast::Expr *rhs) {
-    std::unique_ptr<Initializer> initializer(new Initializer());
-    initializer->lhs_ = lhs;
-    initializer->rhs_ = rhs;
-    
-    Initializer *initializer_ptr = initializer.get();
-    info_->initializer_unique_ptrs_.push_back(std::move(initializer));
-    info_->init_order_.push_back(initializer_ptr);
-}
-
 Selection * InfoBuilder::CreateSelection(Selection::Kind kind,
                                          Type *receiver_type,
                                          Type *type,
@@ -852,6 +865,23 @@ Selection * InfoBuilder::CreateSelection(Selection::Kind kind,
     info_->selection_unique_ptrs_.push_back(std::move(selection));
     
     return selection_ptr;
+}
+
+void InfoBuilder::SetSelection(ast::SelectionExpr *selection_expr, types::Selection *selection) {
+    if (info_->selections_.contains(selection_expr)) {
+        throw "internal error: attempted to set selection of selection expr twice";
+    }
+    info_->selections_[selection_expr] = selection;
+}
+
+void InfoBuilder::AddInitializer(std::vector<Variable *> lhs, ast::Expr *rhs) {
+    std::unique_ptr<Initializer> initializer(new Initializer());
+    initializer->lhs_ = lhs;
+    initializer->rhs_ = rhs;
+    
+    Initializer *initializer_ptr = initializer.get();
+    info_->initializer_unique_ptrs_.push_back(std::move(initializer));
+    info_->init_order_.push_back(initializer_ptr);
 }
 
 }

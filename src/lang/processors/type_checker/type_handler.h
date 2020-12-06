@@ -77,7 +77,8 @@ private:
     std::vector<types::Variable *> EvaluateFieldList(ast::FieldList *field_list);
     std::vector<types::Variable *> EvaluateField(ast::Field *field);
 
-    types::Variable * EvaluateReceiver(ast::FieldList *receiver_expr);
+    types::Variable * EvaluateReceiver(ast::FieldList *receiver_expr,
+                                       types::Func *method);
 
     types::Info *info_;
     types::InfoBuilder&info_builder_;
