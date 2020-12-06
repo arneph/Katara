@@ -472,18 +472,25 @@ types::Variable * TypeHandler::EvaluateReceiver(ast::FieldList *receiver_list_ex
     }
     if (type_instance_expr != nullptr) {
         type_name = static_cast<ast::Ident *>(type_instance_expr->type_.get());
-    } else if (type_instance_expr != nullptr) {
+    } else if (pointer_type_expr != nullptr) {
         type_name = static_cast<ast::Ident *>(pointer_type_expr->x_.get());
     } else {
         type_name = static_cast<ast::Ident *>(type_name);
     }
         
     types::Type *type = info_->UseOf(type_name)->type();
-    if (dynamic_cast<types::NamedType *>(type) == nullptr) {
+    types::NamedType *named_type = dynamic_cast<types::NamedType *>(type);
+    if (named_type == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         type_name->start(),
                                         "receiver does not have named type"));
+        return nullptr;
+    } else if (nullptr != dynamic_cast<types::Interface *>(named_type->type())) {
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        type_name->start(),
+                                        "can not define additional methods for interfaces"));
         return nullptr;
     }
     
