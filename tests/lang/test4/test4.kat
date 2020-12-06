@@ -4,3 +4,11 @@ type MyType int
 const x MyType = 3
 type MyVec [x]MyType
 var test = MyVec{3,2,1}
+
+type TypeA []TypeA
+type TypeB<T> struct {
+        x *TypeC<T>
+}
+type TypeC<T> struct {
+        y *TypeB<T>
+}
