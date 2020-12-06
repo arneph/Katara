@@ -60,15 +60,23 @@ type HashMap<K, V> struct {
 }
 
 func NewHashMap<K Hashable, V>() *HashMap<K, V> {
-    return NewCustomHashMap<K, V>(K.Hash)
+    return NewCustomHashMap<K, V>(func (value K) HashValue {
+        return value.Hash()
+    })
 }
 
 func NewCustomHashMap<K, V>(hashFunc HashFunc<K>) *HashMap<K, V> {
     
 }
 
-type Set<T> struct {
-    values []T
+type Set<X> struct {
+    values []X
+}
+
+func (s *Set<Y>) ForEach(f func(member Y)) {
+    for i := 0; i < len(s.values); i++ {
+        f(s.values[i])
+    }
 }
 
 type Graph<T> struct {
