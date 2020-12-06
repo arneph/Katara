@@ -37,6 +37,10 @@ const std::unordered_map<ast::Node *, Object *>& Info::implicits() const {
     return implicits_;
 }
 
+const std::unordered_map<ast::SelectionExpr *, Selection *>& Info::selections() const {
+    return selections_;
+}
+
 const std::unordered_map<ast::Node *, Scope *>& Info::scopes() const {
     return scopes_;
 }

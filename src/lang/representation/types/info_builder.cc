@@ -838,5 +838,21 @@ void InfoBuilder::AddInitializer(std::vector<Variable *> lhs, ast::Expr *rhs) {
     info_->init_order_.push_back(initializer_ptr);
 }
 
+Selection * InfoBuilder::CreateSelection(Selection::Kind kind,
+                                         Type *receiver_type,
+                                         Type *type,
+                                         Object *object) {
+    std::unique_ptr<Selection> selection(new Selection());
+    selection->kind_ = kind;
+    selection->receiver_type_ = receiver_type;
+    selection->type_ = type;
+    selection->object_ = object;
+    
+    Selection *selection_ptr = selection.get();
+    info_->selection_unique_ptrs_.push_back(std::move(selection));
+    
+    return selection_ptr;
+}
+
 }
 }

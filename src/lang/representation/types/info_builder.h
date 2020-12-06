@@ -20,6 +20,7 @@
 #include "lang/representation/types/objects.h"
 #include "lang/representation/types/scope.h"
 #include "lang/representation/types/package.h"
+#include "lang/representation/types/selection.h"
 #include "lang/representation/types/initializer.h"
 #include "lang/representation/types/info.h"
 
@@ -111,6 +112,11 @@ public:
     void AddImportToPackage(Package *importer, Package *imported);
     
     void AddInitializer(std::vector<Variable *> lhs, ast::Expr *rhs);
+    
+    Selection * CreateSelection(Selection::Kind kind,
+                                Type *receiver_type,
+                                Type *type,
+                                Object *object);
     
 private:
     InfoBuilder(Info *info);

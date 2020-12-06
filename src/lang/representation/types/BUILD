@@ -46,6 +46,23 @@ cc_library(
 )
 
 cc_library(
+    name = "selection",
+    srcs = glob([
+        "selection.cc",
+    ]),
+    hdrs = glob([
+        "selection.h",
+    ]),
+    copts = ["-Isrc/ -std=c++2a"],
+    deps = [
+        ":base",
+     ],
+    visibility = [
+        "//src/lang/representation:__subpackages__",
+    ],
+)
+
+cc_library(
     name = "initializer",
     srcs = glob([
         "initializer.cc",
@@ -79,6 +96,7 @@ cc_library(
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
         ":base",
+        ":selection",
         ":initializer",
      ],
     visibility = [
@@ -100,6 +118,7 @@ cc_library(
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
         ":base",
+        ":selection",
         ":initializer",
         ":info",
      ],

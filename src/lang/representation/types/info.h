@@ -20,6 +20,7 @@
 #include "lang/representation/types/objects.h"
 #include "lang/representation/types/scope.h"
 #include "lang/representation/types/package.h"
+#include "lang/representation/types/selection.h"
 #include "lang/representation/types/initializer.h"
 
 namespace lang {
@@ -48,6 +49,8 @@ public:
     const std::unordered_map<ast::Ident *, Object *>& uses() const;
     const std::unordered_map<ast::Node *, Object *>& implicits() const;
     
+    const std::unordered_map<ast::SelectionExpr *, Selection *>& selections() const;
+    
     const std::unordered_map<ast::Node *, Scope *>& scopes() const;
     const std::unordered_set<Package *>& packages() const;
     
@@ -75,6 +78,7 @@ private:
     std::vector<std::unique_ptr<Scope>> scope_unique_ptrs_;
     std::vector<std::unique_ptr<Package>> package_unique_ptrs_;
     std::vector<std::unique_ptr<Initializer>> initializer_unique_ptrs_;
+    std::vector<std::unique_ptr<Selection>> selection_unique_ptrs_;
     
     std::unordered_map<ast::Expr *, Type *> types_;
     std::unordered_map<ast::Expr *, ExprKind> expr_kinds_;
@@ -83,6 +87,8 @@ private:
     std::unordered_map<ast::Ident *, Object *> definitions_;
     std::unordered_map<ast::Ident *, Object *> uses_;
     std::unordered_map<ast::Node *, Object *> implicits_;
+    
+    std::unordered_map<ast::SelectionExpr *, Selection *> selections_;
     
     std::unordered_map<ast::Node *, Scope *> scopes_;
     std::unordered_set<Package *> packages_;
