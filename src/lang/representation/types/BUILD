@@ -2,18 +2,18 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 
 cc_library(
     name = "base",
-    srcs = glob([
+    srcs = [
         "types.cc",
         "objects.cc",
         "scope.cc",
         "package.cc",
-    ]),
-    hdrs = glob([
+    ],
+    hdrs = [
         "types.h",
         "objects.h",
         "scope.h",
         "package.h",
-    ]),
+    ],
     copts = ["-Isrc/ -std=c++2a"],
     deps = [
         "//src/lang/representation/positions",
@@ -27,12 +27,12 @@ cc_library(
 
 cc_library(
     name = "types_util",
-    srcs = glob([
+    srcs = [
         "types_util.cc",
-    ]),
-    hdrs = glob([
+    ],
+    hdrs = [
         "types_util.h",
-    ]),
+    ],
     copts = ["-Isrc/ -std=c++2a"],
     deps = [
         "//src/vcg:katara_vcg_lib",
@@ -47,12 +47,12 @@ cc_library(
 
 cc_library(
     name = "selection",
-    srcs = glob([
+    srcs = [
         "selection.cc",
-    ]),
-    hdrs = glob([
+    ],
+    hdrs = [
         "selection.h",
-    ]),
+    ],
     copts = ["-Isrc/ -std=c++2a"],
     deps = [
         ":base",
@@ -64,12 +64,12 @@ cc_library(
 
 cc_library(
     name = "initializer",
-    srcs = glob([
+    srcs = [
         "initializer.cc",
-    ]),
-    hdrs = glob([
+    ],
+    hdrs = [
         "initializer.h",
-    ]),
+    ],
     copts = ["-Isrc/ -std=c++2a"],
     deps = [
         "//src/lang/representation/ast",
@@ -82,14 +82,14 @@ cc_library(
 
 cc_library(
     name = "info",
-    srcs = glob([
+    srcs = [
         "info.cc",
         "info_builder.cc",
-    ]),
-    hdrs = glob([
+    ],
+    hdrs = [
         "info.h",
         "info_builder.h",
-    ]),
+    ],
     copts = ["-Isrc/ -std=c++2a"],
     deps = [
         "//src/lang/representation/positions",
@@ -106,12 +106,12 @@ cc_library(
 
 cc_library(
     name = "info_util",
-    srcs = glob([
+    srcs = [
         "info_util.cc",
-    ]),
-    hdrs = glob([
+    ],
+    hdrs = [
         "info_util.h",
-    ]),
+    ],
     copts = ["-Isrc/ -std=c++2a"],
     deps = [
         "//src/lang/representation/positions",
