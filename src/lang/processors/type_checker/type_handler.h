@@ -40,7 +40,7 @@ public:
                                 types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
     
-    static bool ProcessTypeArgs(ast::TypeArgList *type_args,
+    static bool ProcessTypeArgs(std::vector<ast::Expr *> type_args,
                                 types::InfoBuilder& info_builder,
                                 std::vector<issues::Issue>& issues);
     static bool ProcessTypeExpr(ast::Expr *type_expr,
@@ -72,13 +72,16 @@ private:
     std::vector<types::TypeParameter *> EvaluateTypeParameters(ast::TypeParamList *type_parameters);
     types::TypeParameter * EvaluateTypeParameter(ast::TypeParam *type_parameter);
     
-    types::Func * EvaluateMethodSpec(ast::MethodSpec *method_spec);
+    types::Func * EvaluateMethodSpec(ast::MethodSpec *method_spec,
+                                     types::Interface *interface);
     types::Tuple * EvaluateTuple(ast::FieldList *field_list);
     std::vector<types::Variable *> EvaluateFieldList(ast::FieldList *field_list);
     std::vector<types::Variable *> EvaluateField(ast::Field *field);
 
-    types::Variable * EvaluateReceiver(ast::FieldList *receiver_expr,
-                                       types::Func *method);
+    types::Variable * EvaluateExprReceiver(ast::ExprReceiver *expr_receiver,
+                                           types::Func *instance_method);
+    types::Type * EvaluateTypeReceiver(ast::TypeReceiver *type_receiver,
+                                       types::Func *type_method);
 
     types::Info *info_;
     types::InfoBuilder&info_builder_;

@@ -8,6 +8,9 @@
 
 #include "ast_util.h"
 
+#include <memory>
+#include <vector>
+
 #include "vcg/node.h"
 #include "vcg/edge.h"
 
@@ -91,12 +94,14 @@ void Walk(Node *node, WalkFunction f) {
         Walk(type_spec, f);
     } else if (MethodSpec *method_spec = dynamic_cast<MethodSpec *>(node)) {
         Walk(method_spec, f);
+    } else if (ExprReceiver *expr_receiver = dynamic_cast<ExprReceiver *>(node)) {
+        Walk(expr_receiver, f);
+    } else if (TypeReceiver *type_receiver = dynamic_cast<TypeReceiver *>(node)) {
+        Walk(type_receiver, f);
     } else if (FieldList *field_list = dynamic_cast<FieldList *>(node)) {
         Walk(field_list, f);
     } else if (Field *field = dynamic_cast<Field *>(expr)) {
         Walk(field, f);
-    } else if (TypeArgList *type_arg_list = dynamic_cast<TypeArgList *>(node)) {
-        Walk(type_arg_list, f);
     } else if (TypeParamList *type_param_list = dynamic_cast<TypeParamList *>(node)) {
         Walk(type_param_list, f);
     } else if (TypeParam *type_param = dynamic_cast<TypeParam *>(node)) {
@@ -111,6 +116,8 @@ void Walk(Expr *expr, WalkFunction f) {
         Walk(unary_expr, f);
     } else if (BinaryExpr *binary_expr = dynamic_cast<BinaryExpr *>(expr)) {
         Walk(binary_expr, f);
+    } else if (CompareExpr *compare_expr = dynamic_cast<CompareExpr *>(expr)) {
+        Walk(compare_expr, f);
     } else if (ParenExpr *paren_expr = dynamic_cast<ParenExpr *>(expr)) {
         Walk(paren_expr, f);
     } else if (SelectionExpr *selection_expr = dynamic_cast<SelectionExpr *>(expr)) {
@@ -161,8 +168,10 @@ void Walk(Stmt *stmt, WalkFunction f) {
         Walk(return_stmt, f);
     } else if (IfStmt *if_stmt = dynamic_cast<IfStmt *>(stmt)) {
         Walk(if_stmt, f);
-    } else if (SwitchStmt *switch_stmt = dynamic_cast<SwitchStmt *>(stmt)) {
-        Walk(switch_stmt, f);
+    } else if (ExprSwitchStmt *expr_switch_stmt = dynamic_cast<ExprSwitchStmt *>(stmt)) {
+        Walk(expr_switch_stmt, f);
+    } else if (TypeSwitchStmt *type_switch_stmt = dynamic_cast<TypeSwitchStmt *>(stmt)) {
+        Walk(type_switch_stmt, f);
     } else if (CaseClause *case_clause = dynamic_cast<CaseClause *>(stmt)) {
         Walk(case_clause, f);
     } else if (ForStmt *for_stmt = dynamic_cast<ForStmt *>(stmt)) {
@@ -189,8 +198,8 @@ void Walk(Decl *decl, WalkFunction f) {
 void Walk(File *file, WalkFunction f) {
     WalkFunction g = f(file);
     if (!g) return;
-    for (auto& decl : file->decls_) {
-        Walk(decl.get(), g);
+    for (Decl *decl : file->decls()) {
+        Walk(decl, g);
     }
     g(nullptr);
 }
@@ -198,8 +207,8 @@ void Walk(File *file, WalkFunction f) {
 void Walk(GenDecl *gen_decl, WalkFunction f) {
     WalkFunction g = f(gen_decl);
     if (!g) return;
-    for (auto& spec : gen_decl->specs_) {
-        Walk(spec.get(), g);
+    for (Spec *spec : gen_decl->specs()) {
+        Walk(spec, g);
     }
     g(nullptr);
 }
@@ -207,24 +216,24 @@ void Walk(GenDecl *gen_decl, WalkFunction f) {
 void Walk(ImportSpec *import_spec, WalkFunction f) {
     WalkFunction g = f(import_spec);
     if (!g) return;
-    if (import_spec->name_) {
-        Walk(import_spec->name_.get(), g);
+    if (import_spec->name() != nullptr) {
+        Walk(import_spec->name(), g);
     }
-    Walk(import_spec->path_.get(), g);
+    Walk(import_spec->path(), g);
     g(nullptr);
 }
 
 void Walk(ValueSpec *value_spec, WalkFunction f) {
     WalkFunction g = f(value_spec);
     if (!g) return;
-    for (auto& name : value_spec->names_) {
-        Walk(name.get(), g);
+    for (Ident *name : value_spec->names()) {
+        Walk(name, g);
     }
-    if (value_spec->type_) {
-        Walk(value_spec->type_.get(), g);
+    if (value_spec->type() != nullptr) {
+        Walk(value_spec->type(), g);
     }
-    for (auto& value : value_spec->values_) {
-        Walk(value.get(), g);
+    for (Expr *value : value_spec->values()) {
+        Walk(value, g);
     }
     g(nullptr);
 }
@@ -232,34 +241,43 @@ void Walk(ValueSpec *value_spec, WalkFunction f) {
 void Walk(TypeSpec *type_spec, WalkFunction f) {
     WalkFunction g = f(type_spec);
     if (!g) return;
-    Walk(type_spec->name_.get(), g);
-    if (type_spec->type_params_) {
-        Walk(type_spec->type_params_.get(), g);
+    Walk(type_spec->name(), g);
+    if (type_spec->type_params() != nullptr) {
+        Walk(type_spec->type_params(), g);
     }
-    Walk(type_spec->type_.get(), g);
+    Walk(type_spec->type(), g);
     g(nullptr);
 }
 
 void Walk(FuncDecl *func_decl, WalkFunction f) {
     WalkFunction g = f(func_decl);
     if (!g) return;
-    if (func_decl->receiver_) {
-        Walk(func_decl->receiver_.get(), g);
+    switch (func_decl->kind()) {
+        case FuncDecl::Kind::kFunc:
+            break;
+        case  FuncDecl::Kind::kInstanceMethod:
+            Walk(func_decl->expr_receiver(), g);
+            break;
+        case  FuncDecl::Kind::kTypeMethod:
+            Walk(func_decl->type_receiver(), g);
+            break;
+        default:
+            throw "internal error: unexpected func decl kind";
     }
-    Walk(func_decl->name_.get(), g);
-    if (func_decl->type_params_) {
-        Walk(func_decl->type_params_.get(), g);
+    Walk(func_decl->name(), g);
+    if (func_decl->type_params() != nullptr) {
+        Walk(func_decl->type_params(), g);
     }
-    Walk(func_decl->type_.get(), g);
-    Walk(func_decl->body_.get(), g);
+    Walk(func_decl->func_type(), g);
+    Walk(func_decl->body(), g);
     g(nullptr);
 }
 
 void Walk(BlockStmt *block_stmt, WalkFunction f) {
     WalkFunction g = f(block_stmt);
     if (!g) return;
-    for (auto& stmt : block_stmt->stmts_) {
-        Walk(stmt.get(), g);
+    for (Stmt *stmt : block_stmt->stmts()) {
+        Walk(stmt, g);
     }
     g(nullptr);
 }
@@ -267,18 +285,18 @@ void Walk(BlockStmt *block_stmt, WalkFunction f) {
 void Walk(DeclStmt *decl_stmt, WalkFunction f) {
     WalkFunction g = f(decl_stmt);
     if (!g) return;
-    Walk(decl_stmt->decl_.get(), g);
+    Walk(decl_stmt->decl(), g);
     g(nullptr);
 }
 
 void Walk(AssignStmt *assign_stmt, WalkFunction f) {
     WalkFunction g = f(assign_stmt);
     if (!g) return;
-    for (auto& l : assign_stmt->lhs_) {
-        Walk(l.get(), g);
+    for (Expr *l : assign_stmt->lhs()) {
+        Walk(l, g);
     }
-    for (auto& r : assign_stmt->rhs_) {
-        Walk(r.get(), g);
+    for (Expr *r : assign_stmt->rhs()) {
+        Walk(r, g);
     }
     g(nullptr);
 }
@@ -286,22 +304,22 @@ void Walk(AssignStmt *assign_stmt, WalkFunction f) {
 void Walk(ExprStmt *expr_stmt, WalkFunction f) {
     WalkFunction g = f(expr_stmt);
     if (!g) return;
-    Walk(expr_stmt->x_.get(), g);
+    Walk(expr_stmt->x(), g);
     g(nullptr);
 }
 
 void Walk(IncDecStmt *inc_dec_stmt, WalkFunction f) {
     WalkFunction g = f(inc_dec_stmt);
     if (!g) return;
-    Walk(inc_dec_stmt->x_.get(), g);
+    Walk(inc_dec_stmt->x(), g);
     g(nullptr);
 }
 
 void Walk(ReturnStmt *return_stmt, WalkFunction f) {
     WalkFunction g = f(return_stmt);
     if (!g) return;
-    for (auto& result : return_stmt->results_) {
-        Walk(result.get(), g);
+    for (Expr *result : return_stmt->results()) {
+        Walk(result, g);
     }
     g(nullptr);
 }
@@ -309,38 +327,49 @@ void Walk(ReturnStmt *return_stmt, WalkFunction f) {
 void Walk(IfStmt *if_stmt, WalkFunction f) {
     WalkFunction g = f(if_stmt);
     if (!g) return;
-    if (if_stmt->init_) {
-        Walk(if_stmt->init_.get(), g);
+    if (if_stmt->init_stmt() != nullptr) {
+        Walk(if_stmt->init_stmt(), g);
     }
-    Walk(if_stmt->cond_.get(), g);
-    Walk(if_stmt->body_.get(), g);
-    if (if_stmt->else_) {
-        Walk(if_stmt->else_.get(), g);
+    Walk(if_stmt->cond_expr(), g);
+    Walk(if_stmt->body(), g);
+    if (if_stmt->else_stmt() != nullptr) {
+        Walk(if_stmt->else_stmt(), g);
     }
     g(nullptr);
 }
 
-void Walk(SwitchStmt *switch_stmt, WalkFunction f) {
+void Walk(ExprSwitchStmt *switch_stmt, WalkFunction f) {
     WalkFunction g = f(switch_stmt);
     if (!g) return;
-    if (switch_stmt->init_) {
-        Walk(switch_stmt->init_.get(), g);
+    if (switch_stmt->init_stmt()) {
+        Walk(switch_stmt->init_stmt(), g);
     }
-    if (switch_stmt->tag_) {
-        Walk(switch_stmt->tag_.get(), g);
+    if (switch_stmt->tag_expr()) {
+        Walk(switch_stmt->tag_expr(), g);
     }
-    Walk(switch_stmt->body_.get(), g);
+    Walk(switch_stmt->body(), g);
+    g(nullptr);
+}
+
+void Walk(TypeSwitchStmt *switch_stmt, WalkFunction f) {
+    WalkFunction g = f(switch_stmt);
+    if (!g) return;
+    if (switch_stmt->var() != nullptr) {
+        Walk(switch_stmt->var(), g);
+    }
+    Walk(switch_stmt->tag_expr(), g);
+    Walk(switch_stmt->body(), g);
     g(nullptr);
 }
 
 void Walk(CaseClause *case_clause, WalkFunction f) {
     WalkFunction g = f(case_clause);
     if (!g) return;
-    for (auto& cond_val : case_clause->cond_vals_) {
-        Walk(cond_val.get(), g);
+    for (Expr *cond_val : case_clause->cond_vals()) {
+        Walk(cond_val, g);
     }
-    for (auto& stmt : case_clause->body_) {
-        Walk(stmt.get(), g);
+    for (Stmt *stmt : case_clause->body()) {
+        Walk(stmt, g);
     }
     g(nullptr);
 }
@@ -348,32 +377,32 @@ void Walk(CaseClause *case_clause, WalkFunction f) {
 void Walk(ForStmt *for_stmt, WalkFunction f) {
     WalkFunction g = f(for_stmt);
     if (!g) return;
-    if (for_stmt->init_) {
-        Walk(for_stmt->init_.get(), g);
+    if (for_stmt->init_stmt() != nullptr) {
+        Walk(for_stmt->init_stmt(), g);
     }
-    if (for_stmt->cond_) {
-        Walk(for_stmt->cond_.get(), g);
+    if (for_stmt->cond_expr() != nullptr) {
+        Walk(for_stmt->cond_expr(), g);
     }
-    if (for_stmt->post_) {
-        Walk(for_stmt->post_.get(), g);
+    if (for_stmt->post_stmt() != nullptr) {
+        Walk(for_stmt->post_stmt(), g);
     }
-    Walk(for_stmt->body_.get(), g);
+    Walk(for_stmt->body(), g);
     g(nullptr);
 }
 
 void Walk(LabeledStmt *labeled_stmt, WalkFunction f) {
     WalkFunction g = f(labeled_stmt);
     if (!g) return;
-    Walk(labeled_stmt->label_.get(), g);
-    Walk(labeled_stmt->stmt_.get(), g);
+    Walk(labeled_stmt->label(), g);
+    Walk(labeled_stmt->stmt(), g);
     g(nullptr);
 }
 
 void Walk(BranchStmt *branch_stmt, WalkFunction f) {
     WalkFunction g = f(branch_stmt);
     if (!g) return;
-    if (branch_stmt->label_) {
-        Walk(branch_stmt->label_.get(), g);
+    if (branch_stmt->label() != nullptr) {
+        Walk(branch_stmt->label(), g);
     }
     g(nullptr);
 }
@@ -381,58 +410,67 @@ void Walk(BranchStmt *branch_stmt, WalkFunction f) {
 void Walk(UnaryExpr *unary_expr, WalkFunction f) {
     WalkFunction g = f(unary_expr);
     if (!g) return;
-    Walk(unary_expr->x_.get(), g);
+    Walk(unary_expr->x(), g);
     g(nullptr);
 }
 
 void Walk(BinaryExpr *binary_expr, WalkFunction f) {
     WalkFunction g = f(binary_expr);
     if (!g) return;
-    Walk(binary_expr->x_.get(), g);
-    Walk(binary_expr->y_.get(), g);
+    Walk(binary_expr->x(), g);
+    Walk(binary_expr->y(), g);
+    g(nullptr);
+}
+
+void Walk(CompareExpr *compare_expr, WalkFunction f) {
+    WalkFunction g = f(compare_expr);
+    if (!g) return;
+    for (Expr *operand : compare_expr->operands()) {
+        Walk(operand, g);
+    }
     g(nullptr);
 }
 
 void Walk(ParenExpr *paren_expr, WalkFunction f) {
     WalkFunction g = f(paren_expr);
     if (!g) return;
-    Walk(paren_expr->x_.get(), g);
+    Walk(paren_expr->x(), g);
     g(nullptr);
 }
 
 void Walk(SelectionExpr *selection_expr, WalkFunction f) {
     WalkFunction g = f(selection_expr);
     if (!g) return;
-    Walk(selection_expr->accessed_.get(), g);
-    Walk(selection_expr->selection_.get(), g);
+    Walk(selection_expr->accessed(), g);
+    Walk(selection_expr->selection(), g);
     g(nullptr);
 }
 
 void Walk(TypeAssertExpr *type_assert_expr, WalkFunction f) {
     WalkFunction g = f(type_assert_expr);
     if (!g) return;
-    Walk(type_assert_expr->x_.get(), g);
-    Walk(type_assert_expr->type_.get(), g);
+    Walk(type_assert_expr->x(), g);
+    Walk(type_assert_expr->type(), g);
     g(nullptr);
 }
 
 void Walk(IndexExpr *index_expr, WalkFunction f) {
     WalkFunction g = f(index_expr);
     if (!g) return;
-    Walk(index_expr->accessed_.get(), g);
-    Walk(index_expr->index_.get(), g);
+    Walk(index_expr->accessed(), g);
+    Walk(index_expr->index(), g);
     g(nullptr);
 }
 
 void Walk(CallExpr *call_expr, WalkFunction f) {
     WalkFunction g = f(call_expr);
     if (!g) return;
-    Walk(call_expr->func_.get(), g);
-    if (call_expr->type_args_) {
-        Walk(call_expr->type_args_.get(), g);
+    Walk(call_expr->func(), g);
+    for (Expr *type_arg : call_expr->type_args()) {
+        Walk(type_arg, g);
     }
-    for (auto& arg : call_expr->args_) {
-        Walk(arg.get(), g);
+    for (Expr *arg : call_expr->args()) {
+        Walk(arg, g);
     }
     g(nullptr);
 }
@@ -440,17 +478,17 @@ void Walk(CallExpr *call_expr, WalkFunction f) {
 void Walk(FuncLit *func_lit, WalkFunction f) {
     WalkFunction g = f(func_lit);
     if (!g) return;
-    Walk(func_lit->type_.get(), g);
-    Walk(func_lit->body_.get(), g);
+    Walk(func_lit->type(), g);
+    Walk(func_lit->body(), g);
     g(nullptr);
 }
 
 void Walk(CompositeLit *composite_lit, WalkFunction f) {
     WalkFunction g = f(composite_lit);
     if (!g) return;
-    Walk(composite_lit->type_.get(), g);
-    for (auto& value : composite_lit->values_) {
-        Walk(value.get(), g);
+    Walk(composite_lit->type(), g);
+    for (Expr *value : composite_lit->values()) {
+        Walk(value, g);
     }
     g(nullptr);
 }
@@ -458,27 +496,27 @@ void Walk(CompositeLit *composite_lit, WalkFunction f) {
 void Walk(KeyValueExpr *key_value_expr, WalkFunction f) {
     WalkFunction g = f(key_value_expr);
     if (!g) return;
-    Walk(key_value_expr->key_.get(), g);
-    Walk(key_value_expr->value_.get(), g);
+    Walk(key_value_expr->key(), g);
+    Walk(key_value_expr->value(), g);
     g(nullptr);
 }
 
 void Walk(ArrayType *array_type, WalkFunction f) {
     WalkFunction g = f(array_type);
     if (!g) return;
-    if (array_type->len_) {
-        Walk(array_type->len_.get(), g);
+    if (array_type->len() != nullptr) {
+        Walk(array_type->len(), g);
     }
-    Walk(array_type->element_type_.get(), g);
+    Walk(array_type->element_type(), g);
     g(nullptr);
 }
 
 void Walk(FuncType *func_type, WalkFunction f) {
     WalkFunction g = f(func_type);
     if (!g) return;
-    Walk(func_type->params_.get(), g);
-    if (func_type->results_) {
-        Walk(func_type->results_.get(), g);
+    Walk(func_type->params(), g);
+    if (func_type->results() != nullptr) {
+        Walk(func_type->results(), g);
     }
     g(nullptr);
 }
@@ -486,8 +524,11 @@ void Walk(FuncType *func_type, WalkFunction f) {
 void Walk(InterfaceType *interface_type, WalkFunction f) {
     WalkFunction g = f(interface_type);
     if (!g) return;
-    for (auto& method : interface_type->methods_) {
-        Walk(method.get(), g);
+    for (Expr *embedded_interface : interface_type->embedded_interfaces()) {
+        Walk(embedded_interface, g);
+    }
+    for (MethodSpec *method : interface_type->methods()) {
+        Walk(method, g);
     }
     g(nullptr);
 }
@@ -495,10 +536,10 @@ void Walk(InterfaceType *interface_type, WalkFunction f) {
 void Walk(MethodSpec *method_spec, WalkFunction f) {
     WalkFunction g = f(method_spec);
     if (!g) return;
-    Walk(method_spec->name_.get(), g);
-    Walk(method_spec->params_.get(), g);
-    if (method_spec->results_) {
-        Walk(method_spec->results_.get(), g);
+    Walk(method_spec->name(), g);
+    Walk(method_spec->params(), g);
+    if (method_spec->results()) {
+        Walk(method_spec->results(), g);
     }
     g(nullptr);
 }
@@ -506,23 +547,48 @@ void Walk(MethodSpec *method_spec, WalkFunction f) {
 void Walk(StructType *struct_type, WalkFunction f) {
     WalkFunction g = f(struct_type);
     if (!g) return;
-    Walk(struct_type->fields_.get(), g);
+    Walk(struct_type->fields(), g);
     g(nullptr);
 }
 
 void Walk(TypeInstance *type_instance, WalkFunction f) {
     WalkFunction g = f(type_instance);
     if (!g) return;
-    Walk(type_instance->type_.get(), g);
-    Walk(type_instance->type_args_.get(), g);
+    Walk(type_instance->type(), g);
+    for (Expr *type_arg : type_instance->type_args()) {
+        Walk(type_arg, g);
+    }
+    g(nullptr);
+}
+
+void Walk(ExprReceiver *receiver, WalkFunction f) {
+    WalkFunction g = f(receiver);
+    if (!g) return;
+    if (receiver->name() != nullptr) {
+        Walk(receiver->name(), g);
+    }
+    Walk(receiver->type_name(), g);
+    for (Ident *type_parameter_name : receiver->type_parameter_names()) {
+        Walk(type_parameter_name, g);
+    }
+    g(nullptr);
+}
+
+void Walk(TypeReceiver *receiver, WalkFunction f) {
+    WalkFunction g = f(receiver);
+    if (!g) return;
+    Walk(receiver->type_name(), g);
+    for (Ident *type_parameter_name : receiver->type_parameter_names()) {
+        Walk(type_parameter_name, g);
+    }
     g(nullptr);
 }
 
 void Walk(FieldList *field_list, WalkFunction f) {
     WalkFunction g = f(field_list);
     if (!g) return;
-    for (auto& field : field_list->fields_) {
-        Walk(field.get(), g);
+    for (Field *field : field_list->fields()) {
+        Walk(field, g);
     }
     g(nullptr);
 }
@@ -530,27 +596,18 @@ void Walk(FieldList *field_list, WalkFunction f) {
 void Walk(Field *field, WalkFunction f) {
     WalkFunction g = f(field);
     if (!g) return;
-    for (auto& name : field->names_) {
-        Walk(name.get(), g);
+    for (ast::Ident *name : field->names()) {
+        Walk(name, g);
     }
-    Walk(field->type_.get(), g);
-    g(nullptr);
-}
-
-void Walk(TypeArgList *type_arg_list, WalkFunction f) {
-    WalkFunction g = f(type_arg_list);
-    if (!g) return;
-    for (auto& arg : type_arg_list->args_) {
-        Walk(arg.get(), g);
-    }
+    Walk(field->type(), g);
     g(nullptr);
 }
 
 void Walk(TypeParamList *type_param_list, WalkFunction f) {
     WalkFunction g = f(type_param_list);
     if (!g) return;
-    for (auto& param : type_param_list->params_) {
-        Walk(param.get(), g);
+    for (TypeParam *param : type_param_list->params()) {
+        Walk(param, g);
     }
     g(nullptr);
 }
@@ -558,9 +615,9 @@ void Walk(TypeParamList *type_param_list, WalkFunction f) {
 void Walk(TypeParam *type_param, WalkFunction f) {
     WalkFunction g = f(type_param);
     if (!g) return;
-    Walk(type_param->name_.get(), g);
-    if (type_param->type_) {
-        Walk(type_param->type_.get(), g);
+    Walk(type_param->name(), g);
+    if (type_param->type() != nullptr) {
+        Walk(type_param->type(), g);
     }
     g(nullptr);
 }
@@ -575,39 +632,9 @@ void Walk(Ident *ident, WalkFunction f) {
     if (g) g(nullptr);
 }
 
-bool IsTypeSwitchStmt(SwitchStmt *switch_stmt) {
-    if (switch_stmt->init_ && switch_stmt->tag_) {
-        return false;
-    } else if (!switch_stmt->init_ && !switch_stmt->tag_) {
-        return false;
-    }
-    Expr *expr = nullptr;
-    if (switch_stmt->init_) {
-        auto assign_stmt = dynamic_cast<AssignStmt *>(switch_stmt->init_.get());
-        if (assign_stmt == nullptr ||
-            assign_stmt->tok_ != tokens::kDefine ||
-            assign_stmt->lhs_.size() != 1 ||
-            assign_stmt->rhs_.size() != 1) {
-            return false;
-        }
-        expr = assign_stmt->rhs_.at(0).get();
-    } else if (switch_stmt->tag_) {
-        expr = switch_stmt->tag_.get();
-    }
-    if (expr == nullptr) {
-        return false;
-    }
-    TypeAssertExpr *type_assert_expr = dynamic_cast<TypeAssertExpr *>(expr);
-    if (type_assert_expr == nullptr ||
-        type_assert_expr->type_) {
-        return false;
-    }
-    return true;
-}
-
 ast::Expr * Unparen(ast::Expr *expr) {
     while (auto paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
-        expr = paren_expr->x_.get();
+        expr = paren_expr->x();
     }
     return expr;
 }

@@ -70,8 +70,10 @@ std::string Variable::ToString() const {
 std::string Func::ToString() const {
     Signature * sig = dynamic_cast<Signature *>(type_);
     std::string s = "func ";
-    if (sig->receiver()) {
-        s += "(" + sig->receiver()->ToString() + ") ";
+    if (sig->expr_receiver() != nullptr) {
+        s += "(" + sig->expr_receiver()->ToString() + ") ";
+    } else if (sig->type_receiver() != nullptr) {
+        s += "<" + sig->type_receiver()->ToString() + "> ";
     }
     s += name_;
     if (!sig->type_parameters().empty()) {

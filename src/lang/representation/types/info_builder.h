@@ -41,13 +41,19 @@ public:
     TypeInstance * CreateTypeInstance(NamedType *instantiated_type,
                                       std::vector<Type *> type_args);
     Tuple * CreateTuple(std::vector<Variable *> variables);
-    Signature * CreateSignature(Variable *receiver,
-                                std::vector<TypeParameter *> type_parameters,
+    Signature * CreateSignature(Tuple *parameters,
+                                Tuple *results);
+    Signature * CreateSignature(std::vector<TypeParameter *> type_parameters,
+                                Tuple *parameters,
+                                Tuple *results);
+    Signature * CreateSignature(Variable *expr_receiver,
+                                Tuple *parameters,
+                                Tuple *results);
+    Signature * CreateSignature(Type *type_receiver,
                                 Tuple *parameters,
                                 Tuple *results);
     Struct * CreateStruct(std::vector<Variable *> fields);
-    Interface * CreateInterface(std::vector<NamedType *> embedded_interfaces,
-                                std::vector<Func *> methods);
+    Interface * CreateInterface(std::vector<NamedType *> embedded_interfaces);
     
     TypeInstance * InstantiateNamedType(NamedType *parameterized_type,
                                         TypeParamsToArgsMap& type_params_to_args);
@@ -67,6 +73,7 @@ public:
                                       Type *underlying_type);
     void AddMethodToNamedType(NamedType *named_type,
                               Func *method);
+    void SetMethodsOfInterface(Interface *interface, std::vector<Func *> methods);
     
     TypeName * CreateTypeNameForTypeParameter(Scope *parent,
                                               Package *package,

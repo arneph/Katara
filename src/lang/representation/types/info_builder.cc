@@ -268,13 +268,57 @@ Tuple * InfoBuilder::CreateTuple(std::vector<Variable *> variables) {
     return tuple_ptr;
 }
 
-Signature * InfoBuilder::CreateSignature(Variable *receiver,
-                                         std::vector<TypeParameter *> type_parameters,
+Signature * InfoBuilder::CreateSignature(Tuple *parameters,
+                                         Tuple *results) {
+    std::unique_ptr<Signature> signature(new Signature());
+    signature->expr_receiver_ = nullptr;
+    signature->type_receiver_ = nullptr;
+    signature->parameters_ = parameters;
+    signature->results_ = results;
+    
+    Signature *signature_ptr = signature.get();
+    info_->type_unique_ptrs_.push_back(std::move(signature));
+    
+    return signature_ptr;
+}
+
+Signature * InfoBuilder::CreateSignature(std::vector<TypeParameter *> type_parameters,
                                          Tuple *parameters,
                                          Tuple *results) {
     std::unique_ptr<Signature> signature(new Signature());
-    signature->receiver_ = receiver;
+    signature->expr_receiver_ = nullptr;
+    signature->type_receiver_ = nullptr;
     signature->type_parameters_ = type_parameters;
+    signature->parameters_ = parameters;
+    signature->results_ = results;
+    
+    Signature *signature_ptr = signature.get();
+    info_->type_unique_ptrs_.push_back(std::move(signature));
+    
+    return signature_ptr;
+}
+
+Signature * InfoBuilder::CreateSignature(Variable *expr_receiver,
+                                         Tuple *parameters,
+                                         Tuple *results) {
+    std::unique_ptr<Signature> signature(new Signature());
+    signature->expr_receiver_ = expr_receiver;
+    signature->type_receiver_ = nullptr;
+    signature->parameters_ = parameters;
+    signature->results_ = results;
+    
+    Signature *signature_ptr = signature.get();
+    info_->type_unique_ptrs_.push_back(std::move(signature));
+    
+    return signature_ptr;
+}
+
+Signature * InfoBuilder::CreateSignature(Type *type_receiver,
+                                         Tuple *parameters,
+                                         Tuple *results) {
+    std::unique_ptr<Signature> signature(new Signature());
+    signature->expr_receiver_ = nullptr;
+    signature->type_receiver_ = type_receiver;
     signature->parameters_ = parameters;
     signature->results_ = results;
     
@@ -294,11 +338,9 @@ Struct * InfoBuilder::CreateStruct(std::vector<Variable *> fields) {
     return struct_ptr;
 }
 
-Interface * InfoBuilder::CreateInterface(std::vector<NamedType *> embedded_interfaces,
-                                         std::vector<Func *> methods) {
+Interface * InfoBuilder::CreateInterface(std::vector<NamedType *> embedded_interfaces) {
     std::unique_ptr<Interface> interface(new Interface());
     interface->embedded_interfaces_ = embedded_interfaces;
-    interface->methods_ = methods;
     
     Interface *interface_ptr = interface.get();
     info_->type_unique_ptrs_.push_back(std::move(interface));
@@ -321,7 +363,7 @@ Signature * InfoBuilder::InstantiateFuncSignature(Signature * parameterized_sign
                                                   TypeParamsToArgsMap& type_params_to_args) {
     if (parameterized_signature->type_parameters().empty()) {
         throw "internal error: attempted to instantiate func signature without type parameters";
-    } else if (parameterized_signature->receiver() != nullptr) {
+    } else if (parameterized_signature->expr_receiver() != nullptr) {
         throw "internal error: attempted to instantiate func signature with receiver";
     }
     Tuple *parameters = parameterized_signature->parameters();
@@ -332,7 +374,7 @@ Signature * InfoBuilder::InstantiateFuncSignature(Signature * parameterized_sign
     if (results != nullptr) {
         results = static_cast<Tuple *>(InstantiateType(results, type_params_to_args));
     }
-    return CreateSignature(nullptr, {}, parameters, results);
+    return CreateSignature(parameters, results);
 }
 
 Signature * InfoBuilder::InstantiateMethodSignature(Signature * parameterized_signature,
@@ -350,10 +392,10 @@ Signature * InfoBuilder::InstantiateMethodSignature(Signature * parameterized_si
         results = static_cast<Tuple *>(InstantiateType(results, type_params_to_args));
     }
     if (receiver_to_arg) {
-        if (parameterized_signature->receiver() == nullptr) {
+        if (parameterized_signature->expr_receiver() == nullptr) {
             throw "internal error: attempted to instantiate missing method receiver";
         }
-        Variable *receiver = parameterized_signature->receiver();
+        Variable *receiver = parameterized_signature->expr_receiver();
         Type *receiver_type = receiver->type();
         receiver_type = InstantiateType(receiver_type, type_params_to_args);
         receiver = CreateVariable(receiver->parent(),
@@ -367,7 +409,7 @@ Signature * InfoBuilder::InstantiateMethodSignature(Signature * parameterized_si
         params.insert(params.begin(), receiver);
         parameters = CreateTuple(params);
     }
-    return CreateSignature(nullptr, {}, parameters, results);
+    return CreateSignature(parameters, results);
 }
 
 Type *
@@ -458,7 +500,7 @@ InfoBuilder::InstantiateType(Type *parameterized_type,
     } else if (auto signature = dynamic_cast<Signature *>(parameterized_type)) {
         if (!signature->type_parameters().empty()) {
             throw "internal error: attempted to instantiate nested signature with type parameters";
-        } else if (signature->receiver() != nullptr) {
+        } else if (signature->expr_receiver() != nullptr) {
             throw "internal error: attempted to instantiate nested signature with receiver";
         }
         
@@ -474,7 +516,7 @@ InfoBuilder::InstantiateType(Type *parameterized_type,
             results == signature->results()) {
             return signature;
         }
-        return CreateSignature(nullptr, {}, parameters, results);
+        return CreateSignature(parameters, results);
         
     } else if (auto struct_type = dynamic_cast<Struct *>(parameterized_type)) {
         bool instantiated_field = false;
@@ -525,7 +567,9 @@ InfoBuilder::InstantiateType(Type *parameterized_type,
         if (!instantiated_method) {
             return interface_type;
         }
-        return CreateInterface({}, method_instances);
+        types::Interface *interface_instance = CreateInterface({});
+        SetMethodsOfInterface(interface_type, method_instances);
+        return interface_instance;
     } else {
         throw "internal error: unexpected type";
     }
@@ -578,6 +622,13 @@ void InfoBuilder::AddMethodToNamedType(NamedType *named_type, Func *method) {
         throw "internal error: attempted to add two methods with the same name to named type";
     }
     named_type->methods_[method->name()] = method;
+}
+
+void InfoBuilder::SetMethodsOfInterface(Interface *interface, std::vector<Func *> methods) {
+    if (!interface->methods().empty()) {
+        throw "internal error: attempted to add set interface methods twice";
+    }
+    interface->methods_ = methods;
 }
 
 TypeName * InfoBuilder::CreateTypeNameForTypeParameter(Scope *parent,

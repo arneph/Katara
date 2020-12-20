@@ -52,9 +52,9 @@ private:
     void CheckIncDecStmt(ast::IncDecStmt *inc_dec_stmt);
     void CheckReturnStmt(ast::ReturnStmt *return_stmt, Context ctx);
     void CheckIfStmt(ast::IfStmt *if_stmt, Context ctx);
-    void CheckExprSwitchStmt(ast::SwitchStmt *switch_stmt, Context ctx);
+    void CheckExprSwitchStmt(ast::ExprSwitchStmt *switch_stmt, Context ctx);
     void CheckExprCaseClause(ast::CaseClause *case_clause, types::Type *tag_type, Context ctx);
-    void CheckTypeSwitchStmt(ast::SwitchStmt *switch_stmt, Context ctx);
+    void CheckTypeSwitchStmt(ast::TypeSwitchStmt *switch_stmt, Context ctx);
     void CheckTypeCaseClause(ast::CaseClause *case_clause, types::Type *x_type, Context ctx);
     void CheckForStmt(ast::ForStmt *for_stmt, Context ctx);
     void CheckBranchStmt(ast::BranchStmt *branch_stmt, Context ctx);

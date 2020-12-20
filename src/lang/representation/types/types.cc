@@ -133,12 +133,13 @@ Type * TypeParameter::Underlying() {
 
 std::string TypeParameter::ToString() const {
     std::string s = name_;
-    auto interface = dynamic_cast<Interface *>(interface_);
-    if (interface == nullptr ||
-        !interface->embedded_interfaces().empty() ||
-        !interface->methods().empty()) {
-        s += " " + interface_->ToString();
-    }
+// TODO: reneable when cycles are broken
+//    auto interface = dynamic_cast<Interface *>(interface_);
+//    if (interface == nullptr ||
+//        !interface->embedded_interfaces().empty() ||
+//        !interface->methods().empty()) {
+//        s += " " + interface_->ToString();
+//    }
     return s;
 }
 
@@ -226,8 +227,12 @@ std::string Tuple::ToString() const {
     return s;
 }
 
-Variable * Signature::receiver() const {
-    return receiver_;
+Variable * Signature::expr_receiver() const {
+    return expr_receiver_;
+}
+
+Type * Signature::type_receiver() const {
+    return type_receiver_;
 }
 
 const std::vector<TypeParameter *>& Signature::type_parameters() const {
@@ -248,8 +253,10 @@ Type * Signature::Underlying() {
 
 std::string Signature::ToString() const {
     std::string s = "func ";
-    if (receiver_) {
-        s += "(" + receiver_->ToString() + ") ";
+    if (expr_receiver_ != nullptr) {
+        s += "(" + expr_receiver_->ToString() + ") ";
+    } else if (type_receiver_ != nullptr) {
+        s += "<" + type_receiver_->ToString() + "> ";
     }
     if (!type_parameters_.empty()) {
         s += "<";

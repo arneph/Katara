@@ -109,7 +109,7 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
                                             issues::Severity::Error,
                                             ident->start(),
                                             "constant can not depend on unknown ident: "
-                                            + ident->name_));
+                                            + ident->name()));
             return false;
         } else if (constant->parent() == info_->universe() &&
                    constant->name() == "iota") {
@@ -126,20 +126,20 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
     } else if (ast::BasicLit *basic_lit = dynamic_cast<ast::BasicLit *>(expr)) {
         types::Basic *type;
         constants::Value value(0);
-        switch (basic_lit->kind_) {
+        switch (basic_lit->kind()) {
             case tokens::kInt:
                 type = info_->basic_type(types::Basic::kUntypedInt);
-                value = constants::Value(std::stoull(basic_lit->value_));
+                value = constants::Value(std::stoull(basic_lit->value()));
                 break;
             case tokens::kChar:
                 // TODO: support UTF-8 and character literals
                 type = info_->basic_type(types::Basic::kUntypedRune);
-                value = constants::Value(int32_t(basic_lit->value_.at(1)));
+                value = constants::Value(int32_t(basic_lit->value().at(1)));
                 break;
             case tokens::kString:
                 type = info_->basic_type(types::Basic::kUntypedString);
-                value = constants::Value(basic_lit->value_.substr(1,
-                                                                  basic_lit->value_.length() - 2));
+                value = constants::Value(basic_lit->value().substr(1,
+                                                                   basic_lit->value().length() - 2));
                 break;
             default:
                 throw "internal error: unexpected basic literal kind";
@@ -151,12 +151,12 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
         return true;
         
     } else if (ast::ParenExpr *paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
-        if (!EvaluateConstantExpr(paren_expr->x_.get())) {
+        if (!EvaluateConstantExpr(paren_expr->x())) {
             return false;
         }
         
-        types::Type *type = info_->types().at(paren_expr->x_.get());
-        constants::Value value = info_->constant_values().at(paren_expr->x_.get());
+        types::Type *type = info_->types().at(paren_expr->x());
+        constants::Value value = info_->constant_values().at(paren_expr->x());
         
         info_builder_.SetExprType(expr, type);
         info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
@@ -167,7 +167,7 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
         return EvaluateConstantUnaryExpr(unary_expr);
         
     } else if (ast::BinaryExpr *binary_expr = dynamic_cast<ast::BinaryExpr *>(expr)) {
-        switch (binary_expr->op_) {
+        switch (binary_expr->op()) {
             case tokens::kLss:
             case tokens::kLeq:
             case tokens::kGeq:
@@ -191,17 +191,17 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
 }
 
 bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
-    if (!EvaluateConstantExpr(expr->x_.get())) {
+    if (!EvaluateConstantExpr(expr->x())) {
         return false;
     }
     
-    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x_.get()));
-    constants::Value x_value = info_->constant_values().at(expr->x_.get());
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x()));
+    constants::Value x_value = info_->constant_values().at(expr->x());
     
     switch (x_type->kind()) {
         case types::Basic::kBool:
         case types::Basic::kUntypedBool:
-            if (expr->op_ != tokens::kNot) {
+            if (expr->op() != tokens::kNot) {
                 issues_.push_back(
                                   issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
@@ -211,7 +211,7 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
             }
             info_builder_.SetExprType(expr, x_type);
             info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
-            info_builder_.SetExprConstantValue(expr, constants::UnaryOp(expr->op_, x_value));
+            info_builder_.SetExprConstantValue(expr, constants::UnaryOp(expr->op(), x_value));
             return true;
             
         case types::Basic::kUint:
@@ -226,9 +226,9 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
         case types::Basic::kInt64:
         case types::Basic::kUntypedInt:
         case types::Basic::kUntypedRune:{
-            if (expr->op_ != tokens::kAdd &&
-                expr->op_ != tokens::kSub &&
-                expr->op_ != tokens::kXor) {
+            if (expr->op() != tokens::kAdd &&
+                expr->op() != tokens::kSub &&
+                expr->op() != tokens::kXor) {
                 issues_.push_back(
                                   issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
@@ -237,7 +237,7 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
                 return false;
             }
             types::Basic *result_type = x_type;
-            if (expr->op_ == tokens::kSub &&
+            if (expr->op() == tokens::kSub &&
                 result_type->info() & types::Basic::kIsUnsigned) {
                 constexpr types::Basic::Kind diff{types::Basic::kUint - types::Basic::kInt};
                 result_type =
@@ -246,7 +246,7 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
             
             info_builder_.SetExprType(expr, result_type);
             info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
-            info_builder_.SetExprConstantValue(expr, constants::UnaryOp(expr->op_, x_value));
+            info_builder_.SetExprConstantValue(expr, constants::UnaryOp(expr->op(), x_value));
             return true;
         }
         case types::Basic::kString:
@@ -263,16 +263,16 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
 }
 
 bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr) {
-    if (!EvaluateConstantExpr(expr->x_.get())) {
+    if (!EvaluateConstantExpr(expr->x())) {
         return false;
     }
-    if (!EvaluateConstantExpr(expr->y_.get())) {
+    if (!EvaluateConstantExpr(expr->y())) {
         return false;
     }
     
-    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x_.get()));
-    types::Basic *y_type = static_cast<types::Basic *>(info_->types().at(expr->y_.get()));
-    switch (expr->op_) {
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x()));
+    types::Basic *y_type = static_cast<types::Basic *>(info_->types().at(expr->y()));
+    switch (expr->op()) {
         case tokens::kLss:
         case tokens::kLeq:
         case tokens::kGeq:
@@ -290,8 +290,8 @@ bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr) {
         default:;
     }
     
-    constants::Value x_value = info_->constant_values().at(expr->x_.get());
-    constants::Value y_value = info_->constant_values().at(expr->y_.get());
+    constants::Value x_value = info_->constant_values().at(expr->x());
+    constants::Value y_value = info_->constant_values().at(expr->y());
     types::Basic *result_type;
     
     if (!CheckTypesForRegualarConstantBinaryExpr(expr,
@@ -301,7 +301,7 @@ bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr) {
         return false;
     }
     
-    bool result = constants::Compare(x_value, expr->op_, y_value);
+    bool result = constants::Compare(x_value, expr->op(), y_value);
     
     info_builder_.SetExprType(expr, result_type);
     info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
@@ -310,15 +310,15 @@ bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr) {
 }
 
 bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr *expr) {
-    if (!EvaluateConstantExpr(expr->x_.get())) {
+    if (!EvaluateConstantExpr(expr->x())) {
         return false;
     }
-    if (!EvaluateConstantExpr(expr->y_.get())) {
+    if (!EvaluateConstantExpr(expr->y())) {
         return false;
     }
     
-    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x_.get()));
-    types::Basic *y_type = static_cast<types::Basic *>(info_->types().at(expr->y_.get()));
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x()));
+    types::Basic *y_type = static_cast<types::Basic *>(info_->types().at(expr->y()));
     
     if ((x_type->info() & types::Basic::kIsNumeric) == 0 ||
         (y_type->info() & types::Basic::kIsNumeric) == 0) {
@@ -329,8 +329,8 @@ bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr *expr) {
         return false;
     }
     
-    constants::Value x_value = info_->constant_values().at(expr->x_.get());
-    constants::Value y_value = info_->constant_values().at(expr->y_.get());
+    constants::Value x_value = info_->constant_values().at(expr->x());
+    constants::Value y_value = info_->constant_values().at(expr->y());
     
     if ((x_type->info() & types::Basic::kIsUntyped) != 0) {
         x_value = ConvertUntypedInt(x_value, types::Basic::kInt);
@@ -348,21 +348,21 @@ bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr *expr) {
     
     info_builder_.SetExprType(expr, x_type);
     info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
-    info_builder_.SetExprConstantValue(expr, constants::ShiftOp(x_value, expr->op_, y_value));
+    info_builder_.SetExprConstantValue(expr, constants::ShiftOp(x_value, expr->op(), y_value));
     return true;
 }
 
 bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr) {
-    if (!EvaluateConstantExpr(expr->x_.get())) {
+    if (!EvaluateConstantExpr(expr->x())) {
         return false;
     }
-    if (!EvaluateConstantExpr(expr->y_.get())) {
+    if (!EvaluateConstantExpr(expr->y())) {
         return false;
     }
     
-    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x_.get()));
-    types::Basic *y_type = static_cast<types::Basic *>(info_->types().at(expr->y_.get()));
-    switch (expr->op_) {
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x()));
+    types::Basic *y_type = static_cast<types::Basic *>(info_->types().at(expr->y()));
+    switch (expr->op()) {
         case tokens::kLAnd:
         case tokens::kLOr:
             if ((x_type->info() & types::Basic::kIsBoolean) == 0 ||
@@ -403,8 +403,8 @@ bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr) {
         default:;
     }
     
-    constants::Value x_value = info_->constant_values().at(expr->x_.get());
-    constants::Value y_value = info_->constant_values().at(expr->y_.get());
+    constants::Value x_value = info_->constant_values().at(expr->x());
+    constants::Value y_value = info_->constant_values().at(expr->y());
     types::Basic *result_type;
     
     if (!CheckTypesForRegualarConstantBinaryExpr(expr,
@@ -416,7 +416,7 @@ bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr) {
     
     info_builder_.SetExprType(expr, result_type);
     info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
-    info_builder_.SetExprConstantValue(expr, constants::BinaryOp(x_value, expr->op_, y_value));
+    info_builder_.SetExprConstantValue(expr, constants::BinaryOp(x_value, expr->op(), y_value));
     return true;
 }
 
@@ -425,8 +425,8 @@ bool ConstantHandler::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *e
                                                           constants::Value &x_value,
                                                           constants::Value &y_value,
                                                           types::Basic* &result_type) {
-    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x_.get()));
-    types::Basic *y_type = static_cast<types::Basic *>(info_->types().at(expr->y_.get()));
+    types::Basic *x_type = static_cast<types::Basic *>(info_->types().at(expr->x()));
+    types::Basic *y_type = static_cast<types::Basic *>(info_->types().at(expr->y()));
     
     if (!((x_type->info() & types::Basic::kIsBoolean) &&
           (y_type->info() & types::Basic::kIsBoolean)) ||

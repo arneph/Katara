@@ -115,7 +115,7 @@ void ConstantsToText(pos::FileSet *file_set,
         auto constant = dynamic_cast<Constant *>(obj);
         pos::Position pos = file_set->PositionFor(ident->start());
         max_pos = std::max(max_pos, pos.ToString().size());
-        max_ident = std::max(max_ident, ident->name_.size());
+        max_ident = std::max(max_ident, ident->name().size());
         max_value = std::max(max_value, constant->value().ToString().size());
     }
     for (auto& [expr, value] : info->constant_values()) {
@@ -143,7 +143,7 @@ void DefinitionsToText(pos::FileSet *file_set,
         }
         pos::Position pos = file_set->PositionFor(ident->start());
         max_pos = std::max(max_pos, pos.ToString().size());
-        max_ident = std::max(max_ident, ident->name_.size());
+        max_ident = std::max(max_ident, ident->name().size());
         max_obj = std::max(max_obj, obj->ToString().size());
     }
     for (auto& [ident, obj] : info->definitions()) {
@@ -151,7 +151,7 @@ void DefinitionsToText(pos::FileSet *file_set,
         pos::Position pos = file_set->PositionFor(ident->start());
         
         ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
-        ss << std::setw(int(max_ident)) << std::left << ident->name_ << " ";
+        ss << std::setw(int(max_ident)) << std::left << ident->name() << " ";
         ss << std::setw(int(max_obj)) << std::left << obj->ToString() << "\n";
     }
     ss << "\n";
@@ -168,7 +168,7 @@ void UsesToText(pos::FileSet *file_set,
         if (obj->type() == nullptr) continue;
         pos::Position pos = file_set->PositionFor(ident->start());
         max_pos = std::max(max_pos, pos.ToString().size());
-        max_ident = std::max(max_ident, ident->name_.size());
+        max_ident = std::max(max_ident, ident->name().size());
         max_obj = std::max(max_obj, obj->ToString().size());
     }
     for (auto& [ident, obj] : info->uses()) {
@@ -176,7 +176,7 @@ void UsesToText(pos::FileSet *file_set,
         pos::Position pos = file_set->PositionFor(ident->start());
         
         ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
-        ss << std::setw(int(max_ident)) << std::left << ident->name_ << " ";
+        ss << std::setw(int(max_ident)) << std::left << ident->name() << " ";
         ss << std::setw(int(max_obj)) << std::left << obj->ToString() << "\n";
     }
     ss << "\n";

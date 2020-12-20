@@ -16,16 +16,20 @@ namespace lang {
 namespace type_checker {
 
 types::Package * Check(std::string package_path,
-                       std::vector<ast::File *> package_files,
+                       ast::Package *ast_package,
                        std::function<types::Package *(std::string)> importer,
                        types::Info *info,
                        std::vector<issues::Issue>& issues) {
+    std::vector<ast::File *> ast_files;
+    for (auto [name, ast_file] : ast_package->files()) {
+        ast_files.push_back(ast_file);
+    }
     types::InfoBuilder info_builder = info->builder();
     info_builder.CreateUniverse();
     
-    types::Package *package =
+    types::Package *types_package =
         IdentifierResolver::CreatePackageAndResolveIdentifiers(package_path,
-                                                               package_files,
+                                                               ast_files,
                                                                importer,
                                                                info_builder,
                                                                issues);
@@ -36,12 +40,12 @@ types::Package * Check(std::string package_path,
         }
     }
     
-    bool ok = PackageHandler::ProcessPackage(package_files, package, info_builder, issues);
+    bool ok = PackageHandler::ProcessPackage(ast_files, types_package, info_builder, issues);
     if (!ok) {
         return nullptr;
     }
     
-    return package;
+    return types_package;
 }
 
 }

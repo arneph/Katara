@@ -2,7 +2,7 @@ package std
 
 type List<T> interface {
     () Get(index int) T
-    () Set(index int, T)
+    () Set(index int, value T)
     () Len() int
     
     () SubList(start, end int) List<T>

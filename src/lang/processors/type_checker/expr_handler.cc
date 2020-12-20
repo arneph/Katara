@@ -35,7 +35,7 @@ bool ExprHandler::CheckExprs(std::vector<ast::Expr *> exprs) {
 
 bool ExprHandler::CheckExpr(ast::Expr *expr) {
     if (ast::UnaryExpr *unary_expr = dynamic_cast<ast::UnaryExpr *>(expr)) {
-        switch (unary_expr->op_) {
+        switch (unary_expr->op()) {
             case tokens::kAdd:
             case tokens::kSub:
             case tokens::kXor:
@@ -50,7 +50,7 @@ bool ExprHandler::CheckExpr(ast::Expr *expr) {
                 throw "internal error: unexpected unary op";
         }
     } else if (ast::BinaryExpr *binary_expr = dynamic_cast<ast::BinaryExpr *>(expr)) {
-        switch (binary_expr->op_) {
+        switch (binary_expr->op()) {
             case tokens::kAdd:
             case tokens::kSub:
             case tokens::kMul:
@@ -67,16 +67,11 @@ bool ExprHandler::CheckExpr(ast::Expr *expr) {
             case tokens::kLAnd:
             case tokens::kLOr:
                 return CheckBinaryLogicExpr(binary_expr);
-            case tokens::kEql:
-            case tokens::kLss:
-            case tokens::kGtr:
-            case tokens::kNeq:
-            case tokens::kLeq:
-            case tokens::kGeq:
-                return CheckBinaryComparisonExpr(binary_expr);
             default:
                 throw "internal error: unexpected binary op";
         }
+    } else if (ast::CompareExpr *compare_expr = dynamic_cast<ast::CompareExpr *>(expr)) {
+        return CheckCompareExpr(compare_expr);
     } else if (ast::ParenExpr *paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
         return CheckParenExpr(paren_expr);
     } else if (ast::SelectionExpr *selection_expr = dynamic_cast<ast::SelectionExpr *>(expr)) {
@@ -101,10 +96,10 @@ bool ExprHandler::CheckExpr(ast::Expr *expr) {
 }
 
 bool ExprHandler::CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr *unary_expr) {
-    if (!CheckExpr(unary_expr->x_.get())) {
+    if (!CheckExpr(unary_expr->x())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(unary_expr->x_.get());
+    types::Type *x_type = info_->TypeOf(unary_expr->x());
     types::Basic *underlying_type = dynamic_cast<types::Basic *>(x_type->Underlying());
     if (underlying_type == nullptr ||
         !(underlying_type->info() & types::Basic::Info::kIsInteger)) {
@@ -120,10 +115,10 @@ bool ExprHandler::CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr *unary_expr) {
 }
 
 bool ExprHandler::CheckUnaryLogicExpr(ast::UnaryExpr *unary_expr) {
-    if (!CheckExpr(unary_expr->x_.get())) {
+    if (!CheckExpr(unary_expr->x())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(unary_expr->x_.get());
+    types::Type *x_type = info_->TypeOf(unary_expr->x());
     types::Basic *underlying_type = dynamic_cast<types::Basic *>(x_type->Underlying());
     if (underlying_type == nullptr ||
         !(underlying_type->info() & types::Basic::Info::kIsBoolean)) {
@@ -139,12 +134,12 @@ bool ExprHandler::CheckUnaryLogicExpr(ast::UnaryExpr *unary_expr) {
 }
 
 bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
-    if (!CheckExpr(unary_expr->x_.get())) {
+    if (!CheckExpr(unary_expr->x())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(unary_expr->x_.get());
-    if (unary_expr->op_ == tokens::kAnd) {
-        if (info_->ExprKindOf(unary_expr->x_.get()).value() != types::ExprKind::kVariable) {
+    types::Type *x_type = info_->TypeOf(unary_expr->x());
+    if (unary_expr->op() == tokens::kAnd) {
+        if (info_->ExprKindOf(unary_expr->x()).value() != types::ExprKind::kVariable) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             unary_expr->start(),
@@ -157,8 +152,8 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
         info_builder_.SetExprKind(unary_expr, types::ExprKind::kValue);
         return true;
         
-    } else if (unary_expr->op_ == tokens::kMul ||
-               unary_expr->op_ == tokens::kRem) {
+    } else if (unary_expr->op() == tokens::kMul ||
+               unary_expr->op() == tokens::kRem) {
         types::Pointer *x_pointer_type = dynamic_cast<types::Pointer *>(x_type);
         if (x_pointer_type == nullptr) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -168,7 +163,7 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
             return false;
         }
         if (x_pointer_type->kind() == types::Pointer::Kind::kStrong &&
-            unary_expr->op_ == tokens::kRem) {
+            unary_expr->op() == tokens::kRem) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             unary_expr->start(),
@@ -176,7 +171,7 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
                                             "pointer"));
             return false;
         } else if (x_pointer_type->kind() == types::Pointer::Kind::kWeak &&
-                   unary_expr->op_ == tokens::kMul) {
+                   unary_expr->op() == tokens::kMul) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             unary_expr->start(),
@@ -194,12 +189,12 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
 }
 
 bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr *binary_expr) {
-    if (!CheckExpr(binary_expr->x_.get()) ||
-        !CheckExpr(binary_expr->y_.get())) {
+    if (!CheckExpr(binary_expr->x()) ||
+        !CheckExpr(binary_expr->y())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(binary_expr->x_.get());
-    types::Type *y_type = info_->TypeOf(binary_expr->y_.get());
+    types::Type *x_type = info_->TypeOf(binary_expr->x());
+    types::Type *y_type = info_->TypeOf(binary_expr->y());
     types::Basic *x_underlying_type = dynamic_cast<types::Basic *>(x_type->Underlying());
     types::Basic *y_underlying_type = dynamic_cast<types::Basic *>(y_type->Underlying());
     if (x_underlying_type == nullptr || y_underlying_type == nullptr) {
@@ -218,7 +213,7 @@ bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr *binary_expr) {
         return false;
     }
     
-    if (binary_expr->op_ == tokens::kAdd) {
+    if (binary_expr->op() == tokens::kAdd) {
         if (!(x_underlying_type->info() & types::Basic::Info::kIsString) &&
             !(y_underlying_type->info() & types::Basic::Info::kIsNumeric)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -248,12 +243,12 @@ bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr *binary_expr) {
 }
 
 bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr *binary_expr) {
-    if (!CheckExpr(binary_expr->x_.get()) ||
-        !CheckExpr(binary_expr->y_.get())) {
+    if (!CheckExpr(binary_expr->x()) ||
+        !CheckExpr(binary_expr->y())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(binary_expr->x_.get());
-    types::Type *y_type = info_->TypeOf(binary_expr->y_.get());
+    types::Type *x_type = info_->TypeOf(binary_expr->x());
+    types::Type *y_type = info_->TypeOf(binary_expr->y());
     types::Basic *x_underlying_type = dynamic_cast<types::Basic *>(x_type->Underlying());
     types::Basic *y_underlying_type = dynamic_cast<types::Basic *>(y_type->Underlying());
     if (x_underlying_type == nullptr || y_underlying_type == nullptr ||
@@ -276,12 +271,12 @@ bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr *binary_expr) {
 }
 
 bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr *binary_expr) {
-    if (!CheckExpr(binary_expr->x_.get()) ||
-        !CheckExpr(binary_expr->y_.get())) {
+    if (!CheckExpr(binary_expr->x()) ||
+        !CheckExpr(binary_expr->y())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(binary_expr->x_.get());
-    types::Type *y_type = info_->TypeOf(binary_expr->y_.get());
+    types::Type *x_type = info_->TypeOf(binary_expr->x());
+    types::Type *y_type = info_->TypeOf(binary_expr->y());
     types::Basic *x_underlying_type = dynamic_cast<types::Basic *>(x_type->Underlying());
     types::Basic *y_underlying_type = dynamic_cast<types::Basic *>(y_type->Underlying());
     if (x_underlying_type == nullptr || y_underlying_type == nullptr ||
@@ -312,94 +307,100 @@ bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr *binary_expr) {
     return true;
 }
 
-bool ExprHandler::CheckBinaryComparisonExpr(ast::BinaryExpr *binary_expr) {
-    if (!CheckExpr(binary_expr->x_.get()) ||
-        !CheckExpr(binary_expr->y_.get())) {
-        return false;
-    }
-    types::Type *x_type = info_->TypeOf(binary_expr->x_.get());
-    types::Type *y_type = info_->TypeOf(binary_expr->y_.get());
-    types::Basic *x_underlying_type = dynamic_cast<types::Basic *>(x_type->Underlying());
-    types::Basic *y_underlying_type = dynamic_cast<types::Basic *>(y_type->Underlying());
-    if (x_underlying_type == nullptr || y_underlying_type == nullptr) {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
-                                        binary_expr->start(),
-                                        "invalid operation: expected basic type"));
-        return false;
-    } else if (!(x_underlying_type->info() & types::Basic::Info::kIsUntyped) &&
-               !(y_underlying_type->info() & types::Basic::Info::kIsUntyped) &&
-               x_underlying_type != y_underlying_type) {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
-                                        binary_expr->start(),
-                                        "invalid operation: mismatched types"));
-        return false;
-    }
-    
-    if (binary_expr->op_ == tokens::kLss ||
-        binary_expr->op_ == tokens::kGtr ||
-        binary_expr->op_ == tokens::kGeq ||
-        binary_expr->op_ == tokens::kLeq) {
-        if (!(x_underlying_type->info() & types::Basic::Info::kIsOrdered)) {
+bool ExprHandler::CheckCompareExpr(ast::CompareExpr *compare_expr) {
+    for (ast::Expr *operand : compare_expr->operands()) {
+        if (!CheckExpr(operand)) {
+            return false;
+        }
+        types::Type *type = info_->TypeOf(operand);
+        types::Basic *underlying_type = dynamic_cast<types::Basic *>(type->Underlying());
+        if (underlying_type == nullptr) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            binary_expr->start(),
-                                            "invalid operation: expected orderable type"));
+                                            operand->start(),
+                                            "invalid operation: expected basic type"));
             return false;
         }
     }
-    info_builder_.SetExprType(binary_expr, info_->basic_type(types::Basic::Kind::kBool));
-    info_builder_.SetExprKind(binary_expr, types::ExprKind::kValue);
+    for (int i = 0; i < compare_expr->compare_ops().size(); i++) {
+        tokens::Token op = compare_expr->compare_ops().at(i);
+        ast::Expr *x = compare_expr->operands().at(i);
+        ast::Expr *y = compare_expr->operands().at(i + 1);
+        types::Type *x_type = info_->TypeOf(x);
+        types::Type *y_type = info_->TypeOf(y);
+        types::Basic *x_underlying_type = static_cast<types::Basic *>(x_type->Underlying());
+        types::Basic *y_underlying_type = static_cast<types::Basic *>(y_type->Underlying());
+        if (!(x_underlying_type->info() & types::Basic::Info::kIsUntyped) &&
+            !(y_underlying_type->info() & types::Basic::Info::kIsUntyped) &&
+            x_underlying_type != y_underlying_type) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            compare_expr->compare_op_starts().at(i),
+                                            "invalid operation: mismatched types"));
+            return false;
+        }
+        
+        if (op == tokens::kLss || op == tokens::kGtr || op == tokens::kGeq || op == tokens::kLeq) {
+            if (!(x_underlying_type->info() & types::Basic::Info::kIsOrdered)) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                compare_expr->compare_op_starts().at(i),
+                                                "invalid operation: expected orderable type"));
+                return false;
+            }
+        }
+    }
+    info_builder_.SetExprType(compare_expr, info_->basic_type(types::Basic::Kind::kBool));
+    info_builder_.SetExprKind(compare_expr, types::ExprKind::kValue);
     return true;
 }
 
 bool ExprHandler::CheckParenExpr(ast::ParenExpr *paren_expr) {
-    if (!CheckExpr(paren_expr->x_.get())) {
+    if (!CheckExpr(paren_expr->x())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(paren_expr->x_.get());
-    types::ExprKind x_expr_kind = info_->ExprKindOf(paren_expr->x_.get()).value();
+    types::Type *x_type = info_->TypeOf(paren_expr->x());
+    types::ExprKind x_expr_kind = info_->ExprKindOf(paren_expr->x()).value();
     info_builder_.SetExprType(paren_expr, x_type);
     info_builder_.SetExprKind(paren_expr, x_expr_kind);
     return true;
 }
 
 bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
-    if (auto accessed_ident = dynamic_cast<ast::Ident *>(selection_expr->accessed_.get())) {
+    if (ast::Ident *accessed_ident = dynamic_cast<ast::Ident *>(selection_expr->accessed())) {
         types::Object *accessed_obj = info_->UseOf(accessed_ident);
         types::PackageName *pkg_name = dynamic_cast<types::PackageName *>(accessed_obj);
         if (pkg_name != nullptr) {
-            if (!CheckIdent(selection_expr->selection_.get())) {
+            if (!CheckIdent(selection_expr->selection())) {
                 return false;
             }
-            types::Type *type = info_->TypeOf(selection_expr->selection_.get());
-            types::ExprKind expr_kind = info_->ExprKindOf(selection_expr->selection_.get()).value();
+            types::Type *type = info_->TypeOf(selection_expr->selection());
+            types::ExprKind expr_kind = info_->ExprKindOf(selection_expr->selection()).value();
             info_builder_.SetExprType(selection_expr, type);
             info_builder_.SetExprKind(selection_expr, expr_kind);
             return true;
         }
     }
     
-    if (!CheckExpr(selection_expr->accessed_.get())) {
+    if (!CheckExpr(selection_expr->accessed())) {
         return false;
     }
-    types::Type *accessed_type = info_->TypeOf(selection_expr->accessed_.get());
-    types::ExprKind accessed_kind = info_->ExprKindOf(selection_expr->accessed_.get()).value();
-    if (auto pointer_type = dynamic_cast<types::Pointer *>(accessed_type)) {
+    types::Type *accessed_type = info_->TypeOf(selection_expr->accessed());
+    types::ExprKind accessed_kind = info_->ExprKindOf(selection_expr->accessed()).value();
+    if (types::Pointer *pointer_type = dynamic_cast<types::Pointer *>(accessed_type)) {
         accessed_type = pointer_type->element_type();
         if (nullptr != dynamic_cast<types::Interface *>(accessed_type->Underlying()) ||
             nullptr != dynamic_cast<types::TypeParameter *>(accessed_type)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            selection_expr->selection_->start(),
+                                            selection_expr->selection()->start(),
                                             "invalid operation: selection from pointer to "
                                             "interface or type parameter not allowed"));
             return false;
         }
     }
     
-    std::string selection_name = selection_expr->selection_->name_;
+    std::string selection_name = selection_expr->selection()->name();
     types::NamedType *named_type = dynamic_cast<types::NamedType *>(accessed_type);
     types::InfoBuilder::TypeParamsToArgsMap type_params_to_args;
     if (auto type_instance = dynamic_cast<types::TypeInstance *>(accessed_type)) {
@@ -420,23 +421,27 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
         if (named_type->methods().contains(selection_name)) {
             types::Func *method = named_type->methods().at(selection_name);
             types::Signature *signature = static_cast<types::Signature *>(method->type());
-            if (signature->receiver() != nullptr) {
-                types::Type *receiver_type = signature->receiver()->type();
-                if (auto pointer = dynamic_cast<types::Pointer *>(receiver_type)) {
+            types::Type *receiver_type = nullptr;
+            if (signature->expr_receiver() != nullptr) {
+                receiver_type = signature->expr_receiver()->type();
+                if (types::Pointer *pointer = dynamic_cast<types::Pointer *>(receiver_type)) {
                     receiver_type = pointer->element_type();
                 }
-                if (auto type_instance = dynamic_cast<types::TypeInstance *>(receiver_type)) {
-                    types::InfoBuilder::TypeParamsToArgsMap method_type_params_to_args;
-                    method_type_params_to_args.reserve(type_params_to_args.size());
-                    for (int i = 0; i < type_instance->type_args().size(); i++) {
-                        types::TypeParameter *original_type_param = named_type->type_parameters().at(i);
-                        types::TypeParameter *method_type_param =
+            } else if (signature->type_receiver() != nullptr) {
+                receiver_type = signature->type_receiver();
+            }
+            
+            if (auto type_instance = dynamic_cast<types::TypeInstance *>(receiver_type)) {
+                types::InfoBuilder::TypeParamsToArgsMap method_type_params_to_args;
+                method_type_params_to_args.reserve(type_params_to_args.size());
+                for (int i = 0; i < type_instance->type_args().size(); i++) {
+                    types::TypeParameter *original_type_param = named_type->type_parameters().at(i);
+                    types::TypeParameter *method_type_param =
                         static_cast<types::TypeParameter *>(type_instance->type_args().at(i));
-                        types::Type *type_arg = type_params_to_args.at(original_type_param);
-                        method_type_params_to_args[method_type_param] = type_arg;
-                    }
-                    type_params_to_args = method_type_params_to_args;
+                    types::Type *type_arg = type_params_to_args.at(original_type_param);
+                    method_type_params_to_args[method_type_param] = type_arg;
                 }
+                type_params_to_args = method_type_params_to_args;
             }
             
             types::Selection *selection = nullptr;
@@ -456,7 +461,7 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
                     break;
                 }
                 case types::ExprKind::kType:{
-                    bool receiver_to_arg = (signature->receiver() != nullptr);
+                    bool receiver_to_arg = (signature->expr_receiver() != nullptr);
                     signature = info_builder_.InstantiateMethodSignature(signature,
                                                                          type_params_to_args,
                                                                          receiver_to_arg);
@@ -510,6 +515,11 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
                         continue;
                     }
                     types::Signature *signature = static_cast<types::Signature *>(method->type());
+                    if (signature->type_receiver()) {
+                        types::TypeParameter *type_parameter =
+                            static_cast<types::TypeParameter *>(signature->type_receiver());
+                        type_params_to_args[type_parameter] = interface_type;
+                    }
                     signature =
                         info_builder_.InstantiateMethodSignature(signature,
                                                                  type_params_to_args,
@@ -531,13 +541,13 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
     
     issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                     issues::Severity::Error,
-                                    selection_expr->selection_->start(),
+                                    selection_expr->selection()->start(),
                                     "could not resolve selection"));
     return false;
 }
 
 bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr *type_assert_expr) {
-    if (type_assert_expr->type_ == nullptr) {
+    if (type_assert_expr->type() == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         type_assert_expr->start(),
@@ -545,12 +555,12 @@ bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr *type_assert_expr) {
                                         "switch"));
         return false;
     }
-    if (!CheckExpr(type_assert_expr->x_.get()) ||
-        !CheckExpr(type_assert_expr->type_.get())) {
+    if (!CheckExpr(type_assert_expr->x()) ||
+        !CheckExpr(type_assert_expr->type())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(type_assert_expr->x_.get());
-    types::Type *asserted_type = info_->TypeOf(type_assert_expr->type_.get());
+    types::Type *x_type = info_->TypeOf(type_assert_expr->x());
+    types::Type *asserted_type = info_->TypeOf(type_assert_expr->type());
     types::Interface *x_interface = dynamic_cast<types::Interface *>(x_type);
     if (x_interface == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -573,13 +583,13 @@ bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr *type_assert_expr) {
 }
 
 bool ExprHandler::CheckIndexExpr(ast::IndexExpr *index_expr) {
-    if (!CheckExpr(index_expr->accessed_.get()) ||
-        !CheckExpr(index_expr->index_.get())) {
+    if (!CheckExpr(index_expr->accessed()) ||
+        !CheckExpr(index_expr->index())) {
         return false;
     }
     
-    types::Type *accessed_type = info_->TypeOf(index_expr->accessed_.get());
-    types::Type *index_type = info_->TypeOf(index_expr->index_.get());
+    types::Type *accessed_type = info_->TypeOf(index_expr->accessed());
+    types::Type *index_type = info_->TypeOf(index_expr->index());
     types::Basic *index_basic_type = dynamic_cast<types::Basic *>(index_type->Underlying());
     if (index_basic_type == nullptr ||
         !(index_basic_type->kind() & (types::Basic::Kind::kInt |
@@ -637,47 +647,29 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr *index_expr) {
 }
 
 bool ExprHandler::CheckCallExpr(ast::CallExpr *call_expr) {
-    ast::Expr *func_expr = call_expr->func_.get();
-    ast::TypeArgList *type_args_expr = call_expr->type_args_.get();
-    std::vector<ast::Expr *> arg_exprs;
-    arg_exprs.reserve(call_expr->args_.size());
-    for (auto& arg_expr : call_expr->args_) {
-        arg_exprs.push_back(arg_expr.get());
-    }
+    ast::Expr *func_expr = call_expr->func();
     
     if (!CheckExpr(func_expr) ||
-        (type_args_expr != nullptr &&
-         !TypeHandler::ProcessTypeArgs(type_args_expr, info_builder_, issues_)) ||
-        !CheckExprs(arg_exprs)) {
+        (!call_expr->type_args().empty() &&
+         !TypeHandler::ProcessTypeArgs(call_expr->type_args(), info_builder_, issues_)) ||
+        !CheckExprs(call_expr->args())) {
         return false;
     }
     
     if (info_->ExprKindOf(func_expr) == types::ExprKind::kType) {
-        return CheckCallExprWithTypeConversion(call_expr,
-                                               func_expr,
-                                               type_args_expr,
-                                               arg_exprs);
+        return CheckCallExprWithTypeConversion(call_expr);
     } else if (info_->ExprKindOf(func_expr) == types::ExprKind::kBuiltin) {
-        return CheckCallExprWithBuiltin(call_expr,
-                                        func_expr,
-                                        type_args_expr,
-                                        arg_exprs);
+        return CheckCallExprWithBuiltin(call_expr);
     } else if (info_->ExprKindOf(func_expr) == types::ExprKind::kValue ||
                info_->ExprKindOf(func_expr) == types::ExprKind::kVariable) {
-        return CheckCallExprWithFuncCall(call_expr,
-                                         func_expr,
-                                         type_args_expr,
-                                         arg_exprs);
+        return CheckCallExprWithFuncCall(call_expr);
     } else {
         throw "internal error: unexpected func expr kind";
     }
 }
 
-bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr *call_expr,
-                                                  ast::Expr *func_expr,
-                                                  ast::TypeArgList *type_args_expr,
-                                                  std::vector<ast::Expr *> arg_exprs) {
-    if (type_args_expr != nullptr) {
+bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr *call_expr) {
+    if (!call_expr->type_args().empty()) {
         // TODO: handle this in future
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
@@ -686,7 +678,7 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr *call_expr,
                                         "type arguments"));
         return false;
     }
-    if (arg_exprs.size() != 1) {
+    if (call_expr->args().size() != 1) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         call_expr->start(),
@@ -694,8 +686,8 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr *call_expr,
                                         "one argument"));
         return false;
     }
-    types::Type *conversion_start_type = info_->TypeOf(arg_exprs.at(0));
-    types::Type *conversion_result_type = info_->TypeOf(func_expr);
+    types::Type *conversion_start_type = info_->TypeOf(call_expr->args().at(0));
+    types::Type *conversion_result_type = info_->TypeOf(call_expr->func());
     if (!types::IsConvertibleTo(conversion_start_type, conversion_result_type)) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
@@ -709,30 +701,27 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr *call_expr,
     return true;
 }
 
-bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr,
-                                           ast::Expr *func_expr,
-                                           ast::TypeArgList *type_args_expr,
-                                           std::vector<ast::Expr *> arg_exprs) {
-    ast::Ident *builtin_ident = static_cast<ast::Ident *>(ast::Unparen(func_expr));
+bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr) {
+    ast::Ident *builtin_ident = static_cast<ast::Ident *>(ast::Unparen(call_expr->func()));
     types::Builtin *builtin = static_cast<types::Builtin *>(info_->UseOf(builtin_ident));
     
     switch (builtin->kind()) {
         case types::Builtin::Kind::kLen:{
-            if (type_args_expr != nullptr) {
+            if (!call_expr->type_args().empty()) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 call_expr->start(),
                                                 "len does not accept type arguments"));
                 return false;
             }
-            if (arg_exprs.size() != 1) {
+            if (call_expr->args().size() != 1) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
-                                                call_expr->l_paren_,
+                                                call_expr->l_paren(),
                                                 "len expected one argument"));
                 return false;
             }
-            ast::Expr *arg_expr = arg_exprs.at(0);
+            ast::Expr *arg_expr = call_expr->args().at(0);
             types::Type *arg_type = info_->TypeOf(arg_expr)->Underlying();
             types::Basic *basic = dynamic_cast<types::Basic *>(arg_type);
             if (!(basic != nullptr && basic->kind() == types::Basic::kString) &&
@@ -749,22 +738,21 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr,
             return true;
         }
         case types::Builtin::Kind::kMake:{
-            if (type_args_expr == nullptr ||
-                type_args_expr->args_.size() != 1) {
+            if (call_expr->type_args().size() != 1) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 call_expr->start(),
                                                 "make expected one type argument"));
                 return false;
             }
-            if (arg_exprs.size() != 1) {
+            if (call_expr->args().size() != 1) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
-                                                call_expr->l_paren_,
+                                                call_expr->l_paren(),
                                                 "make expected one argument"));
                 return false;
             }
-            ast::Expr *slice_expr = type_args_expr->args_.at(0).get();
+            ast::Expr *slice_expr = call_expr->type_args().at(0);
             types::Slice *slice = dynamic_cast<types::Slice *>(info_->TypeOf(slice_expr));
             if (slice == nullptr) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -773,7 +761,7 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr,
                                                 "make expected slice type argument"));
                 return false;
             }
-            ast::Expr *length_expr = arg_exprs.at(0);
+            ast::Expr *length_expr = call_expr->args().at(0);
             types::Basic *length_type = dynamic_cast<types::Basic *>(info_->TypeOf(length_expr));
             if (length_type == nullptr || (length_type->kind() != types::Basic::kInt &&
                                            length_type->kind() != types::Basic::kUntypedInt)) {
@@ -788,22 +776,21 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr,
             return true;
         }
         case types::Builtin::Kind::kNew:{
-            if (type_args_expr == nullptr ||
-                type_args_expr->args_.size() != 1) {
+            if (call_expr->type_args().size() != 1) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 call_expr->start(),
                                                 "new expected one type argument"));
                 return false;
             }
-            if (!arg_exprs.empty()) {
+            if (!call_expr->args().empty()) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
-                                                call_expr->l_paren_,
+                                                call_expr->l_paren(),
                                                 "new did not expect any arguments"));
                 return false;
             }
-            ast::Expr *element_type_expr = type_args_expr->args_.at(0).get();
+            ast::Expr *element_type_expr = call_expr->type_args().at(0);
             types::Type *element_type = info_->TypeOf(element_type_expr);
             types::Pointer *pointer = info_builder_.CreatePointer(types::Pointer::Kind::kStrong,
                                                                   element_type);
@@ -816,11 +803,8 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr,
     }
 }
 
-bool ExprHandler::CheckCallExprWithFuncCall(ast::CallExpr *call_expr,
-                                            ast::Expr *func_expr,
-                                            ast::TypeArgList *type_args_expr,
-                                            std::vector<ast::Expr *> arg_exprs) {
-    types::Type *func_type = info_->TypeOf(func_expr)->Underlying();
+bool ExprHandler::CheckCallExprWithFuncCall(ast::CallExpr *call_expr) {
+    types::Type *func_type = info_->TypeOf(call_expr->func())->Underlying();
     types::Signature *signature = dynamic_cast<types::Signature *>(func_type);
     if (signature == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -830,31 +814,31 @@ bool ExprHandler::CheckCallExprWithFuncCall(ast::CallExpr *call_expr,
         return false;
     }
     if (!signature->type_parameters().empty()) {
-        signature = CheckFuncCallTypeArgs(signature, type_args_expr);
+        signature = CheckFuncCallTypeArgs(signature, call_expr->type_args());
         if (signature == nullptr) {
             return false;
         }
     }
-    CheckFuncCallArgs(signature, call_expr, arg_exprs);
+    CheckFuncCallArgs(signature, call_expr, call_expr->args());
     CheckFuncCallResultType(signature, call_expr);
     return true;
 }
 
 types::Signature * ExprHandler::CheckFuncCallTypeArgs(types::Signature *signature,
-                                                      ast::TypeArgList *type_args_expr) {
-    size_t given_type_args = (type_args_expr != nullptr) ? type_args_expr->args_.size() : 0;
+                                                      std::vector<ast::Expr *> type_arg_exprs) {
+    size_t given_type_args = type_arg_exprs.size();
     size_t expected_type_args = signature->type_parameters().size();
     if (given_type_args != expected_type_args) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
-                                        type_args_expr->start(),
+                                        type_arg_exprs.at(0)->start(),
                                         "expected " + std::to_string(expected_type_args) +
                                         " type arugments"));
         return nullptr;
     }
     std::unordered_map<types::TypeParameter *, types::Type *> type_params_to_args;
     for (int i = 0; i < expected_type_args; i++) {
-        ast::Expr *type_arg_expr = type_args_expr->args_.at(i).get();
+        ast::Expr *type_arg_expr = type_arg_exprs.at(i);
         types::Type *type_arg = info_->TypeOf(type_arg_expr);
         types::TypeParameter *type_param = signature->type_parameters().at(i);
         
@@ -881,7 +865,7 @@ void ExprHandler::CheckFuncCallArgs(types::Signature *signature,
         arg_types.push_back(info_->TypeOf(arg_expr));
     }
     if (arg_types.size() == 1) {
-        if (auto tuple = dynamic_cast<types::Tuple *>(arg_types.at(0))) {
+        if (types::Tuple *tuple = dynamic_cast<types::Tuple *>(arg_types.at(0))) {
             arg_types.clear();
             for (types::Variable *var : tuple->variables()) {
                 arg_types.push_back(var->type());
@@ -895,7 +879,7 @@ void ExprHandler::CheckFuncCallArgs(types::Signature *signature,
     if (arg_types.size() != expected_args) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
-                                        call_expr->l_paren_,
+                                        call_expr->l_paren(),
                                         "expected " + std::to_string(expected_args) +
                                         " arugments"));
         return;
@@ -939,8 +923,8 @@ void ExprHandler::CheckFuncCallResultType(types::Signature *signature,
 }
 
 bool ExprHandler::CheckFuncLit(ast::FuncLit *func_lit) {
-    ast::FuncType *func_type_expr = func_lit->type_.get();
-    ast::BlockStmt *func_body = func_lit->body_.get();
+    ast::FuncType *func_type_expr = func_lit->type();
+    ast::BlockStmt *func_body = func_lit->body();
     if (!TypeHandler::ProcessTypeExpr(func_type_expr, info_builder_, issues_)) {
         return false;
     }
@@ -954,10 +938,10 @@ bool ExprHandler::CheckFuncLit(ast::FuncLit *func_lit) {
 }
 
 bool ExprHandler::CheckCompositeLit(ast::CompositeLit *composite_lit) {
-    if (!TypeHandler::ProcessTypeExpr(composite_lit->type_.get(), info_builder_, issues_)) {
+    if (!TypeHandler::ProcessTypeExpr(composite_lit->type(), info_builder_, issues_)) {
         return false;
     }
-    types::Type *type = info_->TypeOf(composite_lit->type_.get());
+    types::Type *type = info_->TypeOf(composite_lit->type());
     
     // TODO: check contents of composite lit
     

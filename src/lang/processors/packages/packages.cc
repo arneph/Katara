@@ -10,6 +10,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sstream>
 
 #include "lang/representation/ast/ast_util.h"
@@ -18,26 +19,6 @@
 
 namespace lang {
 namespace packages {
-
-std::string Package::name() const {
-    return name_;
-}
-
-std::string Package::path() const {
-    return path_;
-}
-
-const std::vector<pos::File *>& Package::pos_files() const {
-    return pos_files_;
-}
-
-const std::vector<std::unique_ptr<ast::File>>& Package::ast_files() const {
-    return ast_files_;
-}
-
-types::Package * Package::types_package() const {
-    return types_package_;
-}
 
 bool Package::has_errors() const {
     for (auto& issue : issues_) {
@@ -58,21 +39,10 @@ bool Package::has_fatal_errors() const {
     return false;
 }
 
-const std::vector<issues::Issue>& Package::issues() const {
-    return issues_;
-}
-
 PackageManager::PackageManager(std::string stdlib_path) : stdlib_path_(stdlib_path) {
     file_set_ = std::make_unique<pos::FileSet>();
+    ast_ = std::make_unique<ast::AST>();
     type_info_ = std::make_unique<types::Info>();
-}
-
-pos::FileSet * PackageManager::file_set() const {
-    return file_set_.get();
-}
-
-types::Info * PackageManager::type_info() const {
-    return type_info_.get();
 }
 
 Package * PackageManager::LoadPackage(std::string import_dir) {
@@ -97,7 +67,6 @@ Package * PackageManager::LoadPackage(std::string import_dir) {
                           "package directory does not contain source files"));
         return nullptr;
     }
-
     for (auto& source_file : source_files) {
         std::ifstream in_stream(source_file, std::ios::in);
         std::stringstream str_stream;
@@ -108,13 +77,15 @@ Package * PackageManager::LoadPackage(std::string import_dir) {
                                                          contents));
     }
 
-    std::vector<ast::File *> ast_files;
-    for (auto& pos_file : package->pos_files_) {
-        std::unique_ptr<ast::File> ast_file = parser::Parser::ParseFile(pos_file,
-                                                                        package->issues_);
-        ast_files.push_back(ast_file.get());
-        package->ast_files_.push_back(std::move(ast_file));
+    ast::ASTBuilder ast_builder = ast_->builder();
+    std::map<std::string, ast::File *> ast_files;
+    for (pos::File *pos_file : package->pos_files_) {
+        ast::File *ast_file = parser::Parser::ParseFile(pos_file,
+                                                        ast_builder,
+                                                        package->issues_);
+        ast_files.insert({pos_file->name(), ast_file});
     }
+    package->ast_package_ = ast_builder.CreatePackage(package->name_, ast_files);
     if (package->has_fatal_errors()) {
         return package.get();
     }
@@ -129,7 +100,7 @@ Package * PackageManager::LoadPackage(std::string import_dir) {
     };
     types::Package *types_package =
         type_checker::Check(import_dir,
-                            ast_files,
+                            package->ast_package_,
                             importer,
                             type_info_.get(),
                             package->issues_);

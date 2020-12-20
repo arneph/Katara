@@ -15,7 +15,9 @@
 
 #include "lang/representation/positions/positions.h"
 #include "lang/representation/tokens/tokens.h"
+#include "lang/representation/ast/nodes.h"
 #include "lang/representation/ast/ast.h"
+#include "lang/representation/ast/ast_builder.h"
 #include "lang/processors/issues/issues.h"
 #include "lang/processors/scanner/scanner.h"
 
@@ -24,89 +26,105 @@ namespace parser {
 
 class Parser {
 public:
-    static std::unique_ptr<ast::File> ParseFile(pos::File *file,
-                                                std::vector<issues::Issue>& issues);
+    static ast::File * ParseFile(pos::File *file,
+                                 ast::ASTBuilder& ast_builder,
+                                 std::vector<issues::Issue>& issues);
     
 private:
+    enum ExprOptions {
+        kNoExprOptions = 0,
+        kDisallowCompositeLit = 1 << 0,
+    };
+    enum FuncFieldListOptions {
+        kNoFuncFieldListOptions = 0,
+        kExpectParen = 1 << 0,
+    };
+    
     Parser(scanner::Scanner& scanner,
-           std::vector<issues::Issue>& issues);
+           ast::ASTBuilder& ast_builder,
+           std::vector<issues::Issue>& issues)
+    : scanner_(scanner), ast_builder_(ast_builder), issues_(issues) {}
     
-    std::unique_ptr<ast::File> ParseFile();
+    ast::File * ParseFile();
     
-    std::unique_ptr<ast::Decl> ParseDecl();
-    std::unique_ptr<ast::GenDecl> ParseGenDecl();
-    std::unique_ptr<ast::Spec> ParseSpec(tokens::Token spec_type);
-    std::unique_ptr<ast::ImportSpec> ParseImportSpec();
-    std::unique_ptr<ast::ValueSpec> ParseValueSpec();
-    std::unique_ptr<ast::TypeSpec> ParseTypeSpec();
-    std::unique_ptr<ast::FuncDecl> ParseFuncDecl();
+    ast::Decl * ParseDecl();
+    ast::GenDecl * ParseGenDecl();
+    ast::Spec * ParseSpec(tokens::Token spec_type);
+    ast::ImportSpec * ParseImportSpec();
+    ast::ValueSpec * ParseValueSpec();
+    ast::TypeSpec * ParseTypeSpec();
+    ast::FuncDecl * ParseFuncDecl();
     
-    std::vector<std::unique_ptr<ast::Stmt>> ParseStmtList();
-    std::unique_ptr<ast::Stmt>ParseStmt();
-    std::unique_ptr<ast::Stmt>ParseSimpleStmt(bool disallow_composite_lit);
-    std::unique_ptr<ast::Stmt>ParseSimpleStmt(std::unique_ptr<ast::Expr> expr,
-                                              bool disallow_composite_lit);
-    std::unique_ptr<ast::BlockStmt> ParseBlockStmt();
-    std::unique_ptr<ast::DeclStmt> ParseDeclStmt();
-    std::unique_ptr<ast::ReturnStmt> ParseReturnStmt();
-    std::unique_ptr<ast::IfStmt> ParseIfStmt();
-    std::unique_ptr<ast::SwitchStmt> ParseSwitchStmt();
-    std::unique_ptr<ast::CaseClause> ParseCaseClause();
-    std::unique_ptr<ast::ForStmt> ParseForStmt();
-    std::unique_ptr<ast::BranchStmt> ParseBranchStmt();
-    std::unique_ptr<ast::ExprStmt> ParseExprStmt(std::unique_ptr<ast::Expr> x);
-    std::unique_ptr<ast::LabeledStmt> ParseLabeledStmt(std::unique_ptr<ast::Ident> label);
-    std::unique_ptr<ast::AssignStmt> ParseAssignStmt(std::unique_ptr<ast::Expr> first_expr,
-                                                     bool disallow_composite_lit);
-    std::unique_ptr<ast::IncDecStmt> ParseIncDecStmt(std::unique_ptr<ast::Expr> x);
+    std::vector<ast::Stmt *> ParseStmtList();
+    ast::Stmt * ParseStmt();
+    ast::Stmt * ParseSimpleStmt(ExprOptions expr_options);
+    ast::Stmt *ParseSimpleStmt(ast::Expr * expr, ExprOptions expr_options);
+    ast::BlockStmt * ParseBlockStmt();
+    ast::DeclStmt * ParseDeclStmt();
+    ast::ReturnStmt * ParseReturnStmt();
+    ast::IfStmt * ParseIfStmt();
+    ast::Stmt * ParseSwitchStmt();
+    ast::BlockStmt * ParseSwitchStmtBody();
+    ast::CaseClause * ParseCaseClause();
+    ast::ForStmt * ParseForStmt();
+    ast::BranchStmt * ParseBranchStmt();
+    ast::ExprStmt * ParseExprStmt(ast::Expr * x);
+    ast::LabeledStmt * ParseLabeledStmt(ast::Ident * label);
+    ast::AssignStmt * ParseAssignStmt(ast::Expr * first_expr, ExprOptions expr_options);
+    ast::IncDecStmt * ParseIncDecStmt(ast::Expr * x);
     
-    std::vector<std::unique_ptr<ast::Expr>> ParseExprList(bool disallow_composite_lit);
-    std::vector<std::unique_ptr<ast::Expr>> ParseExprList(std::unique_ptr<ast::Expr> first_expr,
-                                                          bool disallow_composite_lit);
-    std::unique_ptr<ast::Expr> ParseExpr(bool disallow_composite_lit);
-    std::unique_ptr<ast::Expr> ParseExpr(tokens::precedence_t prec,
-                                         bool disallow_composite_lit);
-    std::unique_ptr<ast::Expr> ParseUnaryExpr(bool disallow_composite_lit);
+    std::vector<ast::Expr *> ParseExprList(ExprOptions expr_options);
+    std::vector<ast::Expr *> ParseExprList(ast::Expr * first_expr, ExprOptions expr_options);
+    ast::Expr * ParseExpr(ExprOptions expr_options);
+    ast::Expr * ParseExpr(tokens::precedence_t prec, ExprOptions expr_options);
+    ast::Expr * ParseUnaryExpr(ExprOptions expr_options);
     
-    std::unique_ptr<ast::Expr> ParsePrimaryExpr(bool disallow_composite_lit);
-    std::unique_ptr<ast::Expr> ParsePrimaryExpr(std::unique_ptr<ast::Expr> primary_expr,
-                                                bool disallow_composite_lit);
-    std::unique_ptr<ast::Expr> ParsePrimaryExpr(std::unique_ptr<ast::Expr> primary_expr,
-                                                std::unique_ptr<ast::TypeArgList> type_args,
-                                                bool disallow_composite_lit);
-    std::unique_ptr<ast::ParenExpr> ParseParenExpr();
-    std::unique_ptr<ast::SelectionExpr> ParseSelectionExpr(std::unique_ptr<ast::Expr> accessed);
-    std::unique_ptr<ast::TypeAssertExpr> ParseTypeAssertExpr(std::unique_ptr<ast::Expr> x);
-    std::unique_ptr<ast::IndexExpr> ParseIndexExpr(std::unique_ptr<ast::Expr> accessed);
-    std::unique_ptr<ast::CallExpr> ParseCallExpr(std::unique_ptr<ast::Expr> func,
-                                                 std::unique_ptr<ast::TypeArgList> type_args);
-    std::unique_ptr<ast::FuncLit> ParseFuncLit(std::unique_ptr<ast::FuncType> type);
-    std::unique_ptr<ast::CompositeLit> ParseCompositeLit(std::unique_ptr<ast::Expr> type);
-    std::unique_ptr<ast::Expr> ParseCompositeLitElement();
+    ast::Expr * ParsePrimaryExpr(ExprOptions expr_options);
+    ast::Expr * ParsePrimaryExpr(ast::Expr * primary_expr, ExprOptions expr_options);
+    ast::Expr * ParsePrimaryExpr(ast::Expr * primary_expr,
+                                 pos::pos_t l_brack,
+                                 std::vector<ast::Expr *> type_args,
+                                 pos::pos_t r_brack,
+                                 ExprOptions expr_options);
+    ast::ParenExpr * ParseParenExpr();
+    ast::SelectionExpr * ParseSelectionExpr(ast::Expr * accessed);
+    ast::TypeAssertExpr * ParseTypeAssertExpr(ast::Expr * x);
+    ast::IndexExpr * ParseIndexExpr(ast::Expr * accessed);
+    ast::CallExpr * ParseCallExpr(ast::Expr * func,
+                                  pos::pos_t l_brack,
+                                  std::vector<ast::Expr *> type_args,
+                                  pos::pos_t r_brack);
+    ast::FuncLit * ParseFuncLit(ast::FuncType * type);
+    ast::CompositeLit * ParseCompositeLit(ast::Expr * type);
+    ast::Expr * ParseCompositeLitElement();
     
-    std::unique_ptr<ast::Expr> ParseType();
-    std::unique_ptr<ast::Expr> ParseType(std::unique_ptr<ast::Ident> ident);
-    std::unique_ptr<ast::ArrayType> ParseArrayType();
-    std::unique_ptr<ast::FuncType> ParseFuncType();
-    std::unique_ptr<ast::InterfaceType> ParseInterfaceType();
-    std::unique_ptr<ast::MethodSpec> ParseMethodSpec();
-    std::unique_ptr<ast::StructType> ParseStructType();
-    std::unique_ptr<ast::UnaryExpr> ParsePointerType();
-    std::unique_ptr<ast::TypeInstance> ParseTypeInstance(std::unique_ptr<ast::Expr> type);
+    static bool CanStartType(tokens::Token token);
+    ast::Expr * ParseType();
+    ast::Expr * ParseType(ast::Ident * ident);
+    ast::ArrayType * ParseArrayType();
+    ast::FuncType * ParseFuncType();
+    ast::InterfaceType * ParseInterfaceType();
+    ast::Expr * ParseEmbdeddedInterface();
+    ast::MethodSpec * ParseMethodSpec();
+    ast::StructType * ParseStructType();
+    ast::UnaryExpr * ParsePointerType();
+    ast::TypeInstance * ParseTypeInstance(ast::Expr * type);
     
-    std::unique_ptr<ast::FieldList> ParseFuncFieldList(bool expect_paren);
-    std::vector<std::unique_ptr<ast::Field>> ParseFuncFields();
-    std::unique_ptr<ast::FieldList> ParseStructFieldList();
-    std::unique_ptr<ast::Field> ParseStructField();
-    std::unique_ptr<ast::TypeArgList> ParseTypeArgList();
-    std::unique_ptr<ast::TypeParamList> ParseTypeParamList();
-    std::unique_ptr<ast::TypeParam> ParseTypeParam();
+    ast::ExprReceiver * ParseExprReceiver();
+    ast::TypeReceiver * ParseTypeReceiver();
+    ast::FieldList * ParseFuncFieldList(FuncFieldListOptions options);
+    std::vector<ast::Field *> ParseFuncFields();
+    ast::FieldList * ParseStructFieldList();
+    ast::Field * ParseStructField();
+    ast::TypeParamList * ParseTypeParamList();
+    ast::TypeParam * ParseTypeParam();
     
-    std::unique_ptr<ast::BasicLit> ParseBasicLit();
-    std::vector<std::unique_ptr<ast::Ident>> ParseIdentList();
-    std::unique_ptr<ast::Ident> ParseIdent(bool split_shift_ops = false);
+    ast::BasicLit * ParseBasicLit();
+    std::vector<ast::Ident *> ParseIdentList(bool split_shift_ops = false);
+    ast::Ident * ParseIdent(bool split_shift_ops = false);
     
     scanner::Scanner& scanner_;
+    ast::ASTBuilder& ast_builder_;
     std::vector<issues::Issue>& issues_;
 };
 

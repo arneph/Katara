@@ -6,7 +6,9 @@ cc_library(
     deps = [
         "//src/lang/representation/positions",
         "//src/lang/representation/tokens",
-        "//src/lang/representation/ast",
+        "//src/lang/representation/ast:nodes",
+        "//src/lang/representation/ast:ast",
+        "//src/lang/representation/ast:ast_util",
         "//src/lang/representation/constants",
         "//src/lang/representation/types:base",
         "//src/lang/representation/types:types_util",

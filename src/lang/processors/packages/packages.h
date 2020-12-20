@@ -25,16 +25,16 @@ namespace packages {
 
 class Package {
 public:
-    std::string name() const;
+    std::string name() const { return name_; }
     std::string path() const;
     
-    const std::vector<pos::File *>& pos_files() const;
-    const std::vector<std::unique_ptr<ast::File>>& ast_files() const;
-    types::Package * types_package() const;
+    const std::vector<pos::File *>& pos_files() const { return pos_files_; }
+    ast::Package * ast_package() const { return ast_package_; }
+    types::Package * types_package() const { return types_package_; }
     
     bool has_errors() const;
     bool has_fatal_errors() const;
-    const std::vector<issues::Issue>& issues() const;
+    const std::vector<issues::Issue>& issues() const { return issues_; }
     
 private:
     Package() {}
@@ -43,7 +43,7 @@ private:
     std::string path_;
     
     std::vector<pos::File *> pos_files_;
-    std::vector<std::unique_ptr<ast::File>> ast_files_;
+    ast::Package *ast_package_;
     types::Package *types_package_;
     
     std::vector<issues::Issue> issues_;
@@ -55,8 +55,9 @@ class PackageManager {
 public:
     PackageManager(std::string stdlib_path);
     
-    pos::FileSet * file_set() const;
-    types::Info * type_info() const;
+    pos::FileSet * file_set() const { return file_set_.get(); }
+    ast::AST * ast() const { return ast_.get(); }
+    types::Info * type_info() const { return type_info_.get(); }
     
     // GetPackage returns the package in the given package directory if is already loaded,
     // otherwise nullptr is returned.
@@ -72,6 +73,7 @@ private:
     
     std::filesystem::path stdlib_path_;
     std::unique_ptr<pos::FileSet> file_set_;
+    std::unique_ptr<ast::AST> ast_;
     std::unique_ptr<types::Info> type_info_;
     std::unordered_map<std::string, std::unique_ptr<Package>> packages_;
 };

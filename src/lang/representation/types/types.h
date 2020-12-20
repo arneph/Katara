@@ -235,7 +235,8 @@ class Signature : public Type {
 public:
     ~Signature() {}
     
-    Variable * receiver() const;
+    Variable * expr_receiver() const;
+    Type * type_receiver() const;
     const std::vector<TypeParameter *>& type_parameters() const;
     Tuple * parameters() const;
     Tuple * results() const;
@@ -247,7 +248,8 @@ public:
 private:
     Signature() {}
     
-    Variable *receiver_;
+    Variable *expr_receiver_;
+    Type *type_receiver_;
     std::vector<TypeParameter *> type_parameters_;
     Tuple *parameters_;
     Tuple *results_;

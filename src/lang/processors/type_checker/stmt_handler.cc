@@ -34,43 +34,41 @@ void StmtHandler::ProcessFuncBody(ast::BlockStmt *body,
 }
 
 void StmtHandler::CheckBlockStmt(ast::BlockStmt *block_stmt, Context ctx) {
-    for (int i = 0; i < block_stmt->stmts_.size(); i++) {
-        ast::Stmt *stmt = block_stmt->stmts_.at(i).get();
-        ctx.is_last_stmt_in_block = (i == block_stmt->stmts_.size());
+    for (int i = 0; i < block_stmt->stmts().size(); i++) {
+        ast::Stmt *stmt = block_stmt->stmts().at(i);
+        ctx.is_last_stmt_in_block = (i == block_stmt->stmts().size());
         CheckStmt(stmt, ctx);
     }
 }
 
 void StmtHandler::CheckStmt(ast::Stmt *stmt, Context ctx) {
-    while (auto labeled_stmt = dynamic_cast<ast::LabeledStmt *>(stmt)) {
-        stmt = labeled_stmt->stmt_.get();
-        ctx.labels.insert({labeled_stmt->label_->name_, stmt});
+    while (ast::LabeledStmt *labeled_stmt = dynamic_cast<ast::LabeledStmt *>(stmt)) {
+        stmt = labeled_stmt->stmt();
+        ctx.labels.insert({labeled_stmt->label()->name(), stmt});
     }
     
-    if (auto block_stmt = dynamic_cast<ast::BlockStmt *>(stmt)) {
+    if (ast::BlockStmt *block_stmt = dynamic_cast<ast::BlockStmt *>(stmt)) {
         ctx.can_fallthrough = false;
         CheckBlockStmt(block_stmt, ctx);
-    } else if (auto decl_stmt = dynamic_cast<ast::DeclStmt *>(stmt)) {
+    } else if (ast::DeclStmt *decl_stmt = dynamic_cast<ast::DeclStmt *>(stmt)) {
         CheckDeclStmt(decl_stmt);
-    } else if (auto assign_stmt = dynamic_cast<ast::AssignStmt *>(stmt)) {
+    } else if (ast::AssignStmt *assign_stmt = dynamic_cast<ast::AssignStmt *>(stmt)) {
         CheckAssignStmt(assign_stmt);
-    } else if (auto expr_stmt = dynamic_cast<ast::ExprStmt *>(stmt)) {
+    } else if (ast::ExprStmt *expr_stmt = dynamic_cast<ast::ExprStmt *>(stmt)) {
         CheckExprStmt(expr_stmt);
-    } else if (auto inc_dec_stmt = dynamic_cast<ast::IncDecStmt *>(stmt)) {
+    } else if (ast::IncDecStmt *inc_dec_stmt = dynamic_cast<ast::IncDecStmt *>(stmt)) {
         CheckIncDecStmt(inc_dec_stmt);
-    } else if (auto return_stmt = dynamic_cast<ast::ReturnStmt *>(stmt)) {
+    } else if (ast::ReturnStmt *return_stmt = dynamic_cast<ast::ReturnStmt *>(stmt)) {
         CheckReturnStmt(return_stmt, ctx);
-    } else if (auto if_stmt = dynamic_cast<ast::IfStmt *>(stmt)) {
+    } else if (ast::IfStmt *if_stmt = dynamic_cast<ast::IfStmt *>(stmt)) {
         CheckIfStmt(if_stmt, ctx);
-    } else if (auto switch_stmt = dynamic_cast<ast::SwitchStmt *>(stmt)) {
-        if (!ast::IsTypeSwitchStmt(switch_stmt)) {
-            CheckExprSwitchStmt(switch_stmt, ctx);
-        } else {
-            CheckTypeSwitchStmt(switch_stmt, ctx);
-        }
-    } else if (auto for_stmt = dynamic_cast<ast::ForStmt *>(stmt)) {
+    } else if (ast::ExprSwitchStmt *expr_switch_stmt = dynamic_cast<ast::ExprSwitchStmt *>(stmt)) {
+        CheckExprSwitchStmt(expr_switch_stmt, ctx);
+    } else if (ast::TypeSwitchStmt *type_switch_stmt = dynamic_cast<ast::TypeSwitchStmt *>(stmt)) {
+        CheckTypeSwitchStmt(type_switch_stmt, ctx);
+    } else if (ast::ForStmt *for_stmt = dynamic_cast<ast::ForStmt *>(stmt)) {
         CheckForStmt(for_stmt, ctx);
-    } else if (auto branch_stmt = dynamic_cast<ast::BranchStmt *>(stmt)) {
+    } else if (ast::BranchStmt *branch_stmt = dynamic_cast<ast::BranchStmt *>(stmt)) {
         CheckBranchStmt(branch_stmt, ctx);
     } else {
         throw "internal error: unexpected stmt type";
@@ -78,12 +76,12 @@ void StmtHandler::CheckStmt(ast::Stmt *stmt, Context ctx) {
 }
 
 void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
-    switch (stmt->decl_->tok_) {
+    switch (stmt->decl()->tok()) {
         case tokens::kType:
-            for (auto& spec : stmt->decl_->specs_) {
-                ast::TypeSpec *type_spec = static_cast<ast::TypeSpec *>(spec.get());
+            for (ast::Spec *spec : stmt->decl()->specs()) {
+                ast::TypeSpec *type_spec = static_cast<ast::TypeSpec *>(spec);
                 types::TypeName *type_name =
-                    static_cast<types::TypeName *>(info_->definitions().at(type_spec->name_.get()));
+                    static_cast<types::TypeName *>(info_->definitions().at(type_spec->name()));
                 
                 TypeHandler::ProcessTypeParametersOfTypeName(type_name,
                                                              type_spec,
@@ -97,9 +95,9 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
             return;
         case tokens::kConst:{
             int64_t iota = 0;
-            for (auto& spec : stmt->decl_->specs_) {
-                ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec.get());
-                ast::Expr *type_expr = value_spec->type_.get();
+            for (ast::Spec *spec : stmt->decl()->specs()) {
+                ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec);
+                ast::Expr *type_expr = value_spec->type();
                 types::Type *type = nullptr;
                 if (type_expr != nullptr) {
                     if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
@@ -107,14 +105,14 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
                     }
                     type = info_->TypeOf(type_expr);
                 }
-                for (size_t i = 0; i < value_spec->names_.size(); i++) {
-                    ast::Ident *name = value_spec->names_.at(i).get();
+                for (size_t i = 0; i < value_spec->names().size(); i++) {
+                    ast::Ident *name = value_spec->names().at(i);
                     types::Constant *constant =
                         static_cast<types::Constant *>(info_->definitions().at(name));
                     
                     ast::Expr *value = nullptr;
-                    if (value_spec->values_.size() > i) {
-                        value = value_spec->values_.at(i).get();
+                    if (value_spec->values().size() > i) {
+                        value = value_spec->values().at(i);
                     }
                     ConstantHandler::ProcessConstant(constant,
                                                      type,
@@ -128,9 +126,9 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
             return;
         }
         case tokens::kVar:
-            for (auto& spec : stmt->decl_->specs_) {
-                ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec.get());
-                ast::Expr *type_expr = value_spec->type_.get();
+            for (ast::Spec *spec : stmt->decl()->specs()) {
+                ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec);
+                ast::Expr *type_expr = value_spec->type();
                 types::Type *type = nullptr;
                 if (type_expr != nullptr) {
                     if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
@@ -138,28 +136,28 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
                     }
                     type = info_->TypeOf(type_expr);
                 }
-                if (value_spec->names_.size() > 1 && value_spec->names_.size() == 1) {
+                if (value_spec->names().size() > 1 && value_spec->names().size() == 1) {
                     std::vector<types::Variable *> variables;
-                    for (auto& name : value_spec->names_) {
+                    for (ast::Ident *name : value_spec->names()) {
                         types::Variable *variable =
-                            static_cast<types::Variable *>(info_->definitions().at(name.get()));
+                            static_cast<types::Variable *>(info_->definitions().at(name));
                         variables.push_back(variable);
                     }
-                    ast::Expr *value = value_spec->values_.at(0).get();
+                    ast::Expr *value = value_spec->values().at(0);
                     VariableHandler::ProcessVariables(variables,
                                                       type,
                                                       value,
                                                       info_builder_,
                                                       issues_);
                 } else {
-                    for (size_t i = 0; i < value_spec->names_.size(); i++) {
-                        ast::Ident *name = value_spec->names_.at(i).get();
+                    for (size_t i = 0; i < value_spec->names().size(); i++) {
+                        ast::Ident *name = value_spec->names().at(i);
                         types::Variable *variable =
                             static_cast<types::Variable *>(info_->definitions().at(name));
                         
                         ast::Expr *value = nullptr;
-                        if (value_spec->values_.size() > i) {
-                            value = value_spec->values_.at(i).get();
+                        if (value_spec->values().size() > i) {
+                            value = value_spec->values().at(i);
                         }
                         VariableHandler::ProcessVariable(variable,
                                                          type,
@@ -178,18 +176,18 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
 void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
     std::vector<types::Type *> lhs_types;
     std::vector<types::Type *> rhs_types;
-    for (auto& lhs_expr : assign_stmt->lhs_) {
-        ast::Ident *ident = dynamic_cast<ast::Ident *>(lhs_expr.get());
+    for (ast::Expr *lhs_expr : assign_stmt->lhs()) {
+        ast::Ident *ident = dynamic_cast<ast::Ident *>(lhs_expr);
         types::Variable *var = dynamic_cast<types::Variable *>(info_->DefinitionOf(ident));
-        if (assign_stmt->tok_ == tokens::kDefine && var != nullptr) {
+        if (assign_stmt->tok() == tokens::kDefine && var != nullptr) {
             lhs_types.push_back(nullptr);
             continue;
         }
-        if (!ExprHandler::ProcessExpr(lhs_expr.get(), info_builder_, issues_)) {
+        if (!ExprHandler::ProcessExpr(lhs_expr, info_builder_, issues_)) {
             lhs_types.push_back(nullptr);
             continue;
         }
-        types::ExprKind lhs_kind = info_->ExprKindOf(lhs_expr.get()).value();
+        types::ExprKind lhs_kind = info_->ExprKindOf(lhs_expr).value();
         if (lhs_kind != types::ExprKind::kVariable) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
@@ -198,29 +196,29 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
             lhs_types.push_back(nullptr);
             continue;
         }
-        types::Type *lhs_type = info_->TypeOf(lhs_expr.get());
+        types::Type *lhs_type = info_->TypeOf(lhs_expr);
         lhs_types.push_back(lhs_type);
     }
-    for (auto& rhs_expr : assign_stmt->rhs_) {
-        if (!ExprHandler::ProcessExpr(rhs_expr.get(), info_builder_, issues_)) {
+    for (ast::Expr *rhs_expr : assign_stmt->rhs()) {
+        if (!ExprHandler::ProcessExpr(rhs_expr, info_builder_, issues_)) {
             rhs_types.push_back(nullptr);
             continue;
         }
-        types::Type *rhs_type = info_->TypeOf(rhs_expr.get());
+        types::Type *rhs_type = info_->TypeOf(rhs_expr);
         rhs_types.push_back(rhs_type);
     }
     
     if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr) {
-        if (auto tuple = dynamic_cast<types::Tuple *>(rhs_types.at(0))) {
+        if (types::Tuple *tuple = dynamic_cast<types::Tuple *>(rhs_types.at(0))) {
             rhs_types.clear();
             rhs_types.reserve(tuple->variables().size());
-            for (auto var : tuple->variables()) {
+            for (types::Variable *var : tuple->variables()) {
                 rhs_types.push_back(var->type());
             }
         }
     }
     if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr) {
-        types::ExprKind rhs_kind = info_->ExprKindOf(assign_stmt->rhs_.at(0).get()).value();
+        types::ExprKind rhs_kind = info_->ExprKindOf(assign_stmt->rhs().at(0)).value();
         if (rhs_kind == types::ExprKind::kValueOk) {
             if (lhs_types.size() > 2) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -247,8 +245,8 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
         types::Type *lhs_type = lhs_types.at(i);
         types::Type *rhs_type = rhs_types.at(i);
         
-        if (assign_stmt->tok_ == tokens::kDefine) {
-            ast::Ident *ident = dynamic_cast<ast::Ident *>(assign_stmt->lhs_.at(i).get());
+        if (assign_stmt->tok() == tokens::kDefine) {
+            ast::Ident *ident = dynamic_cast<ast::Ident *>(assign_stmt->lhs().at(i));
             types::Variable *var = dynamic_cast<types::Variable *>(info_->DefinitionOf(ident));
             if (var != nullptr && rhs_type != nullptr) {
                 info_builder_.SetObjectType(var, rhs_type);
@@ -259,19 +257,19 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
         if (lhs_type == nullptr || rhs_type == nullptr) {
             continue;
         } else if (!types::IsAssignableTo(rhs_type, lhs_type)) {
-            if (assign_stmt->rhs_.size() == assign_stmt->lhs_.size()) {
+            if (assign_stmt->rhs().size() == assign_stmt->lhs().size()) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
-                                                {assign_stmt->lhs_.at(i)->start(),
-                                                 assign_stmt->rhs_.at(i)->start()},
+                                                {assign_stmt->lhs().at(i)->start(),
+                                                 assign_stmt->rhs().at(i)->start()},
                                                 "can not assign value of type "
                                                 + rhs_type->ToString() + "to operand of type "
                                                 + lhs_type->ToString() + ""));
             } else {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
-                                                {assign_stmt->lhs_.at(i)->start(),
-                                                 assign_stmt->rhs_.at(0)->start()},
+                                                {assign_stmt->lhs().at(i)->start(),
+                                                 assign_stmt->rhs().at(0)->start()},
                                                 "can not assign argument to parameter"));
             }
         }
@@ -279,15 +277,15 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
 }
 
 void StmtHandler::CheckExprStmt(ast::ExprStmt *expr_stmt) {
-    ExprHandler::ProcessExpr(expr_stmt->x_.get(), info_builder_, issues_);
+    ExprHandler::ProcessExpr(expr_stmt->x(), info_builder_, issues_);
 }
 
 void StmtHandler::CheckIncDecStmt(ast::IncDecStmt *inc_dec_stmt) {
-    if (!ExprHandler::ProcessExpr(inc_dec_stmt->x_.get(), info_builder_, issues_)) {
+    if (!ExprHandler::ProcessExpr(inc_dec_stmt->x(), info_builder_, issues_)) {
         return;
     }
     
-    types::Type *x_type = info_->TypeOf(inc_dec_stmt->x_.get());
+    types::Type *x_type = info_->TypeOf(inc_dec_stmt->x());
     types::Basic *underlying_type = dynamic_cast<types::Basic *>(x_type->Underlying());
     if (underlying_type == nullptr ||
         !(underlying_type->info() & types::Basic::Info::kIsInteger)) {
@@ -301,16 +299,16 @@ void StmtHandler::CheckIncDecStmt(ast::IncDecStmt *inc_dec_stmt) {
 void StmtHandler::CheckReturnStmt(ast::ReturnStmt *return_stmt, Context ctx) {
     std::vector<types::Type *> result_types;
     bool ok = true;
-    for (auto& result_expr : return_stmt->results_) {
-        ok = ExprHandler::ProcessExpr(result_expr.get(), info_builder_, issues_) && ok;
-        types::Type *result_type = info_->TypeOf(result_expr.get());
+    for (ast::Expr *result_expr : return_stmt->results()) {
+        ok = ExprHandler::ProcessExpr(result_expr, info_builder_, issues_) && ok;
+        types::Type *result_type = info_->TypeOf(result_expr);
         result_types.push_back(result_type);
     }
     if (!ok) {
         return;
     }
     
-    if (return_stmt->results_.size() == 1) {
+    if (return_stmt->results().size() == 1) {
         types::Tuple *result_tuple = dynamic_cast<types::Tuple *>(result_types.at(0));
         if (result_tuple) {
             if (!types::IsAssignableTo(result_tuple, ctx.func_results)) {
@@ -334,7 +332,7 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt *return_stmt, Context ctx) {
     for (int i = 0; i < result_types.size(); i++) {
         types::Type *expected_result_type = ctx.func_results->variables().at(i)->type();
         types::Type *given_result_type = result_types.at(i);
-        ast::Expr *result_expr = return_stmt->results_.at(i).get();
+        ast::Expr *result_expr = return_stmt->results().at(i);
         if (!types::IsAssignableTo(given_result_type, expected_result_type)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
@@ -347,46 +345,46 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt *return_stmt, Context ctx) {
 }
 
 void StmtHandler::CheckIfStmt(ast::IfStmt *if_stmt, Context ctx) {
-    if (if_stmt->init_) {
-        CheckStmt(if_stmt->init_.get(), ctx);
+    if (if_stmt->init_stmt()) {
+        CheckStmt(if_stmt->init_stmt(), ctx);
     }
-    if (ExprHandler::ProcessExpr(if_stmt->cond_.get(), info_builder_, issues_)) {
-        types::Type *cond_type = info_->TypeOf(if_stmt->cond_.get());
+    if (ExprHandler::ProcessExpr(if_stmt->cond_expr(), info_builder_, issues_)) {
+        types::Type *cond_type = info_->TypeOf(if_stmt->cond_expr());
         types::Basic *underlying_type = dynamic_cast<types::Basic *>(cond_type->Underlying());
         if (underlying_type == nullptr ||
             !(underlying_type->info() & types::Basic::Info::kIsBoolean)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            if_stmt->cond_->start(),
+                                            if_stmt->cond_expr()->start(),
                                             "invalid operation: expected boolean type"));
         }
     }
     
     ctx.can_fallthrough = false;
-    CheckBlockStmt(if_stmt->body_.get(), ctx);
-    if (if_stmt->else_) {
-        CheckStmt(if_stmt->else_.get(), ctx);
+    CheckBlockStmt(if_stmt->body(), ctx);
+    if (if_stmt->else_stmt()) {
+        CheckStmt(if_stmt->else_stmt(), ctx);
     }
 }
 
-void StmtHandler::CheckExprSwitchStmt(ast::SwitchStmt *switch_stmt, Context ctx) {
-    if (switch_stmt->init_) {
-        CheckStmt(switch_stmt->init_.get(), ctx);
+void StmtHandler::CheckExprSwitchStmt(ast::ExprSwitchStmt *switch_stmt, Context ctx) {
+    if (switch_stmt->init_stmt()) {
+        CheckStmt(switch_stmt->init_stmt(), ctx);
     }
     types::Type *tag_type = info_->basic_type(types::Basic::Kind::kUntypedBool);
-    if (switch_stmt->tag_) {
-        if (ExprHandler::ProcessExpr(switch_stmt->tag_.get(), info_builder_, issues_)) {
-            tag_type = info_->TypeOf(switch_stmt->tag_.get());
+    if (switch_stmt->tag_expr()) {
+        if (ExprHandler::ProcessExpr(switch_stmt->tag_expr(), info_builder_, issues_)) {
+            tag_type = info_->TypeOf(switch_stmt->tag_expr());
         } else {
             tag_type = nullptr;
         }
     }
     ctx.can_break = true;
     bool seen_default = false;
-    for (int i = 0; i < switch_stmt->body_->stmts_.size(); i++) {
-        std::unique_ptr<ast::Stmt>& stmt = switch_stmt->body_->stmts_.at(i);
-        ast::CaseClause *case_clause = static_cast<ast::CaseClause *>(stmt.get());
-        if (case_clause->tok_ == tokens::kDefault) {
+    for (int i = 0; i < switch_stmt->body()->stmts().size(); i++) {
+        ast::Stmt *stmt = switch_stmt->body()->stmts().at(i);
+        ast::CaseClause *case_clause = static_cast<ast::CaseClause *>(stmt);
+        if (case_clause->tok() == tokens::kDefault) {
             if (seen_default) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
@@ -396,7 +394,7 @@ void StmtHandler::CheckExprSwitchStmt(ast::SwitchStmt *switch_stmt, Context ctx)
                 seen_default = true;
             }
         }
-        ctx.can_fallthrough = (i < switch_stmt->body_->stmts_.size() - 1);
+        ctx.can_fallthrough = (i < switch_stmt->body()->stmts().size() - 1);
         CheckExprCaseClause(case_clause, tag_type, ctx);
     }
 }
@@ -404,10 +402,10 @@ void StmtHandler::CheckExprSwitchStmt(ast::SwitchStmt *switch_stmt, Context ctx)
 void StmtHandler::CheckExprCaseClause(ast::CaseClause *case_clause,
                                       types::Type *tag_type,
                                       Context ctx) {
-    for (auto& expr : case_clause->cond_vals_) {
-        if (ExprHandler::ProcessExpr(expr.get(), info_builder_, issues_) &&
+    for (ast::Expr *expr : case_clause->cond_vals()) {
+        if (ExprHandler::ProcessExpr(expr, info_builder_, issues_) &&
             tag_type != nullptr) {
-            types::Type *expr_type = info_->TypeOf(expr.get());
+            types::Type *expr_type = info_->TypeOf(expr);
             if (!types::IsComparable(tag_type, expr_type, tokens::kEql)) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
@@ -417,33 +415,25 @@ void StmtHandler::CheckExprCaseClause(ast::CaseClause *case_clause,
             }
         }
     }
-    for (int i = 0; i < case_clause->body_.size(); i++) {
-        ast::Stmt *stmt = case_clause->body_.at(i).get();
-        ctx.is_last_stmt_in_block = (i == case_clause->body_.size());
+    for (int i = 0; i < case_clause->body().size(); i++) {
+        ast::Stmt *stmt = case_clause->body().at(i);
+        ctx.is_last_stmt_in_block = (i == case_clause->body().size());
         CheckStmt(stmt, ctx);
     }
 }
 
-void StmtHandler::CheckTypeSwitchStmt(ast::SwitchStmt *switch_stmt, Context ctx) {
-    ast::TypeAssertExpr *type_assert_expr = nullptr;
-    if (switch_stmt->init_) {
-        ast::AssignStmt *assign_stmt = static_cast<ast::AssignStmt *>(switch_stmt->init_.get());
-        type_assert_expr = static_cast<ast::TypeAssertExpr *>(assign_stmt->rhs_.at(0).get());
-    } else {
-        type_assert_expr = static_cast<ast::TypeAssertExpr *>(switch_stmt->tag_.get());
-    }
-    ast::Expr *x_expr = type_assert_expr->x_.get();
-    types::Type *x_type = nullptr;
-    if (ExprHandler::ProcessExpr(x_expr, info_builder_, issues_)) {
-        x_type = info_->TypeOf(x_expr);
+void StmtHandler::CheckTypeSwitchStmt(ast::TypeSwitchStmt *switch_stmt, Context ctx) {
+    types::Type *tag_type = nullptr;
+    if (ExprHandler::ProcessExpr(switch_stmt->tag_expr(), info_builder_, issues_)) {
+        tag_type = info_->TypeOf(switch_stmt->tag_expr());
     }
     ctx.can_break = true;
     ctx.can_fallthrough = false;
     bool seen_default = false;
-    for (int i = 0; i < switch_stmt->body_->stmts_.size(); i++) {
-        std::unique_ptr<ast::Stmt>& stmt = switch_stmt->body_->stmts_.at(i);
-        ast::CaseClause *case_clause = static_cast<ast::CaseClause *>(stmt.get());
-        if (case_clause->tok_ == tokens::kDefault) {
+    for (int i = 0; i < switch_stmt->body()->stmts().size(); i++) {
+        ast::Stmt *stmt = switch_stmt->body()->stmts().at(i);
+        ast::CaseClause *case_clause = static_cast<ast::CaseClause *>(stmt);
+        if (case_clause->tok() == tokens::kDefault) {
             if (seen_default) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
@@ -453,62 +443,61 @@ void StmtHandler::CheckTypeSwitchStmt(ast::SwitchStmt *switch_stmt, Context ctx)
                 seen_default = true;
             }
         }
-        CheckTypeCaseClause(case_clause, x_type, ctx);
+        CheckTypeCaseClause(case_clause, tag_type, ctx);
     }
 }
 
 void StmtHandler::CheckTypeCaseClause(ast::CaseClause *case_clause,
-                                      types::Type *x_type,
+                                      types::Type *tag_type,
                                       Context ctx) {
-    types::Type *implicit_x_type = x_type;
-    for (auto& expr : case_clause->cond_vals_) {
-        if (TypeHandler::ProcessTypeExpr(expr.get(), info_builder_, issues_) &&
-            x_type != nullptr) {
-            types::Type *specialised_type = info_->TypeOf(expr.get());
-            if (!types::IsAssertableTo(x_type, specialised_type)) {
+    types::Type *implicit_tag_type = tag_type;
+    for (ast::Expr *expr : case_clause->cond_vals()) {
+        if (TypeHandler::ProcessTypeExpr(expr, info_builder_, issues_) && tag_type != nullptr) {
+            types::Type *specialised_type = info_->TypeOf(expr);
+            if (!types::IsAssertableTo(tag_type, specialised_type)) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 expr->start(),
                                                 "invalid operation: value of type switch tag can "
                                                 "never have the given type"));
-            } else if (case_clause->cond_vals_.size() == 1) {
-                implicit_x_type = specialised_type;
+            } else if (case_clause->cond_vals().size() == 1) {
+                implicit_tag_type = specialised_type;
             }
         }
     }
-    types::Variable *implicit_x = static_cast<types::Variable *>(info_->ImplicitOf(case_clause));
-    info_builder_.SetObjectType(implicit_x, implicit_x_type);
+    types::Variable *implicit_tag = static_cast<types::Variable *>(info_->ImplicitOf(case_clause));
+    info_builder_.SetObjectType(implicit_tag, implicit_tag_type);
     
-    for (int i = 0; i < case_clause->body_.size(); i++) {
-        ast::Stmt *stmt = case_clause->body_.at(i).get();
-        ctx.is_last_stmt_in_block = (i == case_clause->body_.size());
+    for (int i = 0; i < case_clause->body().size(); i++) {
+        ast::Stmt *stmt = case_clause->body().at(i);
+        ctx.is_last_stmt_in_block = (i == case_clause->body().size());
         CheckStmt(stmt, ctx);
     }
 }
 
 void StmtHandler::CheckForStmt(ast::ForStmt *for_stmt, Context ctx) {
-    if (for_stmt->init_) {
-        CheckStmt(for_stmt->init_.get(), ctx);
+    if (for_stmt->init_stmt() != nullptr) {
+        CheckStmt(for_stmt->init_stmt(), ctx);
     }
-    if (ExprHandler::ProcessExpr(for_stmt->cond_.get(), info_builder_, issues_)) {
-        types::Type *cond_type = info_->TypeOf(for_stmt->cond_.get());
+    if (ExprHandler::ProcessExpr(for_stmt->cond_expr(), info_builder_, issues_)) {
+        types::Type *cond_type = info_->TypeOf(for_stmt->cond_expr());
         types::Basic *underlying_type = dynamic_cast<types::Basic *>(cond_type->Underlying());
         if (underlying_type == nullptr ||
             !(underlying_type->info() & types::Basic::Info::kIsBoolean)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            for_stmt->cond_->start(),
+                                            for_stmt->cond_expr()->start(),
                                             "invalid operation: expected boolean type"));
         }
     }
-    if (for_stmt->post_) {
-        CheckStmt(for_stmt->post_.get(), ctx);
+    if (for_stmt->post_stmt()) {
+        CheckStmt(for_stmt->post_stmt(), ctx);
     }
     
     ctx.can_break = true;
     ctx.can_continue = true;
     ctx.can_fallthrough = false;
-    CheckBlockStmt(for_stmt->body_.get(), ctx);
+    CheckBlockStmt(for_stmt->body(), ctx);
 }
 
 void StmtHandler::CheckBranchStmt(ast::BranchStmt *branch_stmt, Context ctx) {
@@ -522,15 +511,15 @@ void StmtHandler::CheckBranchStmt(ast::BranchStmt *branch_stmt, Context ctx) {
     ast::Stmt *labeled_destination = nullptr;
     bool destination_is_labeled_loop = false;
     bool destination_is_labeled_switch = false;
-    if (branch_stmt->label_) {
-        if(branch_stmt->tok_ == tokens::kFallthrough) {
+    if (branch_stmt->label() != nullptr) {
+        if(branch_stmt->tok() == tokens::kFallthrough) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             branch_stmt->start(),
                                             "fallthrough with label is now allowed"));
             return;
         }
-        auto it = ctx.labels.find(branch_stmt->label_->name_);
+        auto it = ctx.labels.find(branch_stmt->label()->name());
         if (it == ctx.labels.end()) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
@@ -542,10 +531,11 @@ void StmtHandler::CheckBranchStmt(ast::BranchStmt *branch_stmt, Context ctx) {
         destination_is_labeled_loop =
             (dynamic_cast<ast::ForStmt *>(labeled_destination) != nullptr);
         destination_is_labeled_switch =
-            (dynamic_cast<ast::SwitchStmt *>(labeled_destination) != nullptr);
+            (dynamic_cast<ast::ExprSwitchStmt *>(labeled_destination) != nullptr) ||
+            (dynamic_cast<ast::TypeSwitchStmt *>(labeled_destination) != nullptr);
     }
     
-    switch (branch_stmt->tok_) {
+    switch (branch_stmt->tok()) {
         case tokens::kBreak:
             if (labeled_destination == nullptr) {
                 if (!ctx.can_break) {

@@ -22,7 +22,7 @@ namespace lang {
 namespace type_checker {
 
 types::Package * Check(std::string package_path,
-                       std::vector<ast::File *> package_files,
+                       ast::Package *package,
                        std::function<types::Package *(std::string)> importer,
                        types::Info *info,
                        std::vector<issues::Issue>& issues);

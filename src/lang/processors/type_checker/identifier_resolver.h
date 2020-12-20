@@ -67,7 +67,10 @@ private:
     
     void ResolveIdentifiersInTypeParamList(ast::TypeParamList *type_param_list,
                                            types::Scope *scope);
-    void ResolveIdentifiersInFuncReceiverFieldList(ast::FieldList *field_list, types::Scope *scope);
+    void ResolveIdentifiersInExprReceiver(ast::ExprReceiver *expr_receiver,
+                                          types::Scope *scope);
+    void ResolveIdentifiersInTypeReceiver(ast::TypeReceiver *type_receiver,
+                                          types::Scope *scope);
     void ResolveIdentifiersInRegularFuncFieldList(ast::FieldList *field_list, types::Scope *scope);
     
     void ResolveIdentifiersInStmt(ast::Stmt *stmt, types::Scope *scope);
@@ -75,10 +78,11 @@ private:
     void ResolveIdentifiersInDeclStmt(ast::DeclStmt *decl_stmt, types::Scope *scope);
     void ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_stmt, types::Scope *scope);
     void ResolveIdentifiersInIfStmt(ast::IfStmt *if_stmt, types::Scope *scope);
-    void ResolveIdentifiersInSwitchStmt(ast::SwitchStmt *switch_stmt, types::Scope *scope);
+    void ResolveIdentifiersInExprSwitchStmt(ast::ExprSwitchStmt *switch_stmt, types::Scope *scope);
+    void ResolveIdentifiersInTypeSwitchStmt(ast::TypeSwitchStmt *switch_stmt, types::Scope *scope);
     void ResolveIdentifiersInCaseClause(ast::CaseClause *case_clause,
                                         types::Scope *scope,
-                                        ast::Ident *type_switch_var_ident = nullptr);
+                                        ast::Ident *type_switch_var = nullptr);
     void ResolveIdentifiersInForStmt(ast::ForStmt *for_stmt, types::Scope *scope);
     void ResolveIdentifiersInBranchStmt(ast::BranchStmt *branch_stmt, types::Scope *scope);
     

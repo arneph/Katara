@@ -11,6 +11,7 @@
 
 #include <vector>
 
+#include "lang/representation/positions/positions.h"
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/types/types.h"
 #include "lang/representation/types/objects.h"
@@ -41,7 +42,7 @@ private:
     bool CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr *binary_expr);
     bool CheckBinaryShiftExpr(ast::BinaryExpr *binary_expr);
     bool CheckBinaryLogicExpr(ast::BinaryExpr *binary_expr);
-    bool CheckBinaryComparisonExpr(ast::BinaryExpr *binary_expr);
+    bool CheckCompareExpr(ast::CompareExpr *compare_expr);
     bool CheckParenExpr(ast::ParenExpr *paren_expr);
     
     bool CheckSelectionExpr(ast::SelectionExpr *selection_expr);
@@ -49,20 +50,11 @@ private:
     bool CheckIndexExpr(ast::IndexExpr *index_expr);
     
     bool CheckCallExpr(ast::CallExpr *call_expr);
-    bool CheckCallExprWithTypeConversion(ast::CallExpr *call_expr,
-                                         ast::Expr *func_expr,
-                                         ast::TypeArgList *type_args_expr,
-                                         std::vector<ast::Expr *> arg_exprs);
-    bool CheckCallExprWithBuiltin(ast::CallExpr *call_expr,
-                                 ast::Expr *func_expr,
-                                 ast::TypeArgList *type_args_expr,
-                                 std::vector<ast::Expr *> arg_exprs);
-    bool CheckCallExprWithFuncCall(ast::CallExpr *call_expr,
-                                   ast::Expr *func_expr,
-                                   ast::TypeArgList *type_args_expr,
-                                   std::vector<ast::Expr *> arg_exprs);
+    bool CheckCallExprWithTypeConversion(ast::CallExpr *call_expr);
+    bool CheckCallExprWithBuiltin(ast::CallExpr *call_expr);
+    bool CheckCallExprWithFuncCall(ast::CallExpr *call_expr);
     types::Signature * CheckFuncCallTypeArgs(types::Signature *signature,
-                                             ast::TypeArgList *type_args_expr);
+                                             std::vector<ast::Expr *> type_arg_exprs);
     void CheckFuncCallArgs(types::Signature *signature,
                            ast::CallExpr *call_expr,
                            std::vector<ast::Expr *> arg_exprs);

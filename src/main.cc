@@ -55,8 +55,6 @@ void run_lang_test(std::filesystem::path test_dir) {
     std::string test_name = test_dir.filename();
     std::cout << "testing " + test_name << "\n";
     
-    std::filesystem::path out_file_base = test_dir / test_name;
-    
     lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib");
     lang::packages::Package *pkg = pkg_manager.LoadPackage(test_dir);
     
@@ -98,17 +96,15 @@ void run_lang_test(std::filesystem::path test_dir) {
             }
         }
     }
-    for (auto &ast : pkg->ast_files()) {
-        vcg::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast.get());
+    for (auto [name, ast_file] : pkg->ast_package()->files()) {
+        vcg::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast_file);
         
-        to_file(ast_graph.ToVCGFormat(),
-                out_file_base.string() + ".ast.vcg");
+        to_file(ast_graph.ToVCGFormat(), test_dir.string() + "/" + name + ".ast.vcg");
     }
     
     std::string type_info = lang::types::InfoToText(pkg_manager.file_set(),
                                                     pkg_manager.type_info());
-    to_file(type_info,
-            out_file_base.string() + ".types.txt");
+    to_file(type_info, test_dir.string() + "/" + pkg->name() + ".types.txt");
 }
 
 void test_lang() {

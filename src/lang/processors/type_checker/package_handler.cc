@@ -62,9 +62,9 @@ PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
 
 void PackageHandler::FindActions() {
     for (ast::File *file : package_files_) {
-        for (auto& decl : file->decls_) {
-            if (auto gen_decl = dynamic_cast<ast::GenDecl *>(decl.get())) {
-                switch (gen_decl->tok_) {
+        for (ast::Decl *decl : file->decls()) {
+            if (ast::GenDecl *gen_decl = dynamic_cast<ast::GenDecl *>(decl)) {
+                switch (gen_decl->tok()) {
                     case tokens::kImport:
                         break;
                     case tokens::kType:
@@ -79,7 +79,7 @@ void PackageHandler::FindActions() {
                     default:
                         throw "internal error: unexpected lang::ast::GenDecl";
                 }
-            } else if (auto func_decl = dynamic_cast<ast::FuncDecl *>(decl.get())) {
+            } else if (ast::FuncDecl *func_decl = dynamic_cast<ast::FuncDecl *>(decl)) {
                 FindActionsForFuncDecl(func_decl);
             }
         }
@@ -87,22 +87,22 @@ void PackageHandler::FindActions() {
 }
 
 void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
-    for (auto& spec : type_decl->specs_) {
-        ast::TypeSpec *type_spec = static_cast<ast::TypeSpec *>(spec.get());
+    for (ast::Spec *spec : type_decl->specs()) {
+        ast::TypeSpec *type_spec = static_cast<ast::TypeSpec *>(spec);
         types::TypeName *type_name =
-            static_cast<types::TypeName *>(info_->definitions().at(type_spec->name_.get()));
+            static_cast<types::TypeName *>(info_->definitions().at(type_spec->name()));
         
         std::unordered_set<types::Object *> defined_objects;
         defined_objects.insert(type_name);
         std::unordered_set<types::Object *> param_prerequisites;
-        if (type_spec->type_params_) {
-            for (auto &type_param_expr : type_spec->type_params_->params_) {
-                ast::Ident *type_param_name = type_param_expr->name_.get();
+        if (type_spec->type_params()) {
+            for (ast::TypeParam *type_param_expr : type_spec->type_params()->params()) {
+                ast::Ident *type_param_name = type_param_expr->name();
                 types::Object *type_param = info_->DefinitionOf(type_param_name);
                 defined_objects.insert(type_param);
             }
             
-            param_prerequisites = FindPrerequisites(type_spec->type_params_.get());
+            param_prerequisites = FindPrerequisites(type_spec->type_params());
             for (types::Object *prerequisite : param_prerequisites) {
                 if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
                     dynamic_cast<types::Constant *>(prerequisite) == nullptr) {
@@ -115,7 +115,7 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
         }
         
         std::unordered_set<types::Object *> underlying_prerequisites =
-            FindPrerequisites(type_spec->type_.get());
+            FindPrerequisites(type_spec->type());
         for (types::Object *prerequisite : underlying_prerequisites) {
             if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
                 dynamic_cast<types::Constant *>(prerequisite) == nullptr) {
@@ -129,7 +129,7 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
         Action *param_action = CreateAction(param_prerequisites,
                                             defined_objects,
                                             [=]() -> bool {
-            if (type_spec->type_params_ == nullptr) {
+            if (type_spec->type_params() == nullptr) {
                 return true;
             }
             return TypeHandler::ProcessTypeParametersOfTypeName(type_name,
@@ -152,26 +152,26 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
 
 void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
     int64_t iota = 0;
-    for (auto& spec : const_decl->specs_) {
-        ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec.get());
+    for (ast::Spec *spec : const_decl->specs()) {
+        ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec);
         
-        for (size_t i = 0; i < value_spec->names_.size(); i++) {
-            ast::Ident *name = value_spec->names_.at(i).get();
+        for (size_t i = 0; i < value_spec->names().size(); i++) {
+            ast::Ident *name = value_spec->names().at(i);
             types::Constant *constant =
                 static_cast<types::Constant *>(info_->definitions().at(name));
             
             ast::Expr *type_expr = nullptr;
             ast::Expr *value = nullptr;
             std::unordered_set<types::Object *> prerequisites;
-            if (value_spec->type_) {
-                type_expr = value_spec->type_.get();
+            if (value_spec->type()) {
+                type_expr = value_spec->type();
                 std::unordered_set<types::Object *> type_prerequisites =
                     FindPrerequisites(type_expr);
                 prerequisites.insert(type_prerequisites.begin(),
                                      type_prerequisites.end());
             }
-            if (value_spec->values_.size() > i) {
-                value = value_spec->values_.at(i).get();
+            if (value_spec->values().size() > i) {
+                value = value_spec->values().at(i);
                 std::unordered_set<types::Object *> value_prerequisites =
                     FindPrerequisites(value);
                 prerequisites.insert(value_prerequisites.begin(),
@@ -214,13 +214,13 @@ void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
 }
 
 void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
-    for (auto& spec : var_decl->specs_) {
-        ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec.get());
+    for (ast::Spec *spec : var_decl->specs()) {
+        ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec);
         
         ast::Expr *type_expr = nullptr;
         std::unordered_set<types::Object *> type_prerequisites;
-        if (value_spec->type_) {
-            type_expr = value_spec->type_.get();
+        if (value_spec->type()) {
+            type_expr = value_spec->type();
             type_prerequisites = FindPrerequisites(type_expr);
             for (types::Object *prerequisite : type_prerequisites) {
                 if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
@@ -234,18 +234,18 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
             }
         }
         
-        if (value_spec->names_.size() > 1 && value_spec->values_.size() == 1) {
+        if (value_spec->names().size() > 1 && value_spec->values().size() == 1) {
             std::vector<types::Variable *> variables;
             std::unordered_set<types::Object *> objects;
-            for (auto& name : value_spec->names_) {
+            for (ast::Ident *name : value_spec->names()) {
                 types::Variable *variable =
-                    static_cast<types::Variable *>(info_->definitions().at(name.get()));
+                    static_cast<types::Variable *>(info_->definitions().at(name));
                 
                 variables.push_back(variable);
                 objects.insert(variable);
             }
             
-            ast::Expr *value = value_spec->values_.at(0).get();
+            ast::Expr *value = value_spec->values().at(0);
             std::unordered_set<types::Object *> prerequisites = FindPrerequisites(value);
             prerequisites.insert(type_prerequisites.begin(),
                                  type_prerequisites.end());
@@ -270,8 +270,8 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
             variable_and_func_decl_actions_.push_back(action);
             
         } else {
-            for (size_t i = 0; i < value_spec->names_.size(); i++) {
-                ast::Ident *name = value_spec->names_.at(i).get();
+            for (size_t i = 0; i < value_spec->names().size(); i++) {
+                ast::Ident *name = value_spec->names().at(i);
                 types::Variable *variable =
                     static_cast<types::Variable *>(info_->definitions().at(name));
                 
@@ -279,8 +279,8 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
                 std::unordered_set<types::Object *> prerequisites;
                 prerequisites.insert(type_prerequisites.begin(),
                                      type_prerequisites.end());
-                if (value_spec->values_.size() > i) {
-                    value = value_spec->values_.at(i).get();
+                if (value_spec->values().size() > i) {
+                    value = value_spec->values().at(i);
                     std::unordered_set<types::Object *> value_prerequisites
                         = FindPrerequisites(value);
                     prerequisites.insert(value_prerequisites.begin(),
@@ -311,8 +311,8 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
 }
 
 void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
-    ast::Ident *name = func_decl->name_.get();
-    ast::BlockStmt *body = func_decl->body_.get();
+    ast::Ident *name = func_decl->name();
+    ast::BlockStmt *body = func_decl->body();
     types::Func *func = static_cast<types::Func *>(info_->definitions().at(name));
     
     std::unordered_set<types::Object *> prerequisites = FindPrerequisites(func_decl);
@@ -346,7 +346,7 @@ std::unordered_set<types::Object *> PackageHandler::FindPrerequisites(ast::Node 
         if (node == nullptr) {
             return walker;
         }
-        auto ident = dynamic_cast<ast::Ident *>(node);
+        ast::Ident *ident = dynamic_cast<ast::Ident *>(node);
         if (ident == nullptr) {
             return walker;
         }
