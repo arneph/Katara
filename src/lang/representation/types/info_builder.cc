@@ -283,17 +283,6 @@ Interface * InfoBuilder::CreateInterface() {
     return interface_ptr;
 }
 
-Type * InfoBuilder::CreateUnderlyingTypeOfTypeInstance(TypeInstance *type_instance) {
-    TypeParamsToArgsMap type_params_to_args;
-    for (int i = 0; i < type_instance->instantiated_type()->type_parameters().size(); i++) {
-        TypeParameter *type_param = type_instance->instantiated_type()->type_parameters().at(i);
-        Type *type_arg = type_instance->type_args().at(i);
-        type_params_to_args.insert({type_param, type_arg});
-    }
-    return InstantiateType(type_instance->instantiated_type()->underlying(),
-                           type_params_to_args);
-}
-
 Signature * InfoBuilder::InstantiateFuncSignature(Signature * parameterized_signature,
                                                   TypeParamsToArgsMap& type_params_to_args) {
     if (parameterized_signature->type_parameters().empty()) {
@@ -303,11 +292,11 @@ Signature * InfoBuilder::InstantiateFuncSignature(Signature * parameterized_sign
     }
     Tuple *parameters = parameterized_signature->parameters();
     if (parameters != nullptr) {
-        parameters = static_cast<Tuple *>(InstantiateType(parameters, type_params_to_args));
+        parameters = static_cast<Tuple *>(InstantiateTuple(parameters, type_params_to_args));
     }
     Tuple *results = parameterized_signature->results();
     if (results != nullptr) {
-        results = static_cast<Tuple *>(InstantiateType(results, type_params_to_args));
+        results = static_cast<Tuple *>(InstantiateTuple(results, type_params_to_args));
     }
     return CreateSignature(parameters, results);
 }
@@ -320,11 +309,11 @@ Signature * InfoBuilder::InstantiateMethodSignature(Signature * parameterized_si
     }
     Tuple *parameters = parameterized_signature->parameters();
     if (parameters != nullptr) {
-        parameters = static_cast<Tuple *>(InstantiateType(parameters, type_params_to_args));
+        parameters = static_cast<Tuple *>(InstantiateTuple(parameters, type_params_to_args));
     }
     Tuple *results = parameterized_signature->results();
     if (results != nullptr) {
-        results = static_cast<Tuple *>(InstantiateType(results, type_params_to_args));
+        results = static_cast<Tuple *>(InstantiateTuple(results, type_params_to_args));
     }
     if (receiver_to_arg) {
         if (parameterized_signature->expr_receiver() == nullptr) {
@@ -352,163 +341,211 @@ Type * InfoBuilder::InstantiateType(Type *parameterized_type,
     if (nullptr != dynamic_cast<Basic *>(parameterized_type)) {
         return parameterized_type;
         
-    } else if (auto pointer_type = dynamic_cast<Pointer *>(parameterized_type)) {
-        Type *element_type = pointer_type->element_type();
-        Type *element_type_instance = InstantiateType(element_type, type_params_to_args);
-        if (element_type == element_type_instance) {
-            return pointer_type;
-        }
-        return CreatePointer(pointer_type->kind(), element_type_instance);
+    } else if (Pointer *pointer = dynamic_cast<Pointer *>(parameterized_type)) {
+        return InstantiatePointer(pointer, type_params_to_args);
         
-    } else if (auto array_type = dynamic_cast<Array *>(parameterized_type)) {
-        Type *element_type = array_type->element_type();
-        Type *element_type_instance = InstantiateType(element_type, type_params_to_args);
-        if (element_type == element_type_instance) {
-            return array_type;
-        }
-        return CreateArray(element_type_instance, array_type->length());
+    } else if (Array *array = dynamic_cast<Array *>(parameterized_type)) {
+        return InstantiateArray(array, type_params_to_args);
         
-    } else if (auto slice_type = dynamic_cast<Slice *>(parameterized_type)) {
-        Type *element_type = slice_type->element_type();
-        Type *element_type_instance = InstantiateType(element_type, type_params_to_args);
-        if (element_type == element_type_instance) {
-            return slice_type;
-        }
-        return CreateSlice(element_type_instance);
+    } else if (Slice *slice = dynamic_cast<Slice *>(parameterized_type)) {
+        return InstantiateSlice(slice, type_params_to_args);
     
-    } else if (auto type_parameter = dynamic_cast<TypeParameter *>(parameterized_type)) {
-        if (!type_params_to_args.contains(type_parameter)) {
-            throw "internal error: type argument for type parameter not found";
-        }
-        return type_params_to_args.at(type_parameter);
+    } else if (TypeParameter* type_parameter = dynamic_cast<TypeParameter *>(parameterized_type)) {
+        return InstantiateTypeParameter(type_parameter, type_params_to_args);
         
-    } else if (auto named_type = dynamic_cast<NamedType *>(parameterized_type)) {
-        if (!named_type->type_parameters().empty()) {
-            throw "internal error: attempted to instantiate nested named type with type parameters";
-        }
-        return named_type;
+    } else if (NamedType *named_type = dynamic_cast<NamedType *>(parameterized_type)) {
+        return InstantiateNamedType(named_type);
         
-    } else if (auto type_instance = dynamic_cast<TypeInstance *>(parameterized_type)) {
-        bool instantiated_type_arg = false;
-        std::vector<Type *>type_arg_instances;
-        type_arg_instances.reserve(type_instance->type_args().size());
-        for (auto type_arg : type_instance->type_args()) {
-            Type *type_arg_instance = InstantiateType(type_arg,
-                                                      type_params_to_args);
-            if (type_arg != type_arg_instance) {
-                instantiated_type_arg = true;
-            }
-            type_arg_instances.push_back(type_arg_instance);
-        }
-        if (!instantiated_type_arg) {
-            return type_instance;
-        }
-        return CreateTypeInstance(type_instance->instantiated_type(),
-                                  type_arg_instances);
+    } else if (TypeInstance *type_instance = dynamic_cast<TypeInstance *>(parameterized_type)) {
+        return InstantiateTypeInstance(type_instance, type_params_to_args);
         
-    } else if (auto tuple = dynamic_cast<Tuple *>(parameterized_type)) {
-        bool instantiated_var_type = false;
-        std::vector<Variable *> var_instances;
-        var_instances.reserve(tuple->variables().size());
-        for (auto var : tuple->variables()) {
-            Type *var_type = var->type();
-            Type *var_type_instance = InstantiateType(var_type, type_params_to_args);
-            if (var_type == var_type_instance) {
-                var_instances.push_back(var);
-                continue;
-            }
-            instantiated_var_type = true;
-            Variable *var_instance = CreateVariable(var->parent(),
-                                                    var->package(),
-                                                    var->position(),
-                                                    var->name(),
-                                                    var->is_embedded(),
-                                                    var->is_field());
-            SetObjectType(var_instance, var_type_instance);
-            var_instances.push_back(var_instance);
-        }
-        if (!instantiated_var_type) {
-            return tuple;
-        }
-        return CreateTuple(var_instances);
+    } else if (Tuple *tuple = dynamic_cast<Tuple *>(parameterized_type)) {
+        return InstantiateTuple(tuple, type_params_to_args);
         
-    } else if (auto signature = dynamic_cast<Signature *>(parameterized_type)) {
-        if (!signature->type_parameters().empty()) {
-            throw "internal error: attempted to instantiate nested signature with type parameters";
-        } else if (signature->expr_receiver() != nullptr ||
-                   signature->type_receiver() != nullptr) {
-            throw "internal error: attempted to instantiate nested signature with receiver";
-        }
+    } else if (Signature *signature = dynamic_cast<Signature *>(parameterized_type)) {
+        return InstantiateSignature(signature, type_params_to_args);
         
-        Tuple *parameters = signature->parameters();
-        if (parameters != nullptr) {
-            parameters = static_cast<Tuple *>(InstantiateType(parameters, type_params_to_args));
-        }
-        Tuple *results = signature->results();
-        if (results != nullptr) {
-            results = static_cast<Tuple *>(InstantiateType(results, type_params_to_args));
-        }
-        if (parameters == signature->parameters() &&
-            results == signature->results()) {
-            return signature;
-        }
-        return CreateSignature(parameters, results);
+    } else if (Struct *struct_type = dynamic_cast<Struct *>(parameterized_type)) {
+        return InstantiateStruct(struct_type, type_params_to_args);
         
-    } else if (auto struct_type = dynamic_cast<Struct *>(parameterized_type)) {
-        bool instantiated_field = false;
-        std::vector<Variable *> field_instances;
-        field_instances.reserve(struct_type->fields().size());
-        for (auto field : struct_type->fields()) {
-            Type *field_type = field->type();
-            Type *field_type_instance = InstantiateType(field_type, type_params_to_args);
-            if (field_type == field_type_instance) {
-                field_instances.push_back(field);
-                continue;
-            }
-            instantiated_field = true;
-            Variable *field_instance = CreateVariable(field->parent(),
-                                                      field->package(),
-                                                      field->position(),
-                                                      field->name(),
-                                                      field->is_embedded(),
-                                                      field->is_field());
-            SetObjectType(field_instance, field_type_instance);
-            field_instances.push_back(field_instance);
-        }
-        if (!instantiated_field) {
-            return struct_type;
-        }
-        return CreateStruct(field_instances);
-        
-    } else if (auto interface_type = dynamic_cast<Interface *>(parameterized_type)) {
-        // TODO: support embedded interfaces
-        bool instantiated_method = false;
-        std::vector<Func *> method_instances;
-        method_instances.reserve(interface_type->methods().size());
-        for (auto method : interface_type->methods()) {
-            Type *method_type = method->type();
-            Type *method_type_instance = InstantiateType(method_type, type_params_to_args);
-            if (method_type == method_type_instance) {
-                method_instances.push_back(method);
-                continue;
-            }
-            instantiated_method = true;
-            Func *method_instance = CreateFunc(method->parent(),
-                                               method->package(),
-                                               method->position(),
-                                               method->name());
-            SetObjectType(method_instance, method_type);
-            method_instances.push_back(method_instance);
-        }
-        if (!instantiated_method) {
-            return interface_type;
-        }
-        types::Interface *interface_instance = CreateInterface();
-        SetInterfaceMembers(interface_instance, {}, method_instances);
-        return interface_instance;
+    } else if (Interface *interface = dynamic_cast<Interface *>(parameterized_type)) {
+        return InstantiateInterface(interface, type_params_to_args);
     } else {
         throw "internal error: unexpected type";
     }
+}
+
+Pointer * InfoBuilder::InstantiatePointer(Pointer *pointer,
+                                          TypeParamsToArgsMap& type_params_to_args) {
+    Type *element_type = pointer->element_type();
+    Type *element_type_instance = InstantiateType(element_type, type_params_to_args);
+    if (element_type == element_type_instance) {
+        return pointer;
+    }
+    return CreatePointer(pointer->kind(), element_type_instance);
+}
+
+Array * InfoBuilder::InstantiateArray(Array *array,
+                                      TypeParamsToArgsMap& type_params_to_args) {
+    Type *element_type = array->element_type();
+    Type *element_type_instance = InstantiateType(element_type, type_params_to_args);
+    if (element_type == element_type_instance) {
+        return array;
+    }
+    return CreateArray(element_type_instance, array->length());
+}
+
+Slice * InfoBuilder::InstantiateSlice(Slice *slice,
+                                      TypeParamsToArgsMap& type_params_to_args) {
+    Type *element_type = slice->element_type();
+    Type *element_type_instance = InstantiateType(element_type, type_params_to_args);
+    if (element_type == element_type_instance) {
+        return slice;
+    }
+    return CreateSlice(element_type_instance);
+}
+
+Type * InfoBuilder::InstantiateTypeParameter(TypeParameter *type_parameter,
+                                             TypeParamsToArgsMap& type_params_to_args) {
+    if (!type_params_to_args.contains(type_parameter)) {
+        throw "internal error: type argument for type parameter not found";
+    }
+    return type_params_to_args.at(type_parameter);
+}
+
+NamedType * InfoBuilder::InstantiateNamedType(NamedType *named_type) {
+    if (!named_type->type_parameters().empty()) {
+        throw "internal error: attempted to instantiate nested named type with type parameters";
+    }
+    return named_type;
+}
+
+TypeInstance * InfoBuilder::InstantiateTypeInstance(TypeInstance *type_instance,
+                                                    TypeParamsToArgsMap& type_params_to_args) {
+    bool instantiated_type_arg = false;
+    std::vector<Type *>type_arg_instances;
+    type_arg_instances.reserve(type_instance->type_args().size());
+    for (Type *type_arg : type_instance->type_args()) {
+        Type *type_arg_instance = InstantiateType(type_arg, type_params_to_args);
+        if (type_arg != type_arg_instance) {
+            instantiated_type_arg = true;
+        }
+        type_arg_instances.push_back(type_arg_instance);
+    }
+    if (!instantiated_type_arg) {
+        return type_instance;
+    }
+    return CreateTypeInstance(type_instance->instantiated_type(),
+                              type_arg_instances);
+}
+
+Tuple * InfoBuilder::InstantiateTuple(Tuple *tuple,
+                                      TypeParamsToArgsMap& type_params_to_args) {
+    bool instantiated_var_type = false;
+    std::vector<Variable *> var_instances;
+    var_instances.reserve(tuple->variables().size());
+    for (auto var : tuple->variables()) {
+        Type *var_type = var->type();
+        Type *var_type_instance = InstantiateType(var_type, type_params_to_args);
+        if (var_type == var_type_instance) {
+            var_instances.push_back(var);
+            continue;
+        }
+        instantiated_var_type = true;
+        Variable *var_instance = CreateVariable(var->parent(),
+                                                var->package(),
+                                                var->position(),
+                                                var->name(),
+                                                var->is_embedded(),
+                                                var->is_field());
+        SetObjectType(var_instance, var_type_instance);
+        var_instances.push_back(var_instance);
+    }
+    if (!instantiated_var_type) {
+        return tuple;
+    }
+    return CreateTuple(var_instances);
+}
+
+Signature * InfoBuilder::InstantiateSignature(Signature *signature,
+                                              TypeParamsToArgsMap& type_params_to_args) {
+    if (!signature->type_parameters().empty()) {
+        throw "internal error: attempted to instantiate nested signature with type parameters";
+    } else if (signature->expr_receiver() != nullptr ||
+               signature->type_receiver() != nullptr) {
+        throw "internal error: attempted to instantiate nested signature with receiver";
+    }
+    
+    Tuple *parameters = signature->parameters();
+    if (parameters != nullptr) {
+        parameters = static_cast<Tuple *>(InstantiateTuple(parameters, type_params_to_args));
+    }
+    Tuple *results = signature->results();
+    if (results != nullptr) {
+        results = static_cast<Tuple *>(InstantiateTuple(results, type_params_to_args));
+    }
+    if (parameters == signature->parameters() &&
+        results == signature->results()) {
+        return signature;
+    }
+    return CreateSignature(parameters, results);
+}
+
+Struct * InfoBuilder::InstantiateStruct(Struct *struct_type,
+                                        TypeParamsToArgsMap& type_params_to_args) {
+    bool instantiated_field = false;
+    std::vector<Variable *> field_instances;
+    field_instances.reserve(struct_type->fields().size());
+    for (Variable *field : struct_type->fields()) {
+        Type *field_type = field->type();
+        Type *field_type_instance = InstantiateType(field_type, type_params_to_args);
+        if (field_type == field_type_instance) {
+            field_instances.push_back(field);
+            continue;
+        }
+        instantiated_field = true;
+        Variable *field_instance = CreateVariable(field->parent(),
+                                                  field->package(),
+                                                  field->position(),
+                                                  field->name(),
+                                                  field->is_embedded(),
+                                                  field->is_field());
+        SetObjectType(field_instance, field_type_instance);
+        field_instances.push_back(field_instance);
+    }
+    if (!instantiated_field) {
+        return struct_type;
+    }
+    return CreateStruct(field_instances);
+}
+
+Interface * InfoBuilder::InstantiateInterface(Interface *interface,
+                                              TypeParamsToArgsMap& type_params_to_args) {
+    // TODO: support embedded interfaces
+    bool instantiated_method = false;
+    std::vector<Func *> method_instances;
+    method_instances.reserve(interface->methods().size());
+    for (Func *method : interface->methods()) {
+        Signature *method_sig = static_cast<Signature *>(method->type());
+        Signature *method_sig_instance = InstantiateSignature(method_sig, type_params_to_args);
+        if (method_sig == method_sig_instance) {
+            method_instances.push_back(method);
+            continue;
+        }
+        instantiated_method = true;
+        Func *method_instance = CreateFunc(method->parent(),
+                                           method->package(),
+                                           method->position(),
+                                           method->name());
+        SetObjectType(method_instance, method_sig_instance);
+        method_instances.push_back(method_instance);
+    }
+    if (!instantiated_method) {
+        return interface;
+    }
+    types::Interface *interface_instance = CreateInterface();
+    SetInterfaceMembers(interface_instance, {}, method_instances);
+    return interface_instance;
 }
 
 void InfoBuilder::SetTypeParameterInstance(TypeParameter *instantiated,
@@ -681,7 +718,7 @@ void InfoBuilder::CheckObjectArgs(Scope *parent,
 }
 
 void InfoBuilder::SetObjectType(TypedObject *object, Type *type) {
-    if (auto type_name = dynamic_cast<TypeName *>(object)) {
+    if (dynamic_cast<TypeName *>(object) != nullptr) {
         throw "internal error: attempted to set type name type as regular object type";
     } else if (object->type() != nullptr) {
         throw "internal error: attempted to set object type twice";
