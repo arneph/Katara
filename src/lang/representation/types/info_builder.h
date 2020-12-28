@@ -53,10 +53,9 @@ public:
                                 Tuple *parameters,
                                 Tuple *results);
     Struct * CreateStruct(std::vector<Variable *> fields);
-    Interface * CreateInterface(std::vector<NamedType *> embedded_interfaces);
+    Interface * CreateInterface();
     
-    TypeInstance * InstantiateNamedType(NamedType *parameterized_type,
-                                        TypeParamsToArgsMap& type_params_to_args);
+    Type * CreateUnderlyingTypeOfTypeInstance(TypeInstance *tpye_instance);
     Signature * InstantiateFuncSignature(Signature * parameterized_signature,
                                          TypeParamsToArgsMap& type_params_to_args);
     Signature * InstantiateMethodSignature(Signature * parameterized_signature,
@@ -65,15 +64,19 @@ public:
     Type * InstantiateType(Type *parameterized_type,
                            TypeParamsToArgsMap& type_params_to_args);
     
-    void SetInterfaceOfTypeParameter(TypeParameter *type_parameter,
-                                     Type *interface);
+    void SetTypeParameterInstance(TypeParameter *instantiated,
+                                  TypeParameter *instance);
+    void SetTypeParameterInterface(TypeParameter *type_parameter,
+                                   Interface *interface);
     void SetTypeParametersOfNamedType(NamedType *named_type,
                                       std::vector<TypeParameter *> type_parameters);
     void SetUnderlyingTypeOfNamedType(NamedType *named_type,
                                       Type *underlying_type);
     void AddMethodToNamedType(NamedType *named_type,
                               Func *method);
-    void SetMethodsOfInterface(Interface *interface, std::vector<Func *> methods);
+    void SetInterfaceMembers(Interface *interface,
+                             std::vector<NamedType *> embdedded_interfaces,
+                             std::vector<Func *> methods);
     
     TypeName * CreateTypeNameForTypeParameter(Scope *parent,
                                               Package *package,
@@ -108,7 +111,7 @@ public:
                                     std::string name,
                                     Package *referenced_package);
     
-    void SetObjectType(Object *object, Type *type);
+    void SetObjectType(TypedObject *object, Type *type);
     void SetConstantValue(Constant *constant, constants::Value value);
     
     void SetExprType(ast::Expr *expr, Type *type);
@@ -143,14 +146,9 @@ private:
     void CreatePredeclaredFuncs();
     
     TypeParameter * CreateTypeParameter(std::string name);
-    NamedType * CreateNamedType(bool is_alias,
-                                std::string name);
+    NamedType * CreateNamedType(bool is_alias, std::string name);
     
-    std::vector<Type *> InstantiateTypeParameters(std::vector<TypeParameter *> type_params,
-                                                  TypeParamsToArgsMap& type_params_to_args);
-    
-    void CheckObjectArgs(Scope *parent,
-                         Package *package) const;
+    void CheckObjectArgs(Scope *parent, Package *package) const;
     
     Info *info_;
     

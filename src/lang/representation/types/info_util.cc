@@ -65,7 +65,7 @@ void TypesToText(pos::FileSet *file_set,
         pos::Position pos = file_set->PositionFor(expr->start());
         max_pos = std::max(max_pos, pos.ToString().size());
         max_expr = std::max(max_expr, size_t(expr->end() - expr->start() + 1));
-        max_type = std::max(max_type, type->ToString().size());
+        max_type = std::max(max_type, type->ToString(StringRep::kExpanded).size());
     }
     for (auto& [expr, type] : info->types()) {
         pos::Position pos = file_set->PositionFor(expr->start());
@@ -74,7 +74,7 @@ void TypesToText(pos::FileSet *file_set,
         ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
         ss << std::setw(int(max_expr)) << std::left
         << file->contents(expr->start(), expr->end()) << " ";
-        ss << std::setw(int(max_type)) << std::left << type->ToString() << "\n";
+        ss << std::setw(int(max_type)) << std::left << type->ToString(StringRep::kExpanded) << "\n";
     }
     ss << "\n";
 }
@@ -138,16 +138,12 @@ void DefinitionsToText(pos::FileSet *file_set,
     size_t max_ident = 0;
     size_t max_obj = 0;
     for (auto& [ident, obj] : info->definitions()) {
-        if (obj->type() == nullptr) {
-            continue;
-        }
         pos::Position pos = file_set->PositionFor(ident->start());
         max_pos = std::max(max_pos, pos.ToString().size());
         max_ident = std::max(max_ident, ident->name().size());
         max_obj = std::max(max_obj, obj->ToString().size());
     }
     for (auto& [ident, obj] : info->definitions()) {
-        if (obj->type() == nullptr) continue;
         pos::Position pos = file_set->PositionFor(ident->start());
         
         ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
@@ -165,14 +161,12 @@ void UsesToText(pos::FileSet *file_set,
     size_t max_ident = 0;
     size_t max_obj = 0;
     for (auto& [ident, obj] : info->uses()) {
-        if (obj->type() == nullptr) continue;
         pos::Position pos = file_set->PositionFor(ident->start());
         max_pos = std::max(max_pos, pos.ToString().size());
         max_ident = std::max(max_ident, ident->name().size());
         max_obj = std::max(max_obj, obj->ToString().size());
     }
     for (auto& [ident, obj] : info->uses()) {
-        if (obj->type() == nullptr) continue;
         pos::Position pos = file_set->PositionFor(ident->start());
         
         ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
@@ -189,13 +183,11 @@ void ImplicitsToText(pos::FileSet *file_set,
     size_t max_pos = 0;
     size_t max_obj = 0;
     for (auto& [node, obj] : info->implicits()) {
-        if (obj->type() == nullptr) continue;
         pos::Position pos = file_set->PositionFor(node->start());
         max_pos = std::max(max_pos, pos.ToString().size());
         max_obj = std::max(max_obj, obj->ToString().size());
     }
     for (auto& [node, obj] : info->implicits()) {
-        if (obj->type() == nullptr) continue;
         pos::Position pos = file_set->PositionFor(node->start());
         
         ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";

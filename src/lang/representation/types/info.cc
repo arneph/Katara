@@ -111,9 +111,10 @@ Type * Info::TypeOf(ast::Expr *expr) const {
         return it->second;
     }
     if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
-        Object *ident_obj = ObjectOf(ident);
-        if (ident_obj) {
-            return ident_obj->type();
+        Object *obj = ObjectOf(ident);
+        TypedObject *typed_obj = dynamic_cast<types::TypedObject *>(obj);
+        if (typed_obj) {
+            return typed_obj->type();
         }
     }
     return nullptr;

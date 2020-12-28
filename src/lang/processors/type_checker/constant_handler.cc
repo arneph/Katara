@@ -8,6 +8,8 @@
 
 #include "constant_handler.h"
 
+#include "lang/representation/types/types_util.h"
+
 namespace lang {
 namespace type_checker {
 
@@ -47,7 +49,7 @@ bool ConstantHandler::ProcessConstantDefinition(types::Constant *constant,
     constants::Value value(int64_t{0});
     
     if (type != nullptr) {
-        basic_type = dynamic_cast<types::Basic *>(type->Underlying());
+        basic_type = dynamic_cast<types::Basic *>(types::UnderlyingOf(type));
         if (type == nullptr) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,

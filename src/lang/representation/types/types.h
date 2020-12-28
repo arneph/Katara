@@ -20,16 +20,19 @@ namespace types {
 class Variable;
 class Func;
 
+enum class StringRep {
+    kShort,
+    kExpanded,
+};
+
 class Type {
 public:
     virtual ~Type() {}
     
-    virtual Type * Underlying() = 0;
-    
-    virtual std::string ToString() const = 0;
+    virtual std::string ToString(StringRep rep) const = 0;
 };
 
-class Basic : public Type {
+class Basic final : public Type {
 public:
     typedef enum : int8_t {
         kBool,
@@ -66,17 +69,13 @@ public:
         kIsConstant = kIsBoolean | kIsNumeric | kIsString,
     } Info;
     
-    ~Basic() {}
+    Kind kind() const { return kind_; }
+    Info info() const { return info_; }
     
-    Kind kind() const;
-    Info info() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    Basic();
+    Basic(Kind kind, Info info) : kind_(kind), info_(info) {}
     
     Kind kind_;
     Info info_;
@@ -84,24 +83,26 @@ private:
     friend class InfoBuilder;
 };
 
-class Pointer : public Type {
+class Wrapper : public Type {
+public:
+    virtual ~Wrapper() {}
+    virtual Type * element_type() const = 0;
+};
+
+class Pointer final : public Wrapper {
 public:
     enum class Kind : int8_t {
         kStrong,
         kWeak,
     };
     
-    ~Pointer() {}
+    Kind kind() const { return kind_; }
+    Type * element_type() const override { return element_type_; }
     
-    Kind kind() const;
-    Type * element_type() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    Pointer() {}
+    Pointer(Kind kind, Type *element_type) : kind_(kind), element_type_(element_type) {}
     
     Kind kind_;
     Type *element_type_;
@@ -109,19 +110,20 @@ private:
     friend class InfoBuilder;
 };
 
-class Array : public Type {
+class Container : public Wrapper {
 public:
-    ~Array() {}
+    virtual ~Container() {}
+};
+
+class Array final : public Container {
+public:
+    Type * element_type() const override { return element_type_; }
+    uint64_t length() const { return length_; }
     
-    Type * element_type() const;
-    uint64_t length() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    Array() {}
+    Array(Type *element_type, uint64_t length) : element_type_(element_type), length_(length) {}
     
     Type *element_type_;
     uint64_t length_;
@@ -129,83 +131,75 @@ private:
     friend class InfoBuilder;
 };
 
-class Slice : public Type {
+class Slice final : public Container {
 public:
-    ~Slice() {}
+    Type * element_type() const override { return element_type_; }
     
-    Type * element_type() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    Slice() {}
+    Slice(Type* element_type) : element_type_(element_type) {}
     
     Type *element_type_;
     
     friend class InfoBuilder;
 };
 
-class TypeParameter : public Type {
+class Interface;
+
+class TypeParameter final : public Type {
 public:
-    ~TypeParameter() {}
+    std::string name() const { return name_; }
+    TypeParameter * instantiated_type_parameter() const { return instantiated_type_parameter_; }
+    Interface * interface() const { return interface_; }
     
-    std::string name() const;
-    Type * interface() const;
-    // Note: interface might return a NamedType, but the Underlying type should always be Interface
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    TypeParameter() {}
+    TypeParameter(std::string name)
+    : name_(name), instantiated_type_parameter_(nullptr), interface_(nullptr) {}
     
     std::string name_;
-    Type *interface_;
+    TypeParameter *instantiated_type_parameter_;
+    Interface *interface_;
     
     friend class InfoBuilder;
 };
 
-class NamedType : public Type {
+class NamedType final : public Type {
 public:
-    ~NamedType() {}
+    bool is_alias() const { return is_alias_; }
+    std::string name() const { return name_; }
+    Type * underlying() { return underlying_; }
+    const std::vector<TypeParameter *>& type_parameters() const { return type_parameters_; }
+    const std::unordered_map<std::string, Func *>& methods() const { return methods_; }
     
-    bool is_alias() const;
-    std::string name() const;
-    Type * type() const;
-    const std::vector<TypeParameter *>& type_parameters() const;
-    const std::unordered_map<std::string, Func *>& methods() const;
+    std::string ToString(StringRep rep) const override;
     
-    Type * Underlying();
-    
-    std::string ToString() const;
 private:
-    NamedType() {}
+    NamedType(bool is_alias, std::string name)
+    : is_alias_(is_alias), name_(name), underlying_(nullptr) {}
     
     bool is_alias_;
     std::string name_;
-    Type *type_;
+    Type *underlying_;
     std::vector<TypeParameter *> type_parameters_;
     std::unordered_map<std::string, Func *> methods_;
     
     friend class InfoBuilder;
 };
 
-class TypeInstance : public Type {
+class TypeInstance final : public Type {
 public:
-    ~TypeInstance() {}
+    NamedType * instantiated_type() const { return instantiated_type_; }
+    const std::vector<Type *>& type_args() const { return type_args_; }
     
-    NamedType * instantiated_type() const;
-    const std::vector<Type *>& type_args() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    TypeInstance() {}
+    TypeInstance(NamedType *instantiated_type,
+                 std::vector<Type *> type_args)
+    : instantiated_type_(instantiated_type), type_args_(type_args) {}
     
     NamedType *instantiated_type_;
     std::vector<Type *> type_args_;
@@ -213,40 +207,54 @@ private:
     friend class InfoBuilder;
 };
 
-class Tuple : public Type {
+class Tuple final : public Type {
 public:
-    ~Tuple() {}
+    const std::vector<Variable *>& variables() const { return variables_; }
     
-    const std::vector<Variable *>& variables() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    Tuple() {}
+    Tuple(std::vector<Variable *> variables) : variables_(variables) {}
     
     std::vector<Variable *> variables_;
     
     friend class InfoBuilder;
 };
 
-class Signature : public Type {
+class Signature final : public Type {
 public:
-    ~Signature() {}
+    Variable * expr_receiver() const { return expr_receiver_; }
+    Type * type_receiver() const { return type_receiver_; }
+    const std::vector<TypeParameter *>& type_parameters() const { return type_parameters_; }
+    Tuple * parameters() const { return parameters_; }
+    Tuple * results() const { return results_; }
     
-    Variable * expr_receiver() const;
-    Type * type_receiver() const;
-    const std::vector<TypeParameter *>& type_parameters() const;
-    Tuple * parameters() const;
-    Tuple * results() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    Signature() {}
+    Signature(Tuple *parameters,
+              Tuple *results)
+    : expr_receiver_(nullptr), type_receiver_(nullptr),
+      parameters_(parameters), results_(results) {}
+    
+    Signature(std::vector<TypeParameter *> type_parameters,
+              Tuple *parameters,
+              Tuple *results)
+    : expr_receiver_(nullptr), type_receiver_(nullptr), type_parameters_(type_parameters),
+      parameters_(parameters), results_(results) {}
+    
+    Signature(Variable *expr_receiver,
+              Tuple *parameters,
+              Tuple *results)
+    : expr_receiver_(expr_receiver), type_receiver_(nullptr),
+      parameters_(parameters), results_(results) {}
+    
+    
+    Signature(Type *type_receiver,
+              Tuple *parameters,
+              Tuple *results)
+    : expr_receiver_(nullptr), type_receiver_(type_receiver),
+      parameters_(parameters), results_(results) {}
     
     Variable *expr_receiver_;
     Type *type_receiver_;
@@ -257,34 +265,26 @@ private:
     friend class InfoBuilder;
 };
 
-class Struct : public Type {
+class Struct final : public Type {
 public:
-    ~Struct() {}
+    const std::vector<Variable *>& fields() const { return fields_; }
     
-    const std::vector<Variable *>& fields() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
-    Struct() {}
+    Struct(std::vector<Variable *> fields) : fields_(fields) {}
     
     std::vector<Variable *> fields_;
     
     friend class InfoBuilder;
 };
 
-class Interface : public Type {
+class Interface final : public Type {
 public:
-    ~Interface() {}
+    const std::vector<NamedType *>& embedded_interfaces() const { return embedded_interfaces_; }
+    const std::vector<Func *>& methods() const { return methods_; }
     
-    const std::vector<NamedType *>& embedded_interfaces() const;
-    const std::vector<Func *>& methods() const;
-    
-    Type * Underlying();
-    
-    std::string ToString() const;
+    std::string ToString(StringRep rep) const override;
     
 private:
     Interface() {}

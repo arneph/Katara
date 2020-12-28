@@ -15,6 +15,8 @@
 namespace lang {
 namespace types {
 
+Type * UnderlyingOf(Type *type);
+
 bool IsAssignableTo(Type *src, Type *dst);
 bool IsAssertableTo(Type *general, Type *specialised);
 bool IsComparable(Type *t);

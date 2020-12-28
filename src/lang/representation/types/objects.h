@@ -24,68 +24,85 @@ class Package;
 
 class Object {
 public:
-    virtual ~Object() {};
+    virtual ~Object() {}
     
-    Scope * parent() const;
-    Package * package() const;
-    pos::pos_t position() const;
+    Scope * parent() const { return parent_; }
+    Package * package() const { return package_; }
+    pos::pos_t position() const { return position_; }
     
-    std::string name() const;
-    Type * type() const;
+    std::string name() const { return name_; }
     
     virtual std::string ToString() const = 0;
     
 protected:
-    Object() {}
+    Object(Scope* parent, Package *package, pos::pos_t position, std::string name)
+    : parent_(parent), package_(package), position_(position), name_(name) {}
     
+private:
     Scope *parent_;
     Package *package_;
     pos::pos_t position_;
     std::string name_;
+};
+
+class TypedObject : public Object {
+public:
+    virtual ~TypedObject() {}
+    
+    Type * type() const { return type_; }
+
+protected:
+    TypedObject(Scope* parent, Package *package, pos::pos_t position, std::string name)
+    : Object(parent, package, position, name), type_(nullptr) {}
+    
+private:
     Type *type_;
     
+    friend class Nil;
     friend class InfoBuilder;
 };
 
-class TypeName : public Object {
+class TypeName final : public TypedObject {
 public:
-    ~TypeName() {}
-    
-    std::string ToString() const;
+    std::string ToString() const override { return "type " + name(); }
     
 private:
-    TypeName() {}
+    TypeName(Scope* parent, Package *package, pos::pos_t position, std::string name)
+    : TypedObject(parent, package, position, name) {}
     
     friend class InfoBuilder;
 };
 
-class Constant : public Object {
+class Constant final : public TypedObject {
 public:
-    ~Constant() {}
+    constants::Value value() const { return value_; }
     
-    constants::Value value() const;
-    
-    std::string ToString() const;
+    std::string ToString() const override {
+        return "const " + name() + " " + type()->ToString(StringRep::kShort)
+                + " = " + value().ToString();
+    }
     
 private:
-    Constant();
+    Constant(Scope* parent, Package *package, pos::pos_t position, std::string name)
+    : TypedObject(parent, package, position, name), value_(false) {}
     
     constants::Value value_;
     
     friend class InfoBuilder;
 };
 
-class Variable : public Object {
+class Variable final : public TypedObject {
 public:
-    ~Variable() {}
+    bool is_embedded() const { return is_embedded_; }
+    bool is_field() const { return is_field_; }
     
-    bool is_embedded() const;
-    bool is_field() const;
-    
-    std::string ToString() const;
+    std::string ToString() const override;
     
 private:
-    Variable() {}
+    Variable(Scope* parent, Package *package, pos::pos_t position, std::string name,
+             bool is_embdeded, bool is_field)
+    : TypedObject(parent, package, position, name),
+      is_embedded_(is_embdeded), is_field_(is_field) {}
     
     bool is_embedded_;
     bool is_field_;
@@ -93,43 +110,40 @@ private:
     friend class InfoBuilder;
 };
 
-class Func : public Object {
+class Func final : public TypedObject {
 public:
-    ~Func() {}
-    
-    std::string ToString() const;
+    std::string ToString() const override;
     
 private:
-    Func() {}
+    Func(Scope* parent, Package *package, pos::pos_t position, std::string name)
+    : TypedObject(parent, package, position, name) {}
     
     friend class InfoBuilder;
 };
 
-class Nil : public Object {
+class Nil final : public Object {
 public:
-    ~Nil() {}
-    
-    std::string ToString() const;
+    std::string ToString() const override { return "nil"; }
     
 private:
-    Nil() {}
+    Nil(Scope *universe, Basic *untyped_nil)
+    : Object(universe, nullptr, pos::kNoPos, "nil") {}
     
     friend class InfoBuilder;
 };
 
-class Label : public Object {
+class Label final : public Object {
 public:
-    ~Label() {}
-    
-    std::string ToString() const;
+    std::string ToString() const override { return name() + " (label)"; }
     
 private:
-    Label() {}
+    Label(Scope* parent, Package *package, pos::pos_t position, std::string name)
+    : Object(parent, package, position, name) {}
     
     friend class InfoBuilder;
 };
 
-class Builtin : public Object {
+class Builtin final : public Object {
 public:
     enum class Kind {
         kLen,
@@ -137,29 +151,30 @@ public:
         kNew,
     };
     
-    ~Builtin() {}
+    Kind kind() const { return kind_; }
     
-    Kind kind() const;
-    
-    std::string ToString() const;
+    std::string ToString() const override;
     
 private:
-    Builtin();
+    Builtin(Scope* universe, std::string name, Kind kind)
+    : Object(universe, nullptr, pos::kNoPos, name), kind_(kind) {}
     
     Kind kind_;
     
     friend class InfoBuilder;
 };
 
-class PackageName : public Object {
+class PackageName final : public Object {
 public:
-    ~PackageName() {}
+    Package * referenced_package() const { return referenced_package_; }
     
-    Package * referenced_package() const;
-    
-    std::string ToString() const;
+    std::string ToString() const override { return name(); }
     
 private:
+    PackageName(Scope* parent, Package *package, pos::pos_t position, std::string name,
+                Package *referenced_package)
+    : Object(parent, package, position, name), referenced_package_(referenced_package) {}
+    
     Package *referenced_package_;
     
     friend class InfoBuilder;

@@ -63,6 +63,7 @@ private:
                    types::InfoBuilder& info_builder,
                    std::vector<issues::Issue>& issues);
     
+    Action * CreateAction(std::function<bool ()> executor);
     Action * CreateAction(std::unordered_set<types::Object *> prerequisites,
                           types::Object *defined_object,
                           std::function<bool ()> executor);

@@ -29,6 +29,12 @@ public:
                             std::vector<issues::Issue>& issues);
     
 private:
+    enum class CheckSelectionExprResult {
+        kNotApplicable,
+        kCheckFailed,
+        kCheckSucceeded,
+    };
+    
     ExprHandler(types::InfoBuilder& info_builder,
                 std::vector<issues::Issue>& issues)
     : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
@@ -46,6 +52,24 @@ private:
     bool CheckParenExpr(ast::ParenExpr *paren_expr);
     
     bool CheckSelectionExpr(ast::SelectionExpr *selection_expr);
+    CheckSelectionExprResult
+        CheckPackageSelectionExpr(ast::SelectionExpr *selection_expr);
+    CheckSelectionExprResult
+        CheckNamedTypeMethodSelectionExpr(ast::SelectionExpr *selection_expr,
+                                          types::NamedType *type,
+                                          types::InfoBuilder::TypeParamsToArgsMap
+                                              type_params_to_args);
+    CheckSelectionExprResult
+        CheckInterfaceMethodSelectionExpr(ast::SelectionExpr *selection_expr,
+                                          types::Type* accessed_type,
+                                          types::InfoBuilder::TypeParamsToArgsMap
+                                              type_params_to_args);
+    CheckSelectionExprResult
+        CheckStructFieldSelectionExpr(ast::SelectionExpr *selection_expr,
+                                      types::Type* accessed_type,
+                                      types::InfoBuilder::TypeParamsToArgsMap
+                                          type_params_to_args);
+    
     bool CheckTypeAssertExpr(ast::TypeAssertExpr *type_assert_expr);
     bool CheckIndexExpr(ast::IndexExpr *index_expr);
     

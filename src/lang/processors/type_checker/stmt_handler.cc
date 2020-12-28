@@ -263,8 +263,9 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
                                                 {assign_stmt->lhs().at(i)->start(),
                                                  assign_stmt->rhs().at(i)->start()},
                                                 "can not assign value of type "
-                                                + rhs_type->ToString() + "to operand of type "
-                                                + lhs_type->ToString() + ""));
+                                                + rhs_type->ToString(types::StringRep::kShort)
+                                                + "to operand of type "
+                                                + lhs_type->ToString(types::StringRep::kShort)));
             } else {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
@@ -286,7 +287,7 @@ void StmtHandler::CheckIncDecStmt(ast::IncDecStmt *inc_dec_stmt) {
     }
     
     types::Type *x_type = info_->TypeOf(inc_dec_stmt->x());
-    types::Basic *underlying_type = dynamic_cast<types::Basic *>(x_type->Underlying());
+    types::Basic *underlying_type = dynamic_cast<types::Basic *>(types::UnderlyingOf(x_type));
     if (underlying_type == nullptr ||
         !(underlying_type->info() & types::Basic::Info::kIsInteger)) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -350,9 +351,9 @@ void StmtHandler::CheckIfStmt(ast::IfStmt *if_stmt, Context ctx) {
     }
     if (ExprHandler::ProcessExpr(if_stmt->cond_expr(), info_builder_, issues_)) {
         types::Type *cond_type = info_->TypeOf(if_stmt->cond_expr());
-        types::Basic *underlying_type = dynamic_cast<types::Basic *>(cond_type->Underlying());
-        if (underlying_type == nullptr ||
-            !(underlying_type->info() & types::Basic::Info::kIsBoolean)) {
+        types::Basic *underlying = dynamic_cast<types::Basic *>(types::UnderlyingOf(cond_type));
+        if (underlying == nullptr ||
+            !(underlying->info() & types::Basic::Info::kIsBoolean)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             if_stmt->cond_expr()->start(),
@@ -481,9 +482,9 @@ void StmtHandler::CheckForStmt(ast::ForStmt *for_stmt, Context ctx) {
     }
     if (ExprHandler::ProcessExpr(for_stmt->cond_expr(), info_builder_, issues_)) {
         types::Type *cond_type = info_->TypeOf(for_stmt->cond_expr());
-        types::Basic *underlying_type = dynamic_cast<types::Basic *>(cond_type->Underlying());
-        if (underlying_type == nullptr ||
-            !(underlying_type->info() & types::Basic::Info::kIsBoolean)) {
+        types::Basic *underlying = dynamic_cast<types::Basic *>(types::UnderlyingOf(cond_type));
+        if (underlying == nullptr ||
+            !(underlying->info() & types::Basic::Info::kIsBoolean)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             for_stmt->cond_expr()->start(),

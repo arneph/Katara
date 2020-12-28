@@ -22,7 +22,7 @@ void InfoBuilder::CreateUniverse() {
         return;
     }
     
-    auto universe = std::unique_ptr<Scope>(new Scope());
+    std::unique_ptr<Scope> universe(new Scope());
     universe->parent_ = nullptr;
     
     info_->universe_ = universe.get();
@@ -84,11 +84,10 @@ void InfoBuilder::CreatePredeclaredTypes() {
         {types::Basic::kRune, types::Basic::kIsInteger, "rune"},
     });
     for (auto predeclared_type : predeclared_types) {
-        auto basic = std::unique_ptr<types::Basic>(new Basic());
-        basic->kind_ = predeclared_type.kind;
-        basic->info_ = predeclared_type.info;
+        std::unique_ptr<types::Basic> basic(new Basic(predeclared_type.kind,
+                                                      predeclared_type.info));
         
-        auto basic_ptr = basic.get();
+        types::Basic *basic_ptr = basic.get();
         info_->type_unique_ptrs_.push_back(std::move(basic));
         info_->basic_types_.insert({predeclared_type.kind, basic_ptr});
         
@@ -99,14 +98,13 @@ void InfoBuilder::CreatePredeclaredTypes() {
             continue;
         }
         
-        auto type_name = std::unique_ptr<types::TypeName>(new types::TypeName());
-        type_name->parent_ = info_->universe();
-        type_name->package_ = nullptr;
-        type_name->position_ = pos::kNoPos;
-        type_name->name_ = predeclared_type.name;
+        std::unique_ptr<types::TypeName> type_name(new types::TypeName(info_->universe(),
+                                                                       nullptr,
+                                                                       pos::kNoPos,
+                                                                       predeclared_type.name));
         type_name->type_ = basic_ptr;
         
-        auto type_name_ptr = type_name.get();
+        types::TypeName *type_name_ptr = type_name.get();
         info_->object_unique_ptrs_.push_back(std::move(type_name));
         info_->universe_->named_objects_.insert({predeclared_type.name, type_name_ptr});
     }
@@ -124,11 +122,10 @@ void InfoBuilder::CreatePredeclaredConstants() {
         {types::Basic::kUntypedInt, constants::Value(int64_t{0}), "iota"},
     });
     for (auto predeclared_const : predeclared_consts) {
-        auto constant = std::unique_ptr<types::Constant>(new Constant());
-        constant->parent_ = info_->universe();
-        constant->package_ = nullptr;
-        constant->position_ = pos::kNoPos;
-        constant->name_ = predeclared_const.name;
+        std::unique_ptr<types::Constant> constant(new Constant(info_->universe(),
+                                                               nullptr,
+                                                               pos::kNoPos,
+                                                               predeclared_const.name));
         constant->type_ = info_->basic_types_.at(predeclared_const.kind);
         constant->value_ = predeclared_const.value;
         
@@ -138,13 +135,8 @@ void InfoBuilder::CreatePredeclaredConstants() {
 }
 
 void InfoBuilder::CreatePredeclaredNil() {
-    auto nil = std::unique_ptr<types::Nil>(new Nil());
-    nil->parent_ = info_->universe();
-    nil->package_ = nullptr;
-    nil->position_ = pos::kNoPos;
-    nil->name_ = "nil";
-    nil->type_ = info_->basic_type(types::Basic::kUntypedNil);
-    
+    std::unique_ptr<types::Nil> nil(new Nil(info_->universe(),
+                                            info_->basic_type(types::Basic::kUntypedNil)));
     info_->universe_->named_objects_.insert({"nil", nil.get()});
     info_->object_unique_ptrs_.push_back(std::move(nil));
 }
@@ -160,14 +152,9 @@ void InfoBuilder::CreatePredeclaredFuncs() {
         {types::Builtin::Kind::kNew, "new"},
     });
     for (auto predeclared_builtin : predeclared_builtins) {
-        std::unique_ptr<types::Builtin> builtin(new Builtin());
-        builtin->parent_ = info_->universe();
-        builtin->package_ = nullptr;
-        builtin->position_ = pos::kNoPos;
-        builtin->name_ = predeclared_builtin.name;
-        builtin->type_ = nullptr;
-        builtin->kind_ = predeclared_builtin.kind;
-        
+        std::unique_ptr<types::Builtin> builtin(new Builtin(info_->universe(),
+                                                            predeclared_builtin.name,
+                                                            predeclared_builtin.kind));
         info_->universe_->named_objects_.insert({predeclared_builtin.name, builtin.get()});
         info_->object_unique_ptrs_.push_back(std::move(builtin));
     }
@@ -178,13 +165,9 @@ Pointer * InfoBuilder::CreatePointer(Pointer::Kind kind, Type *element_type) {
         throw "internal error: attempted to create pointer without element type";
     }
     
-    std::unique_ptr<Pointer> pointer(new Pointer());
-    pointer->kind_ = kind;
-    pointer->element_type_ = element_type;
-    
+    std::unique_ptr<Pointer> pointer(new Pointer(kind, element_type));
     Pointer *pointer_ptr = pointer.get();
     info_->type_unique_ptrs_.push_back(std::move(pointer));
-    
     return pointer_ptr;
 }
 
@@ -193,13 +176,9 @@ Array * InfoBuilder::CreateArray(Type *element_type, uint64_t length) {
         throw "internal error: attempted to create array without element type";
     }
     
-    std::unique_ptr<Array> array(new Array());
-    array->element_type_ = element_type;
-    array->length_ = length;
-    
+    std::unique_ptr<Array> array(new Array(element_type, length));
     Array *array_ptr = array.get();
     info_->type_unique_ptrs_.push_back(std::move(array));
-    
     return array_ptr;
 }
 
@@ -208,37 +187,24 @@ Slice * InfoBuilder::CreateSlice(Type *element_type) {
         throw "internal error: attempted to create slice without element type";
     }
     
-    std::unique_ptr<Slice> slice(new Slice());
-    slice->element_type_ = element_type;
-    
+    std::unique_ptr<Slice> slice(new Slice(element_type));
     Slice *slice_ptr = slice.get();
     info_->type_unique_ptrs_.push_back(std::move(slice));
-    
     return slice_ptr;
 }
 
 TypeParameter * InfoBuilder::CreateTypeParameter(std::string name) {
-    std::unique_ptr<TypeParameter> type_parameter(new TypeParameter());
-    type_parameter->name_ = name;
-    type_parameter->interface_ = nullptr;
-    
+    std::unique_ptr<TypeParameter> type_parameter(new TypeParameter(name));
     TypeParameter *type_parameter_ptr = type_parameter.get();
     info_->type_unique_ptrs_.push_back(std::move(type_parameter));
-    
     return type_parameter_ptr;
 }
 
 NamedType * InfoBuilder::CreateNamedType(bool is_alias,
                                          std::string name) {
-    std::unique_ptr<NamedType> named_type(new NamedType());
-    named_type->is_alias_ = is_alias;
-    named_type->name_ = name;
-    named_type->type_ = nullptr;
-    named_type->type_parameters_ = {};
-    
+    std::unique_ptr<NamedType> named_type(new NamedType(is_alias, name));
     NamedType *named_type_ptr = named_type.get();
     info_->type_unique_ptrs_.push_back(std::move(named_type));
-    
     return named_type_ptr;
 }
 
@@ -246,101 +212,70 @@ TypeInstance * InfoBuilder::CreateTypeInstance(NamedType *instantiated_type,
                                                std::vector<Type *> type_args) {
     if (instantiated_type == nullptr) {
         throw "internal error: attempted to create type instance without instantiated type";
+    } else if (type_args.empty()) {
+        throw "internal error: attempted to create type instance without type arguments";
+    } else if (instantiated_type->type_parameters().size() != type_args.size()) {
+        throw "internal error: attempted to create type instance with mismatched type arguments";
     }
     
-    std::unique_ptr<TypeInstance> type_instance(new TypeInstance());
-    type_instance->instantiated_type_ = instantiated_type;
-    type_instance->type_args_ = type_args;
-    
+    std::unique_ptr<TypeInstance> type_instance(new TypeInstance(instantiated_type,
+                                                                 type_args));
     TypeInstance *type_instance_ptr = type_instance.get();
     info_->type_unique_ptrs_.push_back(std::move(type_instance));
-    
     return type_instance_ptr;
 }
 
 Tuple * InfoBuilder::CreateTuple(std::vector<Variable *> variables) {
-    std::unique_ptr<Tuple> tuple(new Tuple());
-    tuple->variables_ = variables;
-    
+    std::unique_ptr<Tuple> tuple(new Tuple(variables));
     Tuple *tuple_ptr = tuple.get();
     info_->type_unique_ptrs_.push_back(std::move(tuple));
-    
     return tuple_ptr;
 }
 
 Signature * InfoBuilder::CreateSignature(Tuple *parameters,
                                          Tuple *results) {
-    std::unique_ptr<Signature> signature(new Signature());
-    signature->expr_receiver_ = nullptr;
-    signature->type_receiver_ = nullptr;
-    signature->parameters_ = parameters;
-    signature->results_ = results;
-    
+    std::unique_ptr<Signature> signature(new Signature(parameters, results));
     Signature *signature_ptr = signature.get();
     info_->type_unique_ptrs_.push_back(std::move(signature));
-    
     return signature_ptr;
 }
 
 Signature * InfoBuilder::CreateSignature(std::vector<TypeParameter *> type_parameters,
                                          Tuple *parameters,
                                          Tuple *results) {
-    std::unique_ptr<Signature> signature(new Signature());
-    signature->expr_receiver_ = nullptr;
-    signature->type_receiver_ = nullptr;
-    signature->type_parameters_ = type_parameters;
-    signature->parameters_ = parameters;
-    signature->results_ = results;
-    
+    std::unique_ptr<Signature> signature(new Signature(type_parameters, parameters, results));
     Signature *signature_ptr = signature.get();
     info_->type_unique_ptrs_.push_back(std::move(signature));
-    
     return signature_ptr;
 }
 
 Signature * InfoBuilder::CreateSignature(Variable *expr_receiver,
                                          Tuple *parameters,
                                          Tuple *results) {
-    std::unique_ptr<Signature> signature(new Signature());
-    signature->expr_receiver_ = expr_receiver;
-    signature->type_receiver_ = nullptr;
-    signature->parameters_ = parameters;
-    signature->results_ = results;
-    
+    std::unique_ptr<Signature> signature(new Signature(expr_receiver, parameters, results));
     Signature *signature_ptr = signature.get();
     info_->type_unique_ptrs_.push_back(std::move(signature));
-    
     return signature_ptr;
 }
 
 Signature * InfoBuilder::CreateSignature(Type *type_receiver,
                                          Tuple *parameters,
                                          Tuple *results) {
-    std::unique_ptr<Signature> signature(new Signature());
-    signature->expr_receiver_ = nullptr;
-    signature->type_receiver_ = type_receiver;
-    signature->parameters_ = parameters;
-    signature->results_ = results;
-    
+    std::unique_ptr<Signature> signature(new Signature(type_receiver, parameters, results));
     Signature *signature_ptr = signature.get();
     info_->type_unique_ptrs_.push_back(std::move(signature));
-    
     return signature_ptr;
 }
 
 Struct * InfoBuilder::CreateStruct(std::vector<Variable *> fields) {
-    std::unique_ptr<Struct> struct_(new Struct());
-    struct_->fields_ = fields;
-    
+    std::unique_ptr<Struct> struct_(new Struct(fields));
     Struct *struct_ptr = struct_.get();
     info_->type_unique_ptrs_.push_back(std::move(struct_));
-    
     return struct_ptr;
 }
 
-Interface * InfoBuilder::CreateInterface(std::vector<NamedType *> embedded_interfaces) {
+Interface * InfoBuilder::CreateInterface() {
     std::unique_ptr<Interface> interface(new Interface());
-    interface->embedded_interfaces_ = embedded_interfaces;
     
     Interface *interface_ptr = interface.get();
     info_->type_unique_ptrs_.push_back(std::move(interface));
@@ -348,15 +283,15 @@ Interface * InfoBuilder::CreateInterface(std::vector<NamedType *> embedded_inter
     return interface_ptr;
 }
 
-TypeInstance * InfoBuilder::InstantiateNamedType(NamedType *parameterized_type,
-                                                 TypeParamsToArgsMap& type_params_to_args) {
-    if (parameterized_type->type_parameters().empty()) {
-        throw "internal error: attempted to instantiate named type without type parameters";
+Type * InfoBuilder::CreateUnderlyingTypeOfTypeInstance(TypeInstance *type_instance) {
+    TypeParamsToArgsMap type_params_to_args;
+    for (int i = 0; i < type_instance->instantiated_type()->type_parameters().size(); i++) {
+        TypeParameter *type_param = type_instance->instantiated_type()->type_parameters().at(i);
+        Type *type_arg = type_instance->type_args().at(i);
+        type_params_to_args.insert({type_param, type_arg});
     }
-    
-    std::vector<Type *> type_args =  InstantiateTypeParameters(parameterized_type->type_parameters(),
-                                                               type_params_to_args);
-    return CreateTypeInstance(parameterized_type, type_args);
+    return InstantiateType(type_instance->instantiated_type()->underlying(),
+                           type_params_to_args);
 }
 
 Signature * InfoBuilder::InstantiateFuncSignature(Signature * parameterized_signature,
@@ -364,7 +299,7 @@ Signature * InfoBuilder::InstantiateFuncSignature(Signature * parameterized_sign
     if (parameterized_signature->type_parameters().empty()) {
         throw "internal error: attempted to instantiate func signature without type parameters";
     } else if (parameterized_signature->expr_receiver() != nullptr) {
-        throw "internal error: attempted to instantiate func signature with receiver";
+        throw "internal error: attempted to instantiate func signature with expr receiver";
     }
     Tuple *parameters = parameterized_signature->parameters();
     if (parameters != nullptr) {
@@ -393,7 +328,7 @@ Signature * InfoBuilder::InstantiateMethodSignature(Signature * parameterized_si
     }
     if (receiver_to_arg) {
         if (parameterized_signature->expr_receiver() == nullptr) {
-            throw "internal error: attempted to instantiate missing method receiver";
+            throw "internal error: attempted to instantiate missing expr receiver";
         }
         Variable *receiver = parameterized_signature->expr_receiver();
         Type *receiver_type = receiver->type();
@@ -412,9 +347,8 @@ Signature * InfoBuilder::InstantiateMethodSignature(Signature * parameterized_si
     return CreateSignature(parameters, results);
 }
 
-Type *
-InfoBuilder::InstantiateType(Type *parameterized_type,
-                             std::unordered_map<TypeParameter *, Type *>& type_params_to_args) {
+Type * InfoBuilder::InstantiateType(Type *parameterized_type,
+                                    TypeParamsToArgsMap& type_params_to_args) {
     if (nullptr != dynamic_cast<Basic *>(parameterized_type)) {
         return parameterized_type;
         
@@ -469,7 +403,8 @@ InfoBuilder::InstantiateType(Type *parameterized_type,
         if (!instantiated_type_arg) {
             return type_instance;
         }
-        return CreateTypeInstance(type_instance->instantiated_type(), type_arg_instances);
+        return CreateTypeInstance(type_instance->instantiated_type(),
+                                  type_arg_instances);
         
     } else if (auto tuple = dynamic_cast<Tuple *>(parameterized_type)) {
         bool instantiated_var_type = false;
@@ -500,7 +435,8 @@ InfoBuilder::InstantiateType(Type *parameterized_type,
     } else if (auto signature = dynamic_cast<Signature *>(parameterized_type)) {
         if (!signature->type_parameters().empty()) {
             throw "internal error: attempted to instantiate nested signature with type parameters";
-        } else if (signature->expr_receiver() != nullptr) {
+        } else if (signature->expr_receiver() != nullptr ||
+                   signature->type_receiver() != nullptr) {
             throw "internal error: attempted to instantiate nested signature with receiver";
         }
         
@@ -567,35 +503,41 @@ InfoBuilder::InstantiateType(Type *parameterized_type,
         if (!instantiated_method) {
             return interface_type;
         }
-        types::Interface *interface_instance = CreateInterface({});
-        SetMethodsOfInterface(interface_type, method_instances);
+        types::Interface *interface_instance = CreateInterface();
+        SetInterfaceMembers(interface_instance, {}, method_instances);
         return interface_instance;
     } else {
         throw "internal error: unexpected type";
     }
 }
 
-std::vector<Type *>
-InfoBuilder::InstantiateTypeParameters(std::vector<TypeParameter *> type_params,
-                                       TypeParamsToArgsMap& type_params_to_args) {
-    std::vector<Type *> type_args;
-    type_args.reserve(type_params.size());
-    for (TypeParameter *type_param : type_params) {
-        if  (!type_params_to_args.contains(type_param)) {
-            throw "internal error: type argument missing for type parameter to argument mapping";
-        }
-        type_args.push_back(type_params_to_args.at(type_param));
+void InfoBuilder::SetTypeParameterInstance(TypeParameter *instantiated,
+                                           TypeParameter *instance) {
+    if (instantiated == instance) {
+        throw "internal error: attempted to set instantiated type parameter of type parameter to "
+              "itself";
+    } else if (instantiated->instantiated_type_parameter() != nullptr) {
+        throw "internal error: attempted to set instantiated type parameter of type parameter to "
+              "type parameter with its own instantiated type parameter";
+    } else if (instance->instantiated_type_parameter() != nullptr) {
+        throw "internal error: attempted to set instantiated type parameter of type parameter "
+              "twice";
+    } else if (instantiated->interface() == nullptr) {
+        throw "internal error: attempted to set instantiated type parameter of type parameter to "
+              "type parameter without interface";
+    } else if (instance->interface() != nullptr) {
+        throw "internal error: attempted to set instantiated type parameter of type parameter "
+              "with already set interface";
     }
-    return type_args;
+    instance->instantiated_type_parameter_ = instantiated;
+    instance->interface_ = instantiated->interface();
 }
 
-void InfoBuilder::SetInterfaceOfTypeParameter(TypeParameter *type_parameter, Type *interface) {
+void InfoBuilder::SetTypeParameterInterface(TypeParameter *type_parameter, Interface *interface) {
     if (type_parameter->interface() != nullptr) {
         throw "internal error: attempted to set interface of type parameter twice";
     } else if (interface == nullptr) {
         throw "internal error: attempted to set interface of type parameter to nullptr";
-    } else if (dynamic_cast<TypeParameter *>(interface)) {
-        throw "internal error: attempted to set interface of type parameter to type parameter";
     }
     type_parameter->interface_ = interface;
 }
@@ -609,12 +551,12 @@ void InfoBuilder::SetTypeParametersOfNamedType(NamedType *named_type,
 }
 
 void InfoBuilder::SetUnderlyingTypeOfNamedType(NamedType *named_type, Type *underlying_type) {
-    if (named_type->type() != nullptr) {
+    if (named_type->underlying() != nullptr) {
         throw "internal error: attempted to set underlying type of named type twice";
     } else if (underlying_type == nullptr) {
         throw "internal error: attempted to set underlying type of named type to nullptr";
     }
-    named_type->type_ = underlying_type;
+    named_type->underlying_ = underlying_type;
 }
 
 void InfoBuilder::AddMethodToNamedType(NamedType *named_type, Func *method) {
@@ -624,10 +566,16 @@ void InfoBuilder::AddMethodToNamedType(NamedType *named_type, Func *method) {
     named_type->methods_[method->name()] = method;
 }
 
-void InfoBuilder::SetMethodsOfInterface(Interface *interface, std::vector<Func *> methods) {
+void InfoBuilder::SetInterfaceMembers(Interface *interface,
+                                      std::vector<NamedType *> embdedded_interfaces,
+                                      std::vector<Func *> methods) {
+    if (!interface->embedded_interfaces().empty()) {
+        throw "internal error: attempted to add set embdedded interfaces twice";
+    }
     if (!interface->methods().empty()) {
         throw "internal error: attempted to add set interface methods twice";
     }
+    interface->embedded_interfaces_ = embdedded_interfaces;
     interface->methods_ = methods;
 }
 
@@ -636,17 +584,10 @@ TypeName * InfoBuilder::CreateTypeNameForTypeParameter(Scope *parent,
                                                        pos::pos_t position,
                                                        std::string name) {
     CheckObjectArgs(parent, package);
-    
-    std::unique_ptr<TypeName> type_name(new TypeName());
-    type_name->parent_ = parent;
-    type_name->package_ = package;
-    type_name->position_ = position;
-    type_name->name_ = name;
+    std::unique_ptr<TypeName> type_name(new TypeName(parent, package, position, name));
     type_name->type_ = CreateTypeParameter(name);
-    
     TypeName *type_name_ptr = type_name.get();
     info_->object_unique_ptrs_.push_back(std::move(type_name));
-    
     return type_name_ptr;
 }
 
@@ -656,17 +597,10 @@ TypeName * InfoBuilder::CreateTypeNameForNamedType(Scope *parent,
                                                    std::string name,
                                                    bool is_alias) {
     CheckObjectArgs(parent, package);
-    
-    std::unique_ptr<TypeName> type_name(new TypeName());
-    type_name->parent_ = parent;
-    type_name->package_ = package;
-    type_name->position_ = position;
-    type_name->name_ = name;
+    std::unique_ptr<TypeName> type_name(new TypeName(parent, package, position, name));
     type_name->type_ = CreateNamedType(is_alias, name);
-    
     TypeName *type_name_ptr = type_name.get();
     info_->object_unique_ptrs_.push_back(std::move(type_name));
-    
     return type_name_ptr;
 }
 
@@ -675,17 +609,9 @@ Constant * InfoBuilder::CreateConstant(Scope *parent,
                                        pos::pos_t position,
                                        std::string name) {
     CheckObjectArgs(parent, package);
-    
-    std::unique_ptr<Constant> constant(new Constant());
-    constant->parent_ = parent;
-    constant->package_ = package;
-    constant->position_ = position;
-    constant->name_ = name;
-    constant->type_ = nullptr;
-    
+    std::unique_ptr<Constant> constant(new Constant(parent, package, position, name));
     Constant *constant_ptr = constant.get();
     info_->object_unique_ptrs_.push_back(std::move(constant));
-    
     return constant_ptr;
 }
 
@@ -696,19 +622,14 @@ Variable * InfoBuilder::CreateVariable(Scope *parent,
                                        bool is_embedded,
                                        bool is_field) {
     CheckObjectArgs(parent, package);
-    
-    std::unique_ptr<Variable> variable(new Variable());
-    variable->parent_ = parent;
-    variable->package_ = package;
-    variable->position_ = position;
-    variable->name_ = name;
-    variable->type_ = nullptr;
-    variable->is_embedded_ = is_embedded;
-    variable->is_field_ = is_field;
-    
+    std::unique_ptr<Variable> variable(new Variable(parent,
+                                                    package,
+                                                    position,
+                                                    name,
+                                                    is_embedded,
+                                                    is_field));
     Variable *variable_ptr = variable.get();
     info_->object_unique_ptrs_.push_back(std::move(variable));
-    
     return variable_ptr;
 }
 
@@ -717,17 +638,9 @@ Func * InfoBuilder::CreateFunc(Scope *parent,
                                pos::pos_t position,
                                std::string name) {
     CheckObjectArgs(parent, package);
-    
-    std::unique_ptr<Func> func(new Func());
-    func->parent_ = parent;
-    func->package_ = package;
-    func->position_ = position;
-    func->name_ = name;
-    func->type_ = nullptr;
-    
+    std::unique_ptr<Func> func(new Func(parent, package, position, name));
     Func *func_ptr = func.get();
     info_->object_unique_ptrs_.push_back(std::move(func));
-    
     return func_ptr;
 }
 
@@ -735,16 +648,9 @@ Label * InfoBuilder::CreateLabel(Scope *parent,
                                  Package *package,
                                  pos::pos_t position,
                                  std::string name) {
-    std::unique_ptr<Label> label(new Label());
-    label->parent_ = parent;
-    label->package_ = package;
-    label->position_ = position;
-    label->name_ = name;
-    label->type_ = nullptr;
-    
+    std::unique_ptr<Label> label(new Label(parent, package, position, name));
     Label *label_ptr = label.get();
     info_->object_unique_ptrs_.push_back(std::move(label));
-    
     return label_ptr;
 }
 
@@ -754,18 +660,13 @@ PackageName * InfoBuilder::CreatePackageName(Scope *parent,
                                              std::string name,
                                              Package *referenced_package) {
     CheckObjectArgs(parent, package);
-    
-    std::unique_ptr<PackageName> package_name(new PackageName());
-    package_name->parent_ = parent;
-    package_name->package_ = package;
-    package_name->position_ = position;
-    package_name->name_ = name;
-    package_name->type_ = nullptr;
-    package_name->referenced_package_ = referenced_package;
-    
+    std::unique_ptr<PackageName> package_name(new PackageName(parent,
+                                                              package,
+                                                              position,
+                                                              name,
+                                                              referenced_package));
     PackageName *package_name_ptr = package_name.get();
     info_->object_unique_ptrs_.push_back(std::move(package_name));
-    
     return package_name_ptr;
 }
 
@@ -779,18 +680,10 @@ void InfoBuilder::CheckObjectArgs(Scope *parent,
     }
 }
 
-void InfoBuilder::SetObjectType(Object *object, Type *type) {
+void InfoBuilder::SetObjectType(TypedObject *object, Type *type) {
     if (auto type_name = dynamic_cast<TypeName *>(object)) {
-        if (auto named_type = dynamic_cast<NamedType *>(type_name->type())) {
-            SetUnderlyingTypeOfNamedType(named_type, type);
-        } else if (auto type_parameter = dynamic_cast<TypeParameter *>(type_name->type())) {
-            SetInterfaceOfTypeParameter(type_parameter, type);
-        } else {
-            throw "internal error: unexpected type name type";
-        }
-        return;
-    }
-    if (object->type() != nullptr) {
+        throw "internal error: attempted to set type name type as regular object type";
+    } else if (object->type() != nullptr) {
         throw "internal error: attempted to set object type twice";
     }
     object->type_ = type;

@@ -10,6 +10,7 @@
 
 #include <algorithm>
 
+#include "lang/representation/types/types_util.h"
 #include "lang/processors/type_checker/constant_handler.h"
 
 namespace lang {
@@ -314,8 +315,7 @@ bool TypeHandler::EvaluateFuncType(ast::FuncType *func_expr) {
 }
 
 bool TypeHandler::EvaluateInterfaceType(ast::InterfaceType *interface_expr) {
-    types::Interface *interface_type =
-    info_builder_.CreateInterface(/* embedded_interfaces= */ {});
+    types::Interface *interface_type = info_builder_.CreateInterface();
 
     std::vector<types::Func *> methods;
     methods.reserve(interface_expr->methods().size());
@@ -327,7 +327,7 @@ bool TypeHandler::EvaluateInterfaceType(ast::InterfaceType *interface_expr) {
         methods.push_back(method);
     }
     // TODO: handle embdedded interfaces
-    info_builder_.SetMethodsOfInterface(interface_type, methods);
+    info_builder_.SetInterfaceMembers(interface_type, {}, methods);
     info_builder_.SetExprType(interface_expr, interface_type);
     return true;
 }
@@ -349,14 +349,31 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance *type_instance_expr) {
     }
     types::NamedType *instantiated_type =
         static_cast<types::NamedType *>(info_->TypeOf(type_instance_expr->type()));
+    if (type_instance_expr->type_args().size() != instantiated_type->type_parameters().size()) {
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        type_instance_expr->l_brack(),
+                                        "type instance has wrong number of type arguments"));
+        return false;
+    }
     
     std::vector<types::Type *> type_args;
-    type_args.reserve(type_instance_expr->type_args().size());
-    for (ast::Expr *type_arg_expr : type_instance_expr->type_args()) {
+    type_args.reserve(instantiated_type->type_parameters().size());
+    for (int i = 0; i < instantiated_type->type_parameters().size(); i++) {
+        types::TypeParameter *type_param = instantiated_type->type_parameters().at(i);
+        ast::Expr *type_arg_expr = type_instance_expr->type_args().at(i);
         if (!EvaluateTypeExpr(type_arg_expr)) {
             return false;
         }
         types::Type *type_arg = info_->TypeOf(type_arg_expr);
+        if (!types::IsAssertableTo(type_param, type_arg)) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            type_arg_expr->start(),
+                                            "type argument can not be used for type parameter"));
+            return false;
+        }
+        
         type_args.push_back(type_arg);
     }
     
@@ -380,15 +397,14 @@ std::vector<types::TypeParameter *> TypeHandler::EvaluateTypeParameters(ast::Typ
 }
 
 types::TypeParameter * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parameter_expr) {
-    types::Type *interface = nullptr;
+    types::Interface *interface = nullptr;
     if (parameter_expr->type() != nullptr) {
         if (!EvaluateTypeExpr(parameter_expr->type())) {
             return nullptr;
         }
-        interface = info_->TypeOf(parameter_expr->type());
-        
-        types::Interface *underlying = dynamic_cast<types::Interface *>(interface->Underlying());
-        if (underlying == nullptr) {
+        types::Type *type = info_->TypeOf(parameter_expr->type());
+        interface = dynamic_cast<types::Interface *>(types::UnderlyingOf(type));
+        if (interface == nullptr) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             parameter_expr->type()->start(),
@@ -396,14 +412,13 @@ types::TypeParameter * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parame
             return nullptr;
         }
     } else {
-        interface = info_builder_.CreateInterface(/* embedded_interfaces= */ {});
+        interface = info_builder_.CreateInterface();
     }
     
     types::TypeName *type_name =
         static_cast<types::TypeName *>(info_->DefinitionOf(parameter_expr->name()));
-    
     types::TypeParameter *type_parameter = static_cast<types::TypeParameter *>(type_name->type());
-    info_builder_.SetInterfaceOfTypeParameter(type_parameter, interface);
+    info_builder_.SetTypeParameterInterface(type_parameter, interface);
     return type_parameter;
 }
 
@@ -414,10 +429,13 @@ types::Func * TypeHandler::EvaluateMethodSpec(ast::MethodSpec *method_spec,
         types::TypeName *instance_type_param =
             static_cast<types::TypeName *>(info_->DefinitionOf(method_spec->instance_type_param()));
         instance_type = static_cast<types::TypeParameter *>(instance_type_param->type());
-        info_builder_.SetInterfaceOfTypeParameter(instance_type, interface);
+        info_builder_.SetTypeParameterInterface(instance_type, interface);
     }
     
     types::Tuple *parameters = EvaluateTuple(method_spec->params());
+    if (parameters == nullptr) {
+        return nullptr;
+    }
     types::Tuple *results = nullptr;
     if (method_spec->results() != nullptr) {
         results = EvaluateTuple(method_spec->results());
@@ -436,7 +454,7 @@ types::Func * TypeHandler::EvaluateMethodSpec(ast::MethodSpec *method_spec,
 
 types::Tuple * TypeHandler::EvaluateTuple(ast::FieldList *field_list) {
     std::vector<types::Variable *> variables = EvaluateFieldList(field_list);
-    if (variables.empty()) {
+    if (variables.empty() && !field_list->fields().empty()) {
         return nullptr;
     }
     return info_builder_.CreateTuple(variables);
@@ -482,52 +500,11 @@ std::vector<types::Variable *> TypeHandler::EvaluateField(ast::Field *field) {
 
 types::Variable * TypeHandler::EvaluateExprReceiver(ast::ExprReceiver *expr_receiver,
                                                     types::Func *method) {
-    types::Type *type = info_->UseOf(expr_receiver->type_name())->type();
-    types::NamedType *named_type = dynamic_cast<types::NamedType *>(type);
-    if (named_type == nullptr) {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
-                                        expr_receiver->type_name()->start(),
-                                        "receiver does not have named type"));
+    types::Type *type = EvalutateReceiverTypeInstance(expr_receiver->type_name(),
+                                                      expr_receiver->type_parameter_names(),
+                                                      method);
+    if (type == nullptr) {
         return nullptr;
-    } else if (nullptr != dynamic_cast<types::Interface *>(named_type->type())) {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
-                                        expr_receiver->type_name()->start(),
-                                        "can not define additional methods for interfaces"));
-        return nullptr;
-    } else if (named_type->methods().contains(method->name())) {
-        types::Func *other_method = named_type->methods().at(method->name());
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
-                                        {other_method->position(), method->position()},
-                                        "can not define two methods with the same name"));
-        return nullptr;
-    }
-    info_builder_.AddMethodToNamedType(named_type, method);
-    
-    if (expr_receiver->type_parameter_names().size() != named_type->type_parameters().size()) {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
-                                        expr_receiver->type_name()->start(),
-                                        "receiver has wrong number of type arguments"));
-        return nullptr;
-    }
-    if (!named_type->type_parameters().empty()) {
-        std::vector<types::Type *> type_instance_args;
-        type_instance_args.reserve(named_type->type_parameters().size());
-        for (int i = 0; i < named_type->type_parameters().size(); i++) {
-            types::Type *interface = named_type->type_parameters().at(i)->interface();
-            ast::Ident *arg_name = expr_receiver->type_parameter_names().at(i);
-            types::TypeName *arg = static_cast<types::TypeName *>(info_->DefinitionOf(arg_name));
-            types::TypeParameter *arg_type = static_cast<types::TypeParameter *>(arg->type());
-            info_builder_.SetInterfaceOfTypeParameter(arg_type, interface);
-            type_instance_args.push_back(arg_type);
-        }
-        
-        types::TypeInstance *type_instance = info_builder_.CreateTypeInstance(named_type,
-                                                                              type_instance_args);
-        type = type_instance;
     }
     
     if (expr_receiver->pointer() != tokens::kIllegal) {
@@ -558,18 +535,27 @@ types::Variable * TypeHandler::EvaluateExprReceiver(ast::ExprReceiver *expr_rece
 
 types::Type * TypeHandler::EvaluateTypeReceiver(ast::TypeReceiver *type_receiver,
                                                 types::Func *method) {
-    types::Type *type = info_->UseOf(type_receiver->type_name())->type();
-    types::NamedType *named_type = dynamic_cast<types::NamedType *>(type);
+    return EvalutateReceiverTypeInstance(type_receiver->type_name(),
+                                         type_receiver->type_parameter_names(),
+                                         method);
+}
+
+types::Type *
+TypeHandler::EvalutateReceiverTypeInstance(ast::Ident *type_name_ident,
+                                           std::vector<ast::Ident *> type_param_names,
+                                           types::Func *method) {
+    types::TypeName *type_name = static_cast<types::TypeName *>(info_->UseOf(type_name_ident));
+    types::NamedType *named_type = dynamic_cast<types::NamedType *>(type_name->type());
     if (named_type == nullptr) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
-                                        type_receiver->type_name()->start(),
+                                        type_name_ident->start(),
                                         "receiver does not have named type"));
         return nullptr;
-    } else if (nullptr != dynamic_cast<types::Interface *>(named_type->type())) {
+    } else if (nullptr != dynamic_cast<types::Interface *>(named_type->underlying())) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
-                                        type_receiver->type_name()->start(),
+                                        type_name_ident->start(),
                                         "can not define additional methods for interfaces"));
         return nullptr;
     } else if (named_type->methods().contains(method->name())) {
@@ -582,10 +568,10 @@ types::Type * TypeHandler::EvaluateTypeReceiver(ast::TypeReceiver *type_receiver
     }
     info_builder_.AddMethodToNamedType(named_type, method);
     
-    if (type_receiver->type_parameter_names().size() != named_type->type_parameters().size()) {
+    if (type_param_names.size() != named_type->type_parameters().size()) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
-                                        type_receiver->type_name()->start(),
+                                        type_name_ident->start(),
                                         "receiver has wrong number of type arguments"));
         return nullptr;
     }
@@ -593,20 +579,17 @@ types::Type * TypeHandler::EvaluateTypeReceiver(ast::TypeReceiver *type_receiver
         std::vector<types::Type *> type_instance_args;
         type_instance_args.reserve(named_type->type_parameters().size());
         for (int i = 0; i < named_type->type_parameters().size(); i++) {
-            types::Type *interface = named_type->type_parameters().at(i)->interface();
-            ast::Ident *arg_name = type_receiver->type_parameter_names().at(i);
+            types::TypeParameter *instantiated = named_type->type_parameters().at(i);
+            ast::Ident *arg_name = type_param_names.at(i);
             types::TypeName *arg = static_cast<types::TypeName *>(info_->DefinitionOf(arg_name));
-            types::TypeParameter *arg_type = static_cast<types::TypeParameter *>(arg->type());
-            info_builder_.SetInterfaceOfTypeParameter(arg_type, interface);
-            type_instance_args.push_back(arg_type);
+            types::TypeParameter *instance = static_cast<types::TypeParameter *>(arg->type());
+            info_builder_.SetTypeParameterInstance(instantiated, instance);
+            type_instance_args.push_back(instance);
         }
-        
-        types::TypeInstance *type_instance = info_builder_.CreateTypeInstance(named_type,
-                                                                              type_instance_args);
-        type = type_instance;
+        return info_builder_.CreateTypeInstance(named_type,
+                                                type_instance_args);
     }
-    
-    return type;
+    return named_type;
 }
 
 }

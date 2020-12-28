@@ -83,6 +83,10 @@ private:
     types::Type * EvaluateTypeReceiver(ast::TypeReceiver *type_receiver,
                                        types::Func *type_method);
 
+    types::Type * EvalutateReceiverTypeInstance(ast::Ident *type_name,
+                                                std::vector<ast::Ident *> type_param_names,
+                                                types::Func *method);
+    
     types::Info *info_;
     types::InfoBuilder&info_builder_;
     std::vector<issues::Issue>& issues_;

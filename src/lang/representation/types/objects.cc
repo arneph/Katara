@@ -14,110 +14,51 @@
 namespace lang {
 namespace types {
 
-Scope * Object::parent() const {
-    return parent_;
-}
-
-Package * Object::package() const {
-    return package_;
-}
-
-pos::pos_t Object::position() const {
-    return position_;
-}
-
-std::string Object::name() const {
-    return name_;
-}
-
-Type * Object::type() const {
-    return type_;
-}
-
-std::string TypeName::ToString() const {
-    return "type " + name_ + " " + type_->ToString();
-}
-
-Constant::Constant() : value_(false) {}
-
-constants::Value Constant::value() const {
-    return value_;
-}
-
-std::string Constant::ToString() const {
-    return "const " + name_ + " " + type_->ToString() + " = " + value_.ToString();
-}
-
-bool Variable::is_embedded() const {
-    return is_embedded_;
-}
-
-bool Variable::is_field() const {
-    return is_field_;
-}
-
 std::string Variable::ToString() const {
     if (is_field_) {
         if (is_embedded_) {
-            return type_->ToString();
+            return type()->ToString(StringRep::kShort);
         } else {
-            return name_ + " " + type_->ToString();
+            return name() + " " + type()->ToString(StringRep::kShort);
         }
     }
-    return "var " + name_ + " " + type_->ToString();
+    return "var " + name() + " " + type()->ToString(StringRep::kShort);
 }
 
 std::string Func::ToString() const {
-    Signature * sig = dynamic_cast<Signature *>(type_);
+    Signature * sig = dynamic_cast<Signature *>(type());
     std::string s = "func ";
     if (sig->expr_receiver() != nullptr) {
         s += "(" + sig->expr_receiver()->ToString() + ") ";
     } else if (sig->type_receiver() != nullptr) {
-        s += "<" + sig->type_receiver()->ToString() + "> ";
+        s += "<" + sig->type_receiver()->ToString(StringRep::kShort) + "> ";
     }
-    s += name_;
+    s += name();
     if (!sig->type_parameters().empty()) {
         s += "<";
         for (int i = 0; i < sig->type_parameters().size(); i++) {
             if (i > 0) {
                 s += ", ";
             }
-            s += sig->type_parameters().at(i)->ToString();
+            s += sig->type_parameters().at(i)->ToString(StringRep::kShort);
         }
         s += ">";
     }
     s += "(";
     if (sig->parameters() != nullptr) {
-        s += sig->parameters()->ToString();
+        s += sig->parameters()->ToString(StringRep::kShort);
     }
     s += ")";
     if (sig->results()) {
         s += " ";
         if (sig->results()->variables().size() == 1 &&
             sig->results()->variables().at(0)->name().empty()) {
-            s += sig->results()->ToString();
+            s += sig->results()->ToString(StringRep::kShort);
         } else {
-            s += "(" + sig->results()->ToString() + ")";
+            s += "(" + sig->results()->ToString(StringRep::kShort) + ")";
         }
     }
     return s;
-}
-
-std::string Nil::ToString() const {
-    if (type_) {
-        return "nil <" + type_->ToString() + ">";
-    }
-    return "nil";
-}
-
-std::string Label::ToString() const {
-    return name_ + " (label)";
-}
-
-Builtin::Builtin() {}
-
-Builtin::Kind Builtin::kind() const {
-    return kind_;
 }
 
 std::string Builtin::ToString() const {
@@ -131,14 +72,6 @@ std::string Builtin::ToString() const {
         default:
             break;
     }
-}
-
-Package * PackageName::referenced_package() const {
-    return referenced_package_;
-}
-
-std::string PackageName::ToString() const {
-    return name_;
 }
 
 }

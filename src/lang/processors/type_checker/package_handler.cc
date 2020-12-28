@@ -39,6 +39,14 @@ PackageHandler::PackageHandler(std::vector<ast::File *> package_files,
     : package_files_(package_files), package_(package),
       info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
 
+
+PackageHandler::Action *
+PackageHandler::CreateAction(std::function<bool ()> executor) {
+    return CreateAction(std::unordered_set<types::Object *>{},
+                        std::unordered_set<types::Object *>{},
+                        executor);
+}
+
 PackageHandler::Action *
 PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
                              types::Object *defined_object,
@@ -325,9 +333,7 @@ void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
                                             info_builder_,
                                             issues_);
     });
-    Action *body_action = CreateAction(prerequisites,
-                                       func,
-                                       [=]() -> bool {
+    Action *body_action = CreateAction([=]() -> bool {
         types::Signature *signature = static_cast<types::Signature *>(func->type());
         StmtHandler::ProcessFuncBody(body,
                                      signature->results(),
