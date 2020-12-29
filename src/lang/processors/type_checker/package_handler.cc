@@ -71,24 +71,31 @@ PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
 void PackageHandler::FindActions() {
     for (ast::File *file : package_files_) {
         for (ast::Decl *decl : file->decls()) {
-            if (ast::GenDecl *gen_decl = dynamic_cast<ast::GenDecl *>(decl)) {
-                switch (gen_decl->tok()) {
-                    case tokens::kImport:
-                        break;
-                    case tokens::kType:
-                        FindActionsForTypeDecl(gen_decl);
-                        break;
-                    case tokens::kConst:
-                        FindActionsForConstDecl(gen_decl);
-                        break;
-                    case tokens::kVar:
-                        FindActionsForVarDecl(gen_decl);
-                        break;
-                    default:
-                        throw "internal error: unexpected lang::ast::GenDecl";
+            switch (decl->node_kind()) {
+                case ast::NodeKind::kGenDecl:{
+                    ast::GenDecl *gen_decl = static_cast<ast::GenDecl *>(decl);
+                    switch (gen_decl->tok()) {
+                        case tokens::kImport:
+                            break;
+                        case tokens::kType:
+                            FindActionsForTypeDecl(gen_decl);
+                            break;
+                        case tokens::kConst:
+                            FindActionsForConstDecl(gen_decl);
+                            break;
+                        case tokens::kVar:
+                            FindActionsForVarDecl(gen_decl);
+                            break;
+                        default:
+                            throw "internal error: unexpected lang::ast::GenDecl";
+                    }
+                    break;
                 }
-            } else if (ast::FuncDecl *func_decl = dynamic_cast<ast::FuncDecl *>(decl)) {
-                FindActionsForFuncDecl(func_decl);
+                case ast::NodeKind::kFuncDecl:
+                    FindActionsForFuncDecl(static_cast<ast::FuncDecl *>(decl));
+                    break;
+                default:
+                    throw "internal error: unexpected lang::ast::Decl";
             }
         }
     }
@@ -112,8 +119,8 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
             
             param_prerequisites = FindPrerequisites(type_spec->type_params());
             for (types::Object *prerequisite : param_prerequisites) {
-                if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
-                    dynamic_cast<types::Constant *>(prerequisite) == nullptr) {
+                if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
+                    prerequisite->object_kind() != types::ObjectKind::kConstant) {
                     issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                     issues::Severity::Error,
                                                     {type_name->position(), prerequisite->position()},
@@ -125,8 +132,8 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
         std::unordered_set<types::Object *> underlying_prerequisites =
             FindPrerequisites(type_spec->type());
         for (types::Object *prerequisite : underlying_prerequisites) {
-            if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
-                dynamic_cast<types::Constant *>(prerequisite) == nullptr) {
+            if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
+                prerequisite->object_kind() != types::ObjectKind::kConstant) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 {type_name->position(), prerequisite->position()},
@@ -186,8 +193,8 @@ void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
                                      value_prerequisites.end());
             }
             for (types::Object *prerequisite : prerequisites) {
-                if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
-                    dynamic_cast<types::Constant *>(prerequisite) == nullptr) {
+                if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
+                    prerequisite->object_kind() != types::ObjectKind::kConstant) {
                     issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                     issues::Severity::Error,
                                                     {constant->position(),
@@ -231,8 +238,8 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
             type_expr = value_spec->type();
             type_prerequisites = FindPrerequisites(type_expr);
             for (types::Object *prerequisite : type_prerequisites) {
-                if (dynamic_cast<types::TypeName *>(prerequisite) == nullptr &&
-                    dynamic_cast<types::Constant *>(prerequisite) == nullptr) {
+                if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
+                    prerequisite->object_kind() != types::ObjectKind::kConstant) {
                     issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                     issues::Severity::Error,
                                                     prerequisite->position(),
@@ -349,14 +356,10 @@ std::unordered_set<types::Object *> PackageHandler::FindPrerequisites(ast::Node 
     std::unordered_set<types::Object *> objects;
     ast::WalkFunction walker =
     ast::WalkFunction([&](ast::Node *node) -> ast::WalkFunction {
-        if (node == nullptr) {
+        if (node == nullptr || node->node_kind() != ast::NodeKind::kIdent) {
             return walker;
         }
-        ast::Ident *ident = dynamic_cast<ast::Ident *>(node);
-        if (ident == nullptr) {
-            return walker;
-        }
-        auto it = info_->uses().find(ident);
+        auto it = info_->uses().find(static_cast<ast::Ident *>(node));
         if (it == info_->uses().end() ||
             it->second->parent() != package_->scope()) {
             return walker;

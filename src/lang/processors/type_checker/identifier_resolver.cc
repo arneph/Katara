@@ -50,26 +50,34 @@ void IdentifierResolver::CreateFileScopes() {
 void IdentifierResolver::ResolveIdentifiers() {
     for (ast::File *file : package_files_) {
         for (ast::Decl *decl : file->decls()) {
-            if (ast::GenDecl *gen_decl = dynamic_cast<ast::GenDecl *>(decl)) {
-                AddDefinedObjectsFromGenDecl(gen_decl, package_->scope(), file);
-            } else if (ast::FuncDecl *func_decl = dynamic_cast<ast::FuncDecl *>(decl)) {
-                AddDefinedObjectFromFuncDecl(func_decl, package_->scope());
-            } else {
-                throw "unexpected declaration";
+            switch (decl->node_kind()) {
+                case ast::NodeKind::kGenDecl:
+                    AddDefinedObjectsFromGenDecl(static_cast<ast::GenDecl *>(decl),
+                                                 package_->scope(),
+                                                 file);
+                    break;
+                case ast::NodeKind::kFuncDecl:
+                    AddDefinedObjectFromFuncDecl(static_cast<ast::FuncDecl *>(decl),
+                                                 package_->scope());
+                    break;
+                default:
+                    throw "unexpected declaration";
             }
         }
     }
     
     for (ast::File *file : package_files_) {
         types::Scope *file_scope = info_->scopes().at(file);
-        
         for (ast::Decl *decl : file->decls()) {
-            if (ast::GenDecl *gen_decl = dynamic_cast<ast::GenDecl *>(decl)) {
-                ResolveIdentifiersInGenDecl(gen_decl, file_scope);
-            } else if (ast::FuncDecl *func_decl = dynamic_cast<ast::FuncDecl *>(decl)) {
-                ResolveIdentifiersInFuncDecl(func_decl, file_scope);
-            } else {
-                throw "unexpected declaration";
+            switch (decl->node_kind()) {
+                case ast::NodeKind::kGenDecl:
+                    ResolveIdentifiersInGenDecl(static_cast<ast::GenDecl *>(decl), file_scope);
+                    break;
+                case ast::NodeKind::kFuncDecl:
+                    ResolveIdentifiersInFuncDecl(static_cast<ast::FuncDecl *>(decl), file_scope);
+                    break;
+                default:
+                    throw "unexpected declaration";
             }
         }
     }
@@ -424,44 +432,56 @@ void IdentifierResolver::ResolveIdentifiersInRegularFuncFieldList(ast::FieldList
 }
 
 void IdentifierResolver::ResolveIdentifiersInStmt(ast::Stmt *stmt, types::Scope *scope) {
-    if (ast::BlockStmt *block_stmt = dynamic_cast<ast::BlockStmt *>(stmt)) {
-        ResolveIdentifiersInBlockStmt(block_stmt, scope);
-    } else if (ast::DeclStmt *decl_stmt = dynamic_cast<ast::DeclStmt *>(stmt)) {
-        ResolveIdentifiersInDeclStmt(decl_stmt, scope);
-    } else if (ast::AssignStmt *assign_stmt = dynamic_cast<ast::AssignStmt *>(stmt)) {
-        ResolveIdentifiersInAssignStmt(assign_stmt, scope);
-    } else if (ast::ExprStmt *expr_stmt = dynamic_cast<ast::ExprStmt *>(stmt)) {
-        ResolveIdentifiersInExpr(expr_stmt->x(), scope);
-    } else if (ast::IncDecStmt *inc_dec_stmt = dynamic_cast<ast::IncDecStmt *>(stmt)) {
-        ResolveIdentifiersInExpr(inc_dec_stmt->x(), scope);
-    } else if (ast::ReturnStmt *return_stmt = dynamic_cast<ast::ReturnStmt *>(stmt)) {
-        for (ast::Expr *expr : return_stmt->results()) {
-            ResolveIdentifiersInExpr(expr, scope);
-        }
-    } else if (ast::IfStmt *if_stmt = dynamic_cast<ast::IfStmt *>(stmt)) {
-        ResolveIdentifiersInIfStmt(if_stmt, scope);
-    } else if (ast::ExprSwitchStmt *expr_switch_stmt = dynamic_cast<ast::ExprSwitchStmt *>(stmt)) {
-        ResolveIdentifiersInExprSwitchStmt(expr_switch_stmt, scope);
-    } else if (ast::TypeSwitchStmt *type_switch_stmt = dynamic_cast<ast::TypeSwitchStmt *>(stmt)) {
-        ResolveIdentifiersInTypeSwitchStmt(type_switch_stmt, scope);
-    } else if (ast::ForStmt *for_stmt = dynamic_cast<ast::ForStmt *>(stmt)) {
-        ResolveIdentifiersInForStmt(for_stmt, scope);
-    } else if (ast::LabeledStmt *labeled_stmt = dynamic_cast<ast::LabeledStmt *>(stmt)) {
-        ResolveIdentifiersInStmt(labeled_stmt->stmt(), scope);
-    } else if (ast::BranchStmt *branch_stmt = dynamic_cast<ast::BranchStmt *>(stmt)) {
-        ResolveIdentifiersInBranchStmt(branch_stmt, scope);
-    } else {
-        throw "unexpected AST stmt";
+    switch (stmt->node_kind()) {
+        case ast::NodeKind::kBlockStmt:
+            ResolveIdentifiersInBlockStmt(static_cast<ast::BlockStmt *>(stmt), scope);
+            break;
+        case ast::NodeKind::kDeclStmt:
+            ResolveIdentifiersInDeclStmt(static_cast<ast::DeclStmt *>(stmt), scope);
+            break;
+        case ast::NodeKind::kAssignStmt:
+            ResolveIdentifiersInAssignStmt(static_cast<ast::AssignStmt *>(stmt), scope);
+            break;
+        case ast::NodeKind::kExprStmt:
+            ResolveIdentifiersInExpr(static_cast<ast::ExprStmt *>(stmt)->x(), scope);
+            break;
+        case ast::NodeKind::kIncDecStmt:
+            ResolveIdentifiersInExpr(static_cast<ast::IncDecStmt *>(stmt)->x(), scope);
+            break;
+        case ast::NodeKind::kReturnStmt:
+            for (ast::Expr *expr : static_cast<ast::ReturnStmt *>(stmt)->results()) {
+                ResolveIdentifiersInExpr(expr, scope);
+            }
+            break;
+        case ast::NodeKind::kIfStmt:
+            ResolveIdentifiersInIfStmt(static_cast<ast::IfStmt *>(stmt), scope);
+            break;
+        case ast::NodeKind::kExprSwitchStmt:
+            ResolveIdentifiersInExprSwitchStmt(static_cast<ast::ExprSwitchStmt *>(stmt), scope);
+            break;
+        case ast::NodeKind::kTypeSwitchStmt:
+            ResolveIdentifiersInTypeSwitchStmt(static_cast<ast::TypeSwitchStmt *>(stmt), scope);
+            break;
+        case ast::NodeKind::kForStmt:
+            ResolveIdentifiersInForStmt(static_cast<ast::ForStmt *>(stmt), scope);
+            break;
+        case ast::NodeKind::kLabeledStmt:
+            ResolveIdentifiersInStmt(static_cast<ast::LabeledStmt *>(stmt)->stmt(), scope);
+            break;
+        case ast::NodeKind::kBranchStmt:
+            ResolveIdentifiersInBranchStmt(static_cast<ast::BranchStmt *>(stmt), scope);
+            break;
+        default:
+            throw "unexpected AST stmt";
     }
 }
 
 void IdentifierResolver::ResolveIdentifiersInBlockStmt(ast::BlockStmt *body, types::Scope *scope) {
     for (ast::Stmt *stmt : body->stmts()) {
-        ast::LabeledStmt *labeled_stmt = dynamic_cast<ast::LabeledStmt *>(stmt);
-        if (labeled_stmt == nullptr) {
+        if (stmt->node_kind() != ast::NodeKind::kLabeledStmt) {
             continue;
         }
-        
+        ast::LabeledStmt *labeled_stmt = static_cast<ast::LabeledStmt *>(stmt);
         types::Label *label = info_builder_.CreateLabel(scope,
                                                         package_,
                                                         labeled_stmt->start(),
@@ -509,22 +529,21 @@ void IdentifierResolver::ResolveIdentifiersInAssignStmt(ast::AssignStmt *assign_
         ResolveIdentifiersInExpr(expr, scope);
     }
     for (ast::Expr *expr : assign_stmt->lhs()) {
-        if (assign_stmt->tok() == tokens::kDefine) {
-            ast::Ident *ident = dynamic_cast<ast::Ident *>(expr);
-            if (ident != nullptr) {
-                const types::Scope *defining_scope = nullptr;
-                scope->Lookup(ident->name(), defining_scope);
-                if (defining_scope != scope) {
-                    types::Variable *variable =
-                        info_builder_.CreateVariable(scope,
-                                                     package_,
-                                                     ident->start(),
-                                                     ident->name(),
-                                                     /* is_embedded= */ false,
-                                                     /* is_field= */ false);
-                    info_builder_.SetDefinedObject(ident, variable);
-                    AddObjectToScope(scope, variable);
-                }
+        if (assign_stmt->tok() == tokens::kDefine &&
+            expr->node_kind() == ast::NodeKind::kIdent) {
+            ast::Ident *ident = static_cast<ast::Ident *>(expr);
+            const types::Scope *defining_scope = nullptr;
+            scope->Lookup(ident->name(), defining_scope);
+            if (defining_scope != scope) {
+                types::Variable *variable =
+                info_builder_.CreateVariable(scope,
+                                             package_,
+                                             ident->start(),
+                                             ident->name(),
+                                             /* is_embedded= */ false,
+                                             /* is_field= */ false);
+                info_builder_.SetDefinedObject(ident, variable);
+                AddObjectToScope(scope, variable);
             }
         }
         ResolveIdentifiersInExpr(expr, scope);
@@ -590,11 +609,10 @@ void IdentifierResolver::ResolveIdentifiersInCaseClause(ast::CaseClause *case_cl
         AddObjectToScope(case_scope, variable);
     }
     for (ast::Stmt *stmt : case_clause->body()) {
-        ast::LabeledStmt *labeled_stmt = dynamic_cast<ast::LabeledStmt *>(stmt);
-        if (labeled_stmt == nullptr) {
+        if (stmt->node_kind() != ast::NodeKind::kLabeledStmt) {
             continue;
         }
-        
+        ast::LabeledStmt *labeled_stmt = static_cast<ast::LabeledStmt *>(stmt);
         types::Label *label = info_builder_.CreateLabel(case_scope,
                                                         package_,
                                                         labeled_stmt->start(),
@@ -617,15 +635,13 @@ void IdentifierResolver::ResolveIdentifiersInForStmt(ast::ForStmt *for_stmt, typ
         ResolveIdentifiersInExpr(for_stmt->cond_expr(), for_scope);
     }
     if (for_stmt->post_stmt()) {
-        if (ast::AssignStmt *assign_stmt = dynamic_cast<ast::AssignStmt *>(for_stmt->post_stmt())) {
-            if (assign_stmt->tok() == tokens::kDefine) {
-                issues_.push_back(
-                                  issues::Issue(issues::Origin::TypeChecker,
-                                                issues::Severity::Error,
-                                                assign_stmt->start(),
-                                                "post statements of for loops can not define "
-                                                "variables"));
-            }
+        if (for_stmt->post_stmt()->node_kind() == ast::NodeKind::kAssignStmt &&
+            static_cast<ast::AssignStmt *>(for_stmt->post_stmt())->tok() == tokens::kDefine) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            for_stmt->post_stmt()->start(),
+                                            "post statements of for loops can not define "
+                                            "variables"));
         }
         ResolveIdentifiersInStmt(for_stmt->post_stmt(), for_scope);
     }
@@ -639,7 +655,7 @@ void IdentifierResolver::ResolveIdentifiersInBranchStmt(ast::BranchStmt *branch_
     }
     const types::Scope* defining_scope;
     types::Object *obj = scope->Lookup(branch_stmt->label()->name(), defining_scope);
-    if (dynamic_cast<types::Label *>(obj) == nullptr) {
+    if (obj->object_kind() != types::ObjectKind::kLabel) {
         issues_.push_back(
                           issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
@@ -651,61 +667,84 @@ void IdentifierResolver::ResolveIdentifiersInBranchStmt(ast::BranchStmt *branch_
 }
 
 void IdentifierResolver::ResolveIdentifiersInExpr(ast::Expr *expr, types::Scope *scope) {
-    if (ast::UnaryExpr *unary_expr = dynamic_cast<ast::UnaryExpr *>(expr)) {
-        ResolveIdentifiersInExpr(unary_expr->x(), scope);
-    } else if (ast::BinaryExpr *binary_expr = dynamic_cast<ast::BinaryExpr *>(expr)) {
-        ResolveIdentifiersInExpr(binary_expr->x(), scope);
-        ResolveIdentifiersInExpr(binary_expr->y(), scope);
-    } else if (ast::CompareExpr *compare_expr = dynamic_cast<ast::CompareExpr *>(expr)) {
-        for (ast::Expr *operand : compare_expr->operands()) {
-            ResolveIdentifiersInExpr(operand, scope);
+    switch (expr->node_kind()) {
+        case ast::NodeKind::kUnaryExpr:
+            ResolveIdentifiersInExpr(static_cast<ast::UnaryExpr *>(expr)->x(), scope);
+            break;
+        case ast::NodeKind::kBinaryExpr:
+            ResolveIdentifiersInExpr(static_cast<ast::BinaryExpr *>(expr)->x(), scope);
+            ResolveIdentifiersInExpr(static_cast<ast::BinaryExpr *>(expr)->y(), scope);
+            break;
+        case ast::NodeKind::kCompareExpr:
+            for (ast::Expr *operand : static_cast<ast::CompareExpr *>(expr)->operands()) {
+                ResolveIdentifiersInExpr(operand, scope);
+            }
+            break;
+        case ast::NodeKind::kParenExpr:
+            ResolveIdentifiersInExpr(static_cast<ast::ParenExpr *>(expr)->x(), scope);
+            break;
+        case ast::NodeKind::kSelectionExpr:
+            ResolveIdentifiersInSelectionExpr(static_cast<ast::SelectionExpr *>(expr), scope);
+            break;
+        case ast::NodeKind::kTypeAssertExpr:{
+            ast::TypeAssertExpr *type_assert_expr = static_cast<ast::TypeAssertExpr *>(expr);
+            ResolveIdentifiersInExpr(type_assert_expr->x(), scope);
+            if (type_assert_expr->type()) {
+                ResolveIdentifiersInExpr(type_assert_expr->type(), scope);
+            }
+            break;
         }
-    } else if (ast::ParenExpr *paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
-        ResolveIdentifiersInExpr(paren_expr->x(), scope);
-    } else if (ast::SelectionExpr *selection_expr = dynamic_cast<ast::SelectionExpr *>(expr)) {
-        ResolveIdentifiersInSelectionExpr(selection_expr, scope);
-    } else if (ast::TypeAssertExpr *type_assert_expr = dynamic_cast<ast::TypeAssertExpr *>(expr)) {
-        ResolveIdentifiersInExpr(type_assert_expr->x(), scope);
-        if (type_assert_expr->type()) {
-            ResolveIdentifiersInExpr(type_assert_expr->type(), scope);
+        case ast::NodeKind::kIndexExpr:
+            ResolveIdentifiersInExpr(static_cast<ast::IndexExpr *>(expr)->accessed(), scope);
+            ResolveIdentifiersInExpr(static_cast<ast::IndexExpr *>(expr)->index(), scope);
+            break;
+        case ast::NodeKind::kCallExpr:{
+            ast::CallExpr *call_expr = static_cast<ast::CallExpr *>(expr);
+            ResolveIdentifiersInExpr(call_expr->func(), scope);
+            for (ast::Expr *type_arg : call_expr->type_args()) {
+                ResolveIdentifiersInExpr(type_arg, scope);
+            }
+            for (ast::Expr *arg : call_expr->args()) {
+                ResolveIdentifiersInExpr(arg, scope);
+            }
+            break;
         }
-    } else if (ast::IndexExpr *index_expr = dynamic_cast<ast::IndexExpr *>(expr)) {
-        ResolveIdentifiersInExpr(index_expr->accessed(), scope);
-        ResolveIdentifiersInExpr(index_expr->index(), scope);
-    } else if (ast::CallExpr *call_expr = dynamic_cast<ast::CallExpr *>(expr)) {
-        ResolveIdentifiersInExpr(call_expr->func(), scope);
-        for (ast::Expr *type_arg : call_expr->type_args()) {
-            ResolveIdentifiersInExpr(type_arg, scope);
+        case ast::NodeKind::kFuncLit:
+            ResolveIdentifiersInFuncLit(static_cast<ast::FuncLit *>(expr), scope);
+            break;
+        case ast::NodeKind::kCompositeLit:
+            ResolveIdentifiersInCompositeLit(static_cast<ast::CompositeLit *>(expr), scope);
+            break;
+        case ast::NodeKind::kArrayType:{
+            ast::ArrayType *array_type = static_cast<ast::ArrayType *>(expr);
+            if (array_type->len()) {
+                ResolveIdentifiersInExpr(array_type->len(), scope);
+            }
+            ResolveIdentifiersInExpr(array_type->element_type(), scope);
+            break;
         }
-        for (ast::Expr *arg : call_expr->args()) {
-            ResolveIdentifiersInExpr(arg, scope);
-        }
-    } else if (ast::FuncLit *func_lit = dynamic_cast<ast::FuncLit *>(expr)) {
-        ResolveIdentifiersInFuncLit(func_lit, scope);
-    } else if (ast::CompositeLit *composite_lit = dynamic_cast<ast::CompositeLit *>(expr)) {
-        ResolveIdentifiersInCompositeLit(composite_lit, scope);
-    } else if (ast::ArrayType *array_type = dynamic_cast<ast::ArrayType *>(expr)) {
-        if (array_type->len()) {
-            ResolveIdentifiersInExpr(array_type->len(), scope);
-        }
-        ResolveIdentifiersInExpr(array_type->element_type(), scope);
-    } else if (ast::FuncType *func_type = dynamic_cast<ast::FuncType *>(expr)) {
-        ResolveIdentifiersInFuncType(func_type, scope);
-    } else if (ast::InterfaceType *interface_type = dynamic_cast<ast::InterfaceType *>(expr)) {
-        ResolveIdentifiersInInterfaceType(interface_type, scope);
-    } else if (ast::StructType *struct_type = dynamic_cast<ast::StructType *>(expr)) {
-        ResolveIdentifiersInStructType(struct_type, scope);
-    } else if (ast::TypeInstance *type_instance = dynamic_cast<ast::TypeInstance *>(expr)) {
-        ResolveIdentifiersInExpr(type_instance->type(), scope);
-        for (ast::Expr *type_arg : type_instance->type_args()) {
-            ResolveIdentifiersInExpr(type_arg, scope);
-        }
-    } else if (ast::BasicLit *basic_lit = dynamic_cast<ast::BasicLit *>(expr)) {
-        return;
-    } else if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
-        ResolveIdentifier(ident, scope);
-    } else {
-        throw "unexpected AST expr";
+        case ast::NodeKind::kFuncType:
+            ResolveIdentifiersInFuncType(static_cast<ast::FuncType *>(expr), scope);
+            break;
+        case ast::NodeKind::kInterfaceType:
+            ResolveIdentifiersInInterfaceType(static_cast<ast::InterfaceType *>(expr), scope);
+            break;
+        case ast::NodeKind::kStructType:
+            ResolveIdentifiersInStructType(static_cast<ast::StructType *>(expr), scope);
+            break;
+        case ast::NodeKind::kTypeInstance:
+            ResolveIdentifiersInExpr(static_cast<ast::TypeInstance *>(expr)->type(), scope);
+            for (ast::Expr *type_arg : static_cast<ast::TypeInstance *>(expr)->type_args()) {
+                ResolveIdentifiersInExpr(type_arg, scope);
+            }
+            break;
+        case ast::NodeKind::kBasicLit:
+            break;
+        case ast::NodeKind::kIdent:
+            ResolveIdentifier(static_cast<ast::Ident *>(expr), scope);
+            break;
+        default:
+            throw "unexpected AST expr";
     }
 }
 
@@ -720,20 +759,18 @@ void IdentifierResolver::ResolveIdentifiersInSelectionExpr(ast::SelectionExpr *s
         return;
     }
     
-    ast::Ident *accessed_ident = dynamic_cast<ast::Ident *>(sel->accessed());
-    if (accessed_ident == nullptr) {
+    if (sel->accessed()->node_kind() != ast::NodeKind::kIdent) {
         return;
     }
-    auto it = info_->uses().find(accessed_ident);
-    if (it == info_->uses().end()) {
+    auto it = info_->uses().find(static_cast<ast::Ident *>(sel->accessed()));
+    if (it == info_->uses().end() ||
+        it->second->object_kind() != types::ObjectKind::kPackageName) {
         return;
     }
-    types::Object *accessed_object = it->second;
-    types::PackageName *pkg_name = dynamic_cast<types::PackageName *>(accessed_object);
-    if (pkg_name == nullptr || pkg_name->referenced_package() == nullptr) {
+    types::PackageName *pkg_name = static_cast<types::PackageName *>(it->second);
+    if (pkg_name->referenced_package() == nullptr) {
         return;
     }
-    
     ast::Ident *selected_ident = sel->selection();
     ResolveIdentifier(selected_ident,
                       pkg_name->referenced_package()->scope());
@@ -761,8 +798,8 @@ void IdentifierResolver::ResolveIdentifiersInCompositeLit(ast::CompositeLit *com
     ResolveIdentifiersInExpr(composite_lit->type(), scope);
     for (ast::Expr *value : composite_lit->values()) {
         ast::Expr *expr = value;
-        if (ast::KeyValueExpr *key_value_expr = dynamic_cast<ast::KeyValueExpr *>(value)) {
-            expr = key_value_expr->value();
+        if (expr->node_kind() == ast::NodeKind::kKeyValueExpr) {
+            expr = static_cast<ast::KeyValueExpr *>(value)->value();
         }
         ResolveIdentifiersInExpr(expr, scope);
     }
@@ -822,11 +859,11 @@ void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType *struct_
     for (ast::Field *field : struct_type->fields()->fields()) {
         if (field->names().empty()) {
             ast::Expr *type = field->type();
-            if (ast::UnaryExpr *ptr_type = dynamic_cast<ast::UnaryExpr *>(type)) {
+            if (type->node_kind() == ast::NodeKind::kUnaryExpr) {
+                ast::UnaryExpr *ptr_type = static_cast<ast::UnaryExpr *>(type);
                 if (ptr_type->op() != tokens::kMul &&
                     ptr_type->op() != tokens::kRem) {
-                    issues_.push_back(
-                                      issues::Issue(issues::Origin::TypeChecker,
+                    issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                     issues::Severity::Error,
                                                     type->start(),
                                                     "expected embedded field to be defined type or "
@@ -835,20 +872,18 @@ void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType *struct_
                 }
                 type = ptr_type->x();
             }
-            if (ast::TypeInstance *type_instance = dynamic_cast<ast::TypeInstance *>(type)) {
-                type = type_instance->type();
+            if (type->node_kind() == ast::NodeKind::kTypeInstance) {
+                type = static_cast<ast::TypeInstance *>(type)->type();
             }
-            ast::Ident *defined_type = dynamic_cast<ast::Ident *>(type);
-            if (defined_type == nullptr) {
-                issues_.push_back(
-                                  issues::Issue(issues::Origin::TypeChecker,
+            if (type->node_kind() != ast::NodeKind::kIdent) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 type->start(),
                                                 "expected embdedded field to be defined type or "
                                                 "pointer to defined type"));
                 continue;
             }
-            
+            ast::Ident *defined_type = static_cast<ast::Ident *>(type);
             types::Variable *variable = info_builder_.CreateVariable(struct_scope,
                                                                      package_,
                                                                      field->type()->start(),

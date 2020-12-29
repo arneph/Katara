@@ -42,36 +42,47 @@ void StmtHandler::CheckBlockStmt(ast::BlockStmt *block_stmt, Context ctx) {
 }
 
 void StmtHandler::CheckStmt(ast::Stmt *stmt, Context ctx) {
-    while (ast::LabeledStmt *labeled_stmt = dynamic_cast<ast::LabeledStmt *>(stmt)) {
-        stmt = labeled_stmt->stmt();
-        ctx.labels.insert({labeled_stmt->label()->name(), stmt});
+    while (stmt->node_kind() == ast::NodeKind::kLabeledStmt) {
+        stmt = static_cast<ast::LabeledStmt *>(stmt)->stmt();
+        ctx.labels.insert({static_cast<ast::LabeledStmt *>(stmt)->label()->name(), stmt});
     }
-    
-    if (ast::BlockStmt *block_stmt = dynamic_cast<ast::BlockStmt *>(stmt)) {
-        ctx.can_fallthrough = false;
-        CheckBlockStmt(block_stmt, ctx);
-    } else if (ast::DeclStmt *decl_stmt = dynamic_cast<ast::DeclStmt *>(stmt)) {
-        CheckDeclStmt(decl_stmt);
-    } else if (ast::AssignStmt *assign_stmt = dynamic_cast<ast::AssignStmt *>(stmt)) {
-        CheckAssignStmt(assign_stmt);
-    } else if (ast::ExprStmt *expr_stmt = dynamic_cast<ast::ExprStmt *>(stmt)) {
-        CheckExprStmt(expr_stmt);
-    } else if (ast::IncDecStmt *inc_dec_stmt = dynamic_cast<ast::IncDecStmt *>(stmt)) {
-        CheckIncDecStmt(inc_dec_stmt);
-    } else if (ast::ReturnStmt *return_stmt = dynamic_cast<ast::ReturnStmt *>(stmt)) {
-        CheckReturnStmt(return_stmt, ctx);
-    } else if (ast::IfStmt *if_stmt = dynamic_cast<ast::IfStmt *>(stmt)) {
-        CheckIfStmt(if_stmt, ctx);
-    } else if (ast::ExprSwitchStmt *expr_switch_stmt = dynamic_cast<ast::ExprSwitchStmt *>(stmt)) {
-        CheckExprSwitchStmt(expr_switch_stmt, ctx);
-    } else if (ast::TypeSwitchStmt *type_switch_stmt = dynamic_cast<ast::TypeSwitchStmt *>(stmt)) {
-        CheckTypeSwitchStmt(type_switch_stmt, ctx);
-    } else if (ast::ForStmt *for_stmt = dynamic_cast<ast::ForStmt *>(stmt)) {
-        CheckForStmt(for_stmt, ctx);
-    } else if (ast::BranchStmt *branch_stmt = dynamic_cast<ast::BranchStmt *>(stmt)) {
-        CheckBranchStmt(branch_stmt, ctx);
-    } else {
-        throw "internal error: unexpected stmt type";
+    switch (stmt->node_kind()) {
+        case ast::NodeKind::kBlockStmt:
+            ctx.can_fallthrough = false;
+            CheckBlockStmt(static_cast<ast::BlockStmt *>(stmt), ctx);
+            break;
+        case ast::NodeKind::kDeclStmt:
+            CheckDeclStmt(static_cast<ast::DeclStmt *>(stmt));
+            break;
+        case ast::NodeKind::kAssignStmt:
+            CheckAssignStmt(static_cast<ast::AssignStmt *>(stmt));
+            break;
+        case ast::NodeKind::kExprStmt:
+            CheckExprStmt(static_cast<ast::ExprStmt *>(stmt));
+            break;
+        case ast::NodeKind::kIncDecStmt:
+            CheckIncDecStmt(static_cast<ast::IncDecStmt *>(stmt));
+            break;
+        case ast::NodeKind::kReturnStmt:
+            CheckReturnStmt(static_cast<ast::ReturnStmt *>(stmt), ctx);
+            break;
+        case ast::NodeKind::kIfStmt:
+            CheckIfStmt(static_cast<ast::IfStmt *>(stmt), ctx);
+            break;
+        case ast::NodeKind::kExprSwitchStmt:
+            CheckExprSwitchStmt(static_cast<ast::ExprSwitchStmt *>(stmt), ctx);
+            break;
+        case ast::NodeKind::kTypeSwitchStmt:
+            CheckTypeSwitchStmt(static_cast<ast::TypeSwitchStmt *>(stmt), ctx);
+            break;
+        case ast::NodeKind::kForStmt:
+            CheckForStmt(static_cast<ast::ForStmt *>(stmt), ctx);
+            break;
+        case ast::NodeKind::kBranchStmt:
+            CheckBranchStmt(static_cast<ast::BranchStmt *>(stmt), ctx);
+            break;
+        default:
+            throw "internal error: unexpected stmt type";
     }
 }
 
@@ -177,9 +188,18 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
     std::vector<types::Type *> lhs_types;
     std::vector<types::Type *> rhs_types;
     for (ast::Expr *lhs_expr : assign_stmt->lhs()) {
-        ast::Ident *ident = dynamic_cast<ast::Ident *>(lhs_expr);
-        types::Variable *var = dynamic_cast<types::Variable *>(info_->DefinitionOf(ident));
-        if (assign_stmt->tok() == tokens::kDefine && var != nullptr) {
+        if (lhs_expr->node_kind() != ast::NodeKind::kIdent) {
+            lhs_types.push_back(nullptr);
+            continue;
+        }
+        ast::Ident *ident = static_cast<ast::Ident *>(lhs_expr);
+        types::Object *obj = info_->DefinitionOf(ident);
+        if (obj == nullptr ||
+            obj->object_kind() != types::ObjectKind::kVariable) {
+            lhs_types.push_back(nullptr);
+            continue;
+        }
+        if (assign_stmt->tok() == tokens::kDefine) {
             lhs_types.push_back(nullptr);
             continue;
         }
@@ -208,13 +228,14 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
         rhs_types.push_back(rhs_type);
     }
     
-    if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr) {
-        if (types::Tuple *tuple = dynamic_cast<types::Tuple *>(rhs_types.at(0))) {
-            rhs_types.clear();
-            rhs_types.reserve(tuple->variables().size());
-            for (types::Variable *var : tuple->variables()) {
-                rhs_types.push_back(var->type());
-            }
+    if (rhs_types.size() == 1 &&
+        rhs_types.at(0) != nullptr &&
+        rhs_types.at(0)->type_kind() == types::TypeKind::kTuple) {
+        types::Tuple *tuple = static_cast<types::Tuple *>(rhs_types.at(0));
+        rhs_types.clear();
+        rhs_types.reserve(tuple->variables().size());
+        for (types::Variable *var : tuple->variables()) {
+            rhs_types.push_back(var->type());
         }
     }
     if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr) {
@@ -245,11 +266,12 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
         types::Type *lhs_type = lhs_types.at(i);
         types::Type *rhs_type = rhs_types.at(i);
         
-        if (assign_stmt->tok() == tokens::kDefine) {
-            ast::Ident *ident = dynamic_cast<ast::Ident *>(assign_stmt->lhs().at(i));
-            types::Variable *var = dynamic_cast<types::Variable *>(info_->DefinitionOf(ident));
-            if (var != nullptr && rhs_type != nullptr) {
-                info_builder_.SetObjectType(var, rhs_type);
+        if (assign_stmt->tok() == tokens::kDefine &&
+            assign_stmt->lhs().at(i)->node_kind() == ast::NodeKind::kIdent) {
+            ast::Ident *ident = static_cast<ast::Ident *>(assign_stmt->lhs().at(i));
+            types::Object *obj = info_->DefinitionOf(ident);
+            if (obj->object_kind() == types::ObjectKind::kVariable && rhs_type != nullptr) {
+                info_builder_.SetObjectType(static_cast<types::Variable *>(obj), rhs_type);
             }
             continue;
         }
@@ -287,9 +309,10 @@ void StmtHandler::CheckIncDecStmt(ast::IncDecStmt *inc_dec_stmt) {
     }
     
     types::Type *x_type = info_->TypeOf(inc_dec_stmt->x());
-    types::Basic *underlying_type = dynamic_cast<types::Basic *>(types::UnderlyingOf(x_type));
-    if (underlying_type == nullptr ||
-        !(underlying_type->info() & types::Basic::Info::kIsInteger)) {
+    types::Type *x_underlying = types::UnderlyingOf(x_type);
+    if (x_underlying == nullptr ||
+        x_underlying->type_kind() != types::TypeKind::kBasic ||
+        !(static_cast<types::Basic *>(x_underlying)->info() & types::Basic::Info::kIsInteger)) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         inc_dec_stmt->start(),
@@ -309,18 +332,17 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt *return_stmt, Context ctx) {
         return;
     }
     
-    if (return_stmt->results().size() == 1) {
-        types::Tuple *result_tuple = dynamic_cast<types::Tuple *>(result_types.at(0));
-        if (result_tuple) {
-            if (!types::IsAssignableTo(result_tuple, ctx.func_results)) {
-                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                                issues::Severity::Error,
-                                                return_stmt->start(),
-                                                "invalid operation: results can not be assigned to "
-                                                "function result types"));
-            }
-            return;
+    if (return_stmt->results().size() == 1 &&
+        result_types.at(0)->type_kind() == types::TypeKind::kTuple) {
+        types::Tuple *result_tuple = static_cast<types::Tuple *>(result_types.at(0));
+        if (!types::IsAssignableTo(result_tuple, ctx.func_results)) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            return_stmt->start(),
+                                            "invalid operation: results can not be assigned to "
+                                            "function result types"));
         }
+        return;
     }
     if (result_types.size() != ctx.func_results->variables().size()) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -351,9 +373,10 @@ void StmtHandler::CheckIfStmt(ast::IfStmt *if_stmt, Context ctx) {
     }
     if (ExprHandler::ProcessExpr(if_stmt->cond_expr(), info_builder_, issues_)) {
         types::Type *cond_type = info_->TypeOf(if_stmt->cond_expr());
-        types::Basic *underlying = dynamic_cast<types::Basic *>(types::UnderlyingOf(cond_type));
+        types::Type *underlying = types::UnderlyingOf(cond_type);
         if (underlying == nullptr ||
-            !(underlying->info() & types::Basic::Info::kIsBoolean)) {
+            underlying->type_kind() != types::TypeKind::kBasic ||
+            !(static_cast<types::Basic *>(underlying)->info() & types::Basic::Info::kIsBoolean)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             if_stmt->cond_expr()->start(),
@@ -482,9 +505,10 @@ void StmtHandler::CheckForStmt(ast::ForStmt *for_stmt, Context ctx) {
     }
     if (ExprHandler::ProcessExpr(for_stmt->cond_expr(), info_builder_, issues_)) {
         types::Type *cond_type = info_->TypeOf(for_stmt->cond_expr());
-        types::Basic *underlying = dynamic_cast<types::Basic *>(types::UnderlyingOf(cond_type));
+        types::Type *underlying = types::UnderlyingOf(cond_type);
         if (underlying == nullptr ||
-            !(underlying->info() & types::Basic::Info::kIsBoolean)) {
+            underlying->type_kind() != types::TypeKind::kBasic ||
+            !(static_cast<types::Basic *>(underlying)->info() & types::Basic::Info::kIsBoolean)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             for_stmt->cond_expr()->start(),
@@ -529,11 +553,10 @@ void StmtHandler::CheckBranchStmt(ast::BranchStmt *branch_stmt, Context ctx) {
             return;
         }
         labeled_destination = it->second;
-        destination_is_labeled_loop =
-            (dynamic_cast<ast::ForStmt *>(labeled_destination) != nullptr);
+        destination_is_labeled_loop = (labeled_destination->node_kind() == ast::NodeKind::kForStmt);
         destination_is_labeled_switch =
-            (dynamic_cast<ast::ExprSwitchStmt *>(labeled_destination) != nullptr) ||
-            (dynamic_cast<ast::TypeSwitchStmt *>(labeled_destination) != nullptr);
+            (labeled_destination->node_kind() == ast::NodeKind::kExprSwitchStmt) ||
+            (labeled_destination->node_kind() == ast::NodeKind::kTypeSwitchStmt);
     }
     
     switch (branch_stmt->tok()) {

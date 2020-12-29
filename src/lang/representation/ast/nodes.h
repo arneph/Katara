@@ -19,10 +19,76 @@
 namespace lang {
 namespace ast {
 
+enum class NodeKind {
+    kFile,
+
+    kGenDecl,
+    kFuncDecl,
+    kDeclStart = kGenDecl,
+    kDeclEnd = kFuncDecl,
+
+    kImportSpec,
+    kValueSpec,
+    kTypeSpec,
+    kSpecStart = kImportSpec,
+    kSpecEnd = kTypeSpec,
+    
+    kBlockStmt,
+    kDeclStmt,
+    kAssignStmt,
+    kExprStmt,
+    kIncDecStmt,
+    kReturnStmt,
+    kIfStmt,
+    kExprSwitchStmt,
+    kTypeSwitchStmt,
+    kCaseClause,
+    kForStmt,
+    kLabeledStmt,
+    kBranchStmt,
+    kStmtStart = kBlockStmt,
+    kStmtEnd = kBranchStmt,
+    
+    kUnaryExpr,
+    kBinaryExpr,
+    kCompareExpr,
+    kParenExpr,
+    kSelectionExpr,
+    kTypeAssertExpr,
+    kIndexExpr,
+    kCallExpr,
+    kFuncLit,
+    kCompositeLit,
+    kKeyValueExpr,
+    kArrayType,
+    kFuncType,
+    kInterfaceType,
+    kStructType,
+    kTypeInstance,
+    kBasicLit,
+    kIdent,
+    kExprStart = kUnaryExpr,
+    kExprEnd = kIdent,
+
+    kMethodSpec,
+    kExprReceiver,
+    kTypeReceiver,
+    kFieldList,
+    kField,
+    kTypeParamList,
+    kTypeParam,
+};
+
 class Node {
 public:
     virtual ~Node() {}
     
+    bool is_decl() const;
+    bool is_spec() const;
+    bool is_stmt() const;
+    bool is_expr() const;
+    
+    virtual NodeKind node_kind() const = 0;
     virtual pos::pos_t start() const = 0;
     virtual pos::pos_t end() const = 0;
 };
@@ -131,6 +197,7 @@ public:
     Ident * package_name() const { return package_name_; }
     std::vector<Decl *> decls() const { return decls_; }
     
+    NodeKind node_kind() const override { return NodeKind::kFile; }
     pos::pos_t start() const override { return start_; }
     pos::pos_t end() const override { return end_; }
     
@@ -160,6 +227,7 @@ public:
     std::vector<Spec *> specs() { return specs_; }
     pos::pos_t r_paren() { return r_paren_; }
     
+    NodeKind node_kind() const override { return NodeKind::kGenDecl; }
     pos::pos_t start() const override { return tok_start_; }
     pos::pos_t end() const override;
 
@@ -192,6 +260,7 @@ public:
     Ident * name() { return name_; }
     BasicLit * path() { return path_; }
     
+    NodeKind node_kind() const override { return NodeKind::kImportSpec; }
     pos::pos_t start() const override;
     pos::pos_t end() const override;
 
@@ -211,6 +280,7 @@ public:
     Expr * type() const { return type_; }
     std::vector<Expr *> values() const {return values_; }
     
+    NodeKind node_kind() const override { return NodeKind::kValueSpec; }
     pos::pos_t start() const override;
     pos::pos_t end() const override;
     
@@ -235,6 +305,7 @@ public:
     pos::pos_t assign() const { return assign_; }
     Expr *type() const { return type_; }
     
+    NodeKind node_kind() const override { return NodeKind::kTypeSpec; }
     pos::pos_t start() const override;
     pos::pos_t end() const override;
     
@@ -271,6 +342,7 @@ public:
     FuncType * func_type() const { return func_type_; }
     BlockStmt *body() const { return body_; }
     
+    NodeKind node_kind() const override { return NodeKind::kFuncDecl; }
     pos::pos_t start() const override;
     pos::pos_t end() const override;
     
@@ -314,6 +386,7 @@ class BlockStmt final : public Stmt {
 public:
     std::vector<Stmt *> stmts() const { return stmts_; }
     
+    NodeKind node_kind() const override { return NodeKind::kBlockStmt; }
     pos::pos_t start() const override { return l_brace_; }
     pos::pos_t end() const override { return r_brace_; }
 
@@ -335,6 +408,7 @@ class DeclStmt final : public Stmt {
 public:
     GenDecl * decl() const { return decl_; }
     
+    NodeKind node_kind() const override { return NodeKind::kDeclStmt; }
     pos::pos_t start() const override;
     pos::pos_t end() const override;
 
@@ -354,6 +428,7 @@ public:
     tokens::Token tok() const { return tok_; }
     std::vector<Expr *> rhs() const { return rhs_; }
     
+    NodeKind node_kind() const override { return NodeKind::kAssignStmt; }
     pos::pos_t start() const override { return lhs_.front()->start(); }
     pos::pos_t end() const override { return rhs_.back()->end(); }
 
@@ -377,6 +452,7 @@ class ExprStmt final : public Stmt {
 public:
     Expr * x() const { return x_; }
     
+    NodeKind node_kind() const override { return NodeKind::kExprStmt; }
     pos::pos_t start() const override { return x_->start(); }
     pos::pos_t end() const override { return x_->end(); }
 
@@ -395,6 +471,7 @@ public:
     pos::pos_t tok_start() const { return tok_start_; }
     tokens::Token tok() const { return tok_; }
     
+    NodeKind node_kind() const override { return NodeKind::kIncDecStmt; }
     pos::pos_t start() const override { return x_->start(); }
     pos::pos_t end() const override { return tok_start_ + 1; }
 
@@ -414,6 +491,7 @@ class ReturnStmt final : public Stmt {
 public:
     std::vector<Expr *> results() const { return results_; }
     
+    NodeKind node_kind() const override { return NodeKind::kReturnStmt; }
     pos::pos_t start() const override { return return_; }
     pos::pos_t end() const override {
         return (results_.empty()) ? return_ + 5 : results_.back()->end();
@@ -439,6 +517,7 @@ public:
     BlockStmt *body() const { return body_; }
     Stmt *else_stmt() const { return else_; }
     
+    NodeKind node_kind() const override { return NodeKind::kIfStmt; }
     pos::pos_t start() const override { return if_; }
     pos::pos_t end() const override;
 
@@ -466,6 +545,7 @@ public:
     Expr *tag_expr() { return tag_; }
     BlockStmt *body() { return body_; }
     
+    NodeKind node_kind() const override { return NodeKind::kExprSwitchStmt; }
     pos::pos_t start() const override { return switch_; }
     pos::pos_t end() const override;
 
@@ -491,6 +571,7 @@ public:
     Expr * tag_expr() const { return tag_; }
     BlockStmt * body() const { return body_; }
     
+    NodeKind node_kind() const override { return NodeKind::kTypeSwitchStmt; }
     pos::pos_t start() const override { return switch_; }
     pos::pos_t end() const override;
     
@@ -517,6 +598,7 @@ public:
     pos::pos_t colon() const { return colon_; }
     std::vector<Stmt *> body() const { return body_; }
     
+    NodeKind node_kind() const override { return NodeKind::kCaseClause; }
     pos::pos_t start() const override { return tok_start_; }
     pos::pos_t end() const override { return (body_.empty()) ? colon_ : body_.back()->end(); }
 
@@ -545,6 +627,7 @@ public:
     Stmt * post_stmt() const { return post_; }
     BlockStmt *body() const { return body_; }
     
+    NodeKind node_kind() const override { return NodeKind::kForStmt; }
     pos::pos_t start() const override { return for_; }
     pos::pos_t end() const override;
 
@@ -572,6 +655,7 @@ public:
     pos::pos_t colon() const { return colon_; }
     Stmt *stmt() const { return stmt_; }
     
+    NodeKind node_kind() const override { return NodeKind::kLabeledStmt; }
     pos::pos_t start() const override;
     pos::pos_t end() const override { return stmt_->end(); }
 
@@ -594,6 +678,7 @@ public:
     tokens::Token tok() const { return tok_; }
     Ident * label() const { return label_; }
     
+    NodeKind node_kind() const override { return NodeKind::kBranchStmt; }
     pos::pos_t start() const override { return tok_start_; }
     pos::pos_t end() const override;
     
@@ -616,6 +701,7 @@ public:
     tokens::Token op() const { return op_; }
     Expr *x() const { return x_; }
     
+    NodeKind node_kind() const override { return NodeKind::kUnaryExpr; }
     pos::pos_t start() const override { return op_start_; }
     pos::pos_t end() const override { return x_->end(); }
 
@@ -640,6 +726,7 @@ public:
     tokens::Token op() const { return op_; }
     Expr * y() const { return y_; }
     
+    NodeKind node_kind() const override { return NodeKind::kBinaryExpr; }
     pos::pos_t start() const override { return x_->start(); }
     pos::pos_t end() const override { return y_->end(); }
 
@@ -662,6 +749,7 @@ public:
     std::vector<pos::pos_t> compare_op_starts() const { return compare_op_starts_; }
     std::vector<tokens::Token> compare_ops() const { return compare_ops_; }
     
+    NodeKind node_kind() const override { return NodeKind::kCompareExpr; }
     pos::pos_t start() const override { return operands_.front()->start(); }
     pos::pos_t end() const override { return operands_.back()->end(); }
     
@@ -683,6 +771,7 @@ class ParenExpr final : public Expr {
 public:
     Expr * x() const { return x_; }
     
+    NodeKind node_kind() const override { return NodeKind::kParenExpr; }
     pos::pos_t start() const override { return l_paren_; }
     pos::pos_t end() const override { return r_paren_; }
     
@@ -703,6 +792,7 @@ public:
     Expr * accessed() const { return accessed_; }
     Ident * selection() const { return selection_; }
     
+    NodeKind node_kind() const override { return NodeKind::kSelectionExpr; }
     pos::pos_t start() const override { return accessed_->start(); }
     pos::pos_t end() const override;
 
@@ -723,6 +813,7 @@ public:
     Expr * type() const { return type_; }
     pos::pos_t r_angle() const { return r_angle_; }
     
+    NodeKind node_kind() const override { return NodeKind::kTypeAssertExpr; }
     pos::pos_t start() const override { return x_->start(); }
     pos::pos_t end() const override { return r_angle_; }
 
@@ -746,6 +837,7 @@ public:
     Expr * index() const { return index_; }
     pos::pos_t r_brack() const { return r_brack_; }
     
+    NodeKind node_kind() const override { return NodeKind::kIndexExpr; }
     pos::pos_t start() const override { return accessed_->start(); }
     pos::pos_t end() const override { return r_brack_; }
 
@@ -775,6 +867,7 @@ public:
     std::vector<Expr *> args() const { return args_; }
     pos::pos_t r_paren() const { return r_paren_; }
     
+    NodeKind node_kind() const override { return NodeKind::kCallExpr; }
     pos::pos_t start() const override { return func_->start(); }
     pos::pos_t end() const override { return r_paren_; }
 
@@ -807,6 +900,7 @@ public:
     FuncType * type() const { return type_; }
     BlockStmt * body() const { return body_; }
     
+    NodeKind node_kind() const override { return NodeKind::kFuncLit; }
     pos::pos_t start() const override;
     pos::pos_t end() const override;
 
@@ -827,6 +921,7 @@ public:
     std::vector<Expr *> values() const { return values_; }
     pos::pos_t r_brace() const { return r_brace_; }
     
+    NodeKind node_kind() const override { return NodeKind::kCompositeLit; }
     pos::pos_t start() const override { return type_->start(); }
     pos::pos_t end() const override { return r_brace_; }
 
@@ -852,6 +947,7 @@ public:
     pos::pos_t colon() const { return colon_; }
     Expr * value() const { return value_; }
     
+    NodeKind node_kind() const override { return NodeKind::kKeyValueExpr; }
     pos::pos_t start() const override { return key_->start(); }
     pos::pos_t end() const override { return value_->end(); }
     
@@ -876,6 +972,7 @@ public:
     pos::pos_t r_brack() const { return r_brack_; }
     Expr * element_type() const { return element_type_; }
     
+    NodeKind node_kind() const override { return NodeKind::kArrayType; }
     pos::pos_t start() const override { return l_brack_; }
     pos::pos_t end() const override { return element_type_->end(); }
 
@@ -900,6 +997,7 @@ public:
     FieldList * params() const { return params_; }
     FieldList * results() const { return results_; }
     
+    NodeKind node_kind() const override { return NodeKind::kFuncType; }
     pos::pos_t start() const override { return func_; }
     pos::pos_t end() const override;
 
@@ -924,6 +1022,7 @@ public:
     std::vector<MethodSpec *> methods() const { return methods_; }
     pos::pos_t r_brace() const { return r_brace_; }
     
+    NodeKind node_kind() const override { return NodeKind::kInterfaceType; }
     pos::pos_t start() const override { return interface_; }
     pos::pos_t end() const override { return r_brace_; }
 
@@ -954,6 +1053,7 @@ public:
     FieldList * params() const { return params_; }
     FieldList * results() const { return results_; }
     
+    NodeKind node_kind() const override { return NodeKind::kMethodSpec; }
     pos::pos_t start() const override { return spec_start_; }
     pos::pos_t end() const override;
     
@@ -984,6 +1084,7 @@ public:
     FieldList * fields() const { return fields_; }
     pos::pos_t r_brace() const { return r_brace_; }
     
+    NodeKind node_kind() const override { return NodeKind::kStructType; }
     pos::pos_t start() const override { return struct_; }
     pos::pos_t end() const override { return r_brace_; }
 
@@ -1010,6 +1111,7 @@ public:
     std::vector<Expr *> type_args() const { return type_args_; }
     pos::pos_t r_brack() const { return r_brack_; }
     
+    NodeKind node_kind() const override { return NodeKind::kTypeInstance; }
     pos::pos_t start() const override { return type_->start(); }
     pos::pos_t end() const override { return r_brack_; }
 
@@ -1036,6 +1138,7 @@ public:
     Ident * type_name() const { return type_name_; }
     std::vector<Ident *> type_parameter_names() const { return type_parameter_names_; }
     
+    NodeKind node_kind() const override { return NodeKind::kExprReceiver; }
     pos::pos_t start() const override { return l_paren_; }
     pos::pos_t end() const override { return r_paren_; }
     
@@ -1065,6 +1168,7 @@ public:
     Ident * type_name() const { return type_name_; }
     std::vector<Ident *> type_parameter_names() const { return type_parameter_names_; }
     
+    NodeKind node_kind() const override { return NodeKind::kTypeReceiver; }
     pos::pos_t start() const override { return l_brack_; }
     pos::pos_t end() const override { return r_brack_; }
     
@@ -1093,6 +1197,7 @@ public:
     std::vector<Field *> fields() const { return fields_; }
     pos::pos_t r_paren() const { return r_paren_; }
     
+    NodeKind node_kind() const override { return NodeKind::kFieldList; }
     pos::pos_t start() const override;
     pos::pos_t end() const override;
 
@@ -1115,6 +1220,7 @@ public:
     std::vector<Ident *> names() const { return names_; }
     Expr * type() const { return type_; }
     
+    NodeKind node_kind() const override { return NodeKind::kField; }
     pos::pos_t start() const override;
     pos::pos_t end() const override { return type_->end(); }
 
@@ -1132,6 +1238,7 @@ class TypeParamList final : public Node {
 public:
     std::vector<TypeParam *> params() const { return params_; }
     
+    NodeKind node_kind() const override { return NodeKind::kTypeParamList; }
     pos::pos_t start() const override { return l_angle_; }
     pos::pos_t end() const override { return r_angle_; }
 
@@ -1154,6 +1261,7 @@ public:
     Ident * name() const { return name_; }
     Expr * type() const { return type_; }
     
+    NodeKind node_kind() const override { return NodeKind::kTypeParam; }
     pos::pos_t start() const override;
     pos::pos_t end() const override;
 
@@ -1171,6 +1279,7 @@ public:
     std::string value() const { return value_; }
     tokens::Token kind() const { return kind_; }
     
+    NodeKind node_kind() const override { return NodeKind::kBasicLit; }
     pos::pos_t start() const override { return value_start_; }
     pos::pos_t end() const override { return value_start_ + value_.length() - 1; }
 
@@ -1189,6 +1298,7 @@ class Ident final : public Expr {
 public:
     std::string name() const { return name_; }
     
+    NodeKind node_kind() const override { return NodeKind::kIdent; }
     pos::pos_t start() const override { return name_start_; }
     pos::pos_t end() const override { return name_start_ + name_.length() -1; }
 

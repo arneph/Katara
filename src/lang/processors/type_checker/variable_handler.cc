@@ -84,9 +84,8 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
         return true;
     }
     
-    types::Tuple *tuple = dynamic_cast<types::Tuple *>(value_type);
-    if (tuple == nullptr ||
-        tuple->variables().size() != variables.size()) {
+    if (value_type->type_kind() != types::TypeKind::kTuple ||
+        static_cast<types::Tuple *>(value_type)->variables().size() != variables.size()) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         variables.at(0)->position(),
@@ -95,20 +94,19 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
     }
     
     for (size_t i = 0; i < variables.size(); i++) {
-        types::Variable * variable = variables.at(i);
-        types::Type * value_type = tuple->variables().at(i)->type();
+        types::Variable *var = variables.at(i);
+        types::Type *var_type = static_cast<types::Tuple *>(value_type)->variables().at(i)->type();
         
-        if (type != nullptr &&
-            !types::IsAssignableTo(value_type, type)) {
+        if (type != nullptr && !types::IsAssignableTo(var_type, type)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            variable->position(),
+                                            var->position(),
                                             "variable can not be assigned given value: "
-                                            + variable->name()));
+                                            + var->name()));
             return false;
         }
         if (type == nullptr) {
-            info_builder_.SetObjectType(variable, value_type);
+            info_builder_.SetObjectType(var, var_type);
         }
     }
     if (variables.at(0)->parent() == variables.at(0)->package()->scope()) {

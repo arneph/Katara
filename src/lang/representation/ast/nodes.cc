@@ -11,6 +11,26 @@
 namespace lang {
 namespace ast {
 
+bool Node::is_decl() const {
+    NodeKind kind = node_kind();
+    return NodeKind::kDeclStart <= kind && kind <= NodeKind::kDeclEnd;
+}
+
+bool Node::is_spec() const {
+    NodeKind kind = node_kind();
+    return NodeKind::kSpecStart <= kind && kind <= NodeKind::kSpecEnd;
+}
+
+bool Node::is_stmt() const {
+    NodeKind kind = node_kind();
+    return NodeKind::kStmtStart != kind && kind <= NodeKind::kSpecEnd;
+}
+
+bool Node::is_expr() const {
+    NodeKind kind = node_kind();
+    return NodeKind::kExprStart != kind && kind <= NodeKind::kExprEnd;
+}
+
 pos::pos_t GenDecl::end() const {
     if (r_paren_ != pos::kNoPos) {
         return r_paren_;

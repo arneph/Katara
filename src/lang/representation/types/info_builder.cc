@@ -336,42 +336,31 @@ Signature * InfoBuilder::InstantiateMethodSignature(Signature * parameterized_si
     return CreateSignature(parameters, results);
 }
 
-Type * InfoBuilder::InstantiateType(Type *parameterized_type,
+Type * InfoBuilder::InstantiateType(Type *type,
                                     TypeParamsToArgsMap& type_params_to_args) {
-    if (nullptr != dynamic_cast<Basic *>(parameterized_type)) {
-        return parameterized_type;
-        
-    } else if (Pointer *pointer = dynamic_cast<Pointer *>(parameterized_type)) {
-        return InstantiatePointer(pointer, type_params_to_args);
-        
-    } else if (Array *array = dynamic_cast<Array *>(parameterized_type)) {
-        return InstantiateArray(array, type_params_to_args);
-        
-    } else if (Slice *slice = dynamic_cast<Slice *>(parameterized_type)) {
-        return InstantiateSlice(slice, type_params_to_args);
-    
-    } else if (TypeParameter* type_parameter = dynamic_cast<TypeParameter *>(parameterized_type)) {
-        return InstantiateTypeParameter(type_parameter, type_params_to_args);
-        
-    } else if (NamedType *named_type = dynamic_cast<NamedType *>(parameterized_type)) {
-        return InstantiateNamedType(named_type);
-        
-    } else if (TypeInstance *type_instance = dynamic_cast<TypeInstance *>(parameterized_type)) {
-        return InstantiateTypeInstance(type_instance, type_params_to_args);
-        
-    } else if (Tuple *tuple = dynamic_cast<Tuple *>(parameterized_type)) {
-        return InstantiateTuple(tuple, type_params_to_args);
-        
-    } else if (Signature *signature = dynamic_cast<Signature *>(parameterized_type)) {
-        return InstantiateSignature(signature, type_params_to_args);
-        
-    } else if (Struct *struct_type = dynamic_cast<Struct *>(parameterized_type)) {
-        return InstantiateStruct(struct_type, type_params_to_args);
-        
-    } else if (Interface *interface = dynamic_cast<Interface *>(parameterized_type)) {
-        return InstantiateInterface(interface, type_params_to_args);
-    } else {
-        throw "internal error: unexpected type";
+    switch (type->type_kind()) {
+        case TypeKind::kBasic: return type;
+        case TypeKind::kPointer:
+            return InstantiatePointer(static_cast<Pointer *>(type), type_params_to_args);
+        case TypeKind::kArray:
+            return InstantiateArray(static_cast<Array *>(type), type_params_to_args);
+        case TypeKind::kSlice:
+            return InstantiateSlice(static_cast<Slice *>(type), type_params_to_args);
+        case TypeKind::kTypeParameter:
+            return InstantiateTypeParameter(static_cast<TypeParameter *>(type),
+                                            type_params_to_args);
+        case TypeKind::kNamedType:
+            return InstantiateNamedType(static_cast<NamedType *>(type));
+        case TypeKind::kTypeInstance:
+            return InstantiateTypeInstance(static_cast<TypeInstance *>(type), type_params_to_args);
+        case TypeKind::kTuple:
+            return InstantiateTuple(static_cast<Tuple *>(type), type_params_to_args);
+        case TypeKind::kSignature:
+            return InstantiateSignature(static_cast<Signature *>(type), type_params_to_args);
+        case TypeKind::kStruct:
+            return InstantiateStruct(static_cast<Struct *>(type), type_params_to_args);
+        case TypeKind::kInterface:
+            return InstantiateInterface(static_cast<Interface *>(type), type_params_to_args);
     }
 }
 
@@ -718,7 +707,7 @@ void InfoBuilder::CheckObjectArgs(Scope *parent,
 }
 
 void InfoBuilder::SetObjectType(TypedObject *object, Type *type) {
-    if (dynamic_cast<TypeName *>(object) != nullptr) {
+    if (object->object_kind() == ObjectKind::kTypeName) {
         throw "internal error: attempted to set type name type as regular object type";
     } else if (object->type() != nullptr) {
         throw "internal error: attempted to set object type twice";

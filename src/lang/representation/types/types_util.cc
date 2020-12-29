@@ -13,21 +13,22 @@ namespace lang {
 namespace types {
 
 Type * UnderlyingOf(Type *type) {
-    if (dynamic_cast<Basic *>(type) != nullptr ||
-        dynamic_cast<Wrapper *>(type) != nullptr ||
-        dynamic_cast<Tuple *>(type) != nullptr ||
-        dynamic_cast<Signature *>(type) != nullptr ||
-        dynamic_cast<Struct *>(type) != nullptr ||
-        dynamic_cast<Interface *>(type) != nullptr) {
-        return type;
-    }
-    if (TypeParameter *type_parameter = dynamic_cast<TypeParameter *>(type)) {
-        return type_parameter->interface();
-    } else if (NamedType * named_type = dynamic_cast<NamedType *>(type)) {
-        return named_type->underlying();
-    } else {
-        // Note: TypeInstance has no defined underlying type.
-        return nullptr;
+    switch (type->type_kind()) {
+        case TypeKind::kBasic:
+        case TypeKind::kPointer:
+        case TypeKind::kArray:
+        case TypeKind::kSlice:
+        case TypeKind::kTuple:
+        case TypeKind::kSignature:
+        case TypeKind::kStruct:
+        case TypeKind::kInterface:
+            return type;
+        case TypeKind::kTypeParameter:
+            return static_cast<TypeParameter *>(type)->interface();
+        case TypeKind::kNamedType:
+            return static_cast<NamedType *>(type)->underlying();
+        case TypeKind::kTypeInstance:
+            return nullptr;
     }
 }
 

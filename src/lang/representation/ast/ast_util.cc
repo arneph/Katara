@@ -30,13 +30,13 @@ vcg::Graph NodeToTree(pos::FileSet *file_set, Node *node) {
         int64_t number = count++;
         std::string title;
         vcg::Color color;
-        if (dynamic_cast<Expr *>(ast_node)) {
+        if (ast_node->is_expr()) {
             title = "expr";
             color = vcg::kTurquoise;
-        } else if (dynamic_cast<Stmt *>(ast_node)) {
+        } else if (ast_node->is_stmt()) {
             title = "stmt";
             color = vcg::kGreen;
-        } else if (dynamic_cast<Decl *>(ast_node)) {
+        } else if (ast_node->is_decl()) {
             title = "decl";
             color = vcg::kYellow;
         } else {
@@ -78,120 +78,139 @@ WalkFunction::operator bool() const {
 }
 
 void Walk(Node *node, WalkFunction f) {
-    if (File *file = dynamic_cast<File *>(node)) {
-        Walk(file, f);
-    } else if (Expr *expr = dynamic_cast<Expr *>(node)) {
-        Walk(expr, f);
-    } else if (Stmt *stmt = dynamic_cast<Stmt *>(node)) {
-        Walk(stmt, f);
-    } else if (Decl *decl = dynamic_cast<Decl *>(node)) {
-        Walk(decl, f);
-    } else if (ImportSpec *import_spec = dynamic_cast<ImportSpec *>(node)) {
-        Walk(import_spec, f);
-    } else if (ValueSpec *value_spec = dynamic_cast<ValueSpec *>(node)) {
-        Walk(value_spec, f);
-    } else if (TypeSpec *type_spec = dynamic_cast<TypeSpec *>(node)) {
-        Walk(type_spec, f);
-    } else if (MethodSpec *method_spec = dynamic_cast<MethodSpec *>(node)) {
-        Walk(method_spec, f);
-    } else if (ExprReceiver *expr_receiver = dynamic_cast<ExprReceiver *>(node)) {
-        Walk(expr_receiver, f);
-    } else if (TypeReceiver *type_receiver = dynamic_cast<TypeReceiver *>(node)) {
-        Walk(type_receiver, f);
-    } else if (FieldList *field_list = dynamic_cast<FieldList *>(node)) {
-        Walk(field_list, f);
-    } else if (Field *field = dynamic_cast<Field *>(expr)) {
-        Walk(field, f);
-    } else if (TypeParamList *type_param_list = dynamic_cast<TypeParamList *>(node)) {
-        Walk(type_param_list, f);
-    } else if (TypeParam *type_param = dynamic_cast<TypeParam *>(node)) {
-        Walk(type_param, f);
-    } else {
-        throw "unexpected AST node";
-    }
-}
-
-void Walk(Expr *expr, WalkFunction f) {
-    if (UnaryExpr *unary_expr = dynamic_cast<UnaryExpr *>(expr)) {
-        Walk(unary_expr, f);
-    } else if (BinaryExpr *binary_expr = dynamic_cast<BinaryExpr *>(expr)) {
-        Walk(binary_expr, f);
-    } else if (CompareExpr *compare_expr = dynamic_cast<CompareExpr *>(expr)) {
-        Walk(compare_expr, f);
-    } else if (ParenExpr *paren_expr = dynamic_cast<ParenExpr *>(expr)) {
-        Walk(paren_expr, f);
-    } else if (SelectionExpr *selection_expr = dynamic_cast<SelectionExpr *>(expr)) {
-        Walk(selection_expr, f);
-    } else if (TypeAssertExpr *type_assert_expr = dynamic_cast<TypeAssertExpr *>(expr)) {
-        Walk(type_assert_expr, f);
-    } else if (IndexExpr *index_expr = dynamic_cast<IndexExpr *>(expr)) {
-        Walk(index_expr, f);
-    } else if (CallExpr *call_expr = dynamic_cast<CallExpr *>(expr)) {
-        Walk(call_expr, f);
-    } else if (FuncLit *func_lit = dynamic_cast<FuncLit *>(expr)) {
-        Walk(func_lit, f);
-    } else if (CompositeLit *composite_lit = dynamic_cast<CompositeLit *>(expr)) {
-        Walk(composite_lit, f);
-    } else if (KeyValueExpr *key_value_expr = dynamic_cast<KeyValueExpr *>(expr)) {
-        Walk(key_value_expr, f);
-    } else if (ArrayType *array_type = dynamic_cast<ArrayType *>(expr)) {
-        Walk(array_type, f);
-    } else if (FuncType *func_type = dynamic_cast<FuncType *>(expr)) {
-        Walk(func_type, f);
-    } else if (InterfaceType *interface_type = dynamic_cast<InterfaceType *>(expr)) {
-        Walk(interface_type, f);
-    } else if (StructType *struct_type = dynamic_cast<StructType *>(expr)) {
-        Walk(struct_type, f);
-    } else if (TypeInstance *type_instance = dynamic_cast<TypeInstance *>(expr)) {
-        Walk(type_instance, f);
-    } else if (BasicLit *basic_lit = dynamic_cast<BasicLit *>(expr)) {
-        Walk(basic_lit, f);
-    } else if (Ident *ident = dynamic_cast<Ident *>(expr)) {
-        Walk(ident, f);
-    } else {
-        throw "unexpected AST expr";
-    }
-}
-
-void Walk(Stmt *stmt, WalkFunction f) {
-    if (BlockStmt *block_stmt = dynamic_cast<BlockStmt *>(stmt)) {
-        Walk(block_stmt, f);
-    } else if (DeclStmt *decl_stmt = dynamic_cast<DeclStmt *>(stmt)) {
-        Walk(decl_stmt, f);
-    } else if (AssignStmt *assign_stmt = dynamic_cast<AssignStmt *>(stmt)) {
-        Walk(assign_stmt, f);
-    } else if (ExprStmt *expr_stmt = dynamic_cast<ExprStmt *>(stmt)) {
-        Walk(expr_stmt, f);
-    } else if (IncDecStmt *inc_dec_stmt = dynamic_cast<IncDecStmt *>(stmt)) {
-        Walk(inc_dec_stmt, f);
-    } else if (ReturnStmt *return_stmt = dynamic_cast<ReturnStmt *>(stmt)) {
-        Walk(return_stmt, f);
-    } else if (IfStmt *if_stmt = dynamic_cast<IfStmt *>(stmt)) {
-        Walk(if_stmt, f);
-    } else if (ExprSwitchStmt *expr_switch_stmt = dynamic_cast<ExprSwitchStmt *>(stmt)) {
-        Walk(expr_switch_stmt, f);
-    } else if (TypeSwitchStmt *type_switch_stmt = dynamic_cast<TypeSwitchStmt *>(stmt)) {
-        Walk(type_switch_stmt, f);
-    } else if (CaseClause *case_clause = dynamic_cast<CaseClause *>(stmt)) {
-        Walk(case_clause, f);
-    } else if (ForStmt *for_stmt = dynamic_cast<ForStmt *>(stmt)) {
-        Walk(for_stmt, f);
-    } else if (LabeledStmt *labeled_stmt = dynamic_cast<LabeledStmt *>(stmt)) {
-        Walk(labeled_stmt, f);
-    } else if (BranchStmt *branch_stmt = dynamic_cast<BranchStmt *>(stmt)) {
-        Walk(branch_stmt, f);
-    } else {
-        throw "unexpected AST stmt";
-    }
-}
-
-void Walk(Decl *decl, WalkFunction f) {
-    if (GenDecl *gen_decl = dynamic_cast<GenDecl *>(decl)) {
-        Walk(gen_decl, f);
-    } else if (FuncDecl *func_decl = dynamic_cast<FuncDecl *>(decl)) {
-        Walk(func_decl, f);
-    } else {
-        throw "unexpected AST decl";
+    switch (node->node_kind()) {
+        case NodeKind::kFile:
+            Walk(static_cast<File *>(node), f);
+            break;
+        case NodeKind::kGenDecl:
+            Walk(static_cast<GenDecl *>(node), f);
+            break;
+        case NodeKind::kFuncDecl:
+            Walk(static_cast<FuncDecl *>(node), f);
+            break;
+        case NodeKind::kImportSpec:
+            Walk(static_cast<ImportSpec *>(node), f);
+            break;
+        case NodeKind::kValueSpec:
+            Walk(static_cast<ValueSpec *>(node), f);
+            break;
+        case NodeKind::kTypeSpec:
+            Walk(static_cast<TypeSpec *>(node), f);
+            break;
+        case NodeKind::kBlockStmt:
+            Walk(static_cast<BlockStmt *>(node), f);
+            break;
+        case NodeKind::kDeclStmt:
+            Walk(static_cast<DeclStmt *>(node), f);
+            break;
+        case NodeKind::kAssignStmt:
+            Walk(static_cast<AssignStmt *>(node), f);
+            break;
+        case NodeKind::kExprStmt:
+            Walk(static_cast<ExprStmt *>(node), f);
+            break;
+        case NodeKind::kIncDecStmt:
+            Walk(static_cast<IncDecStmt *>(node), f);
+            break;
+        case NodeKind::kReturnStmt:
+            Walk(static_cast<ReturnStmt *>(node), f);
+            break;
+        case NodeKind::kIfStmt:
+            Walk(static_cast<IfStmt *>(node), f);
+            break;
+        case NodeKind::kExprSwitchStmt:
+            Walk(static_cast<ExprSwitchStmt *>(node), f);
+            break;
+        case NodeKind::kTypeSwitchStmt:
+            Walk(static_cast<TypeSwitchStmt *>(node), f);
+            break;
+        case NodeKind::kCaseClause:
+            Walk(static_cast<CaseClause *>(node), f);
+            break;
+        case NodeKind::kForStmt:
+            Walk(static_cast<ForStmt *>(node), f);
+            break;
+        case NodeKind::kLabeledStmt:
+            Walk(static_cast<LabeledStmt *>(node), f);
+            break;
+        case NodeKind::kBranchStmt:
+            Walk(static_cast<BranchStmt *>(node), f);
+            break;
+        case NodeKind::kUnaryExpr:
+            Walk(static_cast<UnaryExpr *>(node), f);
+            break;
+        case NodeKind::kBinaryExpr:
+            Walk(static_cast<BinaryExpr *>(node), f);
+            break;
+        case NodeKind::kCompareExpr:
+            Walk(static_cast<CompareExpr *>(node), f);
+            break;
+        case NodeKind::kParenExpr:
+            Walk(static_cast<ParenExpr *>(node), f);
+            break;
+        case NodeKind::kSelectionExpr:
+            Walk(static_cast<SelectionExpr *>(node), f);
+            break;
+        case NodeKind::kTypeAssertExpr:
+            Walk(static_cast<TypeAssertExpr *>(node), f);
+            break;
+        case NodeKind::kIndexExpr:
+            Walk(static_cast<IndexExpr *>(node), f);
+            break;
+        case NodeKind::kCallExpr:
+            Walk(static_cast<CallExpr *>(node), f);
+            break;
+        case NodeKind::kFuncLit:
+            Walk(static_cast<FuncLit *>(node), f);
+            break;
+        case NodeKind::kCompositeLit:
+            Walk(static_cast<CompositeLit *>(node), f);
+            break;
+        case NodeKind::kKeyValueExpr:
+            Walk(static_cast<KeyValueExpr *>(node), f);
+            break;
+        case NodeKind::kArrayType:
+            Walk(static_cast<ArrayType *>(node), f);
+            break;
+        case NodeKind::kFuncType:
+            Walk(static_cast<FuncType *>(node), f);
+            break;
+        case NodeKind::kInterfaceType:
+            Walk(static_cast<InterfaceType *>(node), f);
+            break;
+        case NodeKind::kStructType:
+            Walk(static_cast<StructType *>(node), f);
+            break;
+        case NodeKind::kTypeInstance:
+            Walk(static_cast<TypeInstance *>(node), f);
+            break;
+        case NodeKind::kBasicLit:
+            Walk(static_cast<BasicLit *>(node), f);
+            break;
+        case NodeKind::kIdent:
+            Walk(static_cast<Ident *>(node), f);
+            break;
+        case NodeKind::kMethodSpec:
+            Walk(static_cast<MethodSpec *>(node), f);
+            break;
+        case NodeKind::kExprReceiver:
+            Walk(static_cast<ExprReceiver *>(node), f);
+            break;
+        case NodeKind::kTypeReceiver:
+            Walk(static_cast<TypeReceiver *>(node), f);
+            break;
+        case NodeKind::kFieldList:
+            Walk(static_cast<FieldList *>(node), f);
+            break;
+        case NodeKind::kField:
+            Walk(static_cast<Field *>(node), f);
+            break;
+        case NodeKind::kTypeParamList:
+            Walk(static_cast<TypeParamList *>(node), f);
+            break;
+        case NodeKind::kTypeParam:
+            Walk(static_cast<TypeParam *>(node), f);
+            break;
     }
 }
 
@@ -633,8 +652,8 @@ void Walk(Ident *ident, WalkFunction f) {
 }
 
 ast::Expr * Unparen(ast::Expr *expr) {
-    while (auto paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
-        expr = paren_expr->x();
+    while (expr->node_kind() == NodeKind::kParenExpr) {
+        expr = static_cast<ParenExpr *>(expr)->x();
     }
     return expr;
 }

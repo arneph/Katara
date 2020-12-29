@@ -13,6 +13,16 @@
 namespace lang {
 namespace types {
 
+bool Type::is_wrapper() const {
+    TypeKind kind = type_kind();
+    return TypeKind::kWrapperStart <= kind && kind <= TypeKind::kWrapperEnd;
+}
+
+bool Type::is_container() const {
+    TypeKind kind = type_kind();
+    return TypeKind::kContainerStart <= kind && kind <= TypeKind::kContainerEnd;
+}
+
 std::string Basic::ToString(StringRep rep) const {
     switch (kind_) {
         case kBool:

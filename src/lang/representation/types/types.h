@@ -25,10 +25,34 @@ enum class StringRep {
     kExpanded,
 };
 
+enum class TypeKind {
+    kBasic,
+    
+    kPointer,
+    kArray,
+    kSlice,
+    kWrapperStart = kPointer,
+    kWrapperEnd = kSlice,
+    kContainerStart = kArray,
+    kContainerEnd = kSlice,
+    
+    kTypeParameter,
+    kNamedType,
+    kTypeInstance,
+    kTuple,
+    kSignature,
+    kStruct,
+    kInterface,
+};
+
 class Type {
 public:
     virtual ~Type() {}
     
+    bool is_wrapper() const;
+    bool is_container() const;
+    
+    virtual TypeKind type_kind() const = 0;
     virtual std::string ToString(StringRep rep) const = 0;
 };
 
@@ -72,6 +96,7 @@ public:
     Kind kind() const { return kind_; }
     Info info() const { return info_; }
     
+    TypeKind type_kind() const override { return TypeKind::kBasic; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -99,6 +124,7 @@ public:
     Kind kind() const { return kind_; }
     Type * element_type() const override { return element_type_; }
     
+    TypeKind type_kind() const override { return TypeKind::kPointer; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -120,6 +146,7 @@ public:
     Type * element_type() const override { return element_type_; }
     uint64_t length() const { return length_; }
     
+    TypeKind type_kind() const override { return TypeKind::kArray; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -135,6 +162,7 @@ class Slice final : public Container {
 public:
     Type * element_type() const override { return element_type_; }
     
+    TypeKind type_kind() const override { return TypeKind::kSlice; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -153,6 +181,7 @@ public:
     TypeParameter * instantiated_type_parameter() const { return instantiated_type_parameter_; }
     Interface * interface() const { return interface_; }
     
+    TypeKind type_kind() const override { return TypeKind::kTypeParameter; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -174,6 +203,7 @@ public:
     const std::vector<TypeParameter *>& type_parameters() const { return type_parameters_; }
     const std::unordered_map<std::string, Func *>& methods() const { return methods_; }
     
+    TypeKind type_kind() const override { return TypeKind::kNamedType; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -194,6 +224,7 @@ public:
     NamedType * instantiated_type() const { return instantiated_type_; }
     const std::vector<Type *>& type_args() const { return type_args_; }
     
+    TypeKind type_kind() const override { return TypeKind::kTypeInstance; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -211,6 +242,7 @@ class Tuple final : public Type {
 public:
     const std::vector<Variable *>& variables() const { return variables_; }
     
+    TypeKind type_kind() const override { return TypeKind::kTuple; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -229,6 +261,7 @@ public:
     Tuple * parameters() const { return parameters_; }
     Tuple * results() const { return results_; }
     
+    TypeKind type_kind() const override { return TypeKind::kSignature; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -269,6 +302,7 @@ class Struct final : public Type {
 public:
     const std::vector<Variable *>& fields() const { return fields_; }
     
+    TypeKind type_kind() const override { return TypeKind::kStruct; }
     std::string ToString(StringRep rep) const override;
     
 private:
@@ -284,6 +318,7 @@ public:
     const std::vector<NamedType *>& embedded_interfaces() const { return embedded_interfaces_; }
     const std::vector<Func *>& methods() const { return methods_; }
     
+    TypeKind type_kind() const override { return TypeKind::kInterface; }
     std::string ToString(StringRep rep) const override;
     
 private:

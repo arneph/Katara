@@ -49,8 +49,9 @@ bool ConstantHandler::ProcessConstantDefinition(types::Constant *constant,
     constants::Value value(int64_t{0});
     
     if (type != nullptr) {
-        basic_type = dynamic_cast<types::Basic *>(types::UnderlyingOf(type));
-        if (type == nullptr) {
+        types::Type *underlying = types::UnderlyingOf(type);
+        if (underlying == nullptr ||
+            underlying->type_kind() != types::TypeKind::kBasic) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             constant->position(),
@@ -58,6 +59,7 @@ bool ConstantHandler::ProcessConstantDefinition(types::Constant *constant,
                                             + constant->name()));
             return false;
         }
+        basic_type = static_cast<types::Basic *>(underlying);
     }
     
     if (value_expr == nullptr) {
@@ -102,93 +104,98 @@ bool ConstantHandler::ProcessConstantDefinition(types::Constant *constant,
 }
 
 bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
-    if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
-        types::Constant *constant = dynamic_cast<types::Constant *>(info_->uses().at(ident));
-        types::Type *type = constant->type();
-        constants::Value value(0);
-        if (constant == nullptr) {
+    switch (expr->node_kind()) {
+        case ast::NodeKind::kIdent:{
+            ast::Ident *ident = static_cast<ast::Ident *>(expr);
+            types::Constant *constant = static_cast<types::Constant *>(info_->uses().at(ident));
+            types::Type *type = constant->type();
+            constants::Value value(0);
+            if (constant == nullptr) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                ident->start(),
+                                                "constant can not depend on unknown ident: "
+                                                + ident->name()));
+                return false;
+            } else if (constant->parent() == info_->universe() &&
+                       constant->name() == "iota") {
+                value = constants::Value(iota_);
+            } else {
+                value = constant->value();
+            }
+            
+            info_builder_.SetExprType(expr, type);
+            info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
+            info_builder_.SetExprConstantValue(expr, value);
+            return true;
+        }
+        case ast::NodeKind::kBasicLit:{
+            ast::BasicLit *basic_lit = static_cast<ast::BasicLit *>(expr);
+            types::Basic *type;
+            constants::Value value(0);
+            switch (basic_lit->kind()) {
+                case tokens::kInt:
+                    type = info_->basic_type(types::Basic::kUntypedInt);
+                    value = constants::Value(std::stoull(basic_lit->value()));
+                    break;
+                case tokens::kChar:
+                    // TODO: support UTF-8 and character literals
+                    type = info_->basic_type(types::Basic::kUntypedRune);
+                    value = constants::Value(int32_t(basic_lit->value().at(1)));
+                    break;
+                case tokens::kString:
+                    type = info_->basic_type(types::Basic::kUntypedString);
+                    value = constants::Value(basic_lit->value().substr(1,
+                                                                       basic_lit->value().length() - 2));
+                    break;
+                default:
+                    throw "internal error: unexpected basic literal kind";
+            }
+            
+            info_builder_.SetExprType(expr, type);
+            info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
+            info_builder_.SetExprConstantValue(expr, value);
+            return true;
+        }
+        case ast::NodeKind::kParenExpr:{
+            ast::ParenExpr *paren_expr = static_cast<ast::ParenExpr *>(expr);
+            if (!EvaluateConstantExpr(paren_expr->x())) {
+                return false;
+            }
+            
+            types::Type *type = info_->types().at(paren_expr->x());
+            constants::Value value = info_->constant_values().at(paren_expr->x());
+            
+            info_builder_.SetExprType(expr, type);
+            info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
+            info_builder_.SetExprConstantValue(expr, value);
+            return true;
+        }
+        case ast::NodeKind::kUnaryExpr:
+            return EvaluateConstantUnaryExpr(static_cast<ast::UnaryExpr *>(expr));
+        case ast::NodeKind::kBinaryExpr:{
+            ast::BinaryExpr *binary_expr = static_cast<ast::BinaryExpr *>(expr);
+            switch (binary_expr->op()) {
+                case tokens::kLss:
+                case tokens::kLeq:
+                case tokens::kGeq:
+                case tokens::kGtr:
+                case tokens::kEql:
+                case tokens::kNeq:
+                    return EvaluateConstantCompareExpr(binary_expr);
+                case tokens::kShl:
+                case tokens::kShr:
+                    return EvaluateConstantShiftExpr(binary_expr);
+                default:
+                    return EvaluateConstantBinaryExpr(binary_expr);
+            }
+        }
+        default:
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
-                                            ident->start(),
-                                            "constant can not depend on unknown ident: "
-                                            + ident->name()));
+                                            expr->start(),
+                                            "constant expression not allowed"));
             return false;
-        } else if (constant->parent() == info_->universe() &&
-                   constant->name() == "iota") {
-            value = constants::Value(iota_);
-        } else {
-            value = constant->value();
-        }
-        
-        info_builder_.SetExprType(expr, type);
-        info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
-        info_builder_.SetExprConstantValue(expr, value);
-        return true;
-        
-    } else if (ast::BasicLit *basic_lit = dynamic_cast<ast::BasicLit *>(expr)) {
-        types::Basic *type;
-        constants::Value value(0);
-        switch (basic_lit->kind()) {
-            case tokens::kInt:
-                type = info_->basic_type(types::Basic::kUntypedInt);
-                value = constants::Value(std::stoull(basic_lit->value()));
-                break;
-            case tokens::kChar:
-                // TODO: support UTF-8 and character literals
-                type = info_->basic_type(types::Basic::kUntypedRune);
-                value = constants::Value(int32_t(basic_lit->value().at(1)));
-                break;
-            case tokens::kString:
-                type = info_->basic_type(types::Basic::kUntypedString);
-                value = constants::Value(basic_lit->value().substr(1,
-                                                                   basic_lit->value().length() - 2));
-                break;
-            default:
-                throw "internal error: unexpected basic literal kind";
-        }
-        
-        info_builder_.SetExprType(expr, type);
-        info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
-        info_builder_.SetExprConstantValue(expr, value);
-        return true;
-        
-    } else if (ast::ParenExpr *paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
-        if (!EvaluateConstantExpr(paren_expr->x())) {
-            return false;
-        }
-        
-        types::Type *type = info_->types().at(paren_expr->x());
-        constants::Value value = info_->constant_values().at(paren_expr->x());
-        
-        info_builder_.SetExprType(expr, type);
-        info_builder_.SetExprKind(expr, types::ExprKind::kConstant);
-        info_builder_.SetExprConstantValue(expr, value);
-        return true;
-        
-    } else if (ast::UnaryExpr *unary_expr = dynamic_cast<ast::UnaryExpr *>(expr)) {
-        return EvaluateConstantUnaryExpr(unary_expr);
-        
-    } else if (ast::BinaryExpr *binary_expr = dynamic_cast<ast::BinaryExpr *>(expr)) {
-        switch (binary_expr->op()) {
-            case tokens::kLss:
-            case tokens::kLeq:
-            case tokens::kGeq:
-            case tokens::kGtr:
-            case tokens::kEql:
-            case tokens::kNeq:
-                return EvaluateConstantCompareExpr(binary_expr);
-            case tokens::kShl:
-            case tokens::kShr:
-                return EvaluateConstantShiftExpr(binary_expr);
-            default:
-                return EvaluateConstantBinaryExpr(binary_expr);
-        }
-    } else {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
-                                        expr->start(),
-                                        "constant expression not allowed"));
-        return false;
     }
 }
 

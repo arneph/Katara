@@ -34,9 +34,6 @@ private:
 };
 
 void Walk(Node *node, WalkFunction f);
-void Walk(Expr *expr, WalkFunction f);
-void Walk(Stmt *stmt, WalkFunction f);
-void Walk(Decl *decl, WalkFunction f);
 void Walk(File *file, WalkFunction f);
 
 void Walk(GenDecl *gen_decl, WalkFunction f);

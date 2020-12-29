@@ -14,6 +14,11 @@
 namespace lang {
 namespace types {
 
+bool Object::is_typed() const {
+    ObjectKind kind = object_kind();
+    return ObjectKind::kTypedObjectStart <= kind && kind <= ObjectKind::kTypedObjectEnd;
+}
+
 std::string Variable::ToString() const {
     if (is_field_) {
         if (is_embedded_) {
@@ -26,7 +31,7 @@ std::string Variable::ToString() const {
 }
 
 std::string Func::ToString() const {
-    Signature * sig = dynamic_cast<Signature *>(type());
+    Signature * sig = static_cast<Signature *>(type());
     std::string s = "func ";
     if (sig->expr_receiver() != nullptr) {
         s += "(" + sig->expr_receiver()->ToString() + ") ";

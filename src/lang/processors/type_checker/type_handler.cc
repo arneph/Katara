@@ -159,74 +159,68 @@ bool TypeHandler::ProcessFuncDefinition(types::Func *func,
 }
 
 bool TypeHandler::EvaluateTypeExpr(ast::Expr *expr) {
-    if (ast::ParenExpr *paren_expr = dynamic_cast<ast::ParenExpr *>(expr)) {
-        if (!EvaluateTypeExpr(paren_expr->x())) {
-            return false;
+    switch (expr->node_kind()) {
+        case ast::NodeKind::kIdent:
+            return EvaluateTypeIdent(static_cast<ast::Ident *>(expr));
+        case ast::NodeKind::kParenExpr:{
+            ast::ParenExpr *paren_expr = static_cast<ast::ParenExpr *>(expr);
+            if (!EvaluateTypeExpr(paren_expr->x())) {
+                return false;
+            }
+            types::Type *type = info_->types().at(paren_expr->x());
+            info_builder_.SetExprType(expr, type);
+            return true;
         }
-        types::Type *type = info_->types().at(paren_expr->x());
-        info_builder_.SetExprType(expr, type);
-        return true;
-        
-    } else if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
-        return EvaluateTypeIdent(ident);
-        
-    } else if (ast::SelectionExpr *selector_expr = dynamic_cast<ast::SelectionExpr *>(expr)) {
-        auto ident = dynamic_cast<ast::Ident *>(selector_expr->accessed());
-        if (ident == nullptr) {
+        case ast::NodeKind::kSelectionExpr:{
+            ast::SelectionExpr *selector_expr = static_cast<ast::SelectionExpr *>(expr);
+            if (selector_expr->accessed()->node_kind() != ast::NodeKind::kIdent) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                expr->start(),
+                                                "type expression not allowed"));
+                return false;
+            }
+            ast::Ident *ident = static_cast<ast::Ident *>(selector_expr->accessed());
+            if (info_->uses().at(ident)->object_kind() != types::ObjectKind::kPackageName) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                expr->start(),
+                                                "type expression not allowed"));
+                return false;
+            }
+            return EvaluateTypeIdent(selector_expr->selection());
+        }
+        case ast::NodeKind::kUnaryExpr:
+            return EvaluatePointerType(static_cast<ast::UnaryExpr *>(expr));
+        case ast::NodeKind::kArrayType:
+            return EvaluateArrayType(static_cast<ast::ArrayType *>(expr));
+        case ast::NodeKind::kFuncType:
+            return EvaluateFuncType(static_cast<ast::FuncType *>(expr));
+        case ast::NodeKind::kInterfaceType:
+            return EvaluateInterfaceType(static_cast<ast::InterfaceType *>(expr));
+        case ast::NodeKind::kStructType:
+            return EvaluateStructType(static_cast<ast::StructType *>(expr));
+        case ast::NodeKind::kTypeInstance:
+            return EvaluateTypeInstance(static_cast<ast::TypeInstance *>(expr));
+        default:
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             expr->start(),
                                             "type expression not allowed"));
             return false;
-        }
-        auto package = dynamic_cast<types::PackageName *>(info_->uses().at(ident));
-        if (package == nullptr) {
-            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                            issues::Severity::Error,
-                                            expr->start(),
-                                            "type expression not allowed"));
-            return false;
-        }
-        return EvaluateTypeIdent(selector_expr->selection());
-        
-    } else if (ast::UnaryExpr *pointer_type = dynamic_cast<ast::UnaryExpr *>(expr)) {
-        return EvaluatePointerType(pointer_type);
-        
-    } else if (ast::ArrayType *array_type = dynamic_cast<ast::ArrayType *>(expr)) {
-        return EvaluateArrayType(array_type);
-        
-    } else if (ast::FuncType * func_type = dynamic_cast<ast::FuncType *>(expr)) {
-        return EvaluateFuncType(func_type);
-        
-    } else if (ast::InterfaceType * interface_type = dynamic_cast<ast::InterfaceType *>(expr)) {
-        return EvaluateInterfaceType(interface_type);
-        
-    } else if (ast::StructType *struct_type = dynamic_cast<ast::StructType *>(expr)) {
-        return EvaluateStructType(struct_type);
-        
-    } else if (ast::TypeInstance *type_instance = dynamic_cast<ast::TypeInstance *>(expr)) {
-        return EvaluateTypeInstance(type_instance);
-        
-    } else {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                        issues::Severity::Error,
-                                        expr->start(),
-                                        "type expression not allowed"));
-        return false;
     }
 }
 
 bool TypeHandler::EvaluateTypeIdent(ast::Ident *ident) {
     types::Object *used = info_->uses().at(ident);
-    types::TypeName *type_name = dynamic_cast<types::TypeName *>(used);
-    if (type_name == nullptr) {
+    if (used->object_kind() != types::ObjectKind::kTypeName) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         ident->start(),
                                         "expected type name"));
         return false;
     }
-    info_builder_.SetExprType(ident, type_name->type());
+    info_builder_.SetExprType(ident, static_cast<types::TypeName *>(used)->type());
     return true;
 }
 
@@ -403,21 +397,21 @@ types::TypeParameter * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parame
             return nullptr;
         }
         types::Type *type = info_->TypeOf(parameter_expr->type());
-        interface = dynamic_cast<types::Interface *>(types::UnderlyingOf(type));
-        if (interface == nullptr) {
+        types::Type *underlying = types::UnderlyingOf(type);
+        if (underlying->type_kind() != types::TypeKind::kInterface) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             parameter_expr->type()->start(),
                                             "type parameter constraint has to be an interface"));
             return nullptr;
         }
+        interface = static_cast<types::Interface *>(underlying);
     } else {
         interface = info_builder_.CreateInterface();
     }
     
-    types::TypeName *type_name =
-        static_cast<types::TypeName *>(info_->DefinitionOf(parameter_expr->name()));
-    types::TypeParameter *type_parameter = static_cast<types::TypeParameter *>(type_name->type());
+    auto type_name = static_cast<types::TypeName *>(info_->DefinitionOf(parameter_expr->name()));
+    auto type_parameter = static_cast<types::TypeParameter *>(type_name->type());
     info_builder_.SetTypeParameterInterface(type_parameter, interface);
     return type_parameter;
 }
@@ -545,14 +539,15 @@ TypeHandler::EvalutateReceiverTypeInstance(ast::Ident *type_name_ident,
                                            std::vector<ast::Ident *> type_param_names,
                                            types::Func *method) {
     types::TypeName *type_name = static_cast<types::TypeName *>(info_->UseOf(type_name_ident));
-    types::NamedType *named_type = dynamic_cast<types::NamedType *>(type_name->type());
-    if (named_type == nullptr) {
+    if (type_name->type()->type_kind() != types::TypeKind::kNamedType) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         type_name_ident->start(),
                                         "receiver does not have named type"));
         return nullptr;
-    } else if (nullptr != dynamic_cast<types::Interface *>(named_type->underlying())) {
+    }
+    types::NamedType *named_type = static_cast<types::NamedType *>(type_name->type());
+    if (named_type->underlying()->type_kind() == types::TypeKind::kInterface) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         type_name_ident->start(),

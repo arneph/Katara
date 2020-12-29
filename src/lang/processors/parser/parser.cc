@@ -368,8 +368,7 @@ ast::Stmt * Parser::ParseStmt() {
     }
     
     if (scanner_.token() == tokens::kColon) {
-        ast::Ident *ident = dynamic_cast<ast::Ident *>(expr);
-        if (ident == nullptr) {
+        if (expr->node_kind() != ast::NodeKind::kIdent) {
             issues_.push_back(issues::Issue(issues::Origin::Parser,
                                             issues::Severity::Fatal,
                                             expr->start(),
@@ -377,7 +376,7 @@ ast::Stmt * Parser::ParseStmt() {
             scanner_.SkipPastLine();
             return nullptr;
         }
-        return ParseLabeledStmt(ident);
+        return ParseLabeledStmt(static_cast<ast::Ident *>(expr));
     } else {
         return ParseSimpleStmt(expr, kNoExprOptions);
     }
@@ -610,28 +609,30 @@ ast::Stmt * Parser::ParseSwitchStmt() {
     };
     
     if (init != nullptr && tag == nullptr) {
-        auto assign_stmt = dynamic_cast<ast::AssignStmt *>(init);
-        if (assign_stmt == nullptr ||
-            assign_stmt->tok() != tokens::kDefine ||
+        if (init->node_kind() != ast::NodeKind::kAssignStmt) {
+            return process_expr_switch_stmt();
+        }
+        ast::AssignStmt *assign_stmt = static_cast<ast::AssignStmt *>(init);
+        if (assign_stmt->tok() != tokens::kDefine ||
             assign_stmt->lhs().size() != 1 ||
-            assign_stmt->rhs().size() != 1) {
+            assign_stmt->rhs().size() != 1 ||
+            assign_stmt->lhs().at(0)->node_kind() != ast::NodeKind::kIdent ||
+            assign_stmt->rhs().at(0)->node_kind() != ast::NodeKind::kTypeAssertExpr) {
             return process_expr_switch_stmt();
         }
-        auto var = dynamic_cast<ast::Ident *>(assign_stmt->lhs().at(0));
-        if (var == nullptr) {
-            return process_expr_switch_stmt();
-        }
-        auto type_assert_expr = dynamic_cast<ast::TypeAssertExpr *>(assign_stmt->rhs().at(0));
-        if (type_assert_expr == nullptr ||
-            type_assert_expr->type() != nullptr) {
+        auto var = static_cast<ast::Ident *>(assign_stmt->lhs().at(0));
+        auto type_assert_expr = static_cast<ast::TypeAssertExpr *>(assign_stmt->rhs().at(0));
+        if (type_assert_expr->type() != nullptr) {
             return process_expr_switch_stmt();
         }
         return process_type_switch_stmt(var, type_assert_expr->x());
     }
     if (init == nullptr && tag != nullptr) {
-        auto type_assert_expr = dynamic_cast<ast::TypeAssertExpr *>(tag);
-        if (type_assert_expr == nullptr ||
-            type_assert_expr->type() != nullptr) {
+        if (tag->node_kind() != ast::NodeKind::kTypeAssertExpr) {
+            return process_expr_switch_stmt();
+        }
+        ast::TypeAssertExpr *type_assert_expr = static_cast<ast::TypeAssertExpr *>(tag);
+        if (type_assert_expr->type() != nullptr) {
             return process_expr_switch_stmt();
         }
         return process_type_switch_stmt(nullptr, type_assert_expr->x());
@@ -776,13 +777,12 @@ ast::ForStmt * Parser::ParseForStmt() {
                 if (post == nullptr) {
                     return nullptr;
                 }
-                ast::AssignStmt *assign_stmt = dynamic_cast<ast::AssignStmt *>(post);
-                if (assign_stmt != nullptr &&
-                    assign_stmt->tok() == tokens::kDefine) {
+                if (post->node_kind() == ast::NodeKind::kAssignStmt &&
+                    static_cast<ast::AssignStmt *>(post)->tok() == tokens::kDefine) {
                     issues_.push_back(
                         issues::Issue(issues::Origin::Parser,
                                       issues::Severity::Fatal,
-                                      assign_stmt->start(),
+                                      post->start(),
                                       "for loop post statement can not define variables"));
                     return nullptr;
                 }
@@ -825,7 +825,7 @@ ast::BranchStmt * Parser::ParseBranchStmt() {
 }
 
 ast::ExprStmt * Parser::ParseExprStmt(ast::Expr *x) {
-    if (dynamic_cast<ast::CallExpr *>(x) == nullptr) {
+    if (x->node_kind() != ast::NodeKind::kCallExpr) {
         issues_.push_back(issues::Issue(issues::Origin::Parser,
                                         issues::Severity::Fatal,
                                         x->start(),
@@ -1087,8 +1087,8 @@ ast::Expr * Parser::ParsePrimaryExpr(ast::Expr *primary_expr, ExprOptions expr_o
                                              pos::kNoPos);
                 break;
             case tokens::kLBrace:
-                if (ast::FuncType *func_type = dynamic_cast<ast::FuncType *>(primary_expr)) {
-                    primary_expr = ParseFuncLit(func_type);
+                if (primary_expr->node_kind() == ast::NodeKind::kFuncType) {
+                    primary_expr = ParseFuncLit(static_cast<ast::FuncType *>(primary_expr));
                 } else if (expr_options & kDisallowCompositeLit) {
                     return primary_expr;
                 } else {
@@ -1096,8 +1096,8 @@ ast::Expr * Parser::ParsePrimaryExpr(ast::Expr *primary_expr, ExprOptions expr_o
                 }
                 break;
             case tokens::kLss:
-                if (dynamic_cast<ast::Ident *>(primary_expr) == nullptr &&
-                    dynamic_cast<ast::SelectionExpr *>(primary_expr) == nullptr) {
+                if (primary_expr->node_kind() != ast::NodeKind::kIdent &&
+                    primary_expr->node_kind() != ast::NodeKind::kSelectionExpr) {
                     return primary_expr;
                 } else if (primary_expr->end() + 1 != scanner_.token_start()) {
                     return primary_expr;

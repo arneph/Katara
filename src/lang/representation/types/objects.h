@@ -22,6 +22,20 @@ namespace types {
 class Scope;
 class Package;
 
+enum class ObjectKind {
+    kTypeName,
+    kConstant,
+    kVariable,
+    kFunc,
+    kTypedObjectStart = kTypeName,
+    kTypedObjectEnd = kFunc,
+    
+    kNil,
+    kLabel,
+    kBuiltin,
+    kPackageName,
+};
+
 class Object {
 public:
     virtual ~Object() {}
@@ -29,9 +43,11 @@ public:
     Scope * parent() const { return parent_; }
     Package * package() const { return package_; }
     pos::pos_t position() const { return position_; }
-    
     std::string name() const { return name_; }
     
+    bool is_typed() const;
+    
+    virtual ObjectKind object_kind() const = 0;
     virtual std::string ToString() const = 0;
     
 protected:
@@ -64,6 +80,7 @@ private:
 
 class TypeName final : public TypedObject {
 public:
+    ObjectKind object_kind() const override { return ObjectKind::kTypeName; }
     std::string ToString() const override { return "type " + name(); }
     
 private:
@@ -77,6 +94,7 @@ class Constant final : public TypedObject {
 public:
     constants::Value value() const { return value_; }
     
+    ObjectKind object_kind() const override { return ObjectKind::kConstant; }
     std::string ToString() const override {
         return "const " + name() + " " + type()->ToString(StringRep::kShort)
                 + " = " + value().ToString();
@@ -96,6 +114,7 @@ public:
     bool is_embedded() const { return is_embedded_; }
     bool is_field() const { return is_field_; }
     
+    ObjectKind object_kind() const override { return ObjectKind::kVariable; }
     std::string ToString() const override;
     
 private:
@@ -112,6 +131,7 @@ private:
 
 class Func final : public TypedObject {
 public:
+    ObjectKind object_kind() const override { return ObjectKind::kFunc; }
     std::string ToString() const override;
     
 private:
@@ -123,6 +143,7 @@ private:
 
 class Nil final : public Object {
 public:
+    ObjectKind object_kind() const override { return ObjectKind::kNil; }
     std::string ToString() const override { return "nil"; }
     
 private:
@@ -134,6 +155,7 @@ private:
 
 class Label final : public Object {
 public:
+    ObjectKind object_kind() const override { return ObjectKind::kLabel; }
     std::string ToString() const override { return name() + " (label)"; }
     
 private:
@@ -153,6 +175,7 @@ public:
     
     Kind kind() const { return kind_; }
     
+    ObjectKind object_kind() const override { return ObjectKind::kBuiltin; }
     std::string ToString() const override;
     
 private:
@@ -168,6 +191,7 @@ class PackageName final : public Object {
 public:
     Package * referenced_package() const { return referenced_package_; }
     
+    ObjectKind object_kind() const override { return ObjectKind::kPackageName; }
     std::string ToString() const override { return name(); }
     
 private:

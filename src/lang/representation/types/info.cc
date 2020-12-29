@@ -110,11 +110,10 @@ Type * Info::TypeOf(ast::Expr *expr) const {
     if (it != types_.end()) {
         return it->second;
     }
-    if (ast::Ident *ident = dynamic_cast<ast::Ident *>(expr)) {
-        Object *obj = ObjectOf(ident);
-        TypedObject *typed_obj = dynamic_cast<types::TypedObject *>(obj);
-        if (typed_obj) {
-            return typed_obj->type();
+    if (expr->node_kind() == ast::NodeKind::kIdent) {
+        Object *obj = ObjectOf(static_cast<ast::Ident *>(expr));
+        if (obj->is_typed()) {
+            return static_cast<types::TypedObject *>(obj)->type();
         }
     }
     return nullptr;

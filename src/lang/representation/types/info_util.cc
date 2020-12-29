@@ -112,7 +112,8 @@ void ConstantsToText(pos::FileSet *file_set,
     size_t max_ident = 0;
     size_t max_value = 0;
     for (auto& [ident, obj] : info->definitions()) {
-        auto constant = dynamic_cast<Constant *>(obj);
+        if (obj->object_kind() != ObjectKind::kConstant) continue;
+        Constant *constant = static_cast<Constant *>(obj);
         pos::Position pos = file_set->PositionFor(ident->start());
         max_pos = std::max(max_pos, pos.ToString().size());
         max_ident = std::max(max_ident, ident->name().size());
@@ -124,7 +125,7 @@ void ConstantsToText(pos::FileSet *file_set,
         
         ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
         ss << std::setw(int(max_ident)) << std::left
-        << file->contents(expr->start(), expr->end()) << " ";
+           << file->contents(expr->start(), expr->end()) << " ";
         ss << std::setw(int(max_value)) << std::left << value.ToString() << "\n";
     }
     ss << "\n";
