@@ -7,3 +7,18 @@ http_archive(
     build_file = "@//:BUILD",
     strip_prefix = "googletest-release-1.7.0",
 )
+
+http_archive(
+    name = "rules_fuzzing",
+    sha256 = "a1cde2a5ccc05bdeb75bd0f4c62c6df966134a50278492468bd03ea8ffcaa133",
+    strip_prefix = "rules_fuzzing-4de19aafba32cd586abf1bd66ebd3f8d2ea98350",
+    urls = ["https://github.com/bazelbuild/rules_fuzzing/archive/4de19aafba32cd586abf1bd66ebd3f8d2ea98350.zip"],
+)
+
+load("@rules_fuzzing//fuzzing:repositories.bzl", "rules_fuzzing_dependencies")
+
+rules_fuzzing_dependencies()
+
+load("@rules_fuzzing//fuzzing:dependency_imports.bzl", "fuzzing_dependency_imports")
+
+fuzzing_dependency_imports()
