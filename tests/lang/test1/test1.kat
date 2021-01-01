@@ -22,7 +22,7 @@ func Scale(a Vector, f int) Vector {
     for i := 0; i < Dim; i++ {
         res[i] *= f
     }
-    return f
+    return res
 }
 
 func IsZero(a Vector) bool {
@@ -70,7 +70,7 @@ func Parabola(x, a, b, c int) int {
     return x * x * a + x * b + c
 }
 
-func ParabolaFunc(a, b, c int) int {
+func ParabolaFunc(a, b, c int) Func {
     return func(x int) int {
         return Parabola(x, a, b, c)
     }
