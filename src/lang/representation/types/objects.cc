@@ -20,14 +20,18 @@ bool Object::is_typed() const {
 }
 
 std::string Variable::ToString() const {
+    std::string type_str = "<unknown type>";
+    if (type() != nullptr) {
+        type_str = type()->ToString(StringRep::kShort);
+    }
     if (is_field_) {
         if (is_embedded_) {
-            return type()->ToString(StringRep::kShort);
+            return type_str;
         } else {
-            return name() + " " + type()->ToString(StringRep::kShort);
+            return name() + " " + type_str;
         }
     }
-    return "var " + name() + " " + type()->ToString(StringRep::kShort);
+    return "var " + name() + " " + type_str;
 }
 
 std::string Func::ToString() const {

@@ -47,6 +47,7 @@ std::string InfoToText(pos::FileSet *file_set, Info *info) {
     
     TypesToText(file_set, info, ss);
     ConstantExpressionsToText(file_set, info, ss);
+    ConstantsToText(file_set, info, ss);
     DefinitionsToText(file_set, info, ss);
     UsesToText(file_set, info, ss);
     ImplicitsToText(file_set, info, ss);

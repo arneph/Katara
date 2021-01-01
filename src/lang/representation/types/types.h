@@ -255,7 +255,9 @@ private:
 
 class Signature final : public Type {
 public:
+    bool has_expr_receiver() const { return expr_receiver_ != nullptr; }
     Variable * expr_receiver() const { return expr_receiver_; }
+    bool has_type_receiver() const { return type_receiver_ != nullptr; }
     Type * type_receiver() const { return type_receiver_; }
     const std::vector<TypeParameter *>& type_parameters() const { return type_parameters_; }
     Tuple * parameters() const { return parameters_; }
@@ -315,6 +317,7 @@ private:
 
 class Interface final : public Type {
 public:
+    bool is_empty() const { return embedded_interfaces_.empty() && methods_.empty(); }
     const std::vector<NamedType *>& embedded_interfaces() const { return embedded_interfaces_; }
     const std::vector<Func *>& methods() const { return methods_; }
     

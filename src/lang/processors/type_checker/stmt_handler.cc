@@ -430,7 +430,7 @@ void StmtHandler::CheckExprCaseClause(ast::CaseClause *case_clause,
         if (ExprHandler::ProcessExpr(expr, info_builder_, issues_) &&
             tag_type != nullptr) {
             types::Type *expr_type = info_->TypeOf(expr);
-            if (!types::IsComparable(tag_type, expr_type, tokens::kEql)) {
+            if (!types::IsComparable(tag_type, expr_type)) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
                                                 expr->start(),
