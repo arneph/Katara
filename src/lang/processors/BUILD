@@ -9,6 +9,8 @@ cc_library(
         "//src/lang/processors/parser",
         "//src/lang/processors/type_checker",
         "//src/lang/processors/packages",
+        "//src/lang/processors/docs:file_doc",
+        "//src/lang/processors/docs:package_doc",
      ],
     visibility = [
         "//visibility:public",

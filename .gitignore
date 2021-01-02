@@ -1,4 +1,5 @@
 bazel*
+tests/**/*.html
 tests/**/*.txt
 tests/**/*.vcg
 .bazelrc

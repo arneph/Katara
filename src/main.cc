@@ -21,6 +21,8 @@
 #include "lang/representation/ast/ast_util.h"
 #include "lang/representation/types/info_util.h"
 #include "lang/processors/packages/packages.h"
+#include "lang/processors/docs/file_doc.h"
+#include "lang/processors/docs/package_doc.h"
 
 #include "ir/prog.h"
 #include "ir/func.h"
@@ -54,6 +56,8 @@ void to_file(std::string text, std::filesystem::path out_file) {
 void run_lang_test(std::filesystem::path test_dir) {
     std::string test_name = test_dir.filename();
     std::cout << "testing " + test_name << "\n";
+    std::filesystem::create_directory(test_dir / "docs");
+    std::filesystem::create_directory(test_dir / "debug");
     
     lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib");
     lang::packages::Package *pkg = pkg_manager.LoadPackage(test_dir);
@@ -99,12 +103,21 @@ void run_lang_test(std::filesystem::path test_dir) {
     for (auto [name, ast_file] : pkg->ast_package()->files()) {
         vcg::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast_file);
         
-        to_file(ast_graph.ToVCGFormat(), test_dir.string() + "/" + name + ".ast.vcg");
+        to_file(ast_graph.ToVCGFormat(), test_dir.string() + "/debug/" + name + ".ast.vcg");
     }
     
     std::string type_info = lang::types::InfoToText(pkg_manager.file_set(),
                                                     pkg_manager.type_info());
-    to_file(type_info, test_dir.string() + "/" + pkg->name() + ".types.txt");
+    to_file(type_info, test_dir.string() + "/debug/" + pkg->name() + ".types.txt");
+    
+    lang::docs::PackageDoc pkg_doc =
+        lang::docs::GenerateDocumentationForPackage(pkg,
+                                                    pkg_manager.file_set(),
+                                                    pkg_manager.type_info());
+    to_file(pkg_doc.html, test_dir.string() + "/docs/" + pkg_doc.name + ".html");
+    for (auto file_doc : pkg_doc.docs) {
+        to_file(file_doc.html, test_dir.string() + "/docs/" + file_doc.name + ".html");
+    }
 }
 
 void test_lang() {

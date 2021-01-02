@@ -1,14 +1,35 @@
 //
-//  file_doc.hpp
+//  file_doc.h
 //  Katara
 //
 //  Created by Arne Philipeit on 1/2/21.
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef file_doc_hpp
-#define file_doc_hpp
+#ifndef lang_docs_file_doc_h
+#define lang_docs_file_doc_h
 
-#include <stdio.h>
+#include <string>
 
-#endif /* file_doc_hpp */
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/representation/types/info.h"
+#include "lang/processors/docs/common.h"
+
+namespace lang {
+namespace docs {
+
+struct FileDoc {
+    std::string name;
+    std::string html;
+};
+
+FileDoc GenerateDocumentationForFile(std::string name,
+                                     ast::File *ast_file,
+                                     pos::FileSet *pos_file_set,
+                                     types::Info *type_info);
+
+}
+}
+
+#endif /* lang_docs_file_doc_h */
