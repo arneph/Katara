@@ -26,7 +26,7 @@ namespace packages {
 class Package {
 public:
     std::string name() const { return name_; }
-    std::string path() const;
+    std::string path() const { return path_; }
     
     const std::vector<pos::File *>& pos_files() const { return pos_files_; }
     ast::Package * ast_package() const { return ast_package_; }
