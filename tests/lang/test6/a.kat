@@ -1,0 +1,13 @@
+package xyz
+
+import (
+    "fmt"
+)
+
+type Bool = bool
+type Int = int
+
+func testNorm() {
+    v := Vec3<Int>{1, 2, 3}
+    fmt.Println(v.Norm().String())
+}

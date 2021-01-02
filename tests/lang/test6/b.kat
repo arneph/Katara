@@ -1,0 +1,23 @@
+package xyz
+
+type Dim int
+
+const (
+    Three Dim = 3
+    Four Dim = 4
+)
+
+type Vec3<T Number> [Three]T
+type Vec4<T Number> [Four]T
+
+func (v Vec3<T>) Norm() Vec3<T> {
+    l := T.Sqrt(T.Add(
+        T.Mul(v[0], v[0]),
+        T.Mul(v[1], v[1]),
+        T.Mul(v[2], v[2])))
+    return Vec3<T>{T.Div(v[0], l), T.Div(v[1], l), T.Div(v[2], l)}
+}
+
+func (v Vec3<T>) String() string {
+    return "{" + v[0].String() + ", " + v[1].String() + ", " + v[2].String() + "}"
+}

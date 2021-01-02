@@ -1,0 +1,40 @@
+package main
+
+import (
+    "fmt"
+)
+
+type Number interface {
+    <T> Add(a, b T) T
+    <T> Sub(a, b T) T
+    <T> Mul(a, b T) T
+    <T> Div(a, b T) T
+    <T> Mod(a, b T) T
+    <T> Sqrt(a, b T) T
+    fmt.Stringer
+}
+
+func <Int> Add(a, b Int) Int {
+    return a + b
+}
+
+func <Int> Sub(a, b Int) Int {
+    return a - b
+}
+
+func <Int> Mul(a, b Int) Int {
+    return a * b
+}
+
+func <Int> Div(a, b Int) Int {
+    return a / b
+}
+
+func <Int> Mod(a, b Int) Int {
+    return a % b
+}
+
+func <Int> Sqrt(a, b Int) Int {
+    return 0
+}
+

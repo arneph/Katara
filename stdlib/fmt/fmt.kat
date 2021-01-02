@@ -2,3 +2,7 @@ package fmt
 
 func Println(text string) {
 }
+
+type Stringer interface {
+    () String() string
+}
