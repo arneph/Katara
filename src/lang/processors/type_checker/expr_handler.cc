@@ -566,6 +566,7 @@ ExprHandler::CheckNamedTypeMethodSelectionExpr(ast::SelectionExpr *selection_exp
     info_builder_.SetSelection(selection_expr, selection);
     info_builder_.SetExprType(selection_expr, signature);
     info_builder_.SetExprKind(selection_expr, types::ExprKind::kValue);
+    info_builder_.SetUsedObject(selection_expr->selection(), method);
     return CheckSelectionExprResult::kCheckSucceeded;
 }
 
@@ -601,6 +602,7 @@ ExprHandler::CheckInterfaceMethodSelectionExpr(ast::SelectionExpr *selection_exp
         info_builder_.SetSelection(selection_expr, selection);
         info_builder_.SetExprType(selection_expr, signature);
         info_builder_.SetExprKind(selection_expr, types::ExprKind::kValue);
+        info_builder_.SetUsedObject(selection_expr->selection(), method);
         return CheckSelectionExprResult::kCheckSucceeded;
     }
     return CheckSelectionExprResult::kNotApplicable;
@@ -631,6 +633,7 @@ ExprHandler::CheckStructFieldSelectionExpr(ast::SelectionExpr *selection_expr,
         info_builder_.SetSelection(selection_expr, selection);
         info_builder_.SetExprType(selection_expr, field_type);
         info_builder_.SetExprKind(selection_expr, types::ExprKind::kVariable);
+        info_builder_.SetUsedObject(selection_expr->selection(), field);
         return CheckSelectionExprResult::kCheckSucceeded;
     }
     return CheckSelectionExprResult::kNotApplicable;
