@@ -344,7 +344,8 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt *return_stmt, Context ctx) {
         }
         return;
     }
-    if (result_types.size() != ctx.func_results->variables().size()) {
+    if (ctx.func_results == nullptr ||
+        result_types.size() != ctx.func_results->variables().size()) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         return_stmt->start(),
