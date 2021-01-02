@@ -402,8 +402,21 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
     if (!CheckExpr(selection_expr->accessed())) {
         return false;
     }
-    types::Type *accessed_type = info_->TypeOf(selection_expr->accessed());
     types::ExprKind accessed_kind = info_->ExprKindOf(selection_expr->accessed()).value();
+    switch (accessed_kind) {
+        case types::ExprKind::kInvalid:
+            throw "internal error: unexpected expr kind";
+        case types::ExprKind::kNoValue:
+        case types::ExprKind::kBuiltin:
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            selection_expr->selection()->start(),
+                                            "invalid operation: no posible selection"));
+            return false;
+        default:
+            break;
+    }
+    types::Type *accessed_type = info_->TypeOf(selection_expr->accessed());
     if (accessed_type->type_kind() == types::TypeKind::kPointer) {
         accessed_type = static_cast<types::Pointer *>(accessed_type)->element_type();
         types::Type *underlying = types::UnderlyingOf(accessed_type);
@@ -510,12 +523,12 @@ ExprHandler::CheckNamedTypeMethodSelectionExpr(ast::SelectionExpr *selection_exp
     types::Func *method = named_type->methods().at(selection_name);
     types::Signature *signature = static_cast<types::Signature *>(method->type());
     types::Type *receiver_type = nullptr;
-    if (signature->expr_receiver() != nullptr) {
+    if (signature->has_expr_receiver()) {
         receiver_type = signature->expr_receiver()->type();
         if (receiver_type->type_kind() == types::TypeKind::kPointer) {
             receiver_type = static_cast<types::Pointer *>(receiver_type)->element_type();
         }
-    } else if (signature->type_receiver() != nullptr) {
+    } else if (signature->has_type_receiver()) {
         receiver_type = signature->type_receiver();
     }
     
