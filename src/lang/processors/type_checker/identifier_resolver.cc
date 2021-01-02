@@ -824,7 +824,8 @@ void IdentifierResolver::ResolveIdentifiersInInterfaceType(ast::InterfaceType *i
         
         if (method_spec->instance_type_param() != nullptr) {
             ast::Ident *name = method_spec->instance_type_param();
-            types::TypeName *instance_type_param = info_builder_.CreateTypeNameForTypeParameter(method_scope,
+            types::TypeName *instance_type_param =
+                info_builder_.CreateTypeNameForTypeParameter(method_scope,
                                                              package_,
                                                              name->start(),
                                                              name->name());
@@ -842,7 +843,7 @@ void IdentifierResolver::ResolveIdentifiersInInterfaceType(ast::InterfaceType *i
     for (ast::MethodSpec *method_spec : interface_type->methods()) {
         types::Func *method = info_builder_.CreateFunc(interface_scope,
                                                        package_,
-                                                       method_spec->start(),
+                                                       method_spec->name()->start(),
                                                        method_spec->name()->name());
         info_builder_.SetDefinedObject(method_spec->name(), method);
         AddObjectToScope(interface_scope, method);
