@@ -719,18 +719,11 @@ void InfoBuilder::SetConstantValue(Constant *constant, constants::Value value) {
     constant->value_ = value;
 }
 
-void InfoBuilder::SetExprType(ast::Expr *expr, Type *type) {
-    if (info_->types().contains(expr)) {
-        throw "internal error: attempted to set expression type twice";
+void InfoBuilder::SetExprInfo(ast::Expr *expr, ExprInfo kind) {
+    if (info_->expr_infos().contains(expr)) {
+        throw "internal error: attempted to set expression info twice";
     }
-    info_->types_.insert({expr, type});
-}
-
-void InfoBuilder::SetExprKind(ast::Expr *expr, ExprKind kind) {
-    if (info_->expr_kinds().contains(expr)) {
-        throw "internal error: attempted to set expression kind twice";
-    }
-    info_->expr_kinds_.insert({expr, kind});
+    info_->expr_infos_.insert({expr, kind});
 }
 
 void InfoBuilder::SetExprConstantValue(ast::Expr *expr, constants::Value value) {
@@ -821,37 +814,15 @@ void InfoBuilder::AddImportToPackage(Package *importer, Package *imported) {
     importer->imports_.insert(imported);
 }
 
-Selection * InfoBuilder::CreateSelection(Selection::Kind kind,
-                                         Type *receiver_type,
-                                         Type *type,
-                                         Object *object) {
-    std::unique_ptr<Selection> selection(new Selection());
-    selection->kind_ = kind;
-    selection->receiver_type_ = receiver_type;
-    selection->type_ = type;
-    selection->object_ = object;
-    
-    Selection *selection_ptr = selection.get();
-    info_->selection_unique_ptrs_.push_back(std::move(selection));
-    
-    return selection_ptr;
-}
-
-void InfoBuilder::SetSelection(ast::SelectionExpr *selection_expr, types::Selection *selection) {
+void InfoBuilder::SetSelection(ast::SelectionExpr *selection_expr, types::Selection selection) {
     if (info_->selections_.contains(selection_expr)) {
         throw "internal error: attempted to set selection of selection expr twice";
     }
-    info_->selections_[selection_expr] = selection;
+    info_->selections_.insert({selection_expr, selection});
 }
 
-void InfoBuilder::AddInitializer(std::vector<Variable *> lhs, ast::Expr *rhs) {
-    std::unique_ptr<Initializer> initializer(new Initializer());
-    initializer->lhs_ = lhs;
-    initializer->rhs_ = rhs;
-    
-    Initializer *initializer_ptr = initializer.get();
-    info_->initializer_unique_ptrs_.push_back(std::move(initializer));
-    info_->init_order_.push_back(initializer_ptr);
+void InfoBuilder::AddInitializer(Initializer initializer) {
+    info_->init_order_.push_back(initializer);
 }
 
 }

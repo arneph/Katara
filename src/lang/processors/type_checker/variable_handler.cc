@@ -63,11 +63,24 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
         return false;
     }
     
-    types::Type *value_type = info_->types().at(value);
+    types::ExprInfo value_info = info_->ExprInfoOf(value).value();
+    switch (value_info.kind()) {
+        case types::ExprKind::kConstant:
+        case types::ExprKind::kVariable:
+        case types::ExprKind::kValue:
+        case types::ExprKind::kValueOk:
+            break;
+        default:
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            value->start(),
+                                            "expression is not assignable"));
+            return false;
+    }
     if (variables.size() == 1) {
         types::Variable * variable = variables.at(0);
         if (type != nullptr &&
-            !types::IsAssignableTo(value_type, type)) {
+            !types::IsAssignableTo(value_info.type(), type)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             variable->position(),
@@ -76,16 +89,16 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
             return false;
         }
         if (type == nullptr) {
-            info_builder_.SetObjectType(variable, value_type);
+            info_builder_.SetObjectType(variable, value_info.type());
         }
         if (variable->parent() == variable->package()->scope()) {
-            info_builder_.AddInitializer({variable}, value);
+            info_builder_.AddInitializer(types::Initializer({variable}, value));
         }
         return true;
     }
     
-    if (value_type->type_kind() != types::TypeKind::kTuple ||
-        static_cast<types::Tuple *>(value_type)->variables().size() != variables.size()) {
+    if (value_info.type()->type_kind() != types::TypeKind::kTuple ||
+        static_cast<types::Tuple *>(value_info.type())->variables().size() != variables.size()) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         variables.at(0)->position(),
@@ -95,7 +108,8 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
     
     for (size_t i = 0; i < variables.size(); i++) {
         types::Variable *var = variables.at(i);
-        types::Type *var_type = static_cast<types::Tuple *>(value_type)->variables().at(i)->type();
+        types::Type *var_type =
+            static_cast<types::Tuple *>(value_info.type())->variables().at(i)->type();
         
         if (type != nullptr && !types::IsAssignableTo(var_type, type)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -110,7 +124,7 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
         }
     }
     if (variables.at(0)->parent() == variables.at(0)->package()->scope()) {
-        info_builder_.AddInitializer(variables, value);
+        info_builder_.AddInitializer(types::Initializer(variables, value));
     }
     return true;
 }

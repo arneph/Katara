@@ -13,12 +13,8 @@
 namespace lang {
 namespace types {
 
-const std::unordered_map<ast::Expr *, Type *>& Info::types() const {
-    return types_;
-}
-
-const std::unordered_map<ast::Expr *, ExprKind>& Info::expr_kinds() const {
-    return expr_kinds_;
+const std::unordered_map<ast::Expr *, ExprInfo>& Info::expr_infos() const {
+    return expr_infos_;
 }
 
 const std::unordered_map<ast::Expr *, constants::Value>& Info::constant_values() const {
@@ -37,7 +33,7 @@ const std::unordered_map<ast::Node *, Object *>& Info::implicits() const {
     return implicits_;
 }
 
-const std::unordered_map<ast::SelectionExpr *, Selection *>& Info::selections() const {
+const std::unordered_map<ast::SelectionExpr *, Selection>& Info::selections() const {
     return selections_;
 }
 
@@ -49,7 +45,7 @@ const std::unordered_set<Package *>& Info::packages() const {
     return packages_;
 }
 
-const std::vector<Initializer *>& Info::init_order() const {
+const std::vector<Initializer>& Info::init_order() const {
     return init_order_;
 }
 
@@ -105,23 +101,9 @@ Scope * Info::ScopeOf(ast::Node *node) const {
     return nullptr;
 }
 
-Type * Info::TypeOf(ast::Expr *expr) const {
-    auto it = types_.find(expr);
-    if (it != types_.end()) {
-        return it->second;
-    }
-    if (expr->node_kind() == ast::NodeKind::kIdent) {
-        Object *obj = ObjectOf(static_cast<ast::Ident *>(expr));
-        if (obj->is_typed()) {
-            return static_cast<types::TypedObject *>(obj)->type();
-        }
-    }
-    return nullptr;
-}
-
-std::optional<ExprKind> Info::ExprKindOf(ast::Expr *expr) const {
-    auto it = expr_kinds_.find(expr);
-    if (it != expr_kinds_.end()) {
+std::optional<ExprInfo> Info::ExprInfoOf(ast::Expr *expr) const {
+    auto it = expr_infos_.find(expr);
+    if (it != expr_infos_.end()) {
         return it->second;
     }
     return std::nullopt;
@@ -133,6 +115,20 @@ std::optional<constants::Value> Info::ConstantValueOf(ast::Expr *expr) const {
         return it->second;
     }
     return std::nullopt;
+}
+
+Type * Info::TypeOf(ast::Expr *expr) const {
+    auto it = expr_infos_.find(expr);
+    if (it != expr_infos_.end()) {
+        return it->second.type();
+    }
+    if (expr->node_kind() == ast::NodeKind::kIdent) {
+        Object *obj = ObjectOf(static_cast<ast::Ident *>(expr));
+        if (obj->is_typed()) {
+            return static_cast<types::TypedObject *>(obj)->type();
+        }
+    }
+    return nullptr;
 }
 
 InfoBuilder Info::builder() {

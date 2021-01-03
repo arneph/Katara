@@ -11,22 +11,6 @@
 namespace lang {
 namespace types {
 
-Scope * Scope::parent() const {
-    return parent_;
-}
-
-const std::vector<Scope *>& Scope::children() const {
-    return children_;
-}
-
-const std::unordered_map<std::string, Object *>& Scope::named_objects() const {
-    return named_objects_;
-}
-
-const std::unordered_set<Object *>& Scope::unnamed_objects() const {
-    return unnamed_objects_;
-}
-
 Object * Scope::Lookup(std::string name) const {
     auto it = named_objects_.find(name);
     if (it != named_objects_.end()) {

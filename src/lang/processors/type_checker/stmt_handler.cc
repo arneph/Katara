@@ -207,8 +207,8 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
             lhs_types.push_back(nullptr);
             continue;
         }
-        types::ExprKind lhs_kind = info_->ExprKindOf(lhs_expr).value();
-        if (lhs_kind != types::ExprKind::kVariable) {
+        types::ExprInfo lhs_info = info_->ExprInfoOf(lhs_expr).value();
+        if (lhs_info.kind() != types::ExprKind::kVariable) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             lhs_expr->start(),
@@ -216,8 +216,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
             lhs_types.push_back(nullptr);
             continue;
         }
-        types::Type *lhs_type = info_->TypeOf(lhs_expr);
-        lhs_types.push_back(lhs_type);
+        lhs_types.push_back(lhs_info.type());
     }
     for (ast::Expr *rhs_expr : assign_stmt->rhs()) {
         if (!ExprHandler::ProcessExpr(rhs_expr, info_builder_, issues_)) {
@@ -239,8 +238,8 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
         }
     }
     if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr) {
-        types::ExprKind rhs_kind = info_->ExprKindOf(assign_stmt->rhs().at(0)).value();
-        if (rhs_kind == types::ExprKind::kValueOk) {
+        types::ExprInfo rhs_info = info_->ExprInfoOf(assign_stmt->rhs().at(0)).value();
+        if (rhs_info.kind() == types::ExprKind::kValueOk) {
             if (lhs_types.size() > 2) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,

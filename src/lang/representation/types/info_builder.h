@@ -20,6 +20,7 @@
 #include "lang/representation/types/objects.h"
 #include "lang/representation/types/scope.h"
 #include "lang/representation/types/package.h"
+#include "lang/representation/types/expr_info.h"
 #include "lang/representation/types/selection.h"
 #include "lang/representation/types/initializer.h"
 #include "lang/representation/types/info.h"
@@ -132,8 +133,7 @@ public:
     void SetObjectType(TypedObject *object, Type *type);
     void SetConstantValue(Constant *constant, constants::Value value);
     
-    void SetExprType(ast::Expr *expr, Type *type);
-    void SetExprKind(ast::Expr *expr, ExprKind kind);
+    void SetExprInfo(ast::Expr *expr, ExprInfo expr_info);
     void SetExprConstantValue(ast::Expr *expr, constants::Value value);
     
     void SetDefinedObject(ast::Ident *ident, Object *object);
@@ -146,14 +146,10 @@ public:
     Package * CreatePackage(std::string path, std::string name);
     void AddImportToPackage(Package *importer, Package *imported);
     
-    Selection * CreateSelection(Selection::Kind kind,
-                                Type *receiver_type,
-                                Type *type,
-                                Object *object);
     void SetSelection(ast::SelectionExpr *selection_expr,
-                      types::Selection *selection);
+                      types::Selection selection);
     
-    void AddInitializer(std::vector<Variable *> lhs, ast::Expr *rhs);
+    void AddInitializer(Initializer initializer);
     
 private:
     InfoBuilder(Info *info);

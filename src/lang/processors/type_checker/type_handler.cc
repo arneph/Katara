@@ -167,8 +167,15 @@ bool TypeHandler::EvaluateTypeExpr(ast::Expr *expr) {
             if (!EvaluateTypeExpr(paren_expr->x())) {
                 return false;
             }
-            types::Type *type = info_->types().at(paren_expr->x());
-            info_builder_.SetExprType(expr, type);
+            types::ExprInfo x_info = info_->ExprInfoOf(paren_expr->x()).value();
+            if (x_info.kind() != types::ExprKind::kType) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                paren_expr->x()->start(),
+                                                "type expression not allowed"));
+                return false;
+            }
+            info_builder_.SetExprInfo(expr, x_info);
             return true;
         }
         case ast::NodeKind::kSelectionExpr:{
@@ -220,7 +227,9 @@ bool TypeHandler::EvaluateTypeIdent(ast::Ident *ident) {
                                         "expected type name"));
         return false;
     }
-    info_builder_.SetExprType(ident, static_cast<types::TypeName *>(used)->type());
+    types::TypeName *type_name = static_cast<types::TypeName *>(used);
+    info_builder_.SetExprInfo(ident, types::ExprInfo(types::ExprKind::kType,
+                                                     type_name->type()));
     return true;
 }
 
@@ -245,7 +254,8 @@ bool TypeHandler::EvaluatePointerType(ast::UnaryExpr *pointer_expr) {
     }
     types::Type *element_type = info_->TypeOf(pointer_expr->x());
     types::Pointer *pointer_type = info_builder_.CreatePointer(kind, element_type);
-    info_builder_.SetExprType(pointer_expr, pointer_type);
+    info_builder_.SetExprInfo(pointer_expr, types::ExprInfo(types::ExprKind::kType,
+                                                            pointer_type));
     return true;
 }
 
@@ -280,12 +290,14 @@ bool TypeHandler::EvaluateArrayType(ast::ArrayType *array_expr) {
     
     if (!is_slice) {
         types::Array *array_type = info_builder_.CreateArray(element_type, length);
-        info_builder_.SetExprType(array_expr, array_type);
+        info_builder_.SetExprInfo(array_expr, types::ExprInfo(types::ExprKind::kType,
+                                                              array_type));
         return true;
         
     } else {
         types::Slice *slice_type = info_builder_.CreateSlice(element_type);
-        info_builder_.SetExprType(array_expr, slice_type);
+        info_builder_.SetExprInfo(array_expr, types::ExprInfo(types::ExprKind::kType,
+                                                              slice_type));
         return true;
     }
 }
@@ -304,7 +316,8 @@ bool TypeHandler::EvaluateFuncType(ast::FuncType *func_expr) {
     }
     types::Signature *signature = info_builder_.CreateSignature(parameters,
                                                                 results);
-    info_builder_.SetExprType(func_expr, signature);
+    info_builder_.SetExprInfo(func_expr, types::ExprInfo(types::ExprKind::kType,
+                                                         signature));
     return true;
 }
 
@@ -322,7 +335,8 @@ bool TypeHandler::EvaluateInterfaceType(ast::InterfaceType *interface_expr) {
     }
     // TODO: handle embdedded interfaces
     info_builder_.SetInterfaceMembers(interface_type, {}, methods);
-    info_builder_.SetExprType(interface_expr, interface_type);
+    info_builder_.SetExprInfo(interface_expr, types::ExprInfo(types::ExprKind::kType,
+                                                              interface_type));
     return true;
 }
 
@@ -333,7 +347,8 @@ bool TypeHandler::EvaluateStructType(ast::StructType *struct_expr) {
         return false;
     }
     types::Struct *struct_type = info_builder_.CreateStruct(fields);
-    info_builder_.SetExprType(struct_expr, struct_type);
+    info_builder_.SetExprInfo(struct_expr, types::ExprInfo(types::ExprKind::kType,
+                                                           struct_type));
     return true;
 }
 
@@ -373,11 +388,13 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance *type_instance_expr) {
     
     types::TypeInstance *type_instance = info_builder_.CreateTypeInstance(instantiated_type,
                                                                           type_args);
-    info_builder_.SetExprType(type_instance_expr, type_instance);
+    info_builder_.SetExprInfo(type_instance_expr, types::ExprInfo(types::ExprKind::kType,
+                                                                  type_instance));
     return true;
 }
 
-std::vector<types::TypeParameter *> TypeHandler::EvaluateTypeParameters(ast::TypeParamList *parameters_expr) {
+std::vector<types::TypeParameter *>
+TypeHandler::EvaluateTypeParameters(ast::TypeParamList *parameters_expr) {
     std::vector<types::TypeParameter *> type_parameters;
     type_parameters.reserve(parameters_expr->params().size());
     for (auto& parameter_expr : parameters_expr->params()) {

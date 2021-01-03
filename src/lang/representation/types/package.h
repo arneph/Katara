@@ -19,12 +19,10 @@ namespace types {
 
 class Package {
 public:
-    ~Package() {}
-    
-    std::string path() const;
-    std::string name() const;
-    Scope *scope() const;
-    const std::unordered_set<Package *>& imports() const;
+    std::string path() const { return path_; }
+    std::string name() const { return name_; }
+    Scope *scope() const { return scope_; }
+    const std::unordered_set<Package *>& imports() const { return imports_; }
     
 private:
     Package() {}

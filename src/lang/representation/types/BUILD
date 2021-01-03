@@ -6,7 +6,6 @@ cc_library(
         "types.cc",
         "objects.cc",
         "scope.cc",
-        "package.cc",
     ],
     hdrs = [
         "types.h",
@@ -46,10 +45,21 @@ cc_library(
 )
 
 cc_library(
-    name = "selection",
-    srcs = [
-        "selection.cc",
+    name = "expr_info",
+    hdrs = [
+        "expr_info.h",
     ],
+    copts = ["-Isrc/ -std=c++2a"],
+    deps = [
+        ":base",
+     ],
+    visibility = [
+        "//src/lang/representation:__subpackages__",
+    ],
+)
+
+cc_library(
+    name = "selection",
     hdrs = [
         "selection.h",
     ],
@@ -64,9 +74,6 @@ cc_library(
 
 cc_library(
     name = "initializer",
-    srcs = [
-        "initializer.cc",
-    ],
     hdrs = [
         "initializer.h",
     ],
@@ -96,6 +103,7 @@ cc_library(
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
         ":base",
+        ":expr_info",
         ":selection",
         ":initializer",
      ],
@@ -118,6 +126,7 @@ cc_library(
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
         ":base",
+        ":expr_info",
         ":selection",
         ":initializer",
         ":info",

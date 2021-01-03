@@ -8,6 +8,8 @@
 
 #include "expr_handler.h"
 
+#include <optional>
+
 #include "lang/representation/ast/ast_util.h"
 #include "lang/representation/types/types_util.h"
 #include "lang/processors/type_checker/type_handler.h"
@@ -111,8 +113,7 @@ bool ExprHandler::CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr *unary_expr) {
                                         "invalid operation: expected integer type"));
         return false;
     }
-    info_builder_.SetExprType(unary_expr, x_type);
-    info_builder_.SetExprKind(unary_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(unary_expr, types::ExprInfo(types::ExprKind::kValue, x_type));
     return true;
 }
 
@@ -131,8 +132,7 @@ bool ExprHandler::CheckUnaryLogicExpr(ast::UnaryExpr *unary_expr) {
                                         "invalid operation: expected boolean type"));
         return false;
     }
-    info_builder_.SetExprType(unary_expr, x_type);
-    info_builder_.SetExprKind(unary_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(unary_expr, types::ExprInfo(types::ExprKind::kValue, x_type));
     return true;
 }
 
@@ -140,9 +140,9 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
     if (!CheckExpr(unary_expr->x())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(unary_expr->x());
+    types::ExprInfo x_info = info_->ExprInfoOf(unary_expr->x()).value();
     if (unary_expr->op() == tokens::kAnd) {
-        if (info_->ExprKindOf(unary_expr->x()).value() != types::ExprKind::kVariable) {
+        if (x_info.kind() != types::ExprKind::kVariable) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             unary_expr->start(),
@@ -150,22 +150,22 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
             return false;
         }
         types::Pointer *pointer_type = info_builder_.CreatePointer(types::Pointer::Kind::kStrong,
-                                                                   x_type);
-        info_builder_.SetExprType(unary_expr, pointer_type);
-        info_builder_.SetExprKind(unary_expr, types::ExprKind::kValue);
+                                                                   x_info.type());
+        info_builder_.SetExprInfo(unary_expr, types::ExprInfo(types::ExprKind::kValue,
+                                                              pointer_type));
         return true;
         
     } else if (unary_expr->op() == tokens::kMul ||
                unary_expr->op() == tokens::kRem) {
-        if (x_type->type_kind() != types::TypeKind::kPointer) {
+        if (x_info.type()->type_kind() != types::TypeKind::kPointer) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             unary_expr->start(),
                                             "invalid operation: expected pointer"));
             return false;
         }
-        types::Pointer *x_pointer_type = static_cast<types::Pointer *>(x_type);
-        if (x_pointer_type->kind() == types::Pointer::Kind::kStrong &&
+        types::Pointer *pointer = static_cast<types::Pointer *>(x_info.type());
+        if (pointer->kind() == types::Pointer::Kind::kStrong &&
             unary_expr->op() == tokens::kRem) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
@@ -173,7 +173,7 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
                                             "invalid operation: can not weakly dereference strong "
                                             "pointer"));
             return false;
-        } else if (x_pointer_type->kind() == types::Pointer::Kind::kWeak &&
+        } else if (pointer->kind() == types::Pointer::Kind::kWeak &&
                    unary_expr->op() == tokens::kMul) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
@@ -182,8 +182,8 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr *unary_expr) {
                                             "pointer"));
             return false;
         }
-        info_builder_.SetExprType(unary_expr, x_pointer_type->element_type());
-        info_builder_.SetExprKind(unary_expr, types::ExprKind::kVariable);
+        info_builder_.SetExprInfo(unary_expr, types::ExprInfo(types::ExprKind::kVariable,
+                                                              pointer->element_type()));
         return true;
         
     } else {
@@ -244,8 +244,7 @@ bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr *binary_expr) {
     } else {
         expr_type = y_type;
     }
-    info_builder_.SetExprType(binary_expr, expr_type);
-    info_builder_.SetExprKind(binary_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(binary_expr, types::ExprInfo(types::ExprKind::kValue, expr_type));
     return true;
 }
 
@@ -281,8 +280,7 @@ bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr *binary_expr) {
     if (x_basic->info() & types::Basic::Info::kIsUntyped) {
         expr_type = info_->basic_type(types::Basic::Kind::kInt);
     }
-    info_builder_.SetExprType(binary_expr, expr_type);
-    info_builder_.SetExprKind(binary_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(binary_expr, types::ExprInfo(types::ExprKind::kValue, expr_type));
     return true;
 }
 
@@ -327,8 +325,7 @@ bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr *binary_expr) {
     } else {
         expr_type = y_type;
     }
-    info_builder_.SetExprType(binary_expr, expr_type);
-    info_builder_.SetExprKind(binary_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(binary_expr, types::ExprInfo(types::ExprKind::kValue, expr_type));
     return true;
 }
 
@@ -375,8 +372,9 @@ bool ExprHandler::CheckCompareExpr(ast::CompareExpr *compare_expr) {
             }
         }
     }
-    info_builder_.SetExprType(compare_expr, info_->basic_type(types::Basic::Kind::kBool));
-    info_builder_.SetExprKind(compare_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(compare_expr,
+                              types::ExprInfo(types::ExprKind::kValue,
+                                              info_->basic_type(types::Basic::Kind::kBool)));
     return true;
 }
 
@@ -384,10 +382,8 @@ bool ExprHandler::CheckParenExpr(ast::ParenExpr *paren_expr) {
     if (!CheckExpr(paren_expr->x())) {
         return false;
     }
-    types::Type *x_type = info_->TypeOf(paren_expr->x());
-    types::ExprKind x_expr_kind = info_->ExprKindOf(paren_expr->x()).value();
-    info_builder_.SetExprType(paren_expr, x_type);
-    info_builder_.SetExprKind(paren_expr, x_expr_kind);
+    types::ExprInfo x_info = info_->ExprInfoOf(paren_expr->x()).value();
+    info_builder_.SetExprInfo(paren_expr, x_info);
     return true;
 }
 
@@ -402,8 +398,8 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
     if (!CheckExpr(selection_expr->accessed())) {
         return false;
     }
-    types::ExprKind accessed_kind = info_->ExprKindOf(selection_expr->accessed()).value();
-    switch (accessed_kind) {
+    types::ExprInfo accessed_info = info_->ExprInfoOf(selection_expr->accessed()).value();
+    switch (accessed_info.kind()) {
         case types::ExprKind::kInvalid:
             throw "internal error: unexpected expr kind";
         case types::ExprKind::kNoValue:
@@ -416,7 +412,7 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
         default:
             break;
     }
-    types::Type *accessed_type = info_->TypeOf(selection_expr->accessed());
+    types::Type *accessed_type = accessed_info.type();
     if (accessed_type->type_kind() == types::TypeKind::kPointer) {
         accessed_type = static_cast<types::Pointer *>(accessed_type)->element_type();
         types::Type *underlying = types::UnderlyingOf(accessed_type);
@@ -458,7 +454,7 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr *selection_expr) {
         }
         accessed_type = named_type->underlying();
     }
-    switch (accessed_kind) {
+    switch (accessed_info.kind()) {
         case types::ExprKind::kVariable:
         case types::ExprKind::kValue:
         case types::ExprKind::kValueOk:
@@ -503,10 +499,8 @@ ExprHandler::CheckPackageSelectionExpr(ast::SelectionExpr *selection_expr) {
     if (!CheckIdent(selection_expr->selection())) {
         return CheckSelectionExprResult::kCheckFailed;
     }
-    types::Type *type = info_->TypeOf(selection_expr->selection());
-    types::ExprKind expr_kind = info_->ExprKindOf(selection_expr->selection()).value();
-    info_builder_.SetExprType(selection_expr, type);
-    info_builder_.SetExprKind(selection_expr, expr_kind);
+    types::ExprInfo selection_info = info_->ExprInfoOf(selection_expr->selection()).value();
+    info_builder_.SetExprInfo(selection_expr, selection_info);
     return CheckSelectionExprResult::kCheckSucceeded;
 }
 
@@ -515,7 +509,7 @@ ExprHandler::CheckNamedTypeMethodSelectionExpr(ast::SelectionExpr *selection_exp
                                                types::NamedType *named_type,
                                                types::InfoBuilder::TypeParamsToArgsMap
                                                    type_params_to_args) {
-    types::ExprKind accessed_kind = info_->ExprKindOf(selection_expr->accessed()).value();
+    types::ExprInfo accessed_info = info_->ExprInfoOf(selection_expr->accessed()).value();
     std::string selection_name = selection_expr->selection()->name();
     if (!named_type->methods().contains(selection_name)) {
         return CheckSelectionExprResult::kNotApplicable;
@@ -546,20 +540,16 @@ ExprHandler::CheckNamedTypeMethodSelectionExpr(ast::SelectionExpr *selection_exp
         type_params_to_args = method_type_params_to_args;
     }
     
-    types::Selection *selection = nullptr;
-    switch (accessed_kind) {
+    types::Selection::Kind selection_kind;
+    switch (accessed_info.kind()) {
         case types::ExprKind::kConstant:
         case types::ExprKind::kVariable:
         case types::ExprKind::kValue:
         case types::ExprKind::kValueOk:{
-            signature =
-            info_builder_.InstantiateMethodSignature(signature,
-                                                     type_params_to_args,
-                                                     /* receiver_to_arg= */ false);
-            selection = info_builder_.CreateSelection(types::Selection::Kind::kMethodVal,
-                                                      named_type,
-                                                      signature,
-                                                      method);
+            signature = info_builder_.InstantiateMethodSignature(signature,
+                                                                 type_params_to_args,
+                                                                 /* receiver_to_arg= */ false);
+            selection_kind = types::Selection::Kind::kMethodVal;
             break;
         }
         case types::ExprKind::kType:{
@@ -567,18 +557,18 @@ ExprHandler::CheckNamedTypeMethodSelectionExpr(ast::SelectionExpr *selection_exp
             signature = info_builder_.InstantiateMethodSignature(signature,
                                                                  type_params_to_args,
                                                                  receiver_to_arg);
-            selection = info_builder_.CreateSelection(types::Selection::Kind::kMethodExpr,
-                                                      named_type,
-                                                      signature,
-                                                      method);
+            selection_kind = types::Selection::Kind::kMethodExpr;
             break;
         }
         default:
             throw "internal error: unexpected expr kind of named type with method";
     }
+    types::Selection selection(types::Selection::Kind::kMethodExpr,
+                               named_type,
+                               signature,
+                               method);
     info_builder_.SetSelection(selection_expr, selection);
-    info_builder_.SetExprType(selection_expr, signature);
-    info_builder_.SetExprKind(selection_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(selection_expr, types::ExprInfo(types::ExprKind::kValue, signature));
     info_builder_.SetUsedObject(selection_expr->selection(), method);
     return CheckSelectionExprResult::kCheckSucceeded;
 }
@@ -607,14 +597,13 @@ ExprHandler::CheckInterfaceMethodSelectionExpr(ast::SelectionExpr *selection_exp
             info_builder_.InstantiateMethodSignature(signature,
                                                      type_params_to_args,
                                                      /* receiver_to_arg= */ false);
-        types::Selection *selection =
-            info_builder_.CreateSelection(types::Selection::Kind::kMethodVal,
-                                          interface_type,
-                                          method->type(),
-                                          method);
+        types::Selection selection(types::Selection::Kind::kMethodVal,
+                                   interface_type,
+                                   method->type(),
+                                   method);
         info_builder_.SetSelection(selection_expr, selection);
-        info_builder_.SetExprType(selection_expr, signature);
-        info_builder_.SetExprKind(selection_expr, types::ExprKind::kValue);
+        info_builder_.SetExprInfo(selection_expr, types::ExprInfo(types::ExprKind::kValue,
+                                                                  signature));
         info_builder_.SetUsedObject(selection_expr->selection(), method);
         return CheckSelectionExprResult::kCheckSucceeded;
     }
@@ -638,14 +627,13 @@ ExprHandler::CheckStructFieldSelectionExpr(ast::SelectionExpr *selection_expr,
         types::Type *field_type = field->type();
         field_type = info_builder_.InstantiateType(field_type,
                                                    type_params_to_args);
-        types::Selection *selection =
-            info_builder_.CreateSelection(types::Selection::Kind::kFieldVal,
-                                          struct_type,
-                                          field_type,
-                                          field);
+        types::Selection selection(types::Selection::Kind::kFieldVal,
+                                   struct_type,
+                                   field_type,
+                                   field);
         info_builder_.SetSelection(selection_expr, selection);
-        info_builder_.SetExprType(selection_expr, field_type);
-        info_builder_.SetExprKind(selection_expr, types::ExprKind::kVariable);
+        info_builder_.SetExprInfo(selection_expr, types::ExprInfo(types::ExprKind::kVariable,
+                                                                  field_type));
         info_builder_.SetUsedObject(selection_expr->selection(), field);
         return CheckSelectionExprResult::kCheckSucceeded;
     }
@@ -683,8 +671,8 @@ bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr *type_assert_expr) {
         return false;
     }
     
-    info_builder_.SetExprType(type_assert_expr, asserted_type);
-    info_builder_.SetExprKind(type_assert_expr, types::ExprKind::kValueOk);
+    info_builder_.SetExprInfo(type_assert_expr, types::ExprInfo(types::ExprKind::kValueOk,
+                                                                asserted_type));
     return true;
 }
 
@@ -732,8 +720,8 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr *index_expr) {
         types::Container *container = static_cast<types::Container *>(accessed_underlying);
         types::Type *element_type = container->element_type();
         
-        info_builder_.SetExprType(index_expr, element_type);
-        info_builder_.SetExprKind(index_expr, types::ExprKind::kVariable);
+        info_builder_.SetExprInfo(index_expr, types::ExprInfo(types::ExprKind::kVariable,
+                                                              element_type));
         return true;
         
     } else if (accessed_underlying->type_kind() == types::TypeKind::kBasic) {
@@ -743,8 +731,9 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr *index_expr) {
             return false;
         }
         
-        info_builder_.SetExprType(index_expr, info_->basic_type(types::Basic::Kind::kByte));
-        info_builder_.SetExprKind(index_expr, types::ExprKind::kValue);
+        info_builder_.SetExprInfo(index_expr,
+                                  types::ExprInfo(types::ExprKind::kValue,
+                                                  info_->basic_type(types::Basic::Kind::kByte)));
         return true;
         
     } else {
@@ -762,16 +751,22 @@ bool ExprHandler::CheckCallExpr(ast::CallExpr *call_expr) {
         !CheckExprs(call_expr->args())) {
         return false;
     }
-    
-    if (info_->ExprKindOf(func_expr) == types::ExprKind::kType) {
-        return CheckCallExprWithTypeConversion(call_expr);
-    } else if (info_->ExprKindOf(func_expr) == types::ExprKind::kBuiltin) {
-        return CheckCallExprWithBuiltin(call_expr);
-    } else if (info_->ExprKindOf(func_expr) == types::ExprKind::kValue ||
-               info_->ExprKindOf(func_expr) == types::ExprKind::kVariable) {
-        return CheckCallExprWithFuncCall(call_expr);
-    } else {
-        throw "internal error: unexpected func expr kind";
+    types::ExprInfo func_expr_info = info_->ExprInfoOf(func_expr).value();
+    switch (func_expr_info.kind()) {
+        case types::ExprKind::kBuiltin:
+            return CheckCallExprWithBuiltin(call_expr);
+        case types::ExprKind::kType:
+            return CheckCallExprWithTypeConversion(call_expr);
+        case types::ExprKind::kVariable:
+        case types::ExprKind::kValue:
+            return CheckCallExprWithFuncCall(call_expr);
+        default:
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            call_expr->start(),
+                                            "invalid operation: function expression is not "
+                                            "callable"));
+            return false;
     }
 }
 
@@ -803,8 +798,8 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr *call_expr) {
         return false;
     }
     
-    info_builder_.SetExprType(call_expr, conversion_result_type);
-    info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(call_expr, types::ExprInfo(types::ExprKind::kValue,
+                                                         conversion_result_type));
     return true;
 }
 
@@ -841,8 +836,9 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr) {
                                                 "len expected array, slice, or string"));
                 return false;
             }
-            info_builder_.SetExprType(call_expr, info_->basic_type(types::Basic::kInt));
-            info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+            info_builder_.SetExprInfo(call_expr,
+                                      types::ExprInfo(types::ExprKind::kValue,
+                                                      info_->basic_type(types::Basic::kInt)));
             return true;
         }
         case types::Builtin::Kind::kMake:{
@@ -886,8 +882,7 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr) {
                                                 "make expected length of type int"));
                 return false;
             }
-            info_builder_.SetExprType(call_expr, slice);
-            info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+            info_builder_.SetExprInfo(call_expr, types::ExprInfo(types::ExprKind::kValue, slice));
             return true;
         }
         case types::Builtin::Kind::kNew:{
@@ -909,8 +904,8 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr *call_expr) {
             types::Type *element_type = info_->TypeOf(element_type_expr);
             types::Pointer *pointer = info_builder_.CreatePointer(types::Pointer::Kind::kStrong,
                                                                   element_type);
-            info_builder_.SetExprType(call_expr, pointer);
-            info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+            info_builder_.SetExprInfo(call_expr, types::ExprInfo(types::ExprKind::kValue,
+                                                                 pointer));
             return true;
         }
         default:
@@ -1021,18 +1016,17 @@ void ExprHandler::CheckFuncCallArgs(types::Signature *signature,
 void ExprHandler::CheckFuncCallResultType(types::Signature *signature,
                                           ast::CallExpr *call_expr) {
     if (signature->results() == nullptr) {
-        info_builder_.SetExprKind(call_expr, types::ExprKind::kNoValue);
+        info_builder_.SetExprInfo(call_expr, types::ExprInfo(types::ExprKind::kNoValue, nullptr));
         return;
     }
-    
     if (signature->results()->variables().size() == 1) {
-        info_builder_.SetExprType(call_expr, signature->results()->variables().at(0)->type());
-        info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+        info_builder_.SetExprInfo(call_expr,
+                                  types::ExprInfo(types::ExprKind::kValue,
+                                                  signature->results()->variables().at(0)->type()));
         return;
     }
-    
-    info_builder_.SetExprType(call_expr, signature->results());
-    info_builder_.SetExprKind(call_expr, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(call_expr, types::ExprInfo(types::ExprKind::kValue,
+                                                         signature->results()));
 }
 
 bool ExprHandler::CheckFuncLit(ast::FuncLit *func_lit) {
@@ -1047,8 +1041,7 @@ bool ExprHandler::CheckFuncLit(ast::FuncLit *func_lit) {
     StmtHandler::ProcessFuncBody(func_body, func_type->results(), info_builder_, issues_);
     
     info_builder_.SetObjectType(func, func_type);
-    info_builder_.SetExprType(func_lit, func_type);
-    info_builder_.SetExprKind(func_lit, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(func_lit, types::ExprInfo(types::ExprKind::kValue, func_type));
     return true;
 }
 
@@ -1060,8 +1053,7 @@ bool ExprHandler::CheckCompositeLit(ast::CompositeLit *composite_lit) {
     
     // TODO: check contents of composite lit
     
-    info_builder_.SetExprType(composite_lit, type);
-    info_builder_.SetExprKind(composite_lit, types::ExprKind::kValue);
+    info_builder_.SetExprInfo(composite_lit, types::ExprInfo(types::ExprKind::kValue, type));
     return true;
 }
 
@@ -1071,31 +1063,32 @@ bool ExprHandler::CheckBasicLit(ast::BasicLit *basic_lit) {
 
 bool ExprHandler::CheckIdent(ast::Ident *ident) {
     types::Object *object = info_->ObjectOf(ident);
+    types::ExprKind expr_kind;
     types::Type *type = nullptr;
-    types::ExprKind expr_kind = types::ExprKind::kInvalid;
     switch (object->object_kind()) {
         case types::ObjectKind::kTypeName:
-            type = static_cast<types::TypeName *>(object)->type();
             expr_kind = types::ExprKind::kType;
+            type = static_cast<types::TypeName *>(object)->type();
             break;
         case types::ObjectKind::kConstant:
-            type = static_cast<types::Constant *>(object)->type();
             expr_kind = types::ExprKind::kConstant;
+            type = static_cast<types::Constant *>(object)->type();
             break;
         case types::ObjectKind::kVariable:
-            type = static_cast<types::Variable *>(object)->type();
             expr_kind = types::ExprKind::kVariable;
+            type = static_cast<types::Variable *>(object)->type();
             break;
         case types::ObjectKind::kFunc:
-            type = static_cast<types::Func *>(object)->type();
             expr_kind = types::ExprKind::kVariable;
+            type = static_cast<types::Func *>(object)->type();
             break;
         case types::ObjectKind::kNil:
-            type = info_->basic_type(types::Basic::kUntypedNil);
             expr_kind = types::ExprKind::kValue;
+            type = info_->basic_type(types::Basic::kUntypedNil);
             break;
         case types::ObjectKind::kBuiltin:
             expr_kind = types::ExprKind::kBuiltin;
+            type = nullptr;
             break;
         case types::ObjectKind::kPackageName:
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -1108,13 +1101,9 @@ bool ExprHandler::CheckIdent(ast::Ident *ident) {
     }
     if (expr_kind != types::ExprKind::kBuiltin && type == nullptr) {
         throw "internal error: expect to know type at this point";
-        return false;
     }
     
-    if (expr_kind != types::ExprKind::kBuiltin) {
-        info_builder_.SetExprType(ident, type);
-    }
-    info_builder_.SetExprKind(ident, expr_kind);
+    info_builder_.SetExprInfo(ident, types::ExprInfo(expr_kind, type));
     return true;
 }
 

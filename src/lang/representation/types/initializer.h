@@ -19,18 +19,14 @@ namespace types {
 
 class Initializer {
 public:
-    ~Initializer() {}
+    Initializer(std::vector<Variable *> lhs, ast::Expr *rhs) : lhs_(lhs), rhs_(rhs) {}
     
-    const std::vector<Variable *>& lhs() const;
-    ast::Expr * rhs() const;
+    const std::vector<Variable *>& lhs() const { return lhs_; }
+    ast::Expr * rhs() const { return rhs_; }
     
 private:
-    Initializer() {}
-    
     std::vector<Variable *> lhs_;
     ast::Expr *rhs_;
-    
-    friend class InfoBuilder;
 };
 
 }

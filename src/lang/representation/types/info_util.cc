@@ -62,20 +62,23 @@ void TypesToText(pos::FileSet *file_set,
     size_t max_pos = 0;
     size_t max_expr = 0;
     size_t max_type = 0;
-    for (auto& [expr, type] : info->types()) {
+    for (auto& [expr, expr_info] : info->expr_infos()) {
+        if (expr_info.type() == nullptr) continue;
         pos::Position pos = file_set->PositionFor(expr->start());
         max_pos = std::max(max_pos, pos.ToString().size());
         max_expr = std::max(max_expr, size_t(expr->end() - expr->start() + 1));
-        max_type = std::max(max_type, type->ToString(StringRep::kExpanded).size());
+        max_type = std::max(max_type, expr_info.type()->ToString(StringRep::kExpanded).size());
     }
-    for (auto& [expr, type] : info->types()) {
+    for (auto& [expr, expr_info] : info->expr_infos()) {
+        if (expr_info.type() == nullptr) continue;
         pos::Position pos = file_set->PositionFor(expr->start());
         pos::File *file = file_set->FileAt(expr->start());
         
         ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
         ss << std::setw(int(max_expr)) << std::left
-        << file->contents(expr->start(), expr->end()) << " ";
-        ss << std::setw(int(max_type)) << std::left << type->ToString(StringRep::kExpanded) << "\n";
+           << file->contents(expr->start(), expr->end()) << " ";
+        ss << std::setw(int(max_type)) << std::left
+           << expr_info.type()->ToString(StringRep::kExpanded) << "\n";
     }
     ss << "\n";
 }

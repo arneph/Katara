@@ -23,22 +23,19 @@ public:
         kMethodExpr,
     };
     
-    ~Selection() {}
+    Selection(Kind kind, Type *receiver_type, Type *type, Object *object)
+      : kind_(kind), receiver_type_(receiver_type), type_(type), object_(object) {}
     
-    Kind kind() const;
-    Type * receiver_type() const;
-    Type * type() const;
-    Object * object() const;
+    Kind kind() const { return kind_; }
+    Type * receiver_type() const { return receiver_type_; }
+    Type * type() const { return type_; }
+    Object * object() const { return object_; }
     
 private:
-    Selection() {}
-    
     Kind kind_;
     Type *receiver_type_;
     Type *type_;
     Object *object_;
-    
-    friend class InfoBuilder;
 };
 
 }
