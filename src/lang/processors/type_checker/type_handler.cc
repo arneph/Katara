@@ -94,7 +94,8 @@ bool TypeHandler::ProcessUnderlyingType(types::TypeName *type_name,
     if (!EvaluateTypeExpr(type_spec->type())) {
         return false;
     }
-    types::Type *underlying_type = info_->TypeOf(type_spec->type());
+    types::ExprInfo underling_info = info_->ExprInfoOf(type_spec->type()).value();
+    types::Type *underlying_type = underling_info.type();
     types::NamedType *named_type = static_cast<types::NamedType *>(type_name->type());
     info_builder_.SetUnderlyingTypeOfNamedType(named_type, underlying_type);
     return true;
@@ -168,13 +169,6 @@ bool TypeHandler::EvaluateTypeExpr(ast::Expr *expr) {
                 return false;
             }
             types::ExprInfo x_info = info_->ExprInfoOf(paren_expr->x()).value();
-            if (x_info.kind() != types::ExprKind::kType) {
-                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                                issues::Severity::Error,
-                                                paren_expr->x()->start(),
-                                                "type expression not allowed"));
-                return false;
-            }
             info_builder_.SetExprInfo(expr, x_info);
             return true;
         }
@@ -228,7 +222,7 @@ bool TypeHandler::EvaluateTypeIdent(ast::Ident *ident) {
         return false;
     }
     types::TypeName *type_name = static_cast<types::TypeName *>(used);
-    info_builder_.SetExprInfo(ident, types::ExprInfo(types::ExprKind::kType,
+    info_builder_.SetExprInfo(ident, types::ExprInfo(types::ExprInfo::Kind::kType,
                                                      type_name->type()));
     return true;
 }
@@ -252,9 +246,9 @@ bool TypeHandler::EvaluatePointerType(ast::UnaryExpr *pointer_expr) {
     if (!EvaluateTypeExpr(pointer_expr->x())) {
         return false;
     }
-    types::Type *element_type = info_->TypeOf(pointer_expr->x());
-    types::Pointer *pointer_type = info_builder_.CreatePointer(kind, element_type);
-    info_builder_.SetExprInfo(pointer_expr, types::ExprInfo(types::ExprKind::kType,
+    types::ExprInfo element_info = info_->ExprInfoOf(pointer_expr->x()).value();
+    types::Pointer *pointer_type = info_builder_.CreatePointer(kind, element_info.type());
+    info_builder_.SetExprInfo(pointer_expr, types::ExprInfo(types::ExprInfo::Kind::kType,
                                                             pointer_type));
     return true;
 }
@@ -286,17 +280,18 @@ bool TypeHandler::EvaluateArrayType(ast::ArrayType *array_expr) {
     if (!EvaluateTypeExpr(array_expr->element_type())) {
         return false;
     }
-    types::Type *element_type = info_->TypeOf(array_expr->element_type());
+    types::ExprInfo element_info = info_->ExprInfoOf(array_expr->element_type()).value();
+    types::Type *element_type = element_info.type();
     
     if (!is_slice) {
         types::Array *array_type = info_builder_.CreateArray(element_type, length);
-        info_builder_.SetExprInfo(array_expr, types::ExprInfo(types::ExprKind::kType,
+        info_builder_.SetExprInfo(array_expr, types::ExprInfo(types::ExprInfo::Kind::kType,
                                                               array_type));
         return true;
         
     } else {
         types::Slice *slice_type = info_builder_.CreateSlice(element_type);
-        info_builder_.SetExprInfo(array_expr, types::ExprInfo(types::ExprKind::kType,
+        info_builder_.SetExprInfo(array_expr, types::ExprInfo(types::ExprInfo::Kind::kType,
                                                               slice_type));
         return true;
     }
@@ -316,7 +311,7 @@ bool TypeHandler::EvaluateFuncType(ast::FuncType *func_expr) {
     }
     types::Signature *signature = info_builder_.CreateSignature(parameters,
                                                                 results);
-    info_builder_.SetExprInfo(func_expr, types::ExprInfo(types::ExprKind::kType,
+    info_builder_.SetExprInfo(func_expr, types::ExprInfo(types::ExprInfo::Kind::kType,
                                                          signature));
     return true;
 }
@@ -335,7 +330,7 @@ bool TypeHandler::EvaluateInterfaceType(ast::InterfaceType *interface_expr) {
     }
     // TODO: handle embdedded interfaces
     info_builder_.SetInterfaceMembers(interface_type, {}, methods);
-    info_builder_.SetExprInfo(interface_expr, types::ExprInfo(types::ExprKind::kType,
+    info_builder_.SetExprInfo(interface_expr, types::ExprInfo(types::ExprInfo::Kind::kType,
                                                               interface_type));
     return true;
 }
@@ -347,7 +342,7 @@ bool TypeHandler::EvaluateStructType(ast::StructType *struct_expr) {
         return false;
     }
     types::Struct *struct_type = info_builder_.CreateStruct(fields);
-    info_builder_.SetExprInfo(struct_expr, types::ExprInfo(types::ExprKind::kType,
+    info_builder_.SetExprInfo(struct_expr, types::ExprInfo(types::ExprInfo::Kind::kType,
                                                            struct_type));
     return true;
 }
@@ -356,8 +351,9 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance *type_instance_expr) {
     if (!EvaluateTypeExpr(type_instance_expr->type())) {
         return false;
     }
+    types::ExprInfo instantiated_type_info = info_->ExprInfoOf(type_instance_expr->type()).value();
     types::NamedType *instantiated_type =
-        static_cast<types::NamedType *>(info_->TypeOf(type_instance_expr->type()));
+        static_cast<types::NamedType *>(instantiated_type_info.type());
     if (type_instance_expr->type_args().size() != instantiated_type->type_parameters().size()) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
@@ -374,7 +370,8 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance *type_instance_expr) {
         if (!EvaluateTypeExpr(type_arg_expr)) {
             return false;
         }
-        types::Type *type_arg = info_->TypeOf(type_arg_expr);
+        types::ExprInfo type_arg_expr_info = info_->ExprInfoOf(type_arg_expr).value();
+        types::Type *type_arg = type_arg_expr_info.type();
         if (!types::IsAssertableTo(type_param, type_arg)) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
@@ -388,7 +385,7 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance *type_instance_expr) {
     
     types::TypeInstance *type_instance = info_builder_.CreateTypeInstance(instantiated_type,
                                                                           type_args);
-    info_builder_.SetExprInfo(type_instance_expr, types::ExprInfo(types::ExprKind::kType,
+    info_builder_.SetExprInfo(type_instance_expr, types::ExprInfo(types::ExprInfo::Kind::kType,
                                                                   type_instance));
     return true;
 }
@@ -413,7 +410,8 @@ types::TypeParameter * TypeHandler::EvaluateTypeParameter(ast::TypeParam *parame
         if (!EvaluateTypeExpr(parameter_expr->type())) {
             return nullptr;
         }
-        types::Type *type = info_->TypeOf(parameter_expr->type());
+        types::ExprInfo type_info = info_->ExprInfoOf(parameter_expr->type()).value();
+        types::Type *type = type_info.type();
         types::Type *underlying = types::UnderlyingOf(type);
         if (underlying->type_kind() != types::TypeKind::kInterface) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -488,7 +486,7 @@ std::vector<types::Variable *> TypeHandler::EvaluateField(ast::Field *field) {
     if (!EvaluateTypeExpr(field->type())) {
         return {};
     }
-    types::Type *type = info_->TypeOf(field->type());
+    types::ExprInfo field_type_info = info_->ExprInfoOf(field->type()).value();
     
     std::vector<types::Variable *> variables;
     variables.reserve(std::max(size_t{1}, field->names().size()));
@@ -496,14 +494,14 @@ std::vector<types::Variable *> TypeHandler::EvaluateField(ast::Field *field) {
         for (ast::Ident *name : field->names()) {
             types::Variable *variable =
                 static_cast<types::Variable *>(info_->DefinitionOf(name));
-            info_builder_.SetObjectType(variable, type);
+            info_builder_.SetObjectType(variable, field_type_info.type());
             variables.push_back(variable);
         }
         
     } else {
         types::Variable *variable =
             static_cast<types::Variable *>(info_->ImplicitOf(field));
-        info_builder_.SetObjectType(variable, type);
+        info_builder_.SetObjectType(variable, field_type_info.type());
         variables.push_back(variable);
     }
     return variables;

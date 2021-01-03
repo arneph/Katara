@@ -280,7 +280,7 @@ bool IsComparable(Type *t, Type *v) {
     return true;
 }
 
-bool IsOrerable(Type *t, Type *v) {
+bool IsOrderable(Type *t, Type *v) {
     // TODO: implement
     return true;
 }

@@ -125,7 +125,7 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
                 value = constant->value();
             }
             
-            info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprKind::kConstant,
+            info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprInfo::Kind::kConstant,
                                                             type));
             info_builder_.SetExprConstantValue(expr, value);
             return true;
@@ -153,7 +153,7 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr *expr) {
                     throw "internal error: unexpected basic literal kind";
             }
             
-            info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprKind::kConstant,
+            info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprInfo::Kind::kConstant,
                                                             type));
             info_builder_.SetExprConstantValue(expr, value);
             return true;
@@ -217,7 +217,7 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
                                                 "unary operator not allowed for constant expression"));
                 return false;
             }
-            info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprKind::kConstant,
+            info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprInfo::Kind::kConstant,
                                                             x_type));
             info_builder_.SetExprConstantValue(expr, constants::UnaryOp(expr->op(), x_value));
             return true;
@@ -252,7 +252,7 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr *expr) {
                     info_->basic_type(types::Basic::Kind(result_type->kind() - diff));
             }
             
-            info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprKind::kConstant,
+            info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprInfo::Kind::kConstant,
                                                             result_type));
             info_builder_.SetExprConstantValue(expr, constants::UnaryOp(expr->op(), x_value));
             return true;
@@ -312,7 +312,7 @@ bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr *expr) {
     
     bool result = constants::Compare(x_value, expr->op(), y_value);
     
-    info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprKind::kConstant,
+    info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprInfo::Kind::kConstant,
                                                     result_type));
     info_builder_.SetExprConstantValue(expr, constants::Value(result));
     return true;
@@ -356,7 +356,7 @@ bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr *expr) {
         return false;
     }
     
-    info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprKind::kConstant,
+    info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprInfo::Kind::kConstant,
                                                     x_type));
     info_builder_.SetExprConstantValue(expr, constants::ShiftOp(x_value, expr->op(), y_value));
     return true;
@@ -425,7 +425,7 @@ bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr *expr) {
         return false;
     }
     
-    info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprKind::kConstant,
+    info_builder_.SetExprInfo(expr, types::ExprInfo(types::ExprInfo::Kind::kConstant,
                                                     result_type));
     info_builder_.SetExprConstantValue(expr, constants::BinaryOp(x_value, expr->op(), y_value));
     return true;
@@ -565,7 +565,6 @@ constants::Value ConstantHandler::ConvertUntypedInt(constants::Value value, type
     }
     throw "internal error";
 }
-
 
 }
 }

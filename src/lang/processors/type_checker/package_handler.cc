@@ -212,7 +212,8 @@ void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
                     if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
                         return false;
                     }
-                    type = info_->TypeOf(type_expr);
+                    types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
+                    type = type_expr_info.type();
                 }
                 
                 return ConstantHandler::ProcessConstant(constant,
@@ -273,7 +274,8 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
                     if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
                         return false;
                     }
-                    type = info_->TypeOf(type_expr);
+                    types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
+                    type = type_expr_info.type();
                 }
                 
                 return VariableHandler::ProcessVariables(variables,
@@ -310,7 +312,8 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
                         if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
                             return false;
                         }
-                        type = info_->TypeOf(type_expr);
+                        types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
+                        type = type_expr_info.type();
                     }
                     
                     return VariableHandler::ProcessVariable(variable,

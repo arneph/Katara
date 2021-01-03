@@ -114,7 +114,8 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
                     if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
                         return;
                     }
-                    type = info_->TypeOf(type_expr);
+                    types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
+                    type = type_expr_info.type();
                 }
                 for (size_t i = 0; i < value_spec->names().size(); i++) {
                     ast::Ident *name = value_spec->names().at(i);
@@ -145,7 +146,8 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt *stmt) {
                     if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
                         return;
                     }
-                    type = info_->TypeOf(type_expr);
+                    types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
+                    type = type_expr_info.type();
                 }
                 if (value_spec->names().size() > 1 && value_spec->names().size() == 1) {
                     std::vector<types::Variable *> variables;
@@ -188,18 +190,17 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
     std::vector<types::Type *> lhs_types;
     std::vector<types::Type *> rhs_types;
     for (ast::Expr *lhs_expr : assign_stmt->lhs()) {
-        if (lhs_expr->node_kind() != ast::NodeKind::kIdent) {
-            lhs_types.push_back(nullptr);
-            continue;
+        bool is_defined_var;
+        if (assign_stmt->tok() != tokens::kDefine ||
+            lhs_expr->node_kind() != ast::NodeKind::kIdent) {
+            is_defined_var = false;
+        } else {
+            ast::Ident *ident = static_cast<ast::Ident *>(lhs_expr);
+            types::Object *obj = info_->DefinitionOf(ident);
+            is_defined_var = (obj != nullptr &&
+                              obj->object_kind() == types::ObjectKind::kVariable);
         }
-        ast::Ident *ident = static_cast<ast::Ident *>(lhs_expr);
-        types::Object *obj = info_->DefinitionOf(ident);
-        if (obj == nullptr ||
-            obj->object_kind() != types::ObjectKind::kVariable) {
-            lhs_types.push_back(nullptr);
-            continue;
-        }
-        if (assign_stmt->tok() == tokens::kDefine) {
+        if (is_defined_var) {
             lhs_types.push_back(nullptr);
             continue;
         }
@@ -208,11 +209,11 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
             continue;
         }
         types::ExprInfo lhs_info = info_->ExprInfoOf(lhs_expr).value();
-        if (lhs_info.kind() != types::ExprKind::kVariable) {
+        if (!lhs_info.is_addressable()) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             lhs_expr->start(),
-                                            "invalid operation: expected addessable operand"));
+                                            "expression is not addressable"));
             lhs_types.push_back(nullptr);
             continue;
         }
@@ -223,8 +224,16 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
             rhs_types.push_back(nullptr);
             continue;
         }
-        types::Type *rhs_type = info_->TypeOf(rhs_expr);
-        rhs_types.push_back(rhs_type);
+        types::ExprInfo rhs_info = info_->ExprInfoOf(rhs_expr).value();
+        if (!rhs_info.is_value()) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            rhs_expr->start(),
+                                            "expression is not a value"));
+            rhs_types.push_back(nullptr);
+            continue;
+        }
+        rhs_types.push_back(rhs_info.type());
     }
     
     if (rhs_types.size() == 1 &&
@@ -239,7 +248,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
     }
     if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr) {
         types::ExprInfo rhs_info = info_->ExprInfoOf(assign_stmt->rhs().at(0)).value();
-        if (rhs_info.kind() == types::ExprKind::kValueOk) {
+        if (rhs_info.kind() == types::ExprInfo::Kind::kValueOk) {
             if (lhs_types.size() > 2) {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                                 issues::Severity::Error,
@@ -285,7 +294,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt *assign_stmt) {
                                                  assign_stmt->rhs().at(i)->start()},
                                                 "can not assign value of type "
                                                 + rhs_type->ToString(types::StringRep::kShort)
-                                                + "to operand of type "
+                                                + " to operand of type "
                                                 + lhs_type->ToString(types::StringRep::kShort)));
             } else {
                 issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
@@ -306,12 +315,18 @@ void StmtHandler::CheckIncDecStmt(ast::IncDecStmt *inc_dec_stmt) {
     if (!ExprHandler::ProcessExpr(inc_dec_stmt->x(), info_builder_, issues_)) {
         return;
     }
-    
-    types::Type *x_type = info_->TypeOf(inc_dec_stmt->x());
-    types::Type *x_underlying = types::UnderlyingOf(x_type);
-    if (x_underlying == nullptr ||
-        x_underlying->type_kind() != types::TypeKind::kBasic ||
-        !(static_cast<types::Basic *>(x_underlying)->info() & types::Basic::Info::kIsInteger)) {
+    types::ExprInfo x = info_->ExprInfoOf(inc_dec_stmt->x()).value();
+    if (!x.is_value()) {
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        inc_dec_stmt->start(),
+                                        "expression is not a value"));
+        return;
+    }
+    types::Type *underlying = types::UnderlyingOf(x.type());
+    if (underlying == nullptr ||
+        underlying->type_kind() != types::TypeKind::kBasic ||
+        !(static_cast<types::Basic *>(underlying)->info() & types::Basic::Info::kIsInteger)) {
         issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                         issues::Severity::Error,
                                         inc_dec_stmt->start(),
@@ -320,14 +335,27 @@ void StmtHandler::CheckIncDecStmt(ast::IncDecStmt *inc_dec_stmt) {
 }
 
 void StmtHandler::CheckReturnStmt(ast::ReturnStmt *return_stmt, Context ctx) {
+    bool results_ok = true;
     std::vector<types::Type *> result_types;
-    bool ok = true;
     for (ast::Expr *result_expr : return_stmt->results()) {
-        ok = ExprHandler::ProcessExpr(result_expr, info_builder_, issues_) && ok;
-        types::Type *result_type = info_->TypeOf(result_expr);
-        result_types.push_back(result_type);
+        if (!ExprHandler::ProcessExpr(result_expr, info_builder_, issues_)) {
+            results_ok = false;
+            continue;
+        }
+        types::ExprInfo result_expr_info = info_->ExprInfoOf(result_expr).value();
+        if (!result_expr_info.is_value()) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            return_stmt->start(),
+                                            "expression is not a value"));
+            results_ok = false;
+            continue;
+        }
+        if (results_ok) {
+            result_types.push_back(result_expr_info.type());
+        }
     }
-    if (!ok) {
+    if (!results_ok) {
         return;
     }
     
@@ -372,15 +400,22 @@ void StmtHandler::CheckIfStmt(ast::IfStmt *if_stmt, Context ctx) {
         CheckStmt(if_stmt->init_stmt(), ctx);
     }
     if (ExprHandler::ProcessExpr(if_stmt->cond_expr(), info_builder_, issues_)) {
-        types::Type *cond_type = info_->TypeOf(if_stmt->cond_expr());
-        types::Type *underlying = types::UnderlyingOf(cond_type);
-        if (underlying == nullptr ||
-            underlying->type_kind() != types::TypeKind::kBasic ||
-            !(static_cast<types::Basic *>(underlying)->info() & types::Basic::Info::kIsBoolean)) {
+        types::ExprInfo cond_expr_info = info_->ExprInfoOf(if_stmt->cond_expr()).value();
+        if (!cond_expr_info.is_value()) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             if_stmt->cond_expr()->start(),
-                                            "invalid operation: expected boolean type"));
+                                            "expression is not a value"));
+        } else {
+            types::Type *type = types::UnderlyingOf(cond_expr_info.type());
+            if (type == nullptr ||
+                type->type_kind() != types::TypeKind::kBasic ||
+                !(static_cast<types::Basic *>(type)->info() & types::Basic::Info::kIsBoolean)) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                if_stmt->cond_expr()->start(),
+                                                "invalid operation: expected boolean type"));
+            }
         }
     }
     
@@ -397,10 +432,19 @@ void StmtHandler::CheckExprSwitchStmt(ast::ExprSwitchStmt *switch_stmt, Context 
     }
     types::Type *tag_type = info_->basic_type(types::Basic::Kind::kUntypedBool);
     if (switch_stmt->tag_expr()) {
-        if (ExprHandler::ProcessExpr(switch_stmt->tag_expr(), info_builder_, issues_)) {
-            tag_type = info_->TypeOf(switch_stmt->tag_expr());
-        } else {
+        if (!ExprHandler::ProcessExpr(switch_stmt->tag_expr(), info_builder_, issues_)) {
             tag_type = nullptr;
+        } else {
+            types::ExprInfo tag_expr_info = info_->ExprInfoOf(switch_stmt->tag_expr()).value();
+            if (!tag_expr_info.is_value()) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                switch_stmt->tag_expr()->start(),
+                                                "expression is not a value"));
+                tag_type = nullptr;
+            } else {
+                tag_type = tag_expr_info.type();
+            }
         }
     }
     ctx.can_break = true;
@@ -427,16 +471,23 @@ void StmtHandler::CheckExprCaseClause(ast::CaseClause *case_clause,
                                       types::Type *tag_type,
                                       Context ctx) {
     for (ast::Expr *expr : case_clause->cond_vals()) {
-        if (ExprHandler::ProcessExpr(expr, info_builder_, issues_) &&
-            tag_type != nullptr) {
-            types::Type *expr_type = info_->TypeOf(expr);
-            if (!types::IsComparable(tag_type, expr_type)) {
-                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                                issues::Severity::Error,
-                                                expr->start(),
-                                                "invalid operation: can not compare value "
-                                                "expression with switch tag"));
-            }
+        if (!ExprHandler::ProcessExpr(expr, info_builder_, issues_)) {
+            continue;
+        }
+        types::ExprInfo expr_info = info_->ExprInfoOf(expr).value();
+        if (!expr_info.is_value()) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            expr->start(),
+                                            "expression is not a value"));
+            continue;
+        }
+        if (tag_type != nullptr && !types::IsComparable(tag_type, expr_info.type())) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            expr->start(),
+                                            "invalid operation: can not compare value "
+                                            "expression with switch tag"));
         }
     }
     for (int i = 0; i < case_clause->body().size(); i++) {
@@ -449,7 +500,15 @@ void StmtHandler::CheckExprCaseClause(ast::CaseClause *case_clause,
 void StmtHandler::CheckTypeSwitchStmt(ast::TypeSwitchStmt *switch_stmt, Context ctx) {
     types::Type *tag_type = nullptr;
     if (ExprHandler::ProcessExpr(switch_stmt->tag_expr(), info_builder_, issues_)) {
-        tag_type = info_->TypeOf(switch_stmt->tag_expr());
+        types::ExprInfo tag_expr_info = info_->ExprInfoOf(switch_stmt->tag_expr()).value();
+        if (!tag_expr_info.is_value()) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            switch_stmt->tag_expr()->start(),
+                                            "expression is not a value"));
+        } else {
+            tag_type = tag_expr_info.type();
+        }
     }
     ctx.can_break = true;
     ctx.can_fallthrough = false;
@@ -476,17 +535,20 @@ void StmtHandler::CheckTypeCaseClause(ast::CaseClause *case_clause,
                                       Context ctx) {
     types::Type *implicit_tag_type = tag_type;
     for (ast::Expr *expr : case_clause->cond_vals()) {
-        if (TypeHandler::ProcessTypeExpr(expr, info_builder_, issues_) && tag_type != nullptr) {
-            types::Type *specialised_type = info_->TypeOf(expr);
-            if (!types::IsAssertableTo(tag_type, specialised_type)) {
-                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                                issues::Severity::Error,
-                                                expr->start(),
-                                                "invalid operation: value of type switch tag can "
-                                                "never have the given type"));
-            } else if (case_clause->cond_vals().size() == 1) {
-                implicit_tag_type = specialised_type;
-            }
+        if (!TypeHandler::ProcessTypeExpr(expr, info_builder_, issues_)) {
+            continue;
+        }
+        types::ExprInfo expr_info = info_->ExprInfoOf(expr).value();
+        if (tag_type != nullptr && !types::IsAssertableTo(tag_type, expr_info.type())) {
+            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                            issues::Severity::Error,
+                                            expr->start(),
+                                            "invalid operation: value of type switch tag can "
+                                            "never have the given type"));
+            continue;
+        }
+        if (case_clause->cond_vals().size() == 1) {
+            implicit_tag_type = expr_info.type();
         }
     }
     types::Variable *implicit_tag = static_cast<types::Variable *>(info_->ImplicitOf(case_clause));
@@ -504,15 +566,22 @@ void StmtHandler::CheckForStmt(ast::ForStmt *for_stmt, Context ctx) {
         CheckStmt(for_stmt->init_stmt(), ctx);
     }
     if (ExprHandler::ProcessExpr(for_stmt->cond_expr(), info_builder_, issues_)) {
-        types::Type *cond_type = info_->TypeOf(for_stmt->cond_expr());
-        types::Type *underlying = types::UnderlyingOf(cond_type);
-        if (underlying == nullptr ||
-            underlying->type_kind() != types::TypeKind::kBasic ||
-            !(static_cast<types::Basic *>(underlying)->info() & types::Basic::Info::kIsBoolean)) {
+        types::ExprInfo cond_expr_info = info_->ExprInfoOf(for_stmt->cond_expr()).value();
+        if (!cond_expr_info.is_value()) {
             issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
                                             issues::Severity::Error,
                                             for_stmt->cond_expr()->start(),
-                                            "invalid operation: expected boolean type"));
+                                            "expression is not a value"));
+        } else {
+            types::Type *type = types::UnderlyingOf(cond_expr_info.type());
+            if (type == nullptr ||
+                type->type_kind() != types::TypeKind::kBasic ||
+                !(static_cast<types::Basic *>(type)->info() & types::Basic::Info::kIsBoolean)) {
+                issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                                issues::Severity::Error,
+                                                for_stmt->cond_expr()->start(),
+                                                "invalid operation: expected boolean type"));
+            }
         }
     }
     if (for_stmt->post_stmt()) {

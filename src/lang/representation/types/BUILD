@@ -46,6 +46,9 @@ cc_library(
 
 cc_library(
     name = "expr_info",
+    srcs = [
+        "expr_info.cc",
+    ],
     hdrs = [
         "expr_info.h",
     ],

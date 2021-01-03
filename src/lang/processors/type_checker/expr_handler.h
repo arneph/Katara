@@ -9,6 +9,7 @@
 #ifndef lang_type_checker_expr_handler_h
 #define lang_type_checker_expr_handler_h
 
+#include <optional>
 #include <vector>
 
 #include "lang/representation/positions/positions.h"
@@ -29,6 +30,10 @@ public:
                             std::vector<issues::Issue>& issues);
     
 private:
+    struct CheckBasicOperandResult {
+        types::Type *type;
+        types::Basic *underlying;
+    };
     enum class CheckSelectionExprResult {
         kNotApplicable,
         kCheckFailed,
@@ -49,6 +54,8 @@ private:
     bool CheckBinaryShiftExpr(ast::BinaryExpr *binary_expr);
     bool CheckBinaryLogicExpr(ast::BinaryExpr *binary_expr);
     bool CheckCompareExpr(ast::CompareExpr *compare_expr);
+    std::optional<CheckBasicOperandResult> CheckBasicOperand(ast::Expr *op_expr);
+    
     bool CheckParenExpr(ast::ParenExpr *paren_expr);
     
     bool CheckSelectionExpr(ast::SelectionExpr *selection_expr);

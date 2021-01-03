@@ -64,18 +64,12 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable *> 
     }
     
     types::ExprInfo value_info = info_->ExprInfoOf(value).value();
-    switch (value_info.kind()) {
-        case types::ExprKind::kConstant:
-        case types::ExprKind::kVariable:
-        case types::ExprKind::kValue:
-        case types::ExprKind::kValueOk:
-            break;
-        default:
-            issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
-                                            issues::Severity::Error,
-                                            value->start(),
-                                            "expression is not assignable"));
-            return false;
+    if (!value_info.is_value()) {
+        issues_.push_back(issues::Issue(issues::Origin::TypeChecker,
+                                        issues::Severity::Error,
+                                        value->start(),
+                                        "expression is not a value"));
+        return false;
     }
     if (variables.size() == 1) {
         types::Variable * variable = variables.at(0);
