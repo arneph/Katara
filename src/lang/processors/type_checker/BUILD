@@ -19,7 +19,7 @@ cc_library(
     name = "type_checker_internal",
     srcs = [
         "identifier_resolver.cc",
-        "package_handler.cc",
+        "coordinator.cc",
         "type_handler.cc",
         "constant_handler.cc",
         "variable_handler.cc",
@@ -28,7 +28,7 @@ cc_library(
     ],
     hdrs = [
         "identifier_resolver.h",
-        "package_handler.h",
+        "coordinator.h",
         "type_handler.h",
         "constant_handler.h",
         "variable_handler.h",

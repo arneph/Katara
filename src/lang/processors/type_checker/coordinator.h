@@ -1,13 +1,13 @@
 //
-//  package_handler.h
+//  coordinator.h
 //  Katara
 //
 //  Created by Arne Philipeit on 11/8/20.
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef lang_type_checker_package_handler_h
-#define lang_type_checker_package_handler_h
+#ifndef lang_type_checker_coordinator_h
+#define lang_type_checker_coordinator_h
 
 #include <memory>
 #include <vector>
@@ -24,7 +24,7 @@
 namespace lang {
 namespace type_checker {
 
-class PackageHandler {
+class Coordinator {
 public:
     static bool ProcessPackage(std::vector<ast::File *> package_files,
                                types::Package *package,
@@ -58,7 +58,7 @@ private:
         std::function<bool ()> executor_;
     };
     
-    PackageHandler(std::vector<ast::File *> package_files,
+    Coordinator(std::vector<ast::File *> package_files,
                    types::Package *package,
                    types::InfoBuilder& info_builder,
                    std::vector<issues::Issue>& issues);
@@ -105,4 +105,4 @@ private:
 }
 }
 
-#endif /* lang_type_checker_package_handler_h */
+#endif /* lang_type_checker_coordinator_h */

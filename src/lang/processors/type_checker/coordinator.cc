@@ -1,12 +1,12 @@
 //
-//  package_handler.cc
+//  coordinator.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 11/8/20.
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#include "package_handler.h"
+#include "coordinator.h"
 
 #include "lang/representation/tokens/tokens.h"
 #include "lang/representation/ast/ast_util.h"
@@ -19,11 +19,11 @@
 namespace lang {
 namespace type_checker {
 
-bool PackageHandler::ProcessPackage(std::vector<ast::File *> package_files,
+bool Coordinator::ProcessPackage(std::vector<ast::File *> package_files,
                                     types::Package *package,
                                     types::InfoBuilder& info_builder,
                                     std::vector<issues::Issue> &issues) {
-    PackageHandler manager(package_files, package, info_builder, issues);
+    Coordinator manager(package_files, package, info_builder, issues);
     
     manager.FindActions();
     
@@ -32,7 +32,7 @@ bool PackageHandler::ProcessPackage(std::vector<ast::File *> package_files,
     return manager.ExecuteActions(ordered_actions);
 }
 
-PackageHandler::PackageHandler(std::vector<ast::File *> package_files,
+Coordinator::Coordinator(std::vector<ast::File *> package_files,
                                types::Package *package,
                                types::InfoBuilder& info_builder,
                                std::vector<issues::Issue> &issues)
@@ -40,15 +40,15 @@ PackageHandler::PackageHandler(std::vector<ast::File *> package_files,
       info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
 
 
-PackageHandler::Action *
-PackageHandler::CreateAction(std::function<bool ()> executor) {
+Coordinator::Action *
+Coordinator::CreateAction(std::function<bool ()> executor) {
     return CreateAction(std::unordered_set<types::Object *>{},
                         std::unordered_set<types::Object *>{},
                         executor);
 }
 
-PackageHandler::Action *
-PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
+Coordinator::Action *
+Coordinator::CreateAction(std::unordered_set<types::Object *> prerequisites,
                              types::Object *defined_object,
                              std::function<bool ()> executor) {
     return CreateAction(prerequisites,
@@ -56,8 +56,8 @@ PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
                         executor);
 }
 
-PackageHandler::Action *
-PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
+Coordinator::Action *
+Coordinator::CreateAction(std::unordered_set<types::Object *> prerequisites,
                              std::unordered_set<types::Object *> defined_objects,
                              std::function<bool ()> executor) {
     std::unique_ptr<Action> action = std::make_unique<Action>(prerequisites,
@@ -68,7 +68,7 @@ PackageHandler::CreateAction(std::unordered_set<types::Object *> prerequisites,
     return action_ptr;
 }
 
-void PackageHandler::FindActions() {
+void Coordinator::FindActions() {
     for (ast::File *file : package_files_) {
         for (ast::Decl *decl : file->decls()) {
             switch (decl->node_kind()) {
@@ -101,7 +101,7 @@ void PackageHandler::FindActions() {
     }
 }
 
-void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
+void Coordinator::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
     for (ast::Spec *spec : type_decl->specs()) {
         ast::TypeSpec *type_spec = static_cast<ast::TypeSpec *>(spec);
         types::TypeName *type_name =
@@ -165,7 +165,7 @@ void PackageHandler::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
     }
 }
 
-void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
+void Coordinator::FindActionsForConstDecl(ast::GenDecl *const_decl) {
     int64_t iota = 0;
     for (ast::Spec *spec : const_decl->specs()) {
         ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec);
@@ -229,7 +229,7 @@ void PackageHandler::FindActionsForConstDecl(ast::GenDecl *const_decl) {
     }
 }
 
-void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
+void Coordinator::FindActionsForVarDecl(ast::GenDecl *var_decl) {
     for (ast::Spec *spec : var_decl->specs()) {
         ast::ValueSpec *value_spec = static_cast<ast::ValueSpec *>(spec);
         
@@ -328,7 +328,7 @@ void PackageHandler::FindActionsForVarDecl(ast::GenDecl *var_decl) {
     }
 }
 
-void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
+void Coordinator::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
     ast::Ident *name = func_decl->name();
     ast::BlockStmt *body = func_decl->body();
     types::Func *func = static_cast<types::Func *>(info_->definitions().at(name));
@@ -355,7 +355,7 @@ void PackageHandler::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
     func_body_actions_.push_back(body_action);
 }
 
-std::unordered_set<types::Object *> PackageHandler::FindPrerequisites(ast::Node *node) {
+std::unordered_set<types::Object *> Coordinator::FindPrerequisites(ast::Node *node) {
     std::unordered_set<types::Object *> objects;
     ast::WalkFunction walker =
     ast::WalkFunction([&](ast::Node *node) -> ast::WalkFunction {
@@ -374,7 +374,7 @@ std::unordered_set<types::Object *> PackageHandler::FindPrerequisites(ast::Node 
     return objects;
 }
 
-std::vector<PackageHandler::Action *> PackageHandler::FindActionOrder() {
+std::vector<Coordinator::Action *> Coordinator::FindActionOrder() {
     std::unordered_set<types::Object *> defined_objects;
     
     std::vector<Action *> ordered_const_and_type_actions =
@@ -406,8 +406,8 @@ std::vector<PackageHandler::Action *> PackageHandler::FindActionOrder() {
     return ordered_actions;
 }
 
-std::vector<PackageHandler::Action *>
-PackageHandler::FindActionOrderForActions(const std::vector<Action *>& actions,
+std::vector<Coordinator::Action *>
+Coordinator::FindActionOrderForActions(const std::vector<Action *>& actions,
                                           std::unordered_set<types::Object *>& defined_objects) {
     std::unordered_set<Action *> completed_actions;
     std::vector<Action *> ordered_actions;
@@ -447,7 +447,7 @@ PackageHandler::FindActionOrderForActions(const std::vector<Action *>& actions,
     return ordered_actions;
 }
 
-void PackageHandler::ReportLoopInActions(const std::vector<Action *>& actions) {
+void Coordinator::ReportLoopInActions(const std::vector<Action *>& actions) {
     std::unordered_set<types::Object *> loop_members;
     for (Action *action : actions) {
         std::vector<Action *> stack{action};
@@ -481,7 +481,7 @@ void PackageHandler::ReportLoopInActions(const std::vector<Action *>& actions) {
 }
 
 std::unordered_set<types::Object *>
-PackageHandler::FindLoop(const std::vector<Action *>& actions,
+Coordinator::FindLoop(const std::vector<Action *>& actions,
                          std::vector<Action *> stack) {
     Action *current_action = stack.back();
     
@@ -522,7 +522,7 @@ PackageHandler::FindLoop(const std::vector<Action *>& actions,
     return {};
 }
 
-bool PackageHandler::ExecuteActions(std::vector<Action *> ordered_actions) {
+bool Coordinator::ExecuteActions(std::vector<Action *> ordered_actions) {
     for (Action *action : ordered_actions) {
         if (!action->execute()) {
             return false;

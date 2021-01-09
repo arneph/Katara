@@ -10,7 +10,7 @@
 
 #include "lang/representation/types/info_builder.h"
 #include "lang/processors/type_checker/identifier_resolver.h"
-#include "lang/processors/type_checker/package_handler.h"
+#include "lang/processors/type_checker/coordinator.h"
 
 namespace lang {
 namespace type_checker {
@@ -40,7 +40,7 @@ types::Package * Check(std::string package_path,
         }
     }
     
-    bool ok = PackageHandler::ProcessPackage(ast_files, types_package, info_builder, issues);
+    bool ok = Coordinator::ProcessPackage(ast_files, types_package, info_builder, issues);
     if (!ok) {
         return nullptr;
     }
