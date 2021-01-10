@@ -35,7 +35,7 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
       pos::Position position = pos_file_set->PositionFor(pos);
       pos::File* pos_file = pos_file_set->FileAt(pos);
       std::string line = pos_file->LineFor(pos);
-      int whitespace = 0;
+      size_t whitespace = 0;
       for (; whitespace < line.length(); whitespace++) {
         if (line.at(whitespace) != ' ' && line.at(whitespace) != '\t') {
           break;
@@ -45,7 +45,7 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
          << "</a>:<br/>";
       ss << "<div style=\"font-family:'Courier New'\">";
       ss << line.substr(whitespace) << "<br/>";
-      for (int i = 0; i < position.column_ - whitespace; i++) {
+      for (size_t i = 0; i < position.column_ - whitespace; i++) {
         ss << "&nbsp;";
       }
       ss << "^</div>\n";

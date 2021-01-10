@@ -122,7 +122,7 @@ std::string Call::ToString() const { return "call " + callee_.ToString(); }
 Syscall::Syscall() {}
 Syscall::~Syscall() {}
 
-int8_t Syscall::Encode(Linker* linker, common::data code) const {
+int8_t Syscall::Encode(Linker*, common::data code) const {
   code[0] = 0x0f;
   code[1] = 0x05;
 
@@ -134,7 +134,7 @@ std::string Syscall::ToString() const { return "syscall"; }
 Ret::Ret() {}
 Ret::~Ret() {}
 
-int8_t Ret::Encode(Linker* linker, common::data code) const {
+int8_t Ret::Encode(Linker*, common::data code) const {
   code[0] = 0xc3;
 
   return 1;

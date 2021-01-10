@@ -60,7 +60,7 @@ RM Mov::dst() const { return dst_; }
 
 Operand Mov::src() const { return src_; }
 
-int8_t Mov::Encode(Linker* linker, common::data code) const {
+int8_t Mov::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(src_.size());
@@ -121,7 +121,7 @@ bool Xchg::CanUseRegAShortcut() const {
   return op_a_.reg().reg() == 0;
 }
 
-int8_t Xchg::Encode(Linker* linker, common::data code) const {
+int8_t Xchg::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());
@@ -156,7 +156,7 @@ Push::~Push() {}
 
 Operand Push::op() const { return op_; }
 
-int8_t Push::Encode(Linker* linker, common::data code) const {
+int8_t Push::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   if (op_.size() != Size::k64) {
@@ -192,7 +192,7 @@ Pop::~Pop() {}
 
 RM Pop::op() const { return op_; }
 
-int8_t Pop::Encode(Linker* linker, common::data code) const {
+int8_t Pop::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   if (op_.size() != Size::k64) {
@@ -226,7 +226,7 @@ InstrCond Setcc::cond() const { return cond_; }
 
 RM Setcc::op() const { return op_; }
 
-int8_t Setcc::Encode(Linker* linker, common::data code) const {
+int8_t Setcc::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   if (op_.RequiresREX()) {

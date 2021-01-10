@@ -11,10 +11,11 @@
 namespace x86_64_ir_translator {
 
 IRTranslator::IRTranslator(
-    ir::Prog* program, std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo>& live_range_infos,
+    ir::Prog* program,
+    std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo>& /*live_range_infos*/,
     std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& inteference_graphs)
     : ir_program_(program),
-      live_range_infos_(live_range_infos),
+      // live_range_infos_(live_range_infos),
       interference_graphs_(inteference_graphs) {}
 
 IRTranslator::~IRTranslator() {}
@@ -351,7 +352,7 @@ void IRTranslator::TranslateCompareInstr(ir::CompareInstr* ir_compare_instr, ir:
   }
 }
 
-void IRTranslator::TranslateJumpInstr(ir::JumpInstr* ir_jump_instr, ir::Block* ir_block,
+void IRTranslator::TranslateJumpInstr(ir::JumpInstr* ir_jump_instr, ir::Block* /*ir_block*/,
                                       x86_64::BlockBuilder& x86_64_block_builder) {
   ir::BlockValue ir_destination = ir_jump_instr->destination();
 
@@ -391,24 +392,24 @@ void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr,
   x86_64_block_builder.AddInstr(new x86_64::Jmp(x86_64_destination_false));
 }
 
-void IRTranslator::TranslateCallInstr(ir::CallInstr* ir_call_instr, ir::Block* ir_block,
-                                      x86_64::BlockBuilder& x86_64_block_builder) {
+void IRTranslator::TranslateCallInstr(ir::CallInstr* /*ir_call_instr*/, ir::Block* /*ir_block*/,
+                                      x86_64::BlockBuilder& /*x86_64_block_builder*/) {
   // TODO: implement
 }
 
-void IRTranslator::TranslateReturnInstr(ir::ReturnInstr* ir_return_instr, ir::Block* ir_block,
+void IRTranslator::TranslateReturnInstr(ir::ReturnInstr* /*ir_return_instr*/, ir::Block* ir_block,
                                         x86_64::BlockBuilder& x86_64_block_builder) {
   GenerateFuncEpilogue(ir_block->func(), x86_64_block_builder);
 }
 
-void IRTranslator::GenerateFuncPrologue(ir::Func* ir_func,
+void IRTranslator::GenerateFuncPrologue(ir::Func* /*ir_func*/,
                                         x86_64::BlockBuilder& x86_64_block_builder) {
   x86_64_block_builder.AddInstr(new x86_64::Push(x86_64::rbp));
   x86_64_block_builder.AddInstr(new x86_64::Mov(x86_64::rbp, x86_64::rsp));
   // TODO: reserve stack space
 }
 
-void IRTranslator::GenerateFuncEpilogue(ir::Func* ir_func,
+void IRTranslator::GenerateFuncEpilogue(ir::Func* /*ir_func*/,
                                         x86_64::BlockBuilder& x86_64_block_builder) {
   // TODO: revert stack pointer
   x86_64_block_builder.AddInstr(new x86_64::Pop(x86_64::rbp));
@@ -506,7 +507,7 @@ x86_64::BlockRef IRTranslator::TranslateBlockValue(ir::BlockValue block_value) {
   return x86_64::BlockRef(block_value.block());
 }
 
-x86_64::FuncRef IRTranslator::TranslateFuncValue(ir::Value func_value) {
+x86_64::FuncRef IRTranslator::TranslateFuncValue(ir::Value /*func_value*/) {
   // TODO: keep track of func nums from ir to x86_64
   return x86_64::FuncRef(-1);
 }

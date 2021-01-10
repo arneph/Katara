@@ -724,7 +724,7 @@ class CompareExpr final : public Expr {
  private:
   CompareExpr(std::vector<Expr*> operands, std::vector<pos::pos_t> compare_op_starts,
               std::vector<tokens::Token> compare_ops)
-      : operands_(operands), compare_ops_(compare_ops) {}
+      : operands_(operands), compare_op_starts_(compare_op_starts), compare_ops_(compare_ops) {}
 
   std::vector<Expr*> operands_;
   std::vector<pos::pos_t> compare_op_starts_;

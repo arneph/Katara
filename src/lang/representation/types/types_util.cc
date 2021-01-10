@@ -120,7 +120,7 @@ bool IsIdentical(TypeInstance* a, TypeInstance* b) {
   } else if (a->type_args().size() != b->type_args().size()) {
     return false;
   }
-  for (int i = 0; i < a->type_args().size(); i++) {
+  for (size_t i = 0; i < a->type_args().size(); i++) {
     if (!IsIdentical(a->type_args().at(i), b->type_args().at(i))) {
       return false;
     }
@@ -132,7 +132,7 @@ bool IsIdentical(Tuple* a, Tuple* b) {
   if (a->variables().size() != b->variables().size()) {
     return false;
   }
-  for (int i = 0; i < a->variables().size(); i++) {
+  for (size_t i = 0; i < a->variables().size(); i++) {
     if (!IsIdentical(a->variables().at(i)->type(), b->variables().at(i)->type())) {
       return false;
     }
@@ -152,7 +152,7 @@ bool IsIdentical(Signature* a, Signature* b) {
   } else if (a->has_type_receiver() && !IsIdentical(a->type_receiver(), b->type_receiver())) {
     return false;
   }
-  for (int i = 0; i < a->type_parameters().size(); i++) {
+  for (size_t i = 0; i < a->type_parameters().size(); i++) {
     if (!IsIdentical(a->type_parameters().at(i), b->type_parameters().at(i))) {
       return false;
     }
@@ -170,7 +170,7 @@ bool IsIdentical(Struct* a, Struct* b) {
   if (a->fields().size() != b->fields().size()) {
     return false;
   }
-  for (int i = 0; i < a->fields().size(); i++) {
+  for (size_t i = 0; i < a->fields().size(); i++) {
     Variable* field_a = a->fields().at(i);
     Variable* field_b = b->fields().at(i);
     if (field_a->is_embedded() != field_b->is_embedded() || field_a->name() != field_b->name() ||
@@ -187,7 +187,7 @@ bool IsIdentical(Interface* a, Interface* b) {
   if (a->methods().size() != b->embedded_interfaces().size()) {
     return false;
   }
-  for (int i = 0; i < a->methods().size(); i++) {
+  for (size_t i = 0; i < a->methods().size(); i++) {
     Func* method_a = a->methods().at(i);
     Func* method_b = b->methods().at(i);
     if (method_a->name() != method_b->name() || method_a->package() != method_b->package() ||
@@ -253,17 +253,17 @@ bool IsAssignableTo(Type* src, Type* dst) {
   return false;
 }
 
-bool IsComparable(Type* t, Type* v) {
+bool IsComparable(Type*, Type*) {
   // TODO: implement
   return true;
 }
 
-bool IsOrderable(Type* t, Type* v) {
+bool IsOrderable(Type*, Type*) {
   // TODO: implement
   return true;
 }
 
-bool IsConvertibleTo(Type* src, Type* dst) {
+bool IsConvertibleTo(Type*, Type*) {
   // TODO: implement
   return true;
 }
@@ -290,12 +290,12 @@ bool Implements(TypeParameter* impl, Interface* interface) {
   return Implements(impl->interface(), interface);
 }
 
-bool Implements(NamedType* impl, Interface* interface) {
+bool Implements(NamedType*, Interface*) {
   // TODO: implement
   return true;
 }
 
-bool Implements(TypeInstance* impl, Interface* interface) {
+bool Implements(TypeInstance*, Interface*) {
   // TODO: implement
   return true;
 }
@@ -308,7 +308,7 @@ bool Implements(Interface* impl, Interface* interface) {
   return false;
 }
 
-bool IsAssertableTo(Type* general, Type* specialised) {
+bool IsAssertableTo(Type*, Type*) {
   // TODO: implement
   return true;
 }

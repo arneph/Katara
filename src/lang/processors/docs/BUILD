@@ -1,10 +1,11 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "common",
     srcs = ["common.cc"],
     hdrs = ["common.h"],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
     ],
@@ -17,7 +18,7 @@ cc_library(
     name = "file_doc",
     srcs = ["file_doc.cc"],
     hdrs = ["file_doc.h"],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/scanner",
@@ -33,7 +34,7 @@ cc_library(
     name = "package_doc",
     srcs = ["package_doc.cc"],
     hdrs = ["package_doc.h"],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/packages",

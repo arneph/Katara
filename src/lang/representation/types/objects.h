@@ -148,7 +148,7 @@ class Nil final : public Object {
   std::string ToString() const override { return "nil"; }
 
  private:
-  Nil(Scope* universe, Basic* untyped_nil) : Object(universe, nullptr, pos::kNoPos, "nil") {}
+  Nil(Scope* universe) : Object(universe, nullptr, pos::kNoPos, "nil") {}
 
   friend class InfoBuilder;
 };

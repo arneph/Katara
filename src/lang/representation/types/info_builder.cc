@@ -116,8 +116,7 @@ void InfoBuilder::CreatePredeclaredConstants() {
 }
 
 void InfoBuilder::CreatePredeclaredNil() {
-  std::unique_ptr<types::Nil> nil(
-      new Nil(info_->universe(), info_->basic_type(types::Basic::kUntypedNil)));
+  std::unique_ptr<types::Nil> nil(new Nil(info_->universe()));
   info_->universe_->named_objects_.insert({"nil", nil.get()});
   info_->object_unique_ptrs_.push_back(std::move(nil));
 }

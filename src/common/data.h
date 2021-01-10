@@ -16,7 +16,7 @@ namespace common {
 class data {
  public:
   data(uint8_t* base, int64_t size);
-  ~data();
+  virtual ~data() {}
 
   uint8_t* base() const;
   int64_t size() const;
@@ -35,7 +35,6 @@ class data {
 class dummy_data final : public data {
  public:
   dummy_data();
-  ~dummy_data();
 
   uint8_t& operator[](int64_t index) override;
   const uint8_t& operator[](int64_t index) const override;

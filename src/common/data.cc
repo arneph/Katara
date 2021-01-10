@@ -17,7 +17,6 @@ data::data(uint8_t* base, int64_t size) : base_(base), size_(size) {
     throw "size is negative";
   }
 }
-data::~data() {}
 
 uint8_t* data::base() const { return base_; }
 
@@ -64,12 +63,12 @@ data data::view(int64_t start_index, int64_t end_index) const {
 
 dummy_data::dummy_data() : data(nullptr, 0) {}
 
-uint8_t& dummy_data::operator[](int64_t index) { return dummy_; }
+uint8_t& dummy_data::operator[](int64_t) { return dummy_; }
 
-const uint8_t& dummy_data::operator[](int64_t index) const { return dummy_; }
+const uint8_t& dummy_data::operator[](int64_t) const { return dummy_; }
 
-data dummy_data::view(int64_t start_index) const { return *this; }
+data dummy_data::view(int64_t) const { return *this; }
 
-data dummy_data::view(int64_t start_index, int64_t end_index) const { return *this; }
+data dummy_data::view(int64_t, int64_t) const { return *this; }
 
 }  // namespace common

@@ -407,7 +407,7 @@ std::unordered_set<types::Object*> Coordinator::FindLoop(const std::vector<Actio
   Action* current_action = stack.back();
 
   for (types::Object* prerequisite_object : current_action->prerequisites()) {
-    int i = 0;
+    size_t i = 0;
     for (; i < stack.size(); i++) {
       Action* stack_action = stack.at(i);
       if (stack_action->defined_objects().contains(prerequisite_object)) {

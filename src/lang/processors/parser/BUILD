@@ -1,11 +1,12 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_fuzzing//fuzzing:cc_deps.bzl", "cc_fuzz_test")
+load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "parser",
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/issues",
@@ -19,7 +20,7 @@ cc_library(
 cc_fuzz_test(
     name = "parser_fuzz_test",
     srcs = ["parser_fuzz_test.cc"],
-    copts = ["-v -Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/issues",

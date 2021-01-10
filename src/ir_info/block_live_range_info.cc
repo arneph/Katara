@@ -70,7 +70,7 @@ std::unordered_set<ir::Computed> BlockLiveRangeInfo::GetEntrySet() const {
 std::unordered_set<ir::Computed> BlockLiveRangeInfo::GetExitSet() const {
   std::unordered_set<ir::Computed> exit_set;
   for (auto& [value, range] : value_ranges_) {
-    if (range.end_index_ >= block_->instrs().size()) {
+    if (range.end_index_ >= int64_t(block_->instrs().size())) {
       exit_set.insert(value);
     }
   }
@@ -97,16 +97,16 @@ std::string BlockLiveRangeInfo::ToString() const {
     } else {
       ss << ' ';
     }
-    for (int i = 0; i < block_->instrs().size(); i++) {
-      if (range.start_index_ < i && i < range.end_index_) {
+    for (size_t i = 0; i < block_->instrs().size(); i++) {
+      if (range.start_index_ < int64_t(i) && int64_t(i) < range.end_index_) {
         ss << '-';
-      } else if (i == range.start_index_ || i == range.end_index_) {
+      } else if (int64_t(i) == range.start_index_ || int64_t(i) == range.end_index_) {
         ss << '+';
       } else {
         ss << ' ';
       }
     }
-    if (range.end_index_ == block_->instrs().size()) {
+    if (range.end_index_ == int64_t(block_->instrs().size())) {
       ss << '>';
     } else {
       ss << ' ';

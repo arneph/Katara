@@ -308,7 +308,7 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance* type_instance_expr) {
 
   std::vector<types::Type*> type_args;
   type_args.reserve(instantiated_type->type_parameters().size());
-  for (int i = 0; i < instantiated_type->type_parameters().size(); i++) {
+  for (size_t i = 0; i < instantiated_type->type_parameters().size(); i++) {
     types::TypeParameter* type_param = instantiated_type->type_parameters().at(i);
     ast::Expr* type_arg_expr = type_instance_expr->type_args().at(i);
     if (!EvaluateTypeExpr(type_arg_expr)) {
@@ -519,7 +519,7 @@ types::Type* TypeHandler::EvalutateReceiverTypeInstance(ast::Ident* type_name_id
   if (!named_type->type_parameters().empty()) {
     std::vector<types::Type*> type_instance_args;
     type_instance_args.reserve(named_type->type_parameters().size());
-    for (int i = 0; i < named_type->type_parameters().size(); i++) {
+    for (size_t i = 0; i < named_type->type_parameters().size(); i++) {
       types::TypeParameter* instantiated = named_type->type_parameters().at(i);
       ast::Ident* arg_name = type_param_names.at(i);
       types::TypeName* arg = static_cast<types::TypeName*>(info()->DefinitionOf(arg_name));

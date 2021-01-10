@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "katara_x86_64_lib",
@@ -7,7 +8,7 @@ cc_library(
         exclude=["**/*-test.cc"],
     ),
     hdrs = glob(["**/*.h"]),
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/common:katara_common_lib",
         "//src/ir:katara_ir_lib",
@@ -21,7 +22,7 @@ cc_library(
 cc_test(
     name = "katara_x86_64_lib-test",
     srcs = glob(["**/*-test.cc"]),
-    copts = ["-Isrc/ -std=c++2a -Iexternal/gtest/include"],
+    copts = COPTS + ["-Iexternal/gtest/include"],
     deps = [
         "@gtest//:main",
         "//src/x86_64:katara_x86_64_lib",

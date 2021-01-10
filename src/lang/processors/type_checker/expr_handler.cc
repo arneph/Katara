@@ -179,7 +179,7 @@ bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr* binary_expr) {
         return true;
       }
       issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       binary_expr->start(),
+                                       op_expr->start(),
                                        "invalid operation: expected string or numeric type"));
       return false;
     };
@@ -201,7 +201,7 @@ bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr* binary_expr) {
         return true;
       }
       issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       binary_expr->start(),
+                                       op_expr->start(),
                                        "invalid operation: expected numeric type"));
       return false;
     };
@@ -241,8 +241,7 @@ bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr) {
       return true;
     }
     issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     binary_expr->start(),
-                                     "invalid operation: expected numeric type"));
+                                     op_expr->start(), "invalid operation: expected numeric type"));
     return false;
   };
   if (!check_op_type(binary_expr->x(), x->underlying) ||
@@ -270,8 +269,7 @@ bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr* binary_expr) {
       return true;
     }
     issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     binary_expr->start(),
-                                     "invalid operation: expected boolean type"));
+                                     op_expr->start(), "invalid operation: expected boolean type"));
     return false;
   };
   if (!check_op_type(binary_expr->x(), x->underlying) ||
@@ -319,7 +317,7 @@ bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr) {
   if (!operands_ok) {
     return false;
   }
-  for (int i = 0; i < compare_expr->compare_ops().size(); i++) {
+  for (size_t i = 0; i < compare_expr->compare_ops().size(); i++) {
     tokens::Token op = compare_expr->compare_ops().at(i);
     types::ExprInfo x = operand_expr_infos.at(i);
     types::ExprInfo y = operand_expr_infos.at(i + 1);
@@ -431,7 +429,7 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr) {
     types::TypeInstance* type_instance = static_cast<types::TypeInstance*>(accessed_type);
     types::NamedType* instantiated_type = type_instance->instantiated_type();
     accessed_type = instantiated_type;
-    for (int i = 0; i < type_instance->type_args().size(); i++) {
+    for (size_t i = 0; i < type_instance->type_args().size(); i++) {
       types::TypeParameter* type_param = instantiated_type->type_parameters().at(i);
       types::Type* type_arg = type_instance->type_args().at(i);
       type_params_to_args.insert({type_param, type_arg});
@@ -530,7 +528,7 @@ ExprHandler::CheckSelectionExprResult ExprHandler::CheckNamedTypeMethodSelection
     types::TypeInstance* type_instance = static_cast<types::TypeInstance*>(receiver_type);
     types::InfoBuilder::TypeParamsToArgsMap method_type_params_to_args;
     method_type_params_to_args.reserve(type_params_to_args.size());
-    for (int i = 0; i < type_instance->type_args().size(); i++) {
+    for (size_t i = 0; i < type_instance->type_args().size(); i++) {
       types::TypeParameter* original_type_param = named_type->type_parameters().at(i);
       types::TypeParameter* method_type_param =
           static_cast<types::TypeParameter*>(type_instance->type_args().at(i));
@@ -942,7 +940,7 @@ types::Signature* ExprHandler::CheckFuncCallTypeArgs(types::Signature* signature
     return nullptr;
   }
   std::unordered_map<types::TypeParameter*, types::Type*> type_params_to_args;
-  for (int i = 0; i < expected_type_args; i++) {
+  for (size_t i = 0; i < expected_type_args; i++) {
     ast::Expr* type_arg_expr = type_arg_exprs.at(i);
     types::ExprInfo type_arg_expr_info = info()->ExprInfoOf(type_arg_expr).value();
     types::Type* type_arg = type_arg_expr_info.type();
@@ -994,7 +992,7 @@ void ExprHandler::CheckFuncCallArgs(types::Signature* signature, ast::CallExpr* 
                                      "expected " + std::to_string(expected_args) + " arugments"));
     return;
   }
-  for (int i = 0; i < expected_args; i++) {
+  for (size_t i = 0; i < expected_args; i++) {
     types::Type* arg_type = arg_types.at(i);
     types::Type* param_type = signature->parameters()->variables().at(i)->type();
 

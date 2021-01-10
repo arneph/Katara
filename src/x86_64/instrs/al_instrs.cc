@@ -16,7 +16,7 @@ UnaryALInstr::UnaryALInstr(RM op) : op_(op) {}
 
 RM UnaryALInstr::op() const { return op_; }
 
-int8_t UnaryALInstr::Encode(Linker* linker, common::data code) const {
+int8_t UnaryALInstr::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_.size());
@@ -80,7 +80,7 @@ bool BinaryALInstr::CanUseRegAShortcut() const {
   return op_a_.reg().reg() == 0;
 }
 
-int8_t BinaryALInstr::Encode(Linker* linker, common::data code) const {
+int8_t BinaryALInstr::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());
@@ -312,7 +312,7 @@ Mul::~Mul() {}
 
 RM Mul::factor() const { return factor_; }
 
-int8_t Mul::Encode(Linker* linker, common::data code) const {
+int8_t Mul::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(factor_.size());
@@ -367,7 +367,7 @@ bool Imul::CanSkipImm() const {
   return factor_c_.value() == 1;
 }
 
-int8_t Imul::Encode(Linker* linker, common::data code) const {
+int8_t Imul::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(factor_b_.size());
@@ -414,7 +414,7 @@ Div::~Div() {}
 
 RM Div::divisor() const { return divisor_; }
 
-int8_t Div::Encode(Linker* linker, common::data code) const {
+int8_t Div::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(divisor_.size());
@@ -435,7 +435,7 @@ Idiv::~Idiv() {}
 
 RM Idiv::divisor() const { return divisor_; }
 
-int8_t Idiv::Encode(Linker* linker, common::data code) const {
+int8_t Idiv::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(divisor_.size());
@@ -459,7 +459,7 @@ SignExtendRegA::SignExtendRegA(Size op_size) : op_size_(op_size) {
 
 SignExtendRegA::~SignExtendRegA() {}
 
-int8_t SignExtendRegA::Encode(Linker* linker, common::data code) const {
+int8_t SignExtendRegA::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_size_);
@@ -485,7 +485,7 @@ SignExtendRegAD::SignExtendRegAD(Size op_size) : op_size_(op_size) {
 
 SignExtendRegAD::~SignExtendRegAD() {}
 
-int8_t SignExtendRegAD::Encode(Linker* linker, common::data code) const {
+int8_t SignExtendRegAD::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_size_);
@@ -531,7 +531,7 @@ bool Test::CanUseRegAShortcut() const {
   return op_a_.reg().reg() == 0;
 }
 
-int8_t Test::Encode(Linker* linker, common::data code) const {
+int8_t Test::Encode(Linker*, common::data code) const {
   coding::InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());

@@ -85,7 +85,7 @@ class IRTranslator {
   x86_64::InstrCond TranslateCompareOperation(ir::Type type, ir::CompareOperation op);
 
   ir::Prog* ir_program_;
-  std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo>& live_range_infos_;
+  // std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo>& live_range_infos_;
   std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& interference_graphs_;
 
   x86_64::ProgBuilder x86_64_program_builder_;

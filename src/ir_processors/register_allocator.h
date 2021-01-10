@@ -28,7 +28,7 @@ class RegisterAllocator {
   void AllocateRegisters();
 
  private:
-  ir::Func* func_;
+  // ir::Func* func_;
   ir_info::InterferenceGraph& graph_;
 };
 

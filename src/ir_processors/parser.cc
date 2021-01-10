@@ -154,9 +154,9 @@ void Parser::ConnectBlocks(ir::Func* func) {
 
       func->AddControlFlow(block, child);
 
-    } else if (ir::JumpCondInstr* jump = dynamic_cast<ir::JumpCondInstr*>(last_instr)) {
-      int64_t child_a_num = jump->destination_true().block();
-      int64_t child_b_num = jump->destination_false().block();
+    } else if (ir::JumpCondInstr* jump_cond = dynamic_cast<ir::JumpCondInstr*>(last_instr)) {
+      int64_t child_a_num = jump_cond->destination_true().block();
+      int64_t child_b_num = jump_cond->destination_false().block();
       ir::Block* child_a = func->GetBlock(child_a_num);
       ir::Block* child_b = func->GetBlock(child_b_num);
 

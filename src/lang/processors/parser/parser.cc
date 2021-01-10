@@ -1014,11 +1014,11 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_op
 
           std::vector<ast::Expr*> type_args;
           if (scanner_.token() != tokens::kGtr) {
-            ast::Expr* type_arg = ParseType();
-            if (type_arg == nullptr) {
+            ast::Expr* first_type_arg = ParseType();
+            if (first_type_arg == nullptr) {
               return nullptr;
             }
-            type_args.push_back(type_arg);
+            type_args.push_back(first_type_arg);
 
             while (scanner_.token() == tokens::kComma) {
               scanner_.Next();
@@ -1785,7 +1785,7 @@ std::vector<ast::Field*> Parser::ParseFuncFields() {
       scanner_.SkipPastLine();
       return std::vector<ast::Field*>{};
     }
-    for (int i = 0; i < idents.size(); i++) {
+    for (size_t i = 0; i < idents.size(); i++) {
       if (i == idents.size() - 1 && continue_type_after_last_ident) {
         break;
       }
@@ -1928,11 +1928,11 @@ ast::TypeParamList* Parser::ParseTypeParamList() {
 
   std::vector<ast::TypeParam*> type_params;
   if (scanner_.token() != tokens::kGtr) {
-    ast::TypeParam* type_param = ParseTypeParam();
-    if (type_param == nullptr) {
+    ast::TypeParam* first_type_param = ParseTypeParam();
+    if (first_type_param == nullptr) {
       return nullptr;
     }
-    type_params.push_back(type_param);
+    type_params.push_back(first_type_param);
 
     while (scanner_.token() == tokens::kComma) {
       scanner_.Next();
@@ -1995,11 +1995,11 @@ ast::BasicLit* Parser::ParseBasicLit() {
 
 std::vector<ast::Ident*> Parser::ParseIdentList(bool split_shift_ops) {
   std::vector<ast::Ident*> list;
-  ast::Ident* ident = ParseIdent();
-  if (ident == nullptr) {
+  ast::Ident* first_ident = ParseIdent();
+  if (first_ident == nullptr) {
     return {};
   }
-  list.push_back(ident);
+  list.push_back(first_ident);
   while (scanner_.token() == tokens::kComma) {
     scanner_.Next();
     ast::Ident* ident = ParseIdent(split_shift_ops);

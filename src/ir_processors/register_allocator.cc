@@ -12,8 +12,9 @@
 
 namespace ir_proc {
 
-RegisterAllocator::RegisterAllocator(ir::Func* func, ir_info::InterferenceGraph& graph)
-    : func_(func), graph_(graph) {}
+RegisterAllocator::RegisterAllocator(ir::Func* /*func*/, ir_info::InterferenceGraph& graph)
+    :  // func_(func),
+      graph_(graph) {}
 
 RegisterAllocator::~RegisterAllocator() {}
 
@@ -53,7 +54,7 @@ void RegisterAllocator::AllocateRegisters() {
       neighbor_colors.insert(neighbor_color);
     }
 
-    for (int64_t c = 0; c < neighbor_colors.size() + 1; c++) {
+    for (int64_t c = 0; c < int64_t(neighbor_colors.size() + 1); c++) {
       if (neighbor_colors.count(c) == 0) {
         graph_.SetRegister(value, c);
         break;

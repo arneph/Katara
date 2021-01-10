@@ -57,7 +57,7 @@ void run_lang_test(std::filesystem::path test_dir) {
   std::filesystem::create_directory(test_dir / "debug");
 
   lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib");
-  lang::packages::Package* pkg = pkg_manager.LoadPackage(test_dir);
+  lang::packages::Package* test_pkg = pkg_manager.LoadPackage(test_dir);
 
   for (auto pkg : pkg_manager.Packages()) {
     for (auto& issue : pkg->issues()) {
@@ -80,7 +80,7 @@ void run_lang_test(std::filesystem::path test_dir) {
       for (lang::pos::pos_t pos : issue.positions()) {
         lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
         std::string line = pkg_manager.file_set()->FileAt(pos)->LineFor(pos);
-        int whitespace = 0;
+        size_t whitespace = 0;
         for (; whitespace < line.length(); whitespace++) {
           if (line.at(whitespace) != ' ' && line.at(whitespace) != '\t') {
             break;
@@ -89,24 +89,24 @@ void run_lang_test(std::filesystem::path test_dir) {
         std::cout << "  " << position.ToString() << ": ";
         std::cout << line.substr(whitespace);
         size_t pointer = 4 + position.ToString().size() + position.column_ - whitespace;
-        for (int i = 0; i < pointer; i++) {
+        for (size_t i = 0; i < pointer; i++) {
           std::cout << " ";
         }
         std::cout << "^\n";
       }
     }
   }
-  for (auto [name, ast_file] : pkg->ast_package()->files()) {
+  for (auto [name, ast_file] : test_pkg->ast_package()->files()) {
     vcg::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast_file);
 
     to_file(ast_graph.ToVCGFormat(), test_dir.string() + "/debug/" + name + ".ast.vcg");
   }
 
   std::string type_info = lang::types::InfoToText(pkg_manager.file_set(), pkg_manager.type_info());
-  to_file(type_info, test_dir.string() + "/debug/" + pkg->name() + ".types.txt");
+  to_file(type_info, test_dir.string() + "/debug/" + test_pkg->name() + ".types.txt");
 
   lang::docs::PackageDoc pkg_doc = lang::docs::GenerateDocumentationForPackage(
-      pkg, pkg_manager.file_set(), pkg_manager.type_info());
+      test_pkg, pkg_manager.file_set(), pkg_manager.type_info());
   to_file(pkg_doc.html, test_dir.string() + "/docs/" + pkg_doc.name + ".html");
   for (auto file_doc : pkg_doc.docs) {
     to_file(file_doc.html, test_dir.string() + "/docs/" + file_doc.name + ".html");
@@ -337,7 +337,7 @@ void test_x86_64() {
   std::cout << "completed x86-tests\n";
 }
 
-int main(int argc, const char* argv[]) {
+int main() {
   test_lang();
   // test_ir();
   // test_x86_64();

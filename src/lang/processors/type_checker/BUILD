@@ -1,10 +1,11 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "type_checker",
     srcs = ["type_checker.cc"],
     hdrs = ["type_checker.h"],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/issues",
@@ -24,7 +25,7 @@ cc_library(
     hdrs = [
         "identifier_resolver.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/issues",
@@ -53,7 +54,7 @@ cc_library(
         "expr_handler.h",
         "stmt_handler.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/issues",
@@ -71,7 +72,7 @@ cc_library(
     hdrs = [
         "coordinator.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/issues",

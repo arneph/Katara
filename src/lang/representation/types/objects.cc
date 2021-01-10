@@ -45,7 +45,7 @@ std::string Func::ToString() const {
   s += name();
   if (!sig->type_parameters().empty()) {
     s += "<";
-    for (int i = 0; i < sig->type_parameters().size(); i++) {
+    for (size_t i = 0; i < sig->type_parameters().size(); i++) {
       if (i > 0) {
         s += ", ";
       }

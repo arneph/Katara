@@ -23,7 +23,7 @@ bool Type::is_container() const {
   return TypeKind::kContainerStart <= kind && kind <= TypeKind::kContainerEnd;
 }
 
-std::string Basic::ToString(StringRep rep) const {
+std::string Basic::ToString(StringRep) const {
   switch (kind_) {
     case kBool:
       return "bool";
@@ -130,7 +130,7 @@ std::string Tuple::ToString(StringRep rep) const {
   return s;
 }
 
-std::string Signature::ToString(StringRep rep) const {
+std::string Signature::ToString(StringRep) const {
   std::string s = "func ";
   if (expr_receiver_ != nullptr) {
     s += "(" + expr_receiver_->ToString() + ") ";
@@ -175,7 +175,7 @@ std::string Struct::ToString(StringRep rep) const {
   return s;
 }
 
-std::string Interface::ToString(StringRep rep) const {
+std::string Interface::ToString(StringRep) const {
   std::string s = "interface {";
   for (size_t i = 0; i < embedded_interfaces_.size(); i++) {
     if (i > 0) s += "; ";

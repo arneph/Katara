@@ -1,8 +1,9 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "representation",
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation/positions",
         "//src/lang/representation/tokens",

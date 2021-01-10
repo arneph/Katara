@@ -38,7 +38,7 @@ File::File(std::string name, pos_t start, std::string contents) {
   contents_ = contents;
   line_starts_.push_back(start);
 
-  for (pos_t i = 0; i < contents_.length(); i++) {
+  for (pos_t i = 0; i < int64_t(contents_.length()); i++) {
     if (contents_.at(i) == '\n') {
       line_starts_.push_back(start + i + 1);
     }
@@ -79,7 +79,7 @@ std::string File::LineFor(pos_t pos) const {
   int64_t line = LineNumberFor(pos);
   if (line == 0) {
     return nullptr;
-  } else if (line == line_starts_.size()) {
+  } else if (line == int64_t(line_starts_.size())) {
     int64_t s = line_starts_.back() - line_starts_.at(0);
     return contents_.substr(s);
   }

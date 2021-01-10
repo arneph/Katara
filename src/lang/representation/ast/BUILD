@@ -1,10 +1,11 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "nodes",
     srcs = ["nodes.cc"],
     hdrs = ["nodes.h"],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation/positions",
         "//src/lang/representation/tokens",
@@ -24,7 +25,7 @@ cc_library(
         "ast.h",
         "ast_builder.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         ":nodes",
      ],
@@ -37,7 +38,7 @@ cc_library(
     name = "ast_util",
     srcs = ["ast_util.cc"],
     hdrs = ["ast_util.h"],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/vcg:katara_vcg_lib",
         "//src/lang/representation/positions",

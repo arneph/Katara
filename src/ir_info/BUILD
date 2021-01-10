@@ -1,10 +1,11 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "katara_ir_info_lib",
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
 	"//src/ir:katara_ir_lib",
     ],

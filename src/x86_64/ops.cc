@@ -49,7 +49,7 @@ bool Reg::RequiresSIB() const { return false; }
 
 uint8_t Reg::RequiredDispSize() const { return 0; }
 
-void Reg::EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint8_t* disp) const {
+void Reg::EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t*, uint8_t*) const {
   if (reg_ >= 8) {
     *rex |= 0x01;  // REX.B
   }

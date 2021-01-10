@@ -27,7 +27,7 @@ void StmtHandler::ProcessFuncBody(ast::BlockStmt* body, types::Tuple* func_resul
 }
 
 void StmtHandler::CheckBlockStmt(ast::BlockStmt* block_stmt, Context ctx) {
-  for (int i = 0; i < block_stmt->stmts().size(); i++) {
+  for (size_t i = 0; i < block_stmt->stmts().size(); i++) {
     ast::Stmt* stmt = block_stmt->stmts().at(i);
     ctx.is_last_stmt_in_block = (i == block_stmt->stmts().size());
     CheckStmt(stmt, ctx);
@@ -233,7 +233,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
                       "invalid operation: can not assign " + std::to_string(rhs_types.size()) +
                           " values to " + std::to_string(lhs_types.size()) + " operands"));
   }
-  for (int i = 0; i < lhs_types.size() && i < rhs_types.size(); i++) {
+  for (size_t i = 0; i < lhs_types.size() && i < rhs_types.size(); i++) {
     types::Type* lhs_type = lhs_types.at(i);
     types::Type* rhs_type = rhs_types.at(i);
 
@@ -331,7 +331,7 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
                                      "number of results"));
     return;
   }
-  for (int i = 0; i < result_types.size(); i++) {
+  for (size_t i = 0; i < result_types.size(); i++) {
     types::Type* expected_result_type = ctx.func_results->variables().at(i)->type();
     types::Type* given_result_type = result_types.at(i);
     ast::Expr* result_expr = return_stmt->results().at(i);
@@ -394,7 +394,7 @@ void StmtHandler::CheckExprSwitchStmt(ast::ExprSwitchStmt* switch_stmt, Context 
   }
   ctx.can_break = true;
   bool seen_default = false;
-  for (int i = 0; i < switch_stmt->body()->stmts().size(); i++) {
+  for (size_t i = 0; i < switch_stmt->body()->stmts().size(); i++) {
     ast::Stmt* stmt = switch_stmt->body()->stmts().at(i);
     ast::CaseClause* case_clause = static_cast<ast::CaseClause*>(stmt);
     if (case_clause->tok() == tokens::kDefault) {
@@ -430,7 +430,7 @@ void StmtHandler::CheckExprCaseClause(ast::CaseClause* case_clause, types::Type*
                                        "switch tag"));
     }
   }
-  for (int i = 0; i < case_clause->body().size(); i++) {
+  for (size_t i = 0; i < case_clause->body().size(); i++) {
     ast::Stmt* stmt = case_clause->body().at(i);
     ctx.is_last_stmt_in_block = (i == case_clause->body().size());
     CheckStmt(stmt, ctx);
@@ -452,7 +452,7 @@ void StmtHandler::CheckTypeSwitchStmt(ast::TypeSwitchStmt* switch_stmt, Context 
   ctx.can_break = true;
   ctx.can_fallthrough = false;
   bool seen_default = false;
-  for (int i = 0; i < switch_stmt->body()->stmts().size(); i++) {
+  for (size_t i = 0; i < switch_stmt->body()->stmts().size(); i++) {
     ast::Stmt* stmt = switch_stmt->body()->stmts().at(i);
     ast::CaseClause* case_clause = static_cast<ast::CaseClause*>(stmt);
     if (case_clause->tok() == tokens::kDefault) {
@@ -490,7 +490,7 @@ void StmtHandler::CheckTypeCaseClause(ast::CaseClause* case_clause, types::Type*
   types::Variable* implicit_tag = static_cast<types::Variable*>(info()->ImplicitOf(case_clause));
   info_builder().SetObjectType(implicit_tag, implicit_tag_type);
 
-  for (int i = 0; i < case_clause->body().size(); i++) {
+  for (size_t i = 0; i < case_clause->body().size(); i++) {
     ast::Stmt* stmt = case_clause->body().at(i);
     ctx.is_last_stmt_in_block = (i == case_clause->body().size());
     CheckStmt(stmt, ctx);

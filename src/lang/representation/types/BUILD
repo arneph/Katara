@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "base",
@@ -13,7 +14,7 @@ cc_library(
         "scope.h",
         "package.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation/positions",
         "//src/lang/representation/ast",
@@ -32,7 +33,7 @@ cc_library(
     hdrs = [
         "types_util.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/vcg:katara_vcg_lib",
         "//src/lang/representation/positions",
@@ -52,7 +53,7 @@ cc_library(
     hdrs = [
         "expr_info.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         ":base",
      ],
@@ -66,7 +67,7 @@ cc_library(
     hdrs = [
         "selection.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         ":base",
      ],
@@ -80,7 +81,7 @@ cc_library(
     hdrs = [
         "initializer.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation/ast",
         ":base",
@@ -100,7 +101,7 @@ cc_library(
         "info.h",
         "info_builder.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation/positions",
         "//src/lang/representation/ast",
@@ -123,7 +124,7 @@ cc_library(
     hdrs = [
         "info_util.h",
     ],
-    copts = ["-Isrc/ -std=c++2a"],
+    copts = COPTS,
     deps = [
         "//src/lang/representation/positions",
         "//src/lang/representation/ast",
