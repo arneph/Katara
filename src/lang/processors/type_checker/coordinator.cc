@@ -11,11 +11,6 @@
 #include "lang/representation/tokens/tokens.h"
 #include "lang/representation/ast/ast_util.h"
 
-#include "lang/processors/type_checker/type_handler.h"
-#include "lang/processors/type_checker/constant_handler.h"
-#include "lang/processors/type_checker/variable_handler.h"
-#include "lang/processors/type_checker/stmt_handler.h"
-
 namespace lang {
 namespace type_checker {
 
@@ -33,12 +28,12 @@ bool Coordinator::ProcessPackage(std::vector<ast::File *> package_files,
 }
 
 Coordinator::Coordinator(std::vector<ast::File *> package_files,
-                               types::Package *package,
-                               types::InfoBuilder& info_builder,
-                               std::vector<issues::Issue> &issues)
+                         types::Package *package,
+                         types::InfoBuilder& info_builder,
+                         std::vector<issues::Issue> &issues)
     : package_files_(package_files), package_(package),
-      info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
-
+      info_(info_builder.info()), info_builder_(info_builder), issues_(issues),
+      type_resolver_(info_builder_, issues_) {}
 
 Coordinator::Action *
 Coordinator::CreateAction(std::function<bool ()> executor) {
@@ -147,18 +142,14 @@ void Coordinator::FindActionsForTypeDecl(ast::GenDecl *type_decl) {
             if (type_spec->type_params() == nullptr) {
                 return true;
             }
-            return TypeHandler::ProcessTypeParametersOfTypeName(type_name,
-                                                                type_spec,
-                                                                info_builder_,
-                                                                issues_);
+            return type_resolver_.type_handler().ProcessTypeParametersOfTypeName(type_name,
+                                                                                 type_spec);
         });
         Action *underlying_action = CreateAction(underlying_prerequisites,
                                                  std::unordered_set<types::Object *>{},
                                                  [=]() -> bool {
-            return TypeHandler::ProcessUnderlyingTypeOfTypeName(type_name,
-                                                                type_spec,
-                                                                info_builder_,
-                                                                issues_);
+            return type_resolver_.type_handler().ProcessUnderlyingTypeOfTypeName(type_name,
+                                                                                 type_spec);
         });
         const_and_type_actions_.push_back(param_action);
         const_and_type_actions_.push_back(underlying_action);
@@ -209,19 +200,17 @@ void Coordinator::FindActionsForConstDecl(ast::GenDecl *const_decl) {
                                           [=]() -> bool {
                 types::Type *type = nullptr;
                 if (type_expr != nullptr) {
-                    if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
+                    if (!type_resolver_.type_handler().ProcessTypeExpr(type_expr)) {
                         return false;
                     }
                     types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
                     type = type_expr_info.type();
                 }
                 
-                return ConstantHandler::ProcessConstant(constant,
-                                                        type,
-                                                        value,
-                                                        iota,
-                                                        info_builder_,
-                                                        issues_);
+                return type_resolver_.constant_handler().ProcessConstant(constant,
+                                                                         type,
+                                                                         value,
+                                                                         iota);
             });
             const_and_type_actions_.push_back(action);
         }
@@ -271,18 +260,14 @@ void Coordinator::FindActionsForVarDecl(ast::GenDecl *var_decl) {
                                           [=]() -> bool {
                 types::Type *type = nullptr;
                 if (type_expr != nullptr) {
-                    if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
+                    if (!type_resolver_.type_handler().ProcessTypeExpr(type_expr)) {
                         return false;
                     }
                     types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
                     type = type_expr_info.type();
                 }
                 
-                return VariableHandler::ProcessVariables(variables,
-                                                         type,
-                                                         value,
-                                                         info_builder_,
-                                                         issues_);
+                return type_resolver_.variable_handler().ProcessVariables(variables, type, value);
             });
             variable_and_func_decl_actions_.push_back(action);
             
@@ -309,18 +294,16 @@ void Coordinator::FindActionsForVarDecl(ast::GenDecl *var_decl) {
                                               [=]() -> bool {
                     types::Type *type = nullptr;
                     if (type_expr != nullptr) {
-                        if (!TypeHandler::ProcessTypeExpr(type_expr, info_builder_, issues_)) {
+                        if (!type_resolver_.type_handler().ProcessTypeExpr(type_expr)) {
                             return false;
                         }
                         types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
                         type = type_expr_info.type();
                     }
                     
-                    return VariableHandler::ProcessVariable(variable,
-                                                            type,
-                                                            value,
-                                                            info_builder_,
-                                                            issues_);
+                    return type_resolver_.variable_handler().ProcessVariable(variable,
+                                                                             type,
+                                                                             value);
                 });
                 variable_and_func_decl_actions_.push_back(action);
             }
@@ -338,17 +321,11 @@ void Coordinator::FindActionsForFuncDecl(ast::FuncDecl *func_decl) {
     Action *decl_action = CreateAction(prerequisites,
                                        func,
                                        [=]() -> bool {
-        return TypeHandler::ProcessFuncDecl(func,
-                                            func_decl,
-                                            info_builder_,
-                                            issues_);
+        return type_resolver_.type_handler().ProcessFuncDecl(func, func_decl);
     });
     Action *body_action = CreateAction([=]() -> bool {
         types::Signature *signature = static_cast<types::Signature *>(func->type());
-        StmtHandler::ProcessFuncBody(body,
-                                     signature->results(),
-                                     info_builder_,
-                                     issues_);
+        type_resolver_.stmt_handler().ProcessFuncBody(body, signature->results());
         return true;
     });
     variable_and_func_decl_actions_.push_back(decl_action);

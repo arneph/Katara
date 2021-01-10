@@ -19,18 +19,22 @@
 #include "lang/representation/types/info.h"
 #include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
+#include "lang/processors/type_checker/base_handler.h"
 
 namespace lang {
 namespace type_checker {
 
-class StmtHandler {
+class StmtHandler final : public BaseHandler {
 public:
-    static void ProcessFuncBody(ast::BlockStmt *body,
-                                types::Tuple *func_results,
-                                types::InfoBuilder& info_builder,
-                                std::vector<issues::Issue>& issues);
+    void ProcessFuncBody(ast::BlockStmt *body,
+                         types::Tuple *func_results);
     
 private:
+    StmtHandler(class TypeResolver& type_resolver,
+                types::InfoBuilder& info_builder,
+                std::vector<issues::Issue>& issues)
+    : BaseHandler(type_resolver, info_builder, issues) {}
+    
     struct Context {
         types::Tuple *func_results;
         std::unordered_map<std::string, ast::Stmt *> labels;
@@ -39,10 +43,6 @@ private:
         bool can_fallthrough;
         bool is_last_stmt_in_block;
     };
-    
-    StmtHandler(types::InfoBuilder& info_builder,
-                std::vector<issues::Issue>& issues)
-    : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
     
     void CheckBlockStmt(ast::BlockStmt *block_stmt, Context ctx);
     void CheckStmt(ast::Stmt *stmt, Context ctx);
@@ -59,9 +59,7 @@ private:
     void CheckForStmt(ast::ForStmt *for_stmt, Context ctx);
     void CheckBranchStmt(ast::BranchStmt *branch_stmt, Context ctx);
     
-    types::Info *info_;
-    types::InfoBuilder& info_builder_;
-    std::vector<issues::Issue>& issues_;
+    friend class TypeResolver;
 };
 
 }

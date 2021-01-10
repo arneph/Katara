@@ -19,17 +19,21 @@
 #include "lang/representation/types/info.h"
 #include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
+#include "lang/processors/type_checker/base_handler.h"
 
 namespace lang {
 namespace type_checker {
 
-class ExprHandler {
+class ExprHandler final : public BaseHandler {
 public:
-    static bool ProcessExpr(ast::Expr *expr,
-                            types::InfoBuilder& info_builder,
-                            std::vector<issues::Issue>& issues);
+    bool ProcessExpr(ast::Expr *expr);
     
 private:
+    ExprHandler(class TypeResolver& type_resolver,
+                types::InfoBuilder& info_builder,
+                std::vector<issues::Issue>& issues)
+    : BaseHandler(type_resolver, info_builder, issues) {}
+    
     struct CheckBasicOperandResult {
         types::Type *type;
         types::Basic *underlying;
@@ -39,10 +43,6 @@ private:
         kCheckFailed,
         kCheckSucceeded,
     };
-    
-    ExprHandler(types::InfoBuilder& info_builder,
-                std::vector<issues::Issue>& issues)
-    : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
     
     bool CheckExprs(std::vector<ast::Expr *> exprs);
     bool CheckExpr(ast::Expr *expr);
@@ -98,9 +98,7 @@ private:
     bool CheckBasicLit(ast::BasicLit *basic_lit);
     bool CheckIdent(ast::Ident *ident);
     
-    types::Info *info_;
-    types::InfoBuilder& info_builder_;
-    std::vector<issues::Issue>& issues_;
+    friend class TypeResolver;
 };
 
 }

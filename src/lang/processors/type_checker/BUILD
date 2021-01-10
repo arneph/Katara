@@ -8,7 +8,8 @@ cc_library(
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/issues",
-        ":type_checker_internal",
+        ":identifier_resolver",
+        ":coordinator",
     ],
     visibility = [
         "//src/lang/processors:__subpackages__",
@@ -16,10 +17,27 @@ cc_library(
 )
 
 cc_library(
-    name = "type_checker_internal",
+    name = "identifier_resolver",
     srcs = [
         "identifier_resolver.cc",
-        "coordinator.cc",
+    ],
+    hdrs = [
+        "identifier_resolver.h",
+    ],
+    copts = ["-Isrc/ -std=c++2a"],
+    deps = [
+        "//src/lang/representation",
+        "//src/lang/processors/issues",
+    ],
+    visibility = [
+        "//visibility:private",
+    ],
+)
+
+cc_library(
+    name = "type_resolver",
+    srcs = [
+        "base_handler.cc",
         "type_handler.cc",
         "constant_handler.cc",
         "variable_handler.cc",
@@ -27,8 +45,8 @@ cc_library(
         "stmt_handler.cc",
     ],
     hdrs = [
-        "identifier_resolver.h",
-        "coordinator.h",
+        "base_handler.h",
+        "type_resolver.h",
         "type_handler.h",
         "constant_handler.h",
         "variable_handler.h",
@@ -39,6 +57,25 @@ cc_library(
     deps = [
         "//src/lang/representation",
         "//src/lang/processors/issues",
+    ],
+    visibility = [
+        "//visibility:private",
+    ],
+)
+
+cc_library(
+    name = "coordinator",
+    srcs = [
+        "coordinator.cc",
+    ],
+    hdrs = [
+        "coordinator.h",
+    ],
+    copts = ["-Isrc/ -std=c++2a"],
+    deps = [
+        "//src/lang/representation",
+        "//src/lang/processors/issues",
+        ":type_resolver",
     ],
     visibility = [
         "//visibility:private",

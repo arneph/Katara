@@ -20,6 +20,7 @@
 #include "lang/representation/types/info.h"
 #include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
+#include "lang/processors/type_checker/type_resolver.h"
 
 namespace lang {
 namespace type_checker {
@@ -59,9 +60,9 @@ private:
     };
     
     Coordinator(std::vector<ast::File *> package_files,
-                   types::Package *package,
-                   types::InfoBuilder& info_builder,
-                   std::vector<issues::Issue>& issues);
+                types::Package *package,
+                types::InfoBuilder& info_builder,
+                std::vector<issues::Issue>& issues);
     
     Action * CreateAction(std::function<bool ()> executor);
     Action * CreateAction(std::unordered_set<types::Object *> prerequisites,
@@ -100,6 +101,8 @@ private:
     std::vector<Action *> const_and_type_actions_;
     std::vector<Action *> variable_and_func_decl_actions_;
     std::vector<Action *> func_body_actions_;
+    
+    TypeResolver type_resolver_;
 };
 
 }

@@ -17,40 +17,30 @@
 #include "lang/representation/types/info.h"
 #include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
+#include "lang/processors/type_checker/base_handler.h"
 
 namespace lang {
 namespace type_checker {
 
-class TypeHandler {
+class TypeHandler final : public BaseHandler {
 public:
-    static bool ProcessTypeName(types::TypeName *type_name,
-                                ast::TypeSpec *type_spec,
-                                types::InfoBuilder& info_builder,
-                                std::vector<issues::Issue>& issues);
-    static bool ProcessTypeParametersOfTypeName(types::TypeName *type_name,
-                                                ast::TypeSpec *type_spec,
-                                                types::InfoBuilder& info_builder,
-                                                std::vector<issues::Issue>& issues);
-    static bool ProcessUnderlyingTypeOfTypeName(types::TypeName *type_name,
-                                                ast::TypeSpec *type_spec,
-                                                types::InfoBuilder& info_builder,
-                                                std::vector<issues::Issue>& issues);
-    static bool ProcessFuncDecl(types::Func *func,
-                                ast::FuncDecl *func_decl,
-                                types::InfoBuilder& info_builder,
-                                std::vector<issues::Issue>& issues);
+    bool ProcessTypeName(types::TypeName *type_name,
+                         ast::TypeSpec *type_spec);
+    bool ProcessTypeParametersOfTypeName(types::TypeName *type_name,
+                                         ast::TypeSpec *type_spec);
+    bool ProcessUnderlyingTypeOfTypeName(types::TypeName *type_name,
+                                         ast::TypeSpec *type_spec);
+    bool ProcessFuncDecl(types::Func *func,
+                         ast::FuncDecl *func_decl);
     
-    static bool ProcessTypeArgs(std::vector<ast::Expr *> type_args,
-                                types::InfoBuilder& info_builder,
-                                std::vector<issues::Issue>& issues);
-    static bool ProcessTypeExpr(ast::Expr *type_expr,
-                                types::InfoBuilder& info_builder,
-                                std::vector<issues::Issue>& issues);
+    bool ProcessTypeArgs(std::vector<ast::Expr *> type_args);
+    bool ProcessTypeExpr(ast::Expr *type_expr);
     
 private:
-    TypeHandler(types::InfoBuilder& info_builder,
+    TypeHandler(class TypeResolver& type_resolver,
+                types::InfoBuilder& info_builder,
                 std::vector<issues::Issue>& issues)
-    : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
+    : BaseHandler(type_resolver, info_builder, issues) {}
     
     bool ProcessTypeParameters(types::TypeName *type_name,
                                ast::TypeSpec *type_spec);
@@ -87,9 +77,7 @@ private:
                                                 std::vector<ast::Ident *> type_param_names,
                                                 types::Func *method);
     
-    types::Info *info_;
-    types::InfoBuilder&info_builder_;
-    std::vector<issues::Issue>& issues_;
+    friend class TypeResolver;
 };
 
 }

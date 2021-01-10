@@ -17,39 +17,42 @@
 #include "lang/representation/types/info.h"
 #include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
+#include "lang/processors/type_checker/base_handler.h"
 
 namespace lang {
 namespace type_checker {
 
-class ConstantHandler {
+class ConstantHandler final : public BaseHandler {
 public:
-    static bool ProcessConstant(types::Constant *constant,
-                                types::Type *type,
-                                ast::Expr *value,
-                                int64_t iota,
-                                types::InfoBuilder& info_builder,
-                                std::vector<issues::Issue>& issues);
+    bool ProcessConstant(types::Constant *constant,
+                         types::Type *type,
+                         ast::Expr *value,
+                         int64_t iota);
     
-    static bool ProcessConstantExpr(ast::Expr *constant_expr,
-                                    int64_t iota,
-                                    types::InfoBuilder& info_builder,
-                                    std::vector<issues::Issue>& issues);
+    bool ProcessConstantExpr(ast::Expr *constant_expr,
+                             int64_t iota);
     
 private:
-    ConstantHandler(int64_t iota,
+    ConstantHandler(class TypeResolver& type_resolver,
                     types::InfoBuilder& info_builder,
                     std::vector<issues::Issue>& issues)
-    : iota_(iota), info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
+    : BaseHandler(type_resolver, info_builder, issues) {}
     
     bool ProcessConstantDefinition(types::Constant *constant,
                                    types::Type *type,
-                                   ast::Expr *value);
+                                   ast::Expr *value,
+                                   int64_t iota);
     
-    bool EvaluateConstantExpr(ast::Expr *expr);
-    bool EvaluateConstantUnaryExpr(ast::UnaryExpr *expr);
-    bool EvaluateConstantCompareExpr(ast::BinaryExpr *expr);
-    bool EvaluateConstantShiftExpr(ast::BinaryExpr *expr);
-    bool EvaluateConstantBinaryExpr(ast::BinaryExpr *expr);
+    bool EvaluateConstantExpr(ast::Expr *expr,
+                              int64_t iota);
+    bool EvaluateConstantUnaryExpr(ast::UnaryExpr *expr,
+                                   int64_t iota);
+    bool EvaluateConstantCompareExpr(ast::BinaryExpr *expr,
+                                     int64_t iota);
+    bool EvaluateConstantShiftExpr(ast::BinaryExpr *expr,
+                                   int64_t iota);
+    bool EvaluateConstantBinaryExpr(ast::BinaryExpr *expr,
+                                    int64_t iota);
     bool CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr *expr,
                                                  constants::Value &x_value,
                                                  constants::Value &y_value,
@@ -57,10 +60,7 @@ private:
     
     static constants::Value ConvertUntypedInt(constants::Value value, types::Basic::Kind kind);
     
-    int64_t iota_;
-    types::Info *info_;
-    types::InfoBuilder& info_builder_;
-    std::vector<issues::Issue>& issues_;
+    friend class TypeResolver;
 };
 
 }

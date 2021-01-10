@@ -17,35 +17,31 @@
 #include "lang/representation/types/info.h"
 #include "lang/representation/types/info_builder.h"
 #include "lang/processors/issues/issues.h"
+#include "lang/processors/type_checker/base_handler.h"
 
 namespace lang {
 namespace type_checker {
 
-class VariableHandler {
+class VariableHandler final : public BaseHandler {
 public:
-    static bool ProcessVariable(types::Variable * variable,
-                                types::Type *type,
-                                ast::Expr *value,
-                                types::InfoBuilder& info_builder,
-                                std::vector<issues::Issue>& issues);
-    static bool ProcessVariables(std::vector<types::Variable *> variables,
-                                 types::Type *type,
-                                 ast::Expr *value,
-                                 types::InfoBuilder& info_builder,
-                                 std::vector<issues::Issue>& issues);
+    bool ProcessVariable(types::Variable * variable,
+                         types::Type *type,
+                         ast::Expr *value);
+    bool ProcessVariables(std::vector<types::Variable *> variables,
+                          types::Type *type,
+                          ast::Expr *value);
     
 private:
-    VariableHandler(types::InfoBuilder& info_builder,
+    VariableHandler(class TypeResolver& type_resolver,
+                    types::InfoBuilder& info_builder,
                     std::vector<issues::Issue>& issues)
-    : info_(info_builder.info()), info_builder_(info_builder), issues_(issues) {}
+    : BaseHandler(type_resolver, info_builder, issues) {}
     
     bool ProcessVariableDefinitions(std::vector<types::Variable *> variables,
                                     types::Type *type,
                                     ast::Expr *value);
     
-    types::Info *info_;
-    types::InfoBuilder& info_builder_;
-    std::vector<issues::Issue>& issues_;
+    friend class TypeResolver;
 };
 
 }
