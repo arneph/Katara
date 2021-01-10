@@ -42,10 +42,10 @@ class FileSet;
 
 class File {
  public:
-  std::string name() const;
-  pos_t start() const;
-  pos_t end() const;
-  std::string contents() const;
+  std::string name() const { return name_; }
+  pos_t start() const { return line_starts_.front(); }
+  pos_t end() const { return line_starts_.front() + contents_.length(); }
+  std::string contents() const { return contents_; }
   std::string contents(pos_t start, pos_t end) const;
   char at(pos_t pos) const;
 
