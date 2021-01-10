@@ -15,234 +15,204 @@
 namespace x86_64 {
 
 typedef enum : int8_t {
-    k8 = 8,
-    k16 = 16,
-    k32 = 32,
-    k64 = 64,
+  k8 = 8,
+  k16 = 16,
+  k32 = 32,
+  k64 = 64,
 } Size;
 
 class Reg {
-public:
-    Reg(Size size, uint8_t reg);
-    
-    Size size() const;
-    int8_t reg() const;
-    
-    bool RequiresREX() const;
-    
-    // Opcode encoding:
-    void EncodeInOpcode(uint8_t *rex,
-                        uint8_t *opcode,
-                        uint8_t lshift) const;
-    
-    // ModRM encoding:
-    bool RequiresSIB() const;
-    uint8_t RequiredDispSize() const;
-    void EncodeInModRM_SIB_Disp(uint8_t *rex,
-                                uint8_t *modrm,
-                                uint8_t *sib,
-                                uint8_t *disp) const;
-    
-    // ModRM reg encoding:
-    void EncodeInModRMReg(uint8_t *rex,
-                          uint8_t *modrm) const;
-    
-    std::string ToString() const;
-    
-private:
-    Size size_;
-    int8_t reg_;
+ public:
+  Reg(Size size, uint8_t reg);
+
+  Size size() const;
+  int8_t reg() const;
+
+  bool RequiresREX() const;
+
+  // Opcode encoding:
+  void EncodeInOpcode(uint8_t* rex, uint8_t* opcode, uint8_t lshift) const;
+
+  // ModRM encoding:
+  bool RequiresSIB() const;
+  uint8_t RequiredDispSize() const;
+  void EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint8_t* disp) const;
+
+  // ModRM reg encoding:
+  void EncodeInModRMReg(uint8_t* rex, uint8_t* modrm) const;
+
+  std::string ToString() const;
+
+ private:
+  Size size_;
+  int8_t reg_;
 };
 
-bool operator==(const Reg& lhs,
-                const Reg& rhs);
-bool operator!=(const Reg& lhs,
-                const Reg& rhs);
+bool operator==(const Reg& lhs, const Reg& rhs);
+bool operator!=(const Reg& lhs, const Reg& rhs);
 
-enum class Scale : uint8_t {
-    kS00 = 0,
-    kS01 = 1,
-    kS10 = 2,
-    kS11 = 3
-};
+enum class Scale : uint8_t { kS00 = 0, kS01 = 1, kS10 = 2, kS11 = 3 };
 
 class Mem {
-public:
-    Mem(Size size, int32_t disp);
-    Mem(Size size, uint8_t base_reg, int32_t disp = 0);
-    Mem(Size size, uint8_t index_reg, Scale scale, int32_t disp = 0);
-    Mem(Size size, uint8_t base_reg,
-        uint8_t index_reg, Scale scale, int32_t disp = 0);
-    
-    Size size() const;
-    uint8_t base_reg() const;
-    uint8_t index_reg() const;
-    Scale scale() const;
-    int32_t disp() const;
-    
-    bool RequiresREX() const;
-    
-    // ModRM encoding:
-    bool RequiresSIB() const;
-    uint8_t RequiredDispSize() const;
-    void EncodeInModRM_SIB_Disp(uint8_t *rex,
-                                uint8_t *modrm,
-                                uint8_t *sib,
-                                uint8_t *disp) const;
-    
-    std::string ToString() const;
+ public:
+  Mem(Size size, int32_t disp);
+  Mem(Size size, uint8_t base_reg, int32_t disp = 0);
+  Mem(Size size, uint8_t index_reg, Scale scale, int32_t disp = 0);
+  Mem(Size size, uint8_t base_reg, uint8_t index_reg, Scale scale, int32_t disp = 0);
 
-private:
-    Size size_;
-    uint8_t base_reg_;
-    uint8_t index_reg_;
-    Scale scale_;
-    int32_t disp_;
+  Size size() const;
+  uint8_t base_reg() const;
+  uint8_t index_reg() const;
+  Scale scale() const;
+  int32_t disp() const;
+
+  bool RequiresREX() const;
+
+  // ModRM encoding:
+  bool RequiresSIB() const;
+  uint8_t RequiredDispSize() const;
+  void EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint8_t* disp) const;
+
+  std::string ToString() const;
+
+ private:
+  Size size_;
+  uint8_t base_reg_;
+  uint8_t index_reg_;
+  Scale scale_;
+  int32_t disp_;
 };
 
-bool operator==(const Mem& lhs,
-                const Mem& rhs);
-bool operator!=(const Mem& lhs,
-                const Mem& rhs);
+bool operator==(const Mem& lhs, const Mem& rhs);
+bool operator!=(const Mem& lhs, const Mem& rhs);
 
 class Imm {
-public:
-    Imm(int8_t value);
-    Imm(int16_t value);
-    Imm(int32_t value);
-    Imm(int64_t value);
-    
-    Size size() const;
-    int64_t value() const;
-    
-    bool RequiresREX() const;
-    uint8_t RequiredImmSize() const;
-    void EncodeInImm(uint8_t *imm) const;
-    
-    std::string ToString() const;
+ public:
+  Imm(int8_t value);
+  Imm(int16_t value);
+  Imm(int32_t value);
+  Imm(int64_t value);
 
-private:
-    Size size_;
-    int64_t value_;
+  Size size() const;
+  int64_t value() const;
+
+  bool RequiresREX() const;
+  uint8_t RequiredImmSize() const;
+  void EncodeInImm(uint8_t* imm) const;
+
+  std::string ToString() const;
+
+ private:
+  Size size_;
+  int64_t value_;
 };
 
-bool operator==(const Imm& lhs,
-                const Imm& rhs);
-bool operator!=(const Imm& lhs,
-                const Imm& rhs);
+bool operator==(const Imm& lhs, const Imm& rhs);
+bool operator!=(const Imm& lhs, const Imm& rhs);
 
 class FuncRef {
-public:
-    FuncRef(int64_t func_id);
-    
-    int64_t func_id() const;
-    
-    std::string ToString() const;
-    
-private:
-    int64_t func_id_;
+ public:
+  FuncRef(int64_t func_id);
+
+  int64_t func_id() const;
+
+  std::string ToString() const;
+
+ private:
+  int64_t func_id_;
 };
 
-bool operator==(const FuncRef& lhs,
-                const FuncRef& rhs);
-bool operator!=(const FuncRef& lhs,
-                const FuncRef& rhs);
+bool operator==(const FuncRef& lhs, const FuncRef& rhs);
+bool operator!=(const FuncRef& lhs, const FuncRef& rhs);
 
 class BlockRef {
-public:
-    BlockRef(int64_t block_id);
-    
-    int64_t block_id() const;
-    
-    std::string ToString() const;
-    
-private:
-    int64_t block_id_;
+ public:
+  BlockRef(int64_t block_id);
+
+  int64_t block_id() const;
+
+  std::string ToString() const;
+
+ private:
+  int64_t block_id_;
 };
 
-bool operator==(const BlockRef& lhs,
-                const BlockRef& rhs);
-bool operator!=(const BlockRef& lhs,
-                const BlockRef& rhs);
+bool operator==(const BlockRef& lhs, const BlockRef& rhs);
+bool operator!=(const BlockRef& lhs, const BlockRef& rhs);
 
 class RM;
 
 class Operand {
-public:
-    enum class Kind : uint8_t {
-        kReg,
-        kMem,
-        kImm,
-        kFuncRef,
-        kBlockRef,
-    };
-    
-    Operand(Reg reg);
-    Operand(Mem mem);
-    Operand(Imm imm);
-    Operand(FuncRef func_ref);
-    Operand(BlockRef block_ref);
-    
-    Kind kind() const;
-    Size size() const;
-    
-    bool is_reg() const;
-    Reg reg() const;
-    
-    bool is_mem() const;
-    Mem mem() const;
-    
-    bool is_rm() const;
-    RM rm() const;
-    
-    bool is_imm() const;
-    Imm imm() const;
-    
-    bool is_func_ref() const;
-    FuncRef func_ref() const;
-    
-    bool is_block_ref() const;
-    BlockRef block_ref() const;
-    
-    bool RequiresREX() const;
-    
-    std::string ToString() const;
-    
-protected:
-    union Data {
-        Reg reg;
-        Mem mem;
-        Imm imm;
-        FuncRef func_ref;
-        BlockRef block_ref;
-        
-        Data(Reg r) : reg(r) {}
-        Data(Mem m) : mem(m) {}
-        Data(Imm i) : imm(i) {}
-        Data(FuncRef r) : func_ref(r) {}
-        Data(BlockRef r) : block_ref(r) {}
-    };
-    
-    Kind kind_;
-    Data data_;
+ public:
+  enum class Kind : uint8_t {
+    kReg,
+    kMem,
+    kImm,
+    kFuncRef,
+    kBlockRef,
+  };
+
+  Operand(Reg reg);
+  Operand(Mem mem);
+  Operand(Imm imm);
+  Operand(FuncRef func_ref);
+  Operand(BlockRef block_ref);
+
+  Kind kind() const;
+  Size size() const;
+
+  bool is_reg() const;
+  Reg reg() const;
+
+  bool is_mem() const;
+  Mem mem() const;
+
+  bool is_rm() const;
+  RM rm() const;
+
+  bool is_imm() const;
+  Imm imm() const;
+
+  bool is_func_ref() const;
+  FuncRef func_ref() const;
+
+  bool is_block_ref() const;
+  BlockRef block_ref() const;
+
+  bool RequiresREX() const;
+
+  std::string ToString() const;
+
+ protected:
+  union Data {
+    Reg reg;
+    Mem mem;
+    Imm imm;
+    FuncRef func_ref;
+    BlockRef block_ref;
+
+    Data(Reg r) : reg(r) {}
+    Data(Mem m) : mem(m) {}
+    Data(Imm i) : imm(i) {}
+    Data(FuncRef r) : func_ref(r) {}
+    Data(BlockRef r) : block_ref(r) {}
+  };
+
+  Kind kind_;
+  Data data_;
 };
 
-bool operator==(const Operand& lhs,
-                const Operand& rhs);
-bool operator!=(const Operand& lhs,
-                const Operand& rhs);
+bool operator==(const Operand& lhs, const Operand& rhs);
+bool operator!=(const Operand& lhs, const Operand& rhs);
 
 class RM : public Operand {
-public:
-    RM(Reg reg);
-    RM(Mem mem);
-    
-    bool RequiresSIB() const;
-    uint8_t RequiredDispSize() const;
-    void EncodeInModRM_SIB_Disp(uint8_t *rex,
-                                uint8_t *modrm,
-                                uint8_t *sib,
-                                uint8_t *disp) const;
+ public:
+  RM(Reg reg);
+  RM(Mem mem);
+
+  bool RequiresSIB() const;
+  uint8_t RequiredDispSize() const;
+  void EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint8_t* disp) const;
 };
 
 extern const Reg al;
@@ -313,6 +283,6 @@ extern const Reg r13;
 extern const Reg r14;
 extern const Reg r15;
 
-}
+}  // namespace x86_64
 
 #endif /* x86_64_ops_h */

@@ -10,41 +10,38 @@
 
 namespace ir_proc {
 
-PhiResolver::PhiResolver(ir::Func *func) : func_(func) {}
+PhiResolver::PhiResolver(ir::Func* func) : func_(func) {}
 PhiResolver::~PhiResolver() {}
 
 void PhiResolver::ResolvePhis() {
-    for (ir::Block *block : func_->blocks()) {
-        ResolvePhisInBlock(block);
+  for (ir::Block* block : func_->blocks()) {
+    ResolvePhisInBlock(block);
+  }
+}
+
+void PhiResolver::ResolvePhisInBlock(ir::Block* block) {
+  for (;;) {
+    ir::Instr* instr = block->instrs().front();
+    ir::PhiInstr* phi_instr = dynamic_cast<ir::PhiInstr*>(instr);
+    if (phi_instr == nullptr) {
+      break;
     }
-}
 
-void PhiResolver::ResolvePhisInBlock(ir::Block *block) {
-    for (;;) {
-        ir::Instr *instr = block->instrs().front();
-        ir::PhiInstr *phi_instr = dynamic_cast<ir::PhiInstr *>(instr);
-        if (phi_instr == nullptr) {
-            break;
-        }
-        
-        ir::Computed destination = phi_instr->result();
-        
-        for (ir::InheritedValue inherited_value : phi_instr->args()) {
-            ir::Value source = inherited_value.value();
+    ir::Computed destination = phi_instr->result();
 
-            ir::MovInstr *mov_instr = new ir::MovInstr(destination,
-                                                       source);
-            
-            ir::BlockValue origin = inherited_value.origin();
-            ir::Block *parent = func_->GetBlock(origin.block());
-            
-            parent->InsertInstr(parent->instrs().size() - 1,
-                                mov_instr);
-        }
-        
-        block->RemoveInstr(phi_instr);
+    for (ir::InheritedValue inherited_value : phi_instr->args()) {
+      ir::Value source = inherited_value.value();
+
+      ir::MovInstr* mov_instr = new ir::MovInstr(destination, source);
+
+      ir::BlockValue origin = inherited_value.origin();
+      ir::Block* parent = func_->GetBlock(origin.block());
+
+      parent->InsertInstr(parent->instrs().size() - 1, mov_instr);
     }
+
+    block->RemoveInstr(phi_instr);
+  }
 }
 
-}
-
+}  // namespace ir_proc

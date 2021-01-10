@@ -12,27 +12,26 @@
 #include <string>
 #include <vector>
 
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/types/info.h"
-#include "lang/processors/packages/packages.h"
 #include "lang/processors/docs/common.h"
 #include "lang/processors/docs/file_doc.h"
+#include "lang/processors/packages/packages.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/types/info.h"
 
 namespace lang {
 namespace docs {
 
 struct PackageDoc {
-    std::string path;
-    std::string name;
-    std::string html;
-    std::vector<FileDoc> docs;
+  std::string path;
+  std::string name;
+  std::string html;
+  std::vector<FileDoc> docs;
 };
 
-PackageDoc GenerateDocumentationForPackage(packages::Package *package,
-                                           pos::FileSet *pos_file_set,
-                                           types::Info *type_info);
+PackageDoc GenerateDocumentationForPackage(packages::Package* package, pos::FileSet* pos_file_set,
+                                           types::Info* type_info);
 
-}
-}
+}  // namespace docs
+}  // namespace lang
 
 #endif /* lang_docs_package_doc_h */

@@ -17,60 +17,46 @@ namespace x86_64 {
 Block::Block() {}
 Block::~Block() {}
 
-Func * Block::func() const {
-    return func_;
-}
+Func* Block::func() const { return func_; }
 
-int64_t Block::block_id() const {
-    return block_id_;
-}
+int64_t Block::block_id() const { return block_id_; }
 
-const std::vector<Instr *>& Block::instrs() const {
-    return instrs_;
-}
+const std::vector<Instr*>& Block::instrs() const { return instrs_; }
 
-BlockRef Block::GetBlockRef() const {
-    return BlockRef(block_id_);
-}
+BlockRef Block::GetBlockRef() const { return BlockRef(block_id_); }
 
-int64_t Block::Encode(Linker *linker,
-                      common::data code) const {
-    linker->AddBlockAddr(block_id_, code.base());
-    
-    int64_t c = 0;
-    for (auto& instr : instrs_) {
-        int8_t r = instr->Encode(linker, code.view(c));
-        if (r == -1) return -1;
-        c += r;
-    }
-    return c;
+int64_t Block::Encode(Linker* linker, common::data code) const {
+  linker->AddBlockAddr(block_id_, code.base());
+
+  int64_t c = 0;
+  for (auto& instr : instrs_) {
+    int8_t r = instr->Encode(linker, code.view(c));
+    if (r == -1) return -1;
+    c += r;
+  }
+  return c;
 }
 
 std::string Block::ToString() const {
-    std::stringstream ss;
-    ss << "BB" << std::to_string(block_id_) << ":\n";
-    for (size_t i = 0; i < instrs_.size(); i++) {
-        ss << "\t" << instrs_[i]->ToString();
-        if (i < instrs_.size() - 1) ss << "\n";
-    }
-    return ss.str();
+  std::stringstream ss;
+  ss << "BB" << std::to_string(block_id_) << ":\n";
+  for (size_t i = 0; i < instrs_.size(); i++) {
+    ss << "\t" << instrs_[i]->ToString();
+    if (i < instrs_.size() - 1) ss << "\n";
+  }
+  return ss.str();
 }
 
-BlockBuilder::BlockBuilder(Func *func,
-                           int64_t block_id) {
-    block_ = new Block();
-    block_->func_ = func;
-    block_->block_id_ = block_id;
+BlockBuilder::BlockBuilder(Func* func, int64_t block_id) {
+  block_ = new Block();
+  block_->func_ = func;
+  block_->block_id_ = block_id;
 }
 
 BlockBuilder::~BlockBuilder() {}
 
-void BlockBuilder::AddInstr(Instr *instr) {
-    block_->instrs_.push_back(instr);
-}
+void BlockBuilder::AddInstr(Instr* instr) { block_->instrs_.push_back(instr); }
 
-Block * BlockBuilder::block() const {
-    return block_;
-}
+Block* BlockBuilder::block() const { return block_; }
 
-}
+}  // namespace x86_64

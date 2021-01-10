@@ -12,111 +12,102 @@
 
 namespace ir_proc {
 
-Scanner::Scanner(std::istream& in_stream) : in_stream_(in_stream) {
-    token_ = kUnknown;
-}
+Scanner::Scanner(std::istream& in_stream) : in_stream_(in_stream) { token_ = kUnknown; }
 
 Scanner::~Scanner() {}
 
-Scanner::Token Scanner::token() const {
-    return token_;
-}
+Scanner::Token Scanner::token() const { return token_; }
 
 std::string Scanner::string() const {
-    if (token_ == kUnknown || token_ == kEoF)
-        throw "token has no associated string";
-    
-    return string_;
+  if (token_ == kUnknown || token_ == kEoF) throw "token has no associated string";
+
+  return string_;
 }
 
 int64_t Scanner::sign() const {
-    if (token_ != kNumber)
-        throw "token has no associated sign";
-    
-    return sign_;
+  if (token_ != kNumber) throw "token has no associated sign";
+
+  return sign_;
 }
 
 uint64_t Scanner::number() const {
-    if (token_ != kNumber)
-        throw "token has no associated number";
-    
-    return number_;
+  if (token_ != kNumber) throw "token has no associated number";
+
+  return number_;
 }
 
 void Scanner::Next() {
-    if (token_ == kEoF)
-        throw "can not advance Scanner at EoF";
-    
-    int c = in_stream_.get();
-    while (c == ' ' || c == '\t') {
-        c = in_stream_.get();
-    }
-    
-    switch (c) {
-        case EOF:
-            token_ = kEoF;
-            return;
-        case '\n':
-        case '#':
-        case '%':
-        case ':':
-        case '{':
-        case '}':
-        case '@':
-        case ',':
-        case '(':
-        case ')':
-            token_ = (Token) c;
-            string_ = std::string(1, c);
-            return;
-        case '=':
-            token_ = kEqualSign;
-            string_ = "=";
-            if (in_stream_.peek() == '>') {
-                in_stream_.get();
-                token_ = kArrow;
-                string_ = "=>";
-            }
-            return;
-        default:
-            break;
-    }
-    
-    string_ = std::string(1, c);
-    if (std::isalpha(c)) {
-        token_ = kIdentifier;
+  if (token_ == kEoF) throw "can not advance Scanner at EoF";
 
-        c = in_stream_.get();
-        while (std::isalnum(c) || c == '_') {
-            string_ += std::string(1, c);
-            c = in_stream_.get();
-        }
-        in_stream_.putback(c);
-    } else if (c == '+' || c == '-' ||
-               std::isdigit(c)) {
-        token_ = kNumber;
-        if (c == '+') {
-            sign_ = +1;
-            number_ = 0;
-        } else if (c == '-') {
-            sign_ = -1;
-            number_ = 0;
-        } else {
-            sign_ = +1;
-            number_ = c - '0';
-        }
-        
-        c = in_stream_.get();
-        while (std::isdigit(c)) {
-            string_ += std::string(1, c);
-            number_ *= 10;
-            number_ += c - '0';
-            c = in_stream_.get();
-        }
-        in_stream_.putback(c);
+  int c = in_stream_.get();
+  while (c == ' ' || c == '\t') {
+    c = in_stream_.get();
+  }
+
+  switch (c) {
+    case EOF:
+      token_ = kEoF;
+      return;
+    case '\n':
+    case '#':
+    case '%':
+    case ':':
+    case '{':
+    case '}':
+    case '@':
+    case ',':
+    case '(':
+    case ')':
+      token_ = (Token)c;
+      string_ = std::string(1, c);
+      return;
+    case '=':
+      token_ = kEqualSign;
+      string_ = "=";
+      if (in_stream_.peek() == '>') {
+        in_stream_.get();
+        token_ = kArrow;
+        string_ = "=>";
+      }
+      return;
+    default:
+      break;
+  }
+
+  string_ = std::string(1, c);
+  if (std::isalpha(c)) {
+    token_ = kIdentifier;
+
+    c = in_stream_.get();
+    while (std::isalnum(c) || c == '_') {
+      string_ += std::string(1, c);
+      c = in_stream_.get();
+    }
+    in_stream_.putback(c);
+  } else if (c == '+' || c == '-' || std::isdigit(c)) {
+    token_ = kNumber;
+    if (c == '+') {
+      sign_ = +1;
+      number_ = 0;
+    } else if (c == '-') {
+      sign_ = -1;
+      number_ = 0;
     } else {
-        token_ = kUnknown;
+      sign_ = +1;
+      number_ = c - '0';
     }
+
+    c = in_stream_.get();
+    while (std::isdigit(c)) {
+      string_ += std::string(1, c);
+      number_ *= 10;
+      number_ += c - '0';
+      c = in_stream_.get();
+    }
+    in_stream_.putback(c);
+  } else {
+    token_ = kUnknown;
+  }
 }
 
-}
+}  // namespace ir_proc

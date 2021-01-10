@@ -9,9 +9,5 @@
 #include "base_handler.h"
 
 namespace lang {
-namespace type_checker {
-
-
-
-}
-}
+namespace type_checker {}
+}  // namespace lang

@@ -18,18 +18,18 @@ namespace lang {
 namespace types {
 
 class Initializer {
-public:
-    Initializer(std::vector<Variable *> lhs, ast::Expr *rhs) : lhs_(lhs), rhs_(rhs) {}
-    
-    const std::vector<Variable *>& lhs() const { return lhs_; }
-    ast::Expr * rhs() const { return rhs_; }
-    
-private:
-    std::vector<Variable *> lhs_;
-    ast::Expr *rhs_;
+ public:
+  Initializer(std::vector<Variable*> lhs, ast::Expr* rhs) : lhs_(lhs), rhs_(rhs) {}
+
+  const std::vector<Variable*>& lhs() const { return lhs_; }
+  ast::Expr* rhs() const { return rhs_; }
+
+ private:
+  std::vector<Variable*> lhs_;
+  ast::Expr* rhs_;
 };
 
-}
-}
+}  // namespace types
+}  // namespace lang
 
 #endif /* lang_types_initializer_h */

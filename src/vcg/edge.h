@@ -14,22 +14,20 @@
 namespace vcg {
 
 class Edge {
-public:
-    Edge(int64_t source_number,
-         int64_t target_number,
-         bool is_directed = false);
-    ~Edge();
-    
-    int64_t source_number() const;
-    int64_t target_number() const;
-    bool is_directed() const;
-    
-private:
-    const int64_t source_number_;
-    const int64_t target_number_;
-    const bool is_directed_;
+ public:
+  Edge(int64_t source_number, int64_t target_number, bool is_directed = false);
+  ~Edge();
+
+  int64_t source_number() const;
+  int64_t target_number() const;
+  bool is_directed() const;
+
+ private:
+  const int64_t source_number_;
+  const int64_t target_number_;
+  const bool is_directed_;
 };
 
-}
+}  // namespace vcg
 
 #endif /* vcg_edge_h */

@@ -23,14 +23,13 @@ namespace x86_64 {
 // RCL/RCR/ROL/ROR      (rotate)
 
 class Instr {
-public:
-    virtual ~Instr() {}
-    
-    virtual int8_t Encode(Linker *linker,
-                          common::data code) const = 0;
-    virtual std::string ToString() const = 0;
+ public:
+  virtual ~Instr() {}
+
+  virtual int8_t Encode(Linker* linker, common::data code) const = 0;
+  virtual std::string ToString() const = 0;
 };
 
-}
+}  // namespace x86_64
 
 #endif /* x86_64_instr_h */

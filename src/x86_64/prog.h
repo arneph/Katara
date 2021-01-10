@@ -14,44 +14,43 @@
 #include <vector>
 
 #include "common/data.h"
-#include "x86_64/mc/linker.h"
 #include "x86_64/func.h"
+#include "x86_64/mc/linker.h"
 
 namespace x86_64 {
 
 class Prog {
-public:
-    ~Prog();
-    
-    const std::vector<Func *> funcs() const;
-    
-    int64_t Encode(Linker *linker,
-                   common::data code) const;
-    std::string ToString() const;
-    
-private:
-    Prog();
-    
-    std::vector<Func *> funcs_;
-    
-    friend class ProgBuilder;
+ public:
+  ~Prog();
+
+  const std::vector<Func*> funcs() const;
+
+  int64_t Encode(Linker* linker, common::data code) const;
+  std::string ToString() const;
+
+ private:
+  Prog();
+
+  std::vector<Func*> funcs_;
+
+  friend class ProgBuilder;
 };
 
 class ProgBuilder {
-public:
-    ProgBuilder();
-    ~ProgBuilder();
-    
-    FuncBuilder AddFunc(std::string func_name);
-    
-    Prog * prog() const;
-    
-private:
-    Prog *prog_;
-    int64_t func_count_;
-    int64_t block_count_;
+ public:
+  ProgBuilder();
+  ~ProgBuilder();
+
+  FuncBuilder AddFunc(std::string func_name);
+
+  Prog* prog() const;
+
+ private:
+  Prog* prog_;
+  int64_t func_count_;
+  int64_t block_count_;
 };
 
-}
+}  // namespace x86_64
 
 #endif /* x86_prog_h */

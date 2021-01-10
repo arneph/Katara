@@ -16,32 +16,32 @@ namespace types {
 
 // TODO: add optional constant value
 class ExprInfo {
-public:
-    enum class Kind {
-        kInvalid,
-        kNoValue,
-        kBuiltin,
-        kType,
-        kConstant,
-        kVariable,
-        kValue,
-        kValueOk,
-    };
-    
-    ExprInfo(Kind kind, Type *type) : kind_(kind), type_(type) {}
-    
-    bool is_type() const;
-    bool is_value() const;
-    bool is_addressable() const;
-    Kind kind() const { return kind_; }
-    Type * type() const { return type_; }
+ public:
+  enum class Kind {
+    kInvalid,
+    kNoValue,
+    kBuiltin,
+    kType,
+    kConstant,
+    kVariable,
+    kValue,
+    kValueOk,
+  };
 
-private:
-    Kind kind_;
-    Type *type_;
+  ExprInfo(Kind kind, Type* type) : kind_(kind), type_(type) {}
+
+  bool is_type() const;
+  bool is_value() const;
+  bool is_addressable() const;
+  Kind kind() const { return kind_; }
+  Type* type() const { return type_; }
+
+ private:
+  Kind kind_;
+  Type* type_;
 };
 
-}
-}
+}  // namespace types
+}  // namespace lang
 
 #endif /* lang_types_expr_info_h */

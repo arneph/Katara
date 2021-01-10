@@ -18,24 +18,24 @@ namespace lang {
 namespace types {
 
 class Package {
-public:
-    std::string path() const { return path_; }
-    std::string name() const { return name_; }
-    Scope *scope() const { return scope_; }
-    const std::unordered_set<Package *>& imports() const { return imports_; }
-    
-private:
-    Package() {}
-    
-    std::string path_;
-    std::string name_;
-    Scope *scope_;
-    std::unordered_set<Package *> imports_;
-    
-    friend class InfoBuilder;
+ public:
+  std::string path() const { return path_; }
+  std::string name() const { return name_; }
+  Scope* scope() const { return scope_; }
+  const std::unordered_set<Package*>& imports() const { return imports_; }
+
+ private:
+  Package() {}
+
+  std::string path_;
+  std::string name_;
+  Scope* scope_;
+  std::unordered_set<Package*> imports_;
+
+  friend class InfoBuilder;
 };
 
-}
-}
+}  // namespace types
+}  // namespace lang
 
 #endif /* lang_types_package_h */

@@ -12,29 +12,26 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ir/func.h"
 #include "ir/block.h"
+#include "ir/func.h"
 #include "ir/instr.h"
 #include "ir/value.h"
-
 #include "ir_info/func_live_range_info.h"
 
 namespace ir_proc {
 
 class RegisterAllocator {
-public:
-    RegisterAllocator(
-        ir::Func *func,
-        ir_info::InterferenceGraph& interference_graph);
-    ~RegisterAllocator();
-    
-    void AllocateRegisters();
-    
-private:
-    ir::Func *func_;
-    ir_info::InterferenceGraph& graph_;
+ public:
+  RegisterAllocator(ir::Func* func, ir_info::InterferenceGraph& interference_graph);
+  ~RegisterAllocator();
+
+  void AllocateRegisters();
+
+ private:
+  ir::Func* func_;
+  ir_info::InterferenceGraph& graph_;
 };
 
-}
+}  // namespace ir_proc
 
 #endif /* ir_proc_register_allocator_h */

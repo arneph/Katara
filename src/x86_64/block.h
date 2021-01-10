@@ -14,8 +14,8 @@
 #include <vector>
 
 #include "common/data.h"
-#include "x86_64/mc/linker.h"
 #include "x86_64/instr.h"
+#include "x86_64/mc/linker.h"
 
 namespace x86_64 {
 
@@ -23,46 +23,44 @@ class Func;
 class FuncBuilder;
 
 class Block {
-public:
-    ~Block();
-    
-    Func * func() const;
-    int64_t block_id() const;
-    const std::vector<Instr *>& instrs() const;
-    
-    BlockRef GetBlockRef() const;
-    
-    int64_t Encode(Linker *linker,
-                   common::data code) const;
-    std::string ToString() const;
-    
-private:
-    Block();
-    
-    Func *func_;
-    int64_t block_id_;
-    std::vector<Instr *> instrs_;
-    
-    friend class BlockBuilder;
+ public:
+  ~Block();
+
+  Func* func() const;
+  int64_t block_id() const;
+  const std::vector<Instr*>& instrs() const;
+
+  BlockRef GetBlockRef() const;
+
+  int64_t Encode(Linker* linker, common::data code) const;
+  std::string ToString() const;
+
+ private:
+  Block();
+
+  Func* func_;
+  int64_t block_id_;
+  std::vector<Instr*> instrs_;
+
+  friend class BlockBuilder;
 };
 
 class BlockBuilder {
-public:
-    ~BlockBuilder();
-    
-    void AddInstr(Instr *instr);
-    
-    Block * block() const;
-    
-private:
-    BlockBuilder(Func *func,
-                 int64_t block_id);
-    
-    Block *block_;
-    
-    friend class FuncBuilder;
+ public:
+  ~BlockBuilder();
+
+  void AddInstr(Instr* instr);
+
+  Block* block() const;
+
+ private:
+  BlockBuilder(Func* func, int64_t block_id);
+
+  Block* block_;
+
+  friend class FuncBuilder;
 };
 
-}
+}  // namespace x86_64
 
 #endif /* x86_64_block_h */

@@ -12,31 +12,28 @@
 #include <string>
 #include <unordered_map>
 
-#include "ir/func.h"
 #include "ir/block.h"
-
+#include "ir/func.h"
 #include "ir_info/block_live_range_info.h"
 #include "ir_info/interference_graph.h"
 
 namespace ir_info {
 
 class FuncLiveRangeInfo {
-public:
-    FuncLiveRangeInfo(ir::Func *func_);
-    ~FuncLiveRangeInfo();
-    
-    BlockLiveRangeInfo& GetBlockLiveRangeInfo(ir::Block *block);
-    
-    std::string ToString() const;
-    
-private:
-    const ir::Func *func_;
-    
-    std::unordered_map<ir::Block *,
-                       BlockLiveRangeInfo>
-        block_live_range_infos_;
+ public:
+  FuncLiveRangeInfo(ir::Func* func_);
+  ~FuncLiveRangeInfo();
+
+  BlockLiveRangeInfo& GetBlockLiveRangeInfo(ir::Block* block);
+
+  std::string ToString() const;
+
+ private:
+  const ir::Func* func_;
+
+  std::unordered_map<ir::Block*, BlockLiveRangeInfo> block_live_range_infos_;
 };
 
-}
+}  // namespace ir_info
 
 #endif /* ir_info_func_live_range_info_h */

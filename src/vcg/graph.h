@@ -18,20 +18,20 @@
 namespace vcg {
 
 class Graph {
-public:
-    Graph();
-    ~Graph();
-    
-    std::vector<Node>& nodes();
-    std::vector<Edge>& edges();
-    
-    std::string ToVCGFormat(bool exclude_node_text = false) const;
-    
-private:
-    std::vector<Node> nodes_;
-    std::vector<Edge> edges_;
+ public:
+  Graph();
+  ~Graph();
+
+  std::vector<Node>& nodes();
+  std::vector<Edge>& edges();
+
+  std::string ToVCGFormat(bool exclude_node_text = false) const;
+
+ private:
+  std::vector<Node> nodes_;
+  std::vector<Edge> edges_;
 };
 
-}
+}  // namespace vcg
 
 #endif /* vcg_graph_h */

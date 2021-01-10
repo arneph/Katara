@@ -17,9 +17,9 @@
 namespace lang {
 namespace types {
 
-std::string InfoToText(pos::FileSet *file_set, Info *info);
+std::string InfoToText(pos::FileSet* file_set, Info* info);
 
 }
-}
+}  // namespace lang
 
 #endif /* lang_types_info_util_h */

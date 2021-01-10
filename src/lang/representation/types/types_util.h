@@ -15,37 +15,37 @@
 namespace lang {
 namespace types {
 
-Type * UnderlyingOf(Type *type);
+Type* UnderlyingOf(Type* type);
 
-Type * ResolveAlias(Type *type);
+Type* ResolveAlias(Type* type);
 
-bool IsIdentical(Type *a, Type *b);
-bool IsIdentical(Basic *a, Basic *b);
-bool IsIdentical(Pointer *a, Pointer *b);
-bool IsIdentical(Array *a, Array *b);
-bool IsIdentical(Slice *a, Slice *b);
-bool IsIdentical(TypeParameter *a, TypeParameter *b);
-bool IsIdentical(NamedType *a, NamedType *b);
-bool IsIdentical(TypeInstance *a, TypeInstance *b);
-bool IsIdentical(Tuple *a, Tuple *b);
-bool IsIdentical(Signature *a, Signature *b);
-bool IsIdentical(Struct *a, Struct *b);
-bool IsIdentical(Interface *a, Interface *b);
+bool IsIdentical(Type* a, Type* b);
+bool IsIdentical(Basic* a, Basic* b);
+bool IsIdentical(Pointer* a, Pointer* b);
+bool IsIdentical(Array* a, Array* b);
+bool IsIdentical(Slice* a, Slice* b);
+bool IsIdentical(TypeParameter* a, TypeParameter* b);
+bool IsIdentical(NamedType* a, NamedType* b);
+bool IsIdentical(TypeInstance* a, TypeInstance* b);
+bool IsIdentical(Tuple* a, Tuple* b);
+bool IsIdentical(Signature* a, Signature* b);
+bool IsIdentical(Struct* a, Struct* b);
+bool IsIdentical(Interface* a, Interface* b);
 
-bool IsAssignableTo(Type *src, Type *dst);
-bool IsComparable(Type *t, Type *v);
-bool IsOrderable(Type *t, Type *v);
-bool IsConvertibleTo(Type *src, Type *dst);
+bool IsAssignableTo(Type* src, Type* dst);
+bool IsComparable(Type* t, Type* v);
+bool IsOrderable(Type* t, Type* v);
+bool IsConvertibleTo(Type* src, Type* dst);
 
-bool Implements(Type *impl, Interface *interface);
-bool Implements(TypeParameter *impl, Interface *interface);
-bool Implements(NamedType *impl, Interface *interface);
-bool Implements(TypeInstance *impl, Interface *interface);
-bool Implements(Interface *impl, Interface *interface);
+bool Implements(Type* impl, Interface* interface);
+bool Implements(TypeParameter* impl, Interface* interface);
+bool Implements(NamedType* impl, Interface* interface);
+bool Implements(TypeInstance* impl, Interface* interface);
+bool Implements(Interface* impl, Interface* interface);
 
-bool IsAssertableTo(Type *general, Type *specialised);
+bool IsAssertableTo(Type* general, Type* specialised);
 
-}
-}
+}  // namespace types
+}  // namespace lang
 
 #endif /* types_util_h */

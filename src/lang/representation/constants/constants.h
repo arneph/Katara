@@ -18,23 +18,20 @@
 namespace lang {
 namespace constants {
 
-typedef std::variant<bool,
-                     int8_t, uint8_t,
-                     int16_t, uint16_t,
-                     int32_t, uint32_t,
-                     int64_t, uint64_t,
-                     std::string> value_t;
+typedef std::variant<bool, int8_t, uint8_t, int16_t, uint16_t, int32_t, uint32_t, int64_t, uint64_t,
+                     std::string>
+    value_t;
 
 class Value {
-public:
-    Value(value_t value) : value_(value) {}
-    
-    bool CanConvertToArraySize() const;
-    uint64_t ConvertToArraySize() const;
-    
-    std::string ToString() const;
-    
-    value_t value_;
+ public:
+  Value(value_t value) : value_(value) {}
+
+  bool CanConvertToArraySize() const;
+  uint64_t ConvertToArraySize() const;
+
+  std::string ToString() const;
+
+  value_t value_;
 };
 
 bool Compare(Value x, tokens::Token op, Value y);
@@ -42,7 +39,7 @@ Value BinaryOp(Value x, tokens::Token op, Value y);
 Value ShiftOp(Value x, tokens::Token op, Value y);
 Value UnaryOp(tokens::Token op, Value x);
 
-}
-}
+}  // namespace constants
+}  // namespace lang
 
 #endif /* lang_constants_h */

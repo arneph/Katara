@@ -11,24 +11,40 @@
 namespace x86_64 {
 
 std::string to_suffix_string(InstrCond cond) {
-    switch (cond) {
-        case InstrCond::kOverflow:       return "o";
-        case InstrCond::kNoOverflow:     return "no";
-        case InstrCond::kSign:           return "s";
-        case InstrCond::kNoSign:         return "ns";
-        case InstrCond::kParityEven:     return "pe";
-        case InstrCond::kParityOdd:      return "po";
-        case InstrCond::kEqual:          return "e";
-        case InstrCond::kNotEqual:       return "ne";
-        case InstrCond::kAbove:          return "a";
-        case InstrCond::kAboveOrEqual:   return "ae";
-        case InstrCond::kBelowOrEqual:   return "be";
-        case InstrCond::kBelow:          return "b";
-        case InstrCond::kGreater:        return "g";
-        case InstrCond::kGreaterOrEqual: return "ge";
-        case InstrCond::kLessOrEqual:    return "le";
-        case InstrCond::kLess:           return "l";
-    }
+  switch (cond) {
+    case InstrCond::kOverflow:
+      return "o";
+    case InstrCond::kNoOverflow:
+      return "no";
+    case InstrCond::kSign:
+      return "s";
+    case InstrCond::kNoSign:
+      return "ns";
+    case InstrCond::kParityEven:
+      return "pe";
+    case InstrCond::kParityOdd:
+      return "po";
+    case InstrCond::kEqual:
+      return "e";
+    case InstrCond::kNotEqual:
+      return "ne";
+    case InstrCond::kAbove:
+      return "a";
+    case InstrCond::kAboveOrEqual:
+      return "ae";
+    case InstrCond::kBelowOrEqual:
+      return "be";
+    case InstrCond::kBelow:
+      return "b";
+    case InstrCond::kGreater:
+      return "g";
+    case InstrCond::kGreaterOrEqual:
+      return "ge";
+    case InstrCond::kLessOrEqual:
+      return "le";
+    case InstrCond::kLess:
+      return "l";
+  }
 }
 
-}
+}  // namespace x86_64

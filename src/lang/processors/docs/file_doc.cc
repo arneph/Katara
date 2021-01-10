@@ -11,11 +11,11 @@
 #include <iomanip>
 #include <sstream>
 
+#include "lang/processors/scanner/scanner.h"
 #include "lang/representation/ast/ast_util.h"
-#include "lang/representation/types/types.h"
 #include "lang/representation/types/objects.h"
 #include "lang/representation/types/package.h"
-#include "lang/processors/scanner/scanner.h"
+#include "lang/representation/types/types.h"
 
 namespace lang {
 namespace docs {
@@ -23,89 +23,85 @@ namespace docs {
 namespace {
 
 std::string InsertLineNumbers(std::string text, int64_t& line_number) {
-    std::ostringstream ss;
-    if (line_number == 0) {
-        line_number++;
-        ss << std::setw(5) << line_number << " ";
-    }
-    for (char c : text) {
-        ss << c;
-        if (c != '\n') continue;
-        line_number++;
-        ss << std::setw(5) << line_number << " ";
-    }
-    return ss.str();
+  std::ostringstream ss;
+  if (line_number == 0) {
+    line_number++;
+    ss << std::setw(5) << line_number << " ";
+  }
+  for (char c : text) {
+    ss << c;
+    if (c != '\n') continue;
+    line_number++;
+    ss << std::setw(5) << line_number << " ";
+  }
+  return ss.str();
 }
-};
+};  // namespace
 
-FileDoc GenerateDocumentationForFile(std::string name,
-                                     ast::File *ast_file,
-                                     pos::FileSet *pos_file_set,
-                                     types::Info *type_info) {
-    pos::File *pos_file = pos_file_set->FileAt(ast_file->start());
-    scanner::Scanner scanner(pos_file);
-    pos::pos_t last_pos = pos_file->start() - 1;
-    std::ostringstream ss;
-    ss << "<!DOCTYPE html>\n"
-       << "<html>\n"
-       << "<head>\n"
-       << "<title>" << name << "</title>\n"
-       << "</head>\n"
-       << "<body>\n"
-       << "<div style=\"font-family:'Courier New'\">\n";
-    int64_t line_number = 0;
-    while (scanner.token() != tokens::kEOF) {
-        std::string whitespace = pos_file->contents(last_pos + 1, scanner.token_start() - 1);
-        std::string contents = pos_file->contents(scanner.token_start(), scanner.token_end());
-        whitespace = html::Escape(InsertLineNumbers(whitespace, line_number));
-        contents = html::Escape(InsertLineNumbers(contents, line_number));
-        html::TextFormat format;
-        std::string id = "";
-        std::string classs = "";
-        std::optional<html::GroupLink> link;
-        if (scanner.token() == tokens::kIdent) {
-            ast::Ident *ident = nullptr;
-            ast::WalkFunction f([&scanner, &ident, &f](ast::Node *node) -> ast::WalkFunction {
-                if (node == nullptr) return f;
-                if (node->node_kind() == ast::NodeKind::kIdent &&
-                    node->start() == scanner.token_start()) {
-                    ident = static_cast<ast::Ident *>(node);
-                    return ast::WalkFunction();
-                }
-                return f;
-            });
-            ast::Walk(ast_file, f);
-            format = FormatForIdent(ident, type_info);
-            id = "p" + std::to_string(scanner.token_start());
-            types::Object *obj = type_info->ObjectOf(ident);
-            if (obj != nullptr &&
-                obj->package() != nullptr) {
-                pos::File *obj_file = pos_file_set->FileAt(obj->position());
-                classs = "p" + std::to_string(obj->position());
-                link = html::GroupLink{
-                    .link = obj_file->name() + ".html#" + classs,
-                    .linked_id = classs,
-                    .group_class = classs,
-                };
-            }
-        } else {
-            format = FormatForToken(scanner.token());
+FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
+                                     pos::FileSet* pos_file_set, types::Info* type_info) {
+  pos::File* pos_file = pos_file_set->FileAt(ast_file->start());
+  scanner::Scanner scanner(pos_file);
+  pos::pos_t last_pos = pos_file->start() - 1;
+  std::ostringstream ss;
+  ss << "<!DOCTYPE html>\n"
+     << "<html>\n"
+     << "<head>\n"
+     << "<title>" << name << "</title>\n"
+     << "</head>\n"
+     << "<body>\n"
+     << "<div style=\"font-family:'Courier New'\">\n";
+  int64_t line_number = 0;
+  while (scanner.token() != tokens::kEOF) {
+    std::string whitespace = pos_file->contents(last_pos + 1, scanner.token_start() - 1);
+    std::string contents = pos_file->contents(scanner.token_start(), scanner.token_end());
+    whitespace = html::Escape(InsertLineNumbers(whitespace, line_number));
+    contents = html::Escape(InsertLineNumbers(contents, line_number));
+    html::TextFormat format;
+    std::string id = "";
+    std::string classs = "";
+    std::optional<html::GroupLink> link;
+    if (scanner.token() == tokens::kIdent) {
+      ast::Ident* ident = nullptr;
+      ast::WalkFunction f([&scanner, &ident, &f](ast::Node* node) -> ast::WalkFunction {
+        if (node == nullptr) return f;
+        if (node->node_kind() == ast::NodeKind::kIdent && node->start() == scanner.token_start()) {
+          ident = static_cast<ast::Ident*>(node);
+          return ast::WalkFunction();
         }
-        
-        ss << whitespace;
-        ss << html::TagsForText(contents, format, id, classs, link);
-        
-        last_pos = scanner.token_end();
-        scanner.Next();
+        return f;
+      });
+      ast::Walk(ast_file, f);
+      format = FormatForIdent(ident, type_info);
+      id = "p" + std::to_string(scanner.token_start());
+      types::Object* obj = type_info->ObjectOf(ident);
+      if (obj != nullptr && obj->package() != nullptr) {
+        pos::File* obj_file = pos_file_set->FileAt(obj->position());
+        classs = "p" + std::to_string(obj->position());
+        link = html::GroupLink{
+            .link = obj_file->name() + ".html#" + classs,
+            .linked_id = classs,
+            .group_class = classs,
+        };
+      }
+    } else {
+      format = FormatForToken(scanner.token());
     }
-    ss << "\n</div>\n"
-       << "</body>\n"
-       << "</html>";
-    return FileDoc{
-        .name = name,
-        .html = ss.str(),
-    };
+
+    ss << whitespace;
+    ss << html::TagsForText(contents, format, id, classs, link);
+
+    last_pos = scanner.token_end();
+    scanner.Next();
+  }
+  ss << "\n</div>\n"
+     << "</body>\n"
+     << "</html>";
+  return FileDoc{
+      .name = name,
+      .html = ss.str(),
+  };
 }
 
-}
-}
+}  // namespace docs
+}  // namespace lang

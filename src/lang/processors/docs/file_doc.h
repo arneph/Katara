@@ -11,25 +11,23 @@
 
 #include <string>
 
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/types/info.h"
 #include "lang/processors/docs/common.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/representation/positions/positions.h"
+#include "lang/representation/types/info.h"
 
 namespace lang {
 namespace docs {
 
 struct FileDoc {
-    std::string name;
-    std::string html;
+  std::string name;
+  std::string html;
 };
 
-FileDoc GenerateDocumentationForFile(std::string name,
-                                     ast::File *ast_file,
-                                     pos::FileSet *pos_file_set,
-                                     types::Info *type_info);
+FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
+                                     pos::FileSet* pos_file_set, types::Info* type_info);
 
-}
-}
+}  // namespace docs
+}  // namespace lang
 
 #endif /* lang_docs_file_doc_h */

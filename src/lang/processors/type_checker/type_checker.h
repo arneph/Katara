@@ -13,21 +13,19 @@
 #include <string>
 #include <vector>
 
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/types/package.h"
-#include "lang/representation/types/info.h"
 #include "lang/processors/issues/issues.h"
+#include "lang/representation/ast/ast.h"
+#include "lang/representation/types/info.h"
+#include "lang/representation/types/package.h"
 
 namespace lang {
 namespace type_checker {
 
-types::Package * Check(std::string package_path,
-                       ast::Package *package,
-                       std::function<types::Package *(std::string)> importer,
-                       types::Info *info,
-                       std::vector<issues::Issue>& issues);
+types::Package* Check(std::string package_path, ast::Package* package,
+                      std::function<types::Package*(std::string)> importer, types::Info* info,
+                      std::vector<issues::Issue>& issues);
 
 }
-}
+}  // namespace lang
 
 #endif /* lang_type_checker_h */

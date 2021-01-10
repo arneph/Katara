@@ -13,9 +13,7 @@
 namespace lang {
 namespace ast {
 
-ASTBuilder AST::builder() {
-    return ASTBuilder(this);
-}
+ASTBuilder AST::builder() { return ASTBuilder(this); }
 
-}
-}
+}  // namespace ast
+}  // namespace lang
