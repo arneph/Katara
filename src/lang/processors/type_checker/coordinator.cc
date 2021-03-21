@@ -15,8 +15,7 @@ namespace lang {
 namespace type_checker {
 
 bool Coordinator::ProcessPackage(std::vector<ast::File*> package_files, types::Package* package,
-                                 types::InfoBuilder& info_builder,
-                                 std::vector<issues::Issue>& issues) {
+                                 types::InfoBuilder& info_builder, issues::IssueTracker& issues) {
   Coordinator manager(package_files, package, info_builder, issues);
 
   manager.FindActions();
@@ -27,7 +26,7 @@ bool Coordinator::ProcessPackage(std::vector<ast::File*> package_files, types::P
 }
 
 Coordinator::Coordinator(std::vector<ast::File*> package_files, types::Package* package,
-                         types::InfoBuilder& info_builder, std::vector<issues::Issue>& issues)
+                         types::InfoBuilder& info_builder, issues::IssueTracker& issues)
     : package_files_(package_files),
       package_(package),
       info_(info_builder.info()),
@@ -109,9 +108,9 @@ void Coordinator::FindActionsForTypeDecl(ast::GenDecl* type_decl) {
       for (types::Object* prerequisite : param_prerequisites) {
         if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
             prerequisite->object_kind() != types::ObjectKind::kConstant) {
-          issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                          {type_name->position(), prerequisite->position()},
-                                          "type can only depend on types and constants"));
+          issues_.Add(issues::kUnexpectedTypeDependency,
+                      {type_name->position(), prerequisite->position()},
+                      "type can only depend on types and constants");
         }
       }
     }
@@ -121,9 +120,9 @@ void Coordinator::FindActionsForTypeDecl(ast::GenDecl* type_decl) {
     for (types::Object* prerequisite : underlying_prerequisites) {
       if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
           prerequisite->object_kind() != types::ObjectKind::kConstant) {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                        {type_name->position(), prerequisite->position()},
-                                        "type can only depend on types and constants"));
+        issues_.Add(issues::kUnexpectedTypeDependency,
+                    {type_name->position(), prerequisite->position()},
+                    "type can only depend on types and constants");
       }
     }
 
@@ -168,9 +167,9 @@ void Coordinator::FindActionsForConstDecl(ast::GenDecl* const_decl) {
       for (types::Object* prerequisite : prerequisites) {
         if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
             prerequisite->object_kind() != types::ObjectKind::kConstant) {
-          issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                          {constant->position(), prerequisite->position()},
-                                          "constant can only depend on types and constants"));
+          issues_.Add(issues::kUnexpectedConstantDependency,
+                      {constant->position(), prerequisite->position()},
+                      "constant can only depend on types and constants");
         }
       }
 
@@ -204,9 +203,8 @@ void Coordinator::FindActionsForVarDecl(ast::GenDecl* var_decl) {
       for (types::Object* prerequisite : type_prerequisites) {
         if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
             prerequisite->object_kind() != types::ObjectKind::kConstant) {
-          issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                          prerequisite->position(),
-                                          "type can only depend on types and constants"));
+          issues_.Add(issues::kUnexpectedTypeDependency, prerequisite->position(),
+                      "type can only depend on types and constants");
         }
       }
     }
@@ -398,8 +396,7 @@ void Coordinator::ReportLoopInActions(const std::vector<Action*>& actions) {
     message += loop_member->name();
   }
 
-  issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                  loop_member_positions, message));
+  issues_.Add(issues::kDependencyLoopForTypeResolver, loop_member_positions, message);
 }
 
 std::unordered_set<types::Object*> Coordinator::FindLoop(const std::vector<Action*>& actions,

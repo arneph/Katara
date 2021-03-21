@@ -25,9 +25,8 @@ bool ConstantHandler::ProcessConstantExpr(ast::Expr* constant_expr, int64_t iota
 bool ConstantHandler::ProcessConstantDefinition(types::Constant* constant, types::Type* type,
                                                 ast::Expr* value_expr, int64_t iota) {
   if (type == nullptr && value_expr == nullptr) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     constant->position(),
-                                     "constant needs a type or value: " + constant->name()));
+    issues().Add(issues::kMissingTypeOrValueForConstant, constant->position(),
+                 "constant needs a type or value: " + constant->name());
     return false;
   }
 
@@ -37,9 +36,8 @@ bool ConstantHandler::ProcessConstantDefinition(types::Constant* constant, types
   if (type != nullptr) {
     types::Type* underlying = types::UnderlyingOf(type);
     if (underlying == nullptr || underlying->type_kind() != types::TypeKind::kBasic) {
-      issues().push_back(
-          issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error, constant->position(),
-                        "constant can not have non-basic type: " + constant->name()));
+      issues().Add(issues::kConstantWithNonBasicType, constant->position(),
+                   "constant can not have non-basic type: " + constant->name());
       return false;
     }
     basic_type = static_cast<types::Basic*>(underlying);
@@ -50,9 +48,8 @@ bool ConstantHandler::ProcessConstantDefinition(types::Constant* constant, types
 
   } else {
     if (!EvaluateConstantExpr(value_expr, iota)) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       constant->position(),
-                                       "constant could not be evaluated: " + constant->name()));
+      issues().Add(issues::kConstantCanBotBeEvaluated, constant->position(),
+                   "constant could not be evaluated: " + constant->name());
       return false;
     }
     types::ExprInfo value_expr_info = info()->ExprInfoOf(value_expr).value();
@@ -71,9 +68,8 @@ bool ConstantHandler::ProcessConstantDefinition(types::Constant* constant, types
       value = ConvertUntypedInt(given_value, basic_type->kind());
 
     } else {
-      issues().push_back(
-          issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error, constant->position(),
-                        "constant can not hold a value of a different type: " + constant->name()));
+      issues().Add(issues::kConstantValueOfWrongType, constant->position(),
+                   "constant can not have a value of a different type: " + constant->name());
       return false;
     }
   }
@@ -91,9 +87,8 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr* expr, int64_t iota) {
       types::Type* type = constant->type();
       constants::Value value(0);
       if (constant == nullptr) {
-        issues().push_back(
-            issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error, ident->start(),
-                          "constant can not depend on unknown ident: " + ident->name()));
+        issues().Add(issues::kConstantDependsOnUnknownIdent, ident->start(),
+                     "constant can not depend on unknown ident: " + ident->name());
         return false;
       } else if (constant->parent() == info()->universe() && constant->name() == "iota") {
         value = constants::Value(iota);
@@ -163,8 +158,8 @@ bool ConstantHandler::EvaluateConstantExpr(ast::Expr* expr, int64_t iota) {
       }
     }
     default:
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       expr->start(), "constant expression not allowed"));
+      issues().Add(issues::kUnexpectedConstantExpr, expr->start(),
+                   "constant expression not allowed");
       return false;
   }
 }
@@ -181,9 +176,8 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr* expr, int64_t io
     case types::Basic::kBool:
     case types::Basic::kUntypedBool:
       if (expr->op() != tokens::kNot) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         expr->start(),
-                                         "unary operator not allowed for constant expression"));
+        issues().Add(issues::kUnexpectedConstantUnaryExpr, expr->start(),
+                     "unary operator not allowed for constant expression");
         return false;
       }
       info_builder().SetExprInfo(expr, types::ExprInfo(types::ExprInfo::Kind::kConstant, x_type));
@@ -203,9 +197,8 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr* expr, int64_t io
     case types::Basic::kUntypedInt:
     case types::Basic::kUntypedRune: {
       if (expr->op() != tokens::kAdd && expr->op() != tokens::kSub && expr->op() != tokens::kXor) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         expr->start(),
-                                         "unary operator not allowed for constant expression"));
+        issues().Add(issues::kUnexpectedConstantUnaryExpr, expr->start(),
+                     "unary operator not allowed for constant expression");
         return false;
       }
       types::Basic* result_type = x_type;
@@ -221,9 +214,8 @@ bool ConstantHandler::EvaluateConstantUnaryExpr(ast::UnaryExpr* expr, int64_t io
     }
     case types::Basic::kString:
     case types::Basic::kUntypedString:
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       expr->start(),
-                                       "unary operator not allowed for constant expression"));
+      issues().Add(issues::kUnexpectedConstantUnaryExpr, expr->start(),
+                   "unary operator not allowed for constant expression");
       return false;
     default:
       throw "unexpected type";
@@ -248,10 +240,8 @@ bool ConstantHandler::EvaluateConstantCompareExpr(ast::BinaryExpr* expr, int64_t
     case tokens::kGtr:
       if ((x_type->info() & types::Basic::kIsOrdered) == 0 ||
           (y_type->info() & types::Basic::kIsOrdered) == 0) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         expr->start(),
-                                         "comparison of constant expressions with given types not "
-                                         "allowed"));
+        issues().Add(issues::kUnexpectedConstantCompareExpr, expr->start(),
+                     "comparison of constant expressions with given types not allowed");
         return false;
       }
     default:;
@@ -286,9 +276,8 @@ bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr* expr, int64_t i
 
   if ((x_type->info() & types::Basic::kIsNumeric) == 0 ||
       (y_type->info() & types::Basic::kIsNumeric) == 0) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     expr->start(),
-                                     "constant shift expressions with given types not allowed"));
+    issues().Add(issues::kUnexpectedConstantShiftExpr, expr->start(),
+                 "constant shift expressions with given types not allowed");
     return false;
   }
 
@@ -301,10 +290,8 @@ bool ConstantHandler::EvaluateConstantShiftExpr(ast::BinaryExpr* expr, int64_t i
   if ((y_type->info() & types::Basic::kIsUntyped) != 0) {
     y_value = ConvertUntypedInt(y_value, types::Basic::kUint);
   } else if ((y_type->info() & types::Basic::kIsUnsigned) == 0) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     expr->start(),
-                                     "constant shift expressions with signed shift operand not "
-                                     "allowed"));
+    issues().Add(issues::kUnexpectedConstantShiftExprWithSignedShiftOperand, expr->start(),
+                 "constant shift expressions with signed shift operand not allowed");
     return false;
   }
 
@@ -329,10 +316,8 @@ bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr* expr, int64_t 
     case tokens::kLOr:
       if ((x_type->info() & types::Basic::kIsBoolean) == 0 ||
           (y_type->info() & types::Basic::kIsBoolean) == 0) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         expr->start(),
-                                         "binary operation with constant expressions of given "
-                                         "types not allowed"));
+        issues().Add(issues::kUnexpectedConstantBinaryExpr, expr->start(),
+                     "binary operation with constant expressions of given types not allowed");
         return false;
       }
       break;
@@ -351,10 +336,8 @@ bool ConstantHandler::EvaluateConstantBinaryExpr(ast::BinaryExpr* expr, int64_t 
     case tokens::kAndNot:
       if ((x_type->info() & types::Basic::kIsNumeric) == 0 ||
           (y_type->info() & types::Basic::kIsNumeric) == 0) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         expr->start(),
-                                         "binary operation with constant expressions of given "
-                                         "types not allowed"));
+        issues().Add(issues::kUnexpectedConstantBinaryExpr, expr->start(),
+                     "binary operation with constant expressions of given types not allowed");
         return false;
       }
       break;
@@ -388,10 +371,8 @@ bool ConstantHandler::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr* e
       !((x_type->info() & types::Basic::kIsNumeric) &&
         (y_type->info() & types::Basic::kIsNumeric)) ||
       !((x_type->info() & types::Basic::kIsString) && (y_type->info() & types::Basic::kIsString))) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     expr->start(),
-                                     "comparison of constant expressions with given types not "
-                                     "allowed"));
+    issues().Add(issues::kUnexpectedConstantCompareExpr, expr->start(),
+                 "comparison of constant expressions with given types not allowed");
     return false;
   }
 
@@ -409,10 +390,8 @@ bool ConstantHandler::CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr* e
       result_type = x_type;
     } else {
       if (x_type->kind() != y_type->kind()) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         expr->start(),
-                                         "comparison of constant expressions of different types "
-                                         "not allowed"));
+        issues().Add(issues::kUnexpectedConstantCompareExpr, expr->start(),
+                     "comparison of constant expressions with given types not allowed");
         return false;
       }
       result_type = x_type;

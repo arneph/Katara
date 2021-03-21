@@ -12,7 +12,7 @@ namespace lang {
 namespace parser {
 
 ast::File* Parser::ParseFile(pos::File* file, ast::ASTBuilder& builder,
-                             std::vector<issues::Issue>& issues) {
+                             issues::IssueTracker& issues) {
   scanner::Scanner scanner(file);
   Parser parser(scanner, builder, issues);
   return parser.ParseFile();
@@ -21,18 +21,15 @@ ast::File* Parser::ParseFile(pos::File* file, ast::ASTBuilder& builder,
 ast::File* Parser::ParseFile() {
   pos::pos_t file_start = scanner_.token_start();
   while (scanner_.token() != tokens::kPackage) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected package declaration"));
+    issues_.Add(issues::kMissingPackageDeclaration, scanner_.token_start(),
+                "expected package declaration");
     return nullptr;
   }
   scanner_.Next();
   ast::Ident* package_name = ParseIdent();
-  if (scanner_.token() != tokens::kSemicolon) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ';' or new line"));
+  if (!Consume(tokens::kSemicolon)) {
     return nullptr;
   }
-  scanner_.Next();
 
   std::vector<ast::Decl*> decls;
   bool finished_imports = false;
@@ -40,21 +37,14 @@ ast::File* Parser::ParseFile() {
     if (scanner_.token() != tokens::kImport) {
       finished_imports = true;
     } else if (finished_imports) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(),
-                                      "imports not allowed after non-import declarations"));
+      issues_.Add(issues::kUnexpectedImportAfterNonImportDecl, scanner_.token_start(),
+                  "imports not allowed after non-import declarations");
     }
     ast::Decl* decl = ParseDecl();
     if (decl != nullptr) {
       decls.push_back(decl);
     }
-    if (scanner_.token() != tokens::kSemicolon) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected ';' or new line"));
-      scanner_.SkipPastLine();
-      continue;
-    }
-    scanner_.Next();
+    Consume(tokens::kSemicolon);
   }
   pos::pos_t file_end = scanner_.token_end();
 
@@ -71,9 +61,8 @@ ast::Decl* Parser::ParseDecl() {
     case tokens::kFunc:
       return ParseFuncDecl();
     default:
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(),
-                                      "expected 'import', 'const', 'var', 'type', or 'func'"));
+      issues_.Add(issues::kUnexpectedDeclStart, scanner_.token(),
+                  "expected 'import', 'const', 'var', 'type', or 'func'");
       scanner_.SkipPastLine();
       return nullptr;
   }
@@ -95,20 +84,15 @@ ast::GenDecl* Parser::ParseGenDecl() {
       if (spec != nullptr) {
         specs.push_back(spec);
       }
-      if (scanner_.token() != tokens::kSemicolon) {
-        issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                        scanner_.token_start(), "expected ';' or new line"));
+      if (!Consume(tokens::kSemicolon)) {
         return nullptr;
       }
-      scanner_.Next();
     }
-    if (scanner_.token() != tokens::kRParen) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected ')'"));
+    if (auto r_paren_opt = Consume(tokens::kRParen)) {
+      r_paren = r_paren_opt.value();
+    } else {
       return nullptr;
     }
-    r_paren = scanner_.token_end();
-    scanner_.Next();
 
   } else {
     ast::Spec* spec = ParseSpec(tok);
@@ -145,8 +129,8 @@ ast::ImportSpec* Parser::ParseImportSpec() {
   }
 
   if (scanner_.token() != tokens::kString) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected import package path"));
+    issues_.Add(issues::kMissingImportPackagePath, scanner_.token_start(),
+                "expected import package path");
     return nullptr;
   }
   ast::BasicLit* path = ParseBasicLit();
@@ -292,17 +276,11 @@ std::vector<ast::Stmt*> Parser::ParseStmtList() {
       continue;
     }
     list.push_back(stmt);
-    if (scanner_.token() == tokens::kSemicolon) {
-      scanner_.Next();
-      continue;
-    } else if (scanner_.token() == tokens::kRBrace || scanner_.token() == tokens::kCase) {
+    if (scanner_.token() == tokens::kRBrace || scanner_.token() == tokens::kCase) {
       scanner_.Next();
       break;
-    } else {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected ';' or new line"));
-      scanner_.SkipPastLine();
     }
+    Consume(tokens::kSemicolon);
   }
   return list;
 }
@@ -338,8 +316,8 @@ ast::Stmt* Parser::ParseStmt() {
 
   if (scanner_.token() == tokens::kColon) {
     if (expr->node_kind() != ast::NodeKind::kIdent) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      expr->start(), "expression can not be used as label"));
+      issues_.Add(issues::kForbiddenLabelExpr, expr->start(),
+                  "expression can not be used as label");
       scanner_.SkipPastLine();
       return nullptr;
     }
@@ -384,25 +362,21 @@ ast::Stmt* Parser::ParseSimpleStmt(ast::Expr* expr, ExprOptions expr_options) {
 }
 
 ast::BlockStmt* Parser::ParseBlockStmt() {
-  if (scanner_.token() != tokens::kLBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '{'"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_brace;
+  if (auto l_brace_opt = Consume(tokens::kLBrace)) {
+    l_brace = l_brace_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_brace = scanner_.token_start();
-  scanner_.Next();
 
   std::vector<ast::Stmt*> stmts = ParseStmtList();
 
-  if (scanner_.token() != tokens::kRBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '}'"));
-    scanner_.SkipPastLine();
+  pos::pos_t r_brace;
+  if (auto r_brace_opt = Consume(tokens::kRBrace)) {
+    r_brace = r_brace_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t r_brace = scanner_.token_start();
-  scanner_.Next();
 
   return ast_builder_.Create<ast::BlockStmt>(l_brace, stmts, r_brace);
 }
@@ -417,8 +391,7 @@ ast::DeclStmt* Parser::ParseDeclStmt() {
 
 ast::ReturnStmt* Parser::ParseReturnStmt() {
   if (scanner_.token() != tokens::kReturn) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'return'"));
+    issues_.Add(issues::kMissingReturn, scanner_.token_start(), "expected 'return'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -439,8 +412,7 @@ ast::ReturnStmt* Parser::ParseReturnStmt() {
 
 ast::IfStmt* Parser::ParseIfStmt() {
   if (scanner_.token() != tokens::kIf) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'if'"));
+    issues_.Add(issues::kMissingIf, scanner_.token_start(), "expected 'if'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -462,13 +434,9 @@ ast::IfStmt* Parser::ParseIfStmt() {
       return nullptr;
     }
 
-    if (scanner_.token() != tokens::kSemicolon) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected ';'"));
-      scanner_.SkipPastLine();
+    if (!Consume(tokens::kSemicolon)) {
       return nullptr;
     }
-    scanner_.Next();
 
     cond = ParseExpr(kDisallowCompositeLit);
     if (cond == nullptr) {
@@ -488,8 +456,7 @@ ast::IfStmt* Parser::ParseIfStmt() {
   scanner_.Next();
 
   if (scanner_.token() != tokens::kIf && scanner_.token() != tokens::kLBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'if' or '{'"));
+    issues_.Add(issues::kMissingIfOrLBrace, scanner_.token(), "expected 'if' or '{'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -503,8 +470,7 @@ ast::IfStmt* Parser::ParseIfStmt() {
 
 ast::Stmt* Parser::ParseSwitchStmt() {
   if (scanner_.token() != tokens::kSwitch) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'switch'"));
+    issues_.Add(issues::kMissingSwitch, scanner_.token(), "expected 'switch'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -526,13 +492,9 @@ ast::Stmt* Parser::ParseSwitchStmt() {
       if (init == nullptr) {
         return nullptr;
       }
-      if (scanner_.token() != tokens::kSemicolon) {
-        issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                        scanner_.token_start(), "expected ';'"));
-        scanner_.SkipPastLine();
+      if (!Consume(tokens::kSemicolon)) {
         return nullptr;
       }
-      scanner_.Next();
 
       if (scanner_.token() != tokens::kLBrace) {
         tag = ParseExpr(kDisallowCompositeLit);
@@ -591,14 +553,12 @@ ast::Stmt* Parser::ParseSwitchStmt() {
 }
 
 ast::BlockStmt* Parser::ParseSwitchStmtBody() {
-  if (scanner_.token() != tokens::kLBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '{'"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_brace;
+  if (auto l_brace_opt = Consume(tokens::kLBrace)) {
+    l_brace = l_brace_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_brace = scanner_.token();
-  scanner_.Next();
 
   std::vector<ast::Stmt*> stmts;
   while (scanner_.token() != tokens::kRBrace) {
@@ -609,21 +569,16 @@ ast::BlockStmt* Parser::ParseSwitchStmtBody() {
     stmts.push_back(clause);
   }
 
-  if (scanner_.token() != tokens::kLBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '{'"));
-    scanner_.SkipPastLine();
-    return nullptr;
-  }
   pos::pos_t r_brace = scanner_.token();
   scanner_.Next();
+
   return ast_builder_.Create<ast::BlockStmt>(l_brace, stmts, r_brace);
 }
 
 ast::CaseClause* Parser::ParseCaseClause() {
   if (scanner_.token() != tokens::kCase && scanner_.token() != tokens::kDefault) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'case' or 'default'"));
+    issues_.Add(issues::kMissingCaseOrDefault, scanner_.token_start(),
+                "expected 'case' or 'default'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -640,14 +595,12 @@ ast::CaseClause* Parser::ParseCaseClause() {
     }
   }
 
-  if (scanner_.token() != tokens::kColon) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ':'"));
-    scanner_.SkipPastLine();
+  pos::pos_t colon;
+  if (auto colon_opt = Consume(tokens::kColon)) {
+    colon = colon_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t colon = scanner_.token_start();
-  scanner_.Next();
 
   std::vector<ast::Stmt*> body = ParseStmtList();
 
@@ -656,8 +609,7 @@ ast::CaseClause* Parser::ParseCaseClause() {
 
 ast::ForStmt* Parser::ParseForStmt() {
   if (scanner_.token() != tokens::kFor) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'for'"));
+    issues_.Add(issues::kMissingFor, scanner_.token_start(), "expected 'for'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -681,26 +633,18 @@ ast::ForStmt* Parser::ParseForStmt() {
         return nullptr;
       }
 
-      if (scanner_.token() != tokens::kSemicolon) {
-        issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                        scanner_.token_start(), "expected ';'"));
-        scanner_.SkipPastLine();
+      if (!Consume(tokens::kSemicolon)) {
         return nullptr;
       }
-      scanner_.Next();
 
       cond = ParseExpr(kDisallowCompositeLit);
       if (cond == nullptr) {
         return nullptr;
       }
 
-      if (scanner_.token() != tokens::kSemicolon) {
-        issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                        scanner_.token_start(), "expected ';'"));
-        scanner_.SkipPastLine();
+      if (!Consume(tokens::kSemicolon)) {
         return nullptr;
       }
-      scanner_.Next();
 
       if (scanner_.token() != tokens::kLBrace) {
         post = ParseSimpleStmt(kDisallowCompositeLit);
@@ -709,9 +653,8 @@ ast::ForStmt* Parser::ParseForStmt() {
         }
         if (post->node_kind() == ast::NodeKind::kAssignStmt &&
             static_cast<ast::AssignStmt*>(post)->tok() == tokens::kDefine) {
-          issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                          post->start(),
-                                          "for loop post statement can not define variables"));
+          issues_.Add(issues::kUnexpectedVariableDefinitionInForLoopPostStmt, post->start(),
+                      "for loop post statement can not define variables");
           return nullptr;
         }
       }
@@ -729,9 +672,8 @@ ast::ForStmt* Parser::ParseForStmt() {
 ast::BranchStmt* Parser::ParseBranchStmt() {
   if (scanner_.token() != tokens::kFallthrough && scanner_.token() != tokens::kContinue &&
       scanner_.token() != tokens::kBreak) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(),
-                                    "expected 'fallthrough', 'continue', or 'break'"));
+    issues_.Add(issues::kMissingFallthroughContinueOrBreak, scanner_.token_start(),
+                "expected 'fallthrough', 'continue', or 'break'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -751,8 +693,8 @@ ast::BranchStmt* Parser::ParseBranchStmt() {
 
 ast::ExprStmt* Parser::ParseExprStmt(ast::Expr* x) {
   if (x->node_kind() != ast::NodeKind::kCallExpr) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal, x->start(),
-                                    "expression can not be used as standalone statement"));
+    issues_.Add(issues::kUnexpectedExprAsStmt, x->start(),
+                "expression can not be used as standalone statement");
     return nullptr;
   }
 
@@ -760,14 +702,12 @@ ast::ExprStmt* Parser::ParseExprStmt(ast::Expr* x) {
 }
 
 ast::LabeledStmt* Parser::ParseLabeledStmt(ast::Ident* label) {
-  if (scanner_.token() != tokens::kColon) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ':'"));
-    scanner_.SkipPastLine();
+  pos::pos_t colon;
+  if (auto colon_opt = Consume(tokens::kColon)) {
+    colon = colon_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t colon = scanner_.token_start();
-  scanner_.Next();
 
   ast::Stmt* stmt = ParseStmt();
   if (stmt == nullptr) {
@@ -796,8 +736,8 @@ ast::AssignStmt* Parser::ParseAssignStmt(ast::Expr* first_expr, ExprOptions expr
     case tokens::kDefine:
       break;
     default:
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected assignment operator"));
+      issues_.Add(issues::kMissingAssignmentOp, scanner_.token_start(),
+                  "expected assignment operator");
       scanner_.SkipPastLine();
       return nullptr;
   }
@@ -815,8 +755,7 @@ ast::AssignStmt* Parser::ParseAssignStmt(ast::Expr* first_expr, ExprOptions expr
 
 ast::IncDecStmt* Parser::ParseIncDecStmt(ast::Expr* x) {
   if (scanner_.token() != tokens::kInc && scanner_.token() != tokens::kDec) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '++' or '--'"));
+    issues_.Add(issues::kMissingIncOrDecOp, scanner_.token_start(), "expected '++' or '--'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -959,8 +898,7 @@ ast::Expr* Parser::ParsePrimaryExpr(ExprOptions expr_options) {
       primary_expr = ParseParenExpr();
       break;
     default:
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected expression"));
+      issues_.Add(issues::kMissingExpr, scanner_.token_start(), "expected expression");
       scanner_.SkipPastLine();
       return nullptr;
   }
@@ -979,8 +917,8 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_op
         } else if (scanner_.token() == tokens::kLss) {
           primary_expr = ParseTypeAssertExpr(primary_expr);
         } else {
-          issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                          scanner_.token_start(), "expected identifier or '<'"));
+          issues_.Add(issues::kMissingSelectionOrAssertedType, scanner_.token_start(),
+                      "expected identifier or '<'");
           scanner_.SkipPastLine();
           return nullptr;
         }
@@ -1031,14 +969,13 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_op
             }
           }
 
-          if (scanner_.token() != tokens::kGtr) {
-            issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                            scanner_.token_start(), "expected '>'"));
+          pos::pos_t r_brack;
+          if (auto r_brack_opt = Consume(tokens::kGtr, /* split_shift_ops= */ true)) {
+            r_brack = r_brack_opt.value();
+          } else {
             scanner_.SkipPastLine();
             return nullptr;
           }
-          pos::pos_t r_brack = scanner_.token_start();
-          scanner_.Next(/* split_shift_ops= */ true);
 
           primary_expr = ParsePrimaryExpr(primary_expr, l_brack, type_args, r_brack, expr_options);
         }
@@ -1072,28 +1009,24 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, pos::pos_t l_brack,
 }
 
 ast::ParenExpr* Parser::ParseParenExpr() {
-  if (scanner_.token() != tokens::kLParen) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '('"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_paren;
+  if (auto l_paren_opt = Consume(tokens::kLParen)) {
+    l_paren = l_paren_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_paren = scanner_.token_start();
-  scanner_.Next();
 
   ast::Expr* x = ParseExpr(kNoExprOptions);
   if (x == nullptr) {
     return nullptr;
   }
 
-  if (scanner_.token() != tokens::kRParen) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ')'"));
-    scanner_.SkipPastLine();
+  pos::pos_t r_paren;
+  if (auto r_paren_opt = Consume(tokens::kRParen)) {
+    r_paren = r_paren_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t r_paren = scanner_.token_start();
-  scanner_.Next();
 
   return ast_builder_.Create<ast::ParenExpr>(l_paren, x, r_paren);
 }
@@ -1108,14 +1041,12 @@ ast::SelectionExpr* Parser::ParseSelectionExpr(ast::Expr* accessed) {
 }
 
 ast::TypeAssertExpr* Parser::ParseTypeAssertExpr(ast::Expr* x) {
-  if (scanner_.token() != tokens::kLss) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '<'"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_angle;
+  if (auto l_angle_opt = Consume(tokens::kLss)) {
+    l_angle = l_angle_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_angle = scanner_.token_start();
-  scanner_.Next();
 
   ast::Expr* type = nullptr;
   if (scanner_.token() == tokens::kType) {
@@ -1127,66 +1058,56 @@ ast::TypeAssertExpr* Parser::ParseTypeAssertExpr(ast::Expr* x) {
     }
   }
 
-  if (scanner_.token() != tokens::kGtr) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '>'"));
-    scanner_.SkipPastLine();
+  pos::pos_t r_angle;
+  if (auto r_angle_opt = Consume(tokens::kGtr)) {
+    r_angle = r_angle_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t r_angle = scanner_.token_start();
-  scanner_.Next();
 
   return ast_builder_.Create<ast::TypeAssertExpr>(x, l_angle, type, r_angle);
 }
 
 ast::IndexExpr* Parser::ParseIndexExpr(ast::Expr* accessed) {
-  if (scanner_.token() != tokens::kLBrack) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '['"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_brack;
+  if (auto l_brack_opt = Consume(tokens::kLBrack)) {
+    l_brack = l_brack_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_brack = scanner_.token_start();
-  scanner_.Next();
 
   ast::Expr* index = ParseExpr(kNoExprOptions);
   if (index == nullptr) {
     return nullptr;
   }
 
-  if (scanner_.token() != tokens::kRBrack) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ']'"));
-    scanner_.SkipPastLine();
+  pos::pos_t r_brack;
+  if (auto r_brack_opt = Consume(tokens::kRBrack)) {
+    r_brack = r_brack_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t r_brack = scanner_.token_start();
-  scanner_.Next();
 
   return ast_builder_.Create<ast::IndexExpr>(accessed, l_brack, index, r_brack);
 }
 
 ast::CallExpr* Parser::ParseCallExpr(ast::Expr* func, pos::pos_t l_brack,
                                      std::vector<ast::Expr*> type_args, pos::pos_t r_brack) {
-  if (scanner_.token() != tokens::kLParen) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '('"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_paren;
+  if (auto l_paren_opt = Consume(tokens::kLParen)) {
+    l_paren = l_paren_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_paren = scanner_.token_start();
-  scanner_.Next();
 
   std::vector<ast::Expr*> args = ParseExprList(kNoExprOptions);
 
-  if (scanner_.token() != tokens::kRParen) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ')'"));
-    scanner_.SkipPastLine();
+  pos::pos_t r_paren;
+  if (auto r_paren_opt = Consume(tokens::kRParen)) {
+    r_paren = r_paren_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t r_paren = scanner_.token_start();
-  scanner_.Next();
 
   return ast_builder_.Create<ast::CallExpr>(func, l_brack, type_args, r_brack, l_paren, args,
                                             r_paren);
@@ -1202,14 +1123,12 @@ ast::FuncLit* Parser::ParseFuncLit(ast::FuncType* func_type) {
 }
 
 ast::CompositeLit* Parser::ParseCompositeLit(ast::Expr* type) {
-  if (scanner_.token() != tokens::kLBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '{'"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_brace;
+  if (auto l_brace_opt = Consume(tokens::kLBrace)) {
+    l_brace = l_brace_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_brace = scanner_.token_start();
-  scanner_.Next();
 
   std::vector<ast::Expr*> values;
   while (scanner_.token() != tokens::kRBrace) {
@@ -1223,8 +1142,7 @@ ast::CompositeLit* Parser::ParseCompositeLit(ast::Expr* type) {
       break;
     }
     if (scanner_.token() != tokens::kComma) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected ',' or '}'"));
+      issues_.Add(issues::kMissingCommaOrRBrace, scanner_.token_start(), "expected ',' or '}'");
       scanner_.SkipPastLine();
       return nullptr;
     }
@@ -1301,8 +1219,7 @@ ast::Expr* Parser::ParseType() {
     case tokens::kIdent:
       return ParseType(ParseIdent(/* split_shift_ops= */ true));
     default:
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected type"));
+      issues_.Add(issues::kMissingType, scanner_.token_start(), "expected type");
       scanner_.SkipPastLine();
       return nullptr;
   }
@@ -1329,14 +1246,12 @@ ast::Expr* Parser::ParseType(ast::Ident* ident) {
 }
 
 ast::ArrayType* Parser::ParseArrayType() {
-  if (scanner_.token() != tokens::kLBrack) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '['"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_brack;
+  if (auto l_brack_opt = Consume(tokens::kLBrack)) {
+    l_brack = l_brack_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_brack = scanner_.token_start();
-  scanner_.Next();
 
   ast::Expr* len = nullptr;
   if (scanner_.token() != tokens::kRBrack) {
@@ -1346,14 +1261,12 @@ ast::ArrayType* Parser::ParseArrayType() {
     }
   }
 
-  if (scanner_.token() != tokens::kRBrack) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ']'"));
-    scanner_.SkipPastLine();
+  pos::pos_t r_brack;
+  if (auto r_brack_opt = Consume(tokens::kRBrack)) {
+    r_brack = r_brack_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t r_brack = scanner_.token_start();
-  scanner_.Next();
 
   ast::Expr* element_type = ParseType();
   if (element_type == nullptr) {
@@ -1365,8 +1278,7 @@ ast::ArrayType* Parser::ParseArrayType() {
 
 ast::FuncType* Parser::ParseFuncType() {
   if (scanner_.token() != tokens::kFunc) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'func'"));
+    issues_.Add(issues::kMissingFunc, scanner_.token_start(), "expected 'func'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1392,22 +1304,19 @@ ast::FuncType* Parser::ParseFuncType() {
 
 ast::InterfaceType* Parser::ParseInterfaceType() {
   if (scanner_.token() != tokens::kInterface) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'interface'"));
+    issues_.Add(issues::kMissingInterface, scanner_.token_start(), "expected 'interface'");
     scanner_.SkipPastLine();
     return nullptr;
   }
   pos::pos_t interface = scanner_.token_start();
   scanner_.Next();
 
-  if (scanner_.token() != tokens::kLBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '{'"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_brace;
+  if (auto l_brace_opt = Consume(tokens::kLBrace)) {
+    l_brace = l_brace_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_brace = scanner_.token_start();
-  scanner_.Next();
 
   std::vector<ast::Expr*> embedded_interfaces;
   std::vector<ast::MethodSpec*> methods;
@@ -1425,18 +1334,14 @@ ast::InterfaceType* Parser::ParseInterfaceType() {
       }
       methods.push_back(method);
     } else {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected type name, '(' or '<'"));
+      issues_.Add(issues::kMissingEmbeddedInterfaceOrMethodSpec, scanner_.token_start(),
+                  "expected type name, '(' or '<'");
       scanner_.SkipPastLine();
       return nullptr;
     }
-    if (scanner_.token() != tokens::kSemicolon) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected ';' or new line"));
-      scanner_.SkipPastLine();
+    if (!Consume(tokens::kSemicolon)) {
       return nullptr;
     }
-    scanner_.Next();
   }
   pos::pos_t r_brace = scanner_.token_start();
   scanner_.Next(/* split_shift_ops= */ true);
@@ -1455,8 +1360,8 @@ ast::Expr* Parser::ParseEmbdeddedInterface() {
 
 ast::MethodSpec* Parser::ParseMethodSpec() {
   if (scanner_.token() != tokens::kLParen && scanner_.token() != tokens::kLss) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '()' or '<>'"));
+    issues_.Add(issues::kMissingTypeOrInstanceMethodStart, scanner_.token_start(),
+                "expected '()' or '<>'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1469,18 +1374,17 @@ ast::MethodSpec* Parser::ParseMethodSpec() {
     instance_type_param = ParseIdent();
   }
 
-  if (kind == tokens::kLParen && scanner_.token() != tokens::kRParen) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ')'"));
-    scanner_.SkipPastLine();
-    return nullptr;
-  } else if (kind == tokens::kLss && scanner_.token() != tokens::kGtr) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '>'"));
-    scanner_.SkipPastLine();
-    return nullptr;
+  if (kind == tokens::kLParen) {
+    if (!Consume(tokens::kRParen)) {
+      scanner_.SkipPastLine();
+      return nullptr;
+    }
+  } else if (kind == tokens::kLss) {
+    if (!Consume(tokens::kGtr)) {
+      scanner_.SkipPastLine();
+      return nullptr;
+    }
   }
-  scanner_.Next();
 
   ast::Ident* name = ParseIdent();
   if (name == nullptr) {
@@ -1507,44 +1411,38 @@ ast::MethodSpec* Parser::ParseMethodSpec() {
 
 ast::StructType* Parser::ParseStructType() {
   if (scanner_.token() != tokens::kStruct) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected 'struct'"));
+    issues_.Add(issues::kMissingStruct, scanner_.token_start(), "expected 'struct'");
     scanner_.SkipPastLine();
     return nullptr;
   }
   pos::pos_t struct_start = scanner_.token_start();
   scanner_.Next();
 
-  if (scanner_.token() != tokens::kLBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '{'"));
-    scanner_.SkipPastLine();
+  pos::pos_t l_brace;
+  if (auto l_brace_opt = Consume(tokens::kLBrace)) {
+    l_brace = l_brace_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t l_brace = scanner_.token_start();
-  scanner_.Next();
 
   ast::FieldList* fields = ParseStructFieldList();
   if (fields == nullptr) {
     return nullptr;
   }
 
-  if (scanner_.token() != tokens::kRBrace) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '}'"));
-    scanner_.SkipPastLine();
+  pos::pos_t r_brace;
+  if (auto r_brace_opt = Consume(tokens::kRBrace, /* split_shift_ops= */ true)) {
+    r_brace = r_brace_opt.value();
+  } else {
     return nullptr;
   }
-  pos::pos_t r_brace = scanner_.token_start();
-  scanner_.Next(/* split_shift_ops= */ true);
 
   return ast_builder_.Create<ast::StructType>(struct_start, l_brace, fields, r_brace);
 }
 
 ast::UnaryExpr* Parser::ParsePointerType() {
   if (scanner_.token() != tokens::kMul && scanner_.token() != tokens::kRem) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '*' or '%'"));
+    issues_.Add(issues::kMissingPointerType, scanner_.token_start(), "expected '*' or '%'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1561,14 +1459,13 @@ ast::UnaryExpr* Parser::ParsePointerType() {
 }
 
 ast::TypeInstance* Parser::ParseTypeInstance(ast::Expr* type) {
-  if (scanner_.token() != tokens::kLss) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '<'"));
+  pos::pos_t l_angle;
+  if (auto l_angle_opt = Consume(tokens::kLss)) {
+    l_angle = l_angle_opt.value();
+  } else {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  pos::pos_t l_brack = scanner_.token_start();
-  scanner_.Next();
 
   std::vector<ast::Expr*> type_args;
   ast::Expr* first_type_arg = ParseType();
@@ -1587,27 +1484,25 @@ ast::TypeInstance* Parser::ParseTypeInstance(ast::Expr* type) {
     type_args.push_back(type_arg);
   }
 
-  if (scanner_.token() != tokens::kGtr) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '<'"));
+  pos::pos_t r_angle;
+  if (auto r_angle_opt = Consume(tokens::kGtr)) {
+    r_angle = r_angle_opt.value();
+  } else {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  pos::pos_t r_brack = scanner_.token_start();
-  scanner_.Next();
 
-  return ast_builder_.Create<ast::TypeInstance>(type, l_brack, type_args, r_brack);
+  return ast_builder_.Create<ast::TypeInstance>(type, l_angle, type_args, r_angle);
 }
 
 ast::ExprReceiver* Parser::ParseExprReceiver() {
-  if (scanner_.token() != tokens::kLParen) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '('"));
+  pos::pos_t l_paren;
+  if (auto l_paren_opt = Consume(tokens::kLParen)) {
+    l_paren = l_paren_opt.value();
+  } else {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  pos::pos_t l_paren = scanner_.token_start();
-  scanner_.Next();
 
   ast::Ident* name = nullptr;
   tokens::Token pointer = tokens::kIllegal;
@@ -1630,8 +1525,8 @@ ast::ExprReceiver* Parser::ParseExprReceiver() {
     scanner_.Next();
     type_name = ParseIdent();
   } else {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected identifier, '*' or '%'"));
+    issues_.Add(issues::kMissingReceiverPointerTypeOrIdentifier, scanner_.token_start(),
+                "expected identifier, '*' or '%'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1645,44 +1540,38 @@ ast::ExprReceiver* Parser::ParseExprReceiver() {
 
     type_parameter_names = ParseIdentList();
     if (type_parameter_names.empty()) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(),
-                                      "expected at least one type parameter name"));
+      issues_.Add(issues::kMissingReceiverTypeParameter, scanner_.token_start(),
+                  "expected at least one type parameter name");
       scanner_.SkipPastLine();
       return nullptr;
     }
 
-    if (scanner_.token() != tokens::kGtr) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected '>'"));
+    if (!Consume(tokens::kGtr)) {
       scanner_.SkipPastLine();
       return nullptr;
     }
-    scanner_.Next();
   }
 
-  if (scanner_.token() != tokens::kRParen) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected ')'"));
+  pos::pos_t r_paren;
+  if (auto r_paren_opt = Consume(tokens::kRParen)) {
+    r_paren = r_paren_opt.value();
+  } else {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  pos::pos_t r_paren = scanner_.token_start();
-  scanner_.Next();
 
   return ast_builder_.Create<ast::ExprReceiver>(l_paren, name, pointer, type_name,
                                                 type_parameter_names, r_paren);
 }
 
 ast::TypeReceiver* Parser::ParseTypeReceiver() {
-  if (scanner_.token() != tokens::kLss) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '<'"));
+  pos::pos_t l_angle;
+  if (auto l_angle_opt = Consume(tokens::kLss)) {
+    l_angle = l_angle_opt.value();
+  } else {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  pos::pos_t l_brack = scanner_.token_start();
-  scanner_.Next();
 
   ast::Ident* type_name = ParseIdent();
   if (type_name == nullptr) {
@@ -1695,39 +1584,33 @@ ast::TypeReceiver* Parser::ParseTypeReceiver() {
 
     type_parameter_names = ParseIdentList(/* split_shift_ops= */ true);
     if (type_parameter_names.empty()) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(),
-                                      "expected at least one type parameter name"));
+      issues_.Add(issues::kMissingReceiverTypeParameter, scanner_.token_start(),
+                  "expected at least one type parameter name");
       scanner_.SkipPastLine();
       return nullptr;
     }
 
-    if (scanner_.token() != tokens::kGtr) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected '>'"));
+    if (!Consume(tokens::kGtr)) {
       scanner_.SkipPastLine();
       return nullptr;
     }
-    scanner_.Next();
   }
 
-  if (scanner_.token() != tokens::kGtr) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '>'"));
+  pos::pos_t r_angle;
+  if (auto r_angle_opt = Consume(tokens::kGtr)) {
+    r_angle = r_angle_opt.value();
+  } else {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  pos::pos_t r_brack = scanner_.token_start();
-  scanner_.Next();
 
-  return ast_builder_.Create<ast::TypeReceiver>(l_brack, type_name, type_parameter_names, r_brack);
+  return ast_builder_.Create<ast::TypeReceiver>(l_angle, type_name, type_parameter_names, r_angle);
 }
 
 ast::FieldList* Parser::ParseFuncFieldList(FuncFieldListOptions options) {
   bool has_paren = (scanner_.token() == tokens::kLParen);
   if ((options & kExpectParen) != 0 && !has_paren) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '('"));
+    issues_.Add(issues::kMissingLParen, scanner_.token_start(), "expected '('");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1759,8 +1642,7 @@ ast::FieldList* Parser::ParseFuncFieldList(FuncFieldListOptions options) {
 
   if (has_paren) {
     if (scanner_.token() != tokens::kRParen) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected ')'"));
+      issues_.Add(issues::kMissingRParen, scanner_.token_start(), "expected ')'");
       scanner_.SkipPastLine();
       return nullptr;
     }
@@ -1780,8 +1662,8 @@ std::vector<ast::Field*> Parser::ParseFuncFields() {
   auto parse_unnamed_func_fields =
       [&](bool continue_type_after_last_ident) -> std::vector<ast::Field*> {
     if (has_named_fields) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal, first_field,
-                                      "can not mix named and unnamed arguments"));
+      issues_.Add(issues::kForbiddenMixingOfNamedAndUnnamedArguments, first_field,
+                  "can not mix named and unnamed arguments");
       scanner_.SkipPastLine();
       return std::vector<ast::Field*>{};
     }
@@ -1862,13 +1744,9 @@ ast::FieldList* Parser::ParseStructFieldList() {
     }
     fields.push_back(field);
 
-    if (scanner_.token() != tokens::kSemicolon) {
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected ';' or new line"));
-      scanner_.SkipPastLine();
+    if (!Consume(tokens::kSemicolon)) {
       return nullptr;
     }
-    scanner_.Next();
   }
 
   return ast_builder_.Create<ast::FieldList>(pos::kNoPos, fields, pos::kNoPos);
@@ -1917,14 +1795,13 @@ ast::Field* Parser::ParseStructField() {
 }
 
 ast::TypeParamList* Parser::ParseTypeParamList() {
-  if (scanner_.token() != tokens::kLss) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '<'"));
+  pos::pos_t l_angle;
+  if (auto l_angle_opt = Consume(tokens::kLss, /* split_shift_ops= */ true)) {
+    l_angle = l_angle_opt.value();
+  } else {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  pos::pos_t l_angle = scanner_.token_start();
-  scanner_.Next(/* split_shift_ops= */ true);
 
   std::vector<ast::TypeParam*> type_params;
   if (scanner_.token() != tokens::kGtr) {
@@ -1945,14 +1822,13 @@ ast::TypeParamList* Parser::ParseTypeParamList() {
     }
   }
 
-  if (scanner_.token() != tokens::kGtr) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected '>'"));
+  pos::pos_t r_angle;
+  if (auto r_angle_opt = Consume(tokens::kGtr, /* split_shift_ops= */ true)) {
+    r_angle = r_angle_opt.value();
+  } else {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  pos::pos_t r_angle = scanner_.token_start();
-  scanner_.Next(/* split_shift_ops= */ true);
 
   return ast_builder_.Create<ast::TypeParamList>(l_angle, type_params, r_angle);
 }
@@ -1986,8 +1862,7 @@ ast::BasicLit* Parser::ParseBasicLit() {
       return ast_builder_.Create<ast::BasicLit>(value_start, value, kind);
     }
     default:
-      issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                      scanner_.token_start(), "expected literal"));
+      issues_.Add(issues::kMissingLiteral, scanner_.token_start(), "expected literal");
       scanner_.SkipPastLine();
       return nullptr;
   }
@@ -2013,8 +1888,7 @@ std::vector<ast::Ident*> Parser::ParseIdentList(bool split_shift_ops) {
 
 ast::Ident* Parser::ParseIdent(bool split_shift_ops) {
   if (scanner_.token() != tokens::kIdent) {
-    issues_.push_back(issues::Issue(issues::Origin::Parser, issues::Severity::Fatal,
-                                    scanner_.token_start(), "expected identifier"));
+    issues_.Add(issues::kMissingIdent, scanner_.token_start(), "expected identifier");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -2022,6 +1896,52 @@ ast::Ident* Parser::ParseIdent(bool split_shift_ops) {
   std::string name = scanner_.token_string();
   scanner_.Next(split_shift_ops);
   return ast_builder_.Create<ast::Ident>(name_start, name);
+}
+
+std::optional<pos::pos_t> Parser::Consume(tokens::Token tok, bool split_shift_ops) {
+  if (scanner_.token() == tok) {
+    pos::pos_t tok_pos = scanner_.token_end();
+    scanner_.Next(split_shift_ops);
+    return tok_pos;
+  }
+  switch (tok) {
+    case tokens::kColon:
+      issues_.Add(issues::kMissingColon, scanner_.token_start(), "expected ':'");
+      return std::nullopt;
+    case tokens::kLParen:
+      issues_.Add(issues::kMissingLParen, scanner_.token_start(), "expected '('");
+      return std::nullopt;
+    case tokens::kRParen:
+      issues_.Add(issues::kMissingRParen, scanner_.token_start(), "expected ')'");
+      return std::nullopt;
+    case tokens::kLss:
+      issues_.Add(issues::kMissingLAngleBrack, scanner_.token_start(), "expected '<'");
+      return std::nullopt;
+    case tokens::kGtr:
+      issues_.Add(issues::kMissingRAngleBrack, scanner_.token_start(), "expected '>'");
+      return std::nullopt;
+    case tokens::kLBrack:
+      issues_.Add(issues::kMissingLBrack, scanner_.token_start(), "expected '['");
+      return std::nullopt;
+    case tokens::kRBrack:
+      issues_.Add(issues::kMissingRBrack, scanner_.token_start(), "expected ']'");
+      return std::nullopt;
+    case tokens::kLBrace:
+      issues_.Add(issues::kMissingLBrace, scanner_.token_start(), "expected '{'");
+      scanner_.SkipPastLine();
+      return std::nullopt;
+    case tokens::kRBrace:
+      issues_.Add(issues::kMissingRBrace, scanner_.token_start(), "expected '}'");
+      scanner_.SkipPastLine();
+      return std::nullopt;
+    case tokens::kSemicolon:
+      issues_.Add(issues::kMissingSemicolonOrNewLine, scanner_.token_start(),
+                  "expected ';' or new line");
+      scanner_.SkipPastLine();
+      return std::nullopt;
+    default:
+      throw "unexpected token to be consumed";
+  }
 }
 
 }  // namespace parser

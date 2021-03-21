@@ -30,7 +30,7 @@ class StmtHandler final : public BaseHandler {
 
  private:
   StmtHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
-              std::vector<issues::Issue>& issues)
+              issues::IssueTracker& issues)
       : BaseHandler(type_resolver, info_builder, issues) {}
 
   struct Context {

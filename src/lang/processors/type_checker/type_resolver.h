@@ -20,7 +20,7 @@ namespace type_checker {
 
 class TypeResolver {
  public:
-  TypeResolver(types::InfoBuilder& info_builder, std::vector<issues::Issue>& issues)
+  TypeResolver(types::InfoBuilder& info_builder, issues::IssueTracker& issues)
       : type_handler_(*this, info_builder, issues),
         constant_handler_(*this, info_builder, issues),
         variable_handler_(*this, info_builder, issues),

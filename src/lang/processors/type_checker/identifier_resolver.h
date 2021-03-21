@@ -32,12 +32,12 @@ class IdentifierResolver {
   static types::Package* CreatePackageAndResolveIdentifiers(
       std::string package_path, std::vector<ast::File*> package_files,
       std::function<types::Package*(std::string)> importer, types::InfoBuilder& info_builder,
-      std::vector<issues::Issue>& issues);
+      issues::IssueTracker& issues);
 
  private:
   IdentifierResolver(std::string package_path, std::vector<ast::File*> package_files,
                      std::function<types::Package*(std::string)> importer,
-                     types::InfoBuilder& info_builder, std::vector<issues::Issue>& issues)
+                     types::InfoBuilder& info_builder, issues::IssueTracker& issues)
       : package_path_(package_path),
         package_files_(package_files),
         importer_(importer),
@@ -95,7 +95,7 @@ class IdentifierResolver {
   const std::function<types::Package*(std::string)> importer_;
   types::Info* info_;
   types::InfoBuilder& info_builder_;
-  std::vector<issues::Issue>& issues_;
+  issues::IssueTracker& issues_;
 
   types::Package* package_;
 

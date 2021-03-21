@@ -17,7 +17,7 @@ namespace type_checker {
 
 types::Package* Check(std::string package_path, ast::Package* ast_package,
                       std::function<types::Package*(std::string)> importer, types::Info* info,
-                      std::vector<issues::Issue>& issues) {
+                      issues::IssueTracker& issues) {
   std::vector<ast::File*> ast_files;
   for (auto [name, ast_file] : ast_package->files()) {
     ast_files.push_back(ast_file);
@@ -27,9 +27,9 @@ types::Package* Check(std::string package_path, ast::Package* ast_package,
 
   types::Package* types_package = IdentifierResolver::CreatePackageAndResolveIdentifiers(
       package_path, ast_files, importer, info_builder, issues);
-  for (issues::Issue& issue : issues) {
-    if (issue.origin() == issues::Origin::TypeChecker &&
-        issue.severity() == issues::Severity::Fatal) {
+  for (const issues::Issue& issue : issues.issues()) {
+    if (issue.origin() == issues::Origin::kIdentifierResolver &&
+        issue.severity() == issues::Severity::kFatal) {
       return nullptr;
     }
   }

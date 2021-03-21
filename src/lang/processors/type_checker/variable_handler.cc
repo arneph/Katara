@@ -28,9 +28,8 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable*> v
                                                  types::Type* type, ast::Expr* value) {
   if (type == nullptr && value == nullptr) {
     for (auto variable : variables) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       variable->position(),
-                                       "variable needs a type or value: " + variable->name()));
+      issues().Add(issues::kMissingTypeOrValueForVariable, variable->position(),
+                   "variable needs a type or value: " + variable->name());
     }
     return false;
   }
@@ -50,16 +49,14 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable*> v
 
   types::ExprInfo value_info = info()->ExprInfoOf(value).value();
   if (!value_info.is_value()) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     value->start(), "expression is not a value"));
+    issues().Add(issues::kUnexpectedVariableExprKind, value->start(), "expression is not a value");
     return false;
   }
   if (variables.size() == 1) {
     types::Variable* variable = variables.at(0);
     if (type != nullptr && !types::IsAssignableTo(value_info.type(), type)) {
-      issues().push_back(
-          issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error, variable->position(),
-                        "variable can not be assigned given value: " + variable->name()));
+      issues().Add(issues::kVariableValueOfWrongType, variable->position(),
+                   "variable can not be assigned given value: " + variable->name());
       return false;
     }
     if (type == nullptr) {
@@ -73,9 +70,8 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable*> v
 
   if (value_info.type()->type_kind() != types::TypeKind::kTuple ||
       static_cast<types::Tuple*>(value_info.type())->variables().size() != variables.size()) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     variables.at(0)->position(),
-                                     "variables can not be assigned given value"));
+    issues().Add(issues::kVariableValueOfWrongType, variables.at(0)->position(),
+                 "variables can not be assigned given value");
     return false;
   }
 
@@ -85,9 +81,8 @@ bool VariableHandler::ProcessVariableDefinitions(std::vector<types::Variable*> v
         static_cast<types::Tuple*>(value_info.type())->variables().at(i)->type();
 
     if (type != nullptr && !types::IsAssignableTo(var_type, type)) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       var->position(),
-                                       "variable can not be assigned given value: " + var->name()));
+      issues().Add(issues::kVariableValueOfWrongType, var->position(),
+                   "variable can not be assigned given value: " + var->name());
       return false;
     }
     if (type == nullptr) {

@@ -32,9 +32,7 @@ class Package {
   ast::Package* ast_package() const { return ast_package_; }
   types::Package* types_package() const { return types_package_; }
 
-  bool has_errors() const;
-  bool has_fatal_errors() const;
-  const std::vector<issues::Issue>& issues() const { return issues_; }
+  const issues::IssueTracker& issue_tracker() const { return issue_tracker_; }
 
  private:
   Package() {}
@@ -46,7 +44,7 @@ class Package {
   ast::Package* ast_package_;
   types::Package* types_package_;
 
-  std::vector<issues::Issue> issues_;
+  issues::IssueTracker issue_tracker_;
 
   friend class PackageManager;
 };

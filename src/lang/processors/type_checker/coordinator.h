@@ -28,7 +28,7 @@ namespace type_checker {
 class Coordinator {
  public:
   static bool ProcessPackage(std::vector<ast::File*> package_files, types::Package* package,
-                             types::InfoBuilder& info_builder, std::vector<issues::Issue>& issues);
+                             types::InfoBuilder& info_builder, issues::IssueTracker& issues);
 
  private:
   class Action {
@@ -51,7 +51,7 @@ class Coordinator {
   };
 
   Coordinator(std::vector<ast::File*> package_files, types::Package* package,
-              types::InfoBuilder& info_builder, std::vector<issues::Issue>& issues);
+              types::InfoBuilder& info_builder, issues::IssueTracker& issues);
 
   Action* CreateAction(std::function<bool()> executor);
   Action* CreateAction(std::unordered_set<types::Object*> prerequisites,
@@ -81,7 +81,7 @@ class Coordinator {
   types::Package* package_;
   types::Info* info_;
   types::InfoBuilder& info_builder_;
-  std::vector<issues::Issue>& issues_;
+  issues::IssueTracker& issues_;
 
   std::vector<std::unique_ptr<Action>> actions_;
 

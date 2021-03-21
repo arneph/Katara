@@ -60,23 +60,23 @@ void run_lang_test(std::filesystem::path test_dir) {
   lang::packages::Package* test_pkg = pkg_manager.LoadPackage(test_dir);
 
   for (auto pkg : pkg_manager.Packages()) {
-    for (auto& issue : pkg->issues()) {
+    for (auto& issue : pkg->issue_tracker().issues()) {
       switch (issue.severity()) {
-        case lang::issues::Severity::Warning:
+        case lang::issues::Severity::kWarning:
           std::cout << "\033[93;1m";
           std::cout << "Warning:";
           std::cout << "\033[0;0m";
           std::cout << " ";
           break;
-        case lang::issues::Severity::Error:
-        case lang::issues::Severity::Fatal:
+        case lang::issues::Severity::kError:
+        case lang::issues::Severity::kFatal:
           std::cout << "\033[91;1m";
           std::cout << "Error:";
           std::cout << "\033[0;0m";
           std::cout << " ";
           break;
       }
-      std::cout << issue.message() << "\n";
+      std::cout << issue.message() << " [" << issue.kind_id() << "]\n";
       for (lang::pos::pos_t pos : issue.positions()) {
         lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
         std::string line = pkg_manager.file_set()->FileAt(pos)->LineFor(pos);

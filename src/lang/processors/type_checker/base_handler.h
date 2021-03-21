@@ -21,7 +21,7 @@ namespace type_checker {
 class BaseHandler {
  public:
   BaseHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
-              std::vector<issues::Issue>& issues)
+              issues::IssueTracker& issues)
       : info_(info_builder.info()),
         info_builder_(info_builder),
         issues_(issues),
@@ -31,7 +31,7 @@ class BaseHandler {
  protected:
   types::Info* info() const { return info_; }
   types::InfoBuilder& info_builder() { return info_builder_; }
-  std::vector<issues::Issue>& issues() { return issues_; }
+  issues::IssueTracker& issues() { return issues_; }
 
   class TypeResolver& type_resolver() const {
     return type_resolver_;
@@ -40,7 +40,7 @@ class BaseHandler {
  private:
   types::Info* info_;
   types::InfoBuilder& info_builder_;
-  std::vector<issues::Issue>& issues_;
+  issues::IssueTracker& issues_;
 
   class TypeResolver& type_resolver_;
 };

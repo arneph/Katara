@@ -181,8 +181,8 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
     }
     types::ExprInfo lhs_info = info()->ExprInfoOf(lhs_expr).value();
     if (!lhs_info.is_addressable()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       lhs_expr->start(), "expression is not addressable"));
+      issues().Add(issues::kUnexpectedAssignStmtLhsExprKind, lhs_expr->start(),
+                   "expression is not addressable");
       lhs_types.push_back(nullptr);
       continue;
     }
@@ -195,8 +195,8 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
     }
     types::ExprInfo rhs_info = info()->ExprInfoOf(rhs_expr).value();
     if (!rhs_info.is_value()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       rhs_expr->start(), "expression is not a value"));
+      issues().Add(issues::kUnexpectedAssignStmtRhsExprKind, rhs_expr->start(),
+                   "expression is not a value");
       rhs_types.push_back(nullptr);
       continue;
     }
@@ -216,10 +216,8 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
     types::ExprInfo rhs_info = info()->ExprInfoOf(assign_stmt->rhs().at(0)).value();
     if (rhs_info.kind() == types::ExprInfo::Kind::kValueOk) {
       if (lhs_types.size() > 2) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         assign_stmt->start(),
-                                         "invalid operation: expected at most two operands to be "
-                                         "assigned"));
+        issues().Add(issues::kMismatchedAssignStmtOperandCountForValueOkRhs, assign_stmt->start(),
+                     "invalid operation: expected at most two operands to be assigned");
         return;
       } else if (lhs_types.size() == 2) {
         rhs_types.push_back(info()->basic_type(types::Basic::Kind::kUntypedBool));
@@ -228,10 +226,9 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
   }
 
   if (lhs_types.size() != rhs_types.size()) {
-    issues().push_back(
-        issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error, assign_stmt->start(),
-                      "invalid operation: can not assign " + std::to_string(rhs_types.size()) +
-                          " values to " + std::to_string(lhs_types.size()) + " operands"));
+    issues().Add(issues::kMismatchedAssignStmtValueCount, assign_stmt->start(),
+                 "invalid operation: can not assign " + std::to_string(rhs_types.size()) +
+                     " values to " + std::to_string(lhs_types.size()) + " operands");
   }
   for (size_t i = 0; i < lhs_types.size() && i < rhs_types.size(); i++) {
     types::Type* lhs_type = lhs_types.at(i);
@@ -251,16 +248,17 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
       continue;
     } else if (!types::IsAssignableTo(rhs_type, lhs_type)) {
       if (assign_stmt->rhs().size() == assign_stmt->lhs().size()) {
-        issues().push_back(issues::Issue(
-            issues::Origin::TypeChecker, issues::Severity::Error,
-            {assign_stmt->lhs().at(i)->start(), assign_stmt->rhs().at(i)->start()},
-            "can not assign value of type " + rhs_type->ToString(types::StringRep::kShort) +
-                " to operand of type " + lhs_type->ToString(types::StringRep::kShort)));
+        issues().Add(issues::kMismatchedAssignStmtValueType,
+                     {assign_stmt->lhs().at(i)->start(), assign_stmt->rhs().at(i)->start()},
+                     "can not assign value of type " +
+                         rhs_type->ToString(types::StringRep::kShort) + " to operand of type " +
+                         lhs_type->ToString(types::StringRep::kShort));
       } else {
-        issues().push_back(
-            issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                          {assign_stmt->lhs().at(i)->start(), assign_stmt->rhs().at(0)->start()},
-                          "can not assign argument to parameter"));
+        issues().Add(issues::kMismatchedAssignStmtValueType,
+                     {assign_stmt->lhs().at(i)->start(), assign_stmt->rhs().at(0)->start()},
+                     "can not assign value of type " +
+                         rhs_type->ToString(types::StringRep::kShort) + " to operand of type " +
+                         lhs_type->ToString(types::StringRep::kShort));
       }
     }
   }
@@ -277,16 +275,15 @@ void StmtHandler::CheckIncDecStmt(ast::IncDecStmt* inc_dec_stmt) {
   }
   types::ExprInfo x = info()->ExprInfoOf(inc_dec_stmt->x()).value();
   if (!x.is_value()) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     inc_dec_stmt->start(), "expression is not a value"));
+    issues().Add(issues::kUnexpectedIncDecStmtOperandExprKind, inc_dec_stmt->start(),
+                 "expression is not a value");
     return;
   }
   types::Type* underlying = types::UnderlyingOf(x.type());
   if (underlying == nullptr || underlying->type_kind() != types::TypeKind::kBasic ||
       !(static_cast<types::Basic*>(underlying)->info() & types::Basic::Info::kIsInteger)) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     inc_dec_stmt->start(),
-                                     "invalid operation: expected integer type"));
+    issues().Add(issues::kUnexpectedIncDecStmtOperandType, inc_dec_stmt->start(),
+                 "invalid operation: expected integer type");
   }
 }
 
@@ -300,8 +297,8 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
     }
     types::ExprInfo result_expr_info = info()->ExprInfoOf(result_expr).value();
     if (!result_expr_info.is_value()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       return_stmt->start(), "expression is not a value"));
+      issues().Add(issues::kUnexpectedReturnStmtOperandExprKind, return_stmt->start(),
+                   "expression is not a value");
       results_ok = false;
       continue;
     }
@@ -317,18 +314,14 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
       result_types.at(0)->type_kind() == types::TypeKind::kTuple) {
     types::Tuple* result_tuple = static_cast<types::Tuple*>(result_types.at(0));
     if (!types::IsAssignableTo(result_tuple, ctx.func_results)) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       return_stmt->start(),
-                                       "invalid operation: results can not be assigned to function "
-                                       "result types"));
+      issues().Add(issues::kUnexpectedReturnStmtFuncCallOperandType, return_stmt->start(),
+                   "invalid operation: results can not be assigned to function result types");
     }
     return;
   }
   if (ctx.func_results == nullptr || result_types.size() != ctx.func_results->variables().size()) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     return_stmt->start(),
-                                     "invalid operation: number of results does not matchexpected "
-                                     "number of results"));
+    issues().Add(issues::kMismatchedReturnStmtOperandCount, return_stmt->start(),
+                 "invalid operation: number of results does not match expected number of results");
     return;
   }
   for (size_t i = 0; i < result_types.size(); i++) {
@@ -336,10 +329,8 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
     types::Type* given_result_type = result_types.at(i);
     ast::Expr* result_expr = return_stmt->results().at(i);
     if (!types::IsAssignableTo(given_result_type, expected_result_type)) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       result_expr->start(),
-                                       "invalid operation: result can not be assigned to function "
-                                       "result type"));
+      issues().Add(issues::kUnexpectedReturnStmtOperandType, result_expr->start(),
+                   "invalid operation: result can not be assigned to function result type");
     }
   }
   return;
@@ -352,15 +343,14 @@ void StmtHandler::CheckIfStmt(ast::IfStmt* if_stmt, Context ctx) {
   if (type_resolver().expr_handler().ProcessExpr(if_stmt->cond_expr())) {
     types::ExprInfo cond_expr_info = info()->ExprInfoOf(if_stmt->cond_expr()).value();
     if (!cond_expr_info.is_value()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       if_stmt->cond_expr()->start(), "expression is not a value"));
+      issues().Add(issues::kUnexpectedIfStmtCondExprKind, if_stmt->cond_expr()->start(),
+                   "expression is not a value");
     } else {
       types::Type* type = types::UnderlyingOf(cond_expr_info.type());
       if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
           !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsBoolean)) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         if_stmt->cond_expr()->start(),
-                                         "invalid operation: expected boolean type"));
+        issues().Add(issues::kUnexpectedIfStmtCondType, if_stmt->cond_expr()->start(),
+                     "invalid operation: expected boolean type");
       }
     }
   }
@@ -383,9 +373,8 @@ void StmtHandler::CheckExprSwitchStmt(ast::ExprSwitchStmt* switch_stmt, Context 
     } else {
       types::ExprInfo tag_expr_info = info()->ExprInfoOf(switch_stmt->tag_expr()).value();
       if (!tag_expr_info.is_value()) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         switch_stmt->tag_expr()->start(),
-                                         "expression is not a value"));
+        issues().Add(issues::kUnexpectedSwitchStmtOperandExprKind, switch_stmt->tag_expr()->start(),
+                     "expression is not a value");
         tag_type = nullptr;
       } else {
         tag_type = tag_expr_info.type();
@@ -399,9 +388,8 @@ void StmtHandler::CheckExprSwitchStmt(ast::ExprSwitchStmt* switch_stmt, Context 
     ast::CaseClause* case_clause = static_cast<ast::CaseClause*>(stmt);
     if (case_clause->tok() == tokens::kDefault) {
       if (seen_default) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         case_clause->start(),
-                                         "duplicate default case in switch statement"));
+        issues().Add(issues::kDuplicateDefaultCase, case_clause->start(),
+                     "duplicate default case in switch statement");
       } else {
         seen_default = true;
       }
@@ -419,15 +407,13 @@ void StmtHandler::CheckExprCaseClause(ast::CaseClause* case_clause, types::Type*
     }
     types::ExprInfo expr_info = info()->ExprInfoOf(expr).value();
     if (!expr_info.is_value()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       expr->start(), "expression is not a value"));
+      issues().Add(issues::kUnexpectedExprCaseValueExprKind, expr->start(),
+                   "expression is not a value");
       continue;
     }
     if (tag_type != nullptr && !types::IsComparable(tag_type, expr_info.type())) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       expr->start(),
-                                       "invalid operation: can not compare value expression with "
-                                       "switch tag"));
+      issues().Add(issues::kUnexpectedExprCaseValueType, expr->start(),
+                   "invalid operation: can not compare value expression with switch tag");
     }
   }
   for (size_t i = 0; i < case_clause->body().size(); i++) {
@@ -442,9 +428,8 @@ void StmtHandler::CheckTypeSwitchStmt(ast::TypeSwitchStmt* switch_stmt, Context 
   if (type_resolver().expr_handler().ProcessExpr(switch_stmt->tag_expr())) {
     types::ExprInfo tag_expr_info = info()->ExprInfoOf(switch_stmt->tag_expr()).value();
     if (!tag_expr_info.is_value()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       switch_stmt->tag_expr()->start(),
-                                       "expression is not a value"));
+      issues().Add(issues::kUnexpectedSwitchStmtOperandExprKind, switch_stmt->tag_expr()->start(),
+                   "expression is not a value");
     } else {
       tag_type = tag_expr_info.type();
     }
@@ -457,9 +442,8 @@ void StmtHandler::CheckTypeSwitchStmt(ast::TypeSwitchStmt* switch_stmt, Context 
     ast::CaseClause* case_clause = static_cast<ast::CaseClause*>(stmt);
     if (case_clause->tok() == tokens::kDefault) {
       if (seen_default) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         case_clause->start(),
-                                         "duplicate default case in switch statement"));
+        issues().Add(issues::kDuplicateDefaultCase, case_clause->start(),
+                     "duplicate default case in switch statement");
       } else {
         seen_default = true;
       }
@@ -477,10 +461,8 @@ void StmtHandler::CheckTypeCaseClause(ast::CaseClause* case_clause, types::Type*
     }
     types::ExprInfo expr_info = info()->ExprInfoOf(expr).value();
     if (tag_type != nullptr && !types::IsAssertableTo(tag_type, expr_info.type())) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       expr->start(),
-                                       "invalid operation: value of type switch tag can never have "
-                                       "the given type"));
+      issues().Add(issues::kTypeSwitchCaseNeverPossible, expr->start(),
+                   "invalid operation: value of type switch tag can never have the given type");
       continue;
     }
     if (case_clause->cond_vals().size() == 1) {
@@ -504,16 +486,14 @@ void StmtHandler::CheckForStmt(ast::ForStmt* for_stmt, Context ctx) {
   if (type_resolver().expr_handler().ProcessExpr(for_stmt->cond_expr())) {
     types::ExprInfo cond_expr_info = info()->ExprInfoOf(for_stmt->cond_expr()).value();
     if (!cond_expr_info.is_value()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       for_stmt->cond_expr()->start(),
-                                       "expression is not a value"));
+      issues().Add(issues::kUnexpectedForStmtCondExprKind, for_stmt->cond_expr()->start(),
+                   "expression is not a value");
     } else {
       types::Type* type = types::UnderlyingOf(cond_expr_info.type());
       if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
           !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsBoolean)) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         for_stmt->cond_expr()->start(),
-                                         "invalid operation: expected boolean type"));
+        issues().Add(issues::kUnexpectedForStmtCondType, for_stmt->cond_expr()->start(),
+                     "invalid operation: expected boolean type");
       }
     }
   }
@@ -529,9 +509,8 @@ void StmtHandler::CheckForStmt(ast::ForStmt* for_stmt, Context ctx) {
 
 void StmtHandler::CheckBranchStmt(ast::BranchStmt* branch_stmt, Context ctx) {
   if (!ctx.is_last_stmt_in_block) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     branch_stmt->start(),
-                                     "branch statement is not last in block"));
+    issues().Add(issues::kUnexpectedBranchStmtBeforeBlockEnd, branch_stmt->start(),
+                 "branch statement is not last in block");
     return;
   }
   ast::Stmt* labeled_destination = nullptr;
@@ -539,16 +518,15 @@ void StmtHandler::CheckBranchStmt(ast::BranchStmt* branch_stmt, Context ctx) {
   bool destination_is_labeled_switch = false;
   if (branch_stmt->label() != nullptr) {
     if (branch_stmt->tok() == tokens::kFallthrough) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       branch_stmt->start(),
-                                       "fallthrough with label is now allowed"));
+      issues().Add(issues::kUnexpectedFallthroughStmtLabel, branch_stmt->start(),
+                   "fallthrough with label is now allowed");
       return;
     }
     auto it = ctx.labels.find(branch_stmt->label()->name());
     if (it == ctx.labels.end()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       branch_stmt->start(),
-                                       "branch label does not refer to any enclosing statement"));
+      // TODO: warn either here or in identifer resolver (not both)
+      issues().Add(issues::kUnresolvedBranchStmtLabel, branch_stmt->start(),
+                   "branch label does not refer to any enclosing statement");
       return;
     }
     labeled_destination = it->second;
@@ -562,37 +540,29 @@ void StmtHandler::CheckBranchStmt(ast::BranchStmt* branch_stmt, Context ctx) {
     case tokens::kBreak:
       if (labeled_destination == nullptr) {
         if (!ctx.can_break) {
-          issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                           branch_stmt->start(),
-                                           "can not break: no enclosing switch or for statement"));
+          issues().Add(issues::kUnexpectedBreakStmt, branch_stmt->start(),
+                       "can not break: no enclosing switch or for statement");
         }
       } else if (!destination_is_labeled_loop && !destination_is_labeled_switch) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         branch_stmt->start(),
-                                         "break label does not refer to an enclosing switch or for "
-                                         "statement"));
+        issues().Add(issues::kUnexpectedBreakStmtLabel, branch_stmt->start(),
+                     "break label does not refer to an enclosing switch or for statement");
       }
       return;
     case tokens::kContinue:
       if (labeled_destination == nullptr) {
         if (!ctx.can_continue) {
-          issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                           branch_stmt->start(),
-                                           "can not continue: no enclosing for statement"));
+          issues().Add(issues::kUnexpectedContinueStmt, branch_stmt->start(),
+                       "can not continue: no enclosing for statement");
         }
       } else if (!destination_is_labeled_loop) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         branch_stmt->start(),
-                                         "continue label does not refer to an enclosing for "
-                                         "statement"));
+        issues().Add(issues::kUnexpectedContinueStmtLabel, branch_stmt->start(),
+                     "continue label does not refer to an enclosing for statement");
       }
       return;
     case tokens::kFallthrough:
       if (!ctx.can_fallthrough) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         branch_stmt->start(),
-                                         "can not fallthrough: no expression type switch case "
-                                         "immedately after"));
+        issues().Add(issues::kUnexpectedFallthroughStmt, branch_stmt->start(),
+                     "can not fallthrough: no expression type switch case immedately after");
       }
       return;
     default:

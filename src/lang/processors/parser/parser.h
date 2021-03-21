@@ -10,6 +10,7 @@
 #define lang_parser_h
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -27,7 +28,7 @@ namespace parser {
 class Parser {
  public:
   static ast::File* ParseFile(pos::File* file, ast::ASTBuilder& ast_builder,
-                              std::vector<issues::Issue>& issues);
+                              issues::IssueTracker& issues);
 
  private:
   enum ExprOptions {
@@ -39,8 +40,7 @@ class Parser {
     kExpectParen = 1 << 0,
   };
 
-  Parser(scanner::Scanner& scanner, ast::ASTBuilder& ast_builder,
-         std::vector<issues::Issue>& issues)
+  Parser(scanner::Scanner& scanner, ast::ASTBuilder& ast_builder, issues::IssueTracker& issues)
       : scanner_(scanner), ast_builder_(ast_builder), issues_(issues) {}
 
   ast::File* ParseFile();
@@ -117,9 +117,11 @@ class Parser {
   std::vector<ast::Ident*> ParseIdentList(bool split_shift_ops = false);
   ast::Ident* ParseIdent(bool split_shift_ops = false);
 
+  std::optional<pos::pos_t> Consume(tokens::Token tok, bool split_shift_ops = false);
+
   scanner::Scanner& scanner_;
   ast::ASTBuilder& ast_builder_;
-  std::vector<issues::Issue>& issues_;
+  issues::IssueTracker& issues_;
 };
 
 }  // namespace parser

@@ -73,8 +73,8 @@ bool TypeHandler::ProcessUnderlyingType(types::TypeName* type_name, ast::TypeSpe
 
 bool TypeHandler::ProcessFuncDefinition(types::Func* func, ast::FuncDecl* func_decl) {
   if (func_decl->kind() != ast::FuncDecl::Kind::kFunc && func_decl->type_params()) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     func_decl->start(), "method can not declare type parameters"));
+    issues().Add(issues::kForbiddenTypeParameterDeclarationForMethod, func_decl->start(),
+                 "method can not declare type parameters");
   }
 
   types::Variable* expr_receiver = nullptr;
@@ -136,14 +136,14 @@ bool TypeHandler::EvaluateTypeExpr(ast::Expr* expr) {
     case ast::NodeKind::kSelectionExpr: {
       ast::SelectionExpr* selector_expr = static_cast<ast::SelectionExpr*>(expr);
       if (selector_expr->accessed()->node_kind() != ast::NodeKind::kIdent) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         expr->start(), "type expression not allowed"));
+        issues().Add(issues::kForbiddenTypeExpression, expr->start(),
+                     "type expression not allowed");
         return false;
       }
       ast::Ident* ident = static_cast<ast::Ident*>(selector_expr->accessed());
       if (info()->uses().at(ident)->object_kind() != types::ObjectKind::kPackageName) {
-        issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                         expr->start(), "type expression not allowed"));
+        issues().Add(issues::kForbiddenTypeExpression, expr->start(),
+                     "type expression not allowed");
         return false;
       }
       return EvaluateTypeIdent(selector_expr->selection());
@@ -161,8 +161,7 @@ bool TypeHandler::EvaluateTypeExpr(ast::Expr* expr) {
     case ast::NodeKind::kTypeInstance:
       return EvaluateTypeInstance(static_cast<ast::TypeInstance*>(expr));
     default:
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       expr->start(), "type expression not allowed"));
+      issues().Add(issues::kForbiddenTypeExpression, expr->start(), "type expression not allowed");
       return false;
   }
 }
@@ -170,8 +169,7 @@ bool TypeHandler::EvaluateTypeExpr(ast::Expr* expr) {
 bool TypeHandler::EvaluateTypeIdent(ast::Ident* ident) {
   types::Object* used = info()->uses().at(ident);
   if (used->object_kind() != types::ObjectKind::kTypeName) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     ident->start(), "expected type name"));
+    issues().Add(issues::kObjectIsNotTypeName, ident->start(), "expected type name");
     return false;
   }
   types::TypeName* type_name = static_cast<types::TypeName*>(used);
@@ -190,9 +188,8 @@ bool TypeHandler::EvaluatePointerType(ast::UnaryExpr* pointer_expr) {
       kind = types::Pointer::Kind::kWeak;
       break;
     default:
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       pointer_expr->start(),
-                                       "expected '*' or '%' as pointer prefix"));
+      issues().Add(issues::kUnexpectedPointerPrefix, pointer_expr->start(),
+                   "expected '*' or '%' as pointer prefix");
       return false;
   }
   if (!EvaluateTypeExpr(pointer_expr->x())) {
@@ -211,16 +208,14 @@ bool TypeHandler::EvaluateArrayType(ast::ArrayType* array_expr) {
   if (!is_slice) {
     if (!type_resolver().constant_handler().ProcessConstantExpr(array_expr->len(),
                                                                 /* iota= */ 0)) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       array_expr->len()->start(),
-                                       "could not evaluate array size"));
+      issues().Add(issues::kConstantForArraySizeCanNotBeEvaluated, array_expr->len()->start(),
+                   "can not evaluate constant for array size");
       return false;
     }
     constants::Value length_value = info()->constant_values().at(array_expr->len());
     if (!length_value.CanConvertToArraySize()) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       array_expr->len()->start(),
-                                       "can not use constant as array size"));
+      issues().Add(issues::kConstantCanNotBeUsedAsArraySize, array_expr->len()->start(),
+                   "can not use constant as array size");
       return false;
     }
     length = length_value.ConvertToArraySize();
@@ -300,9 +295,8 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance* type_instance_expr) {
   types::NamedType* instantiated_type =
       static_cast<types::NamedType*>(instantiated_type_info.type());
   if (type_instance_expr->type_args().size() != instantiated_type->type_parameters().size()) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     type_instance_expr->l_brack(),
-                                     "type instance has wrong number of type arguments"));
+    issues().Add(issues::kWrongNumberOfTypeArgumentsForTypeInstance, type_instance_expr->l_brack(),
+                 "type instance has wrong number of type arguments");
     return false;
   }
 
@@ -317,9 +311,8 @@ bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance* type_instance_expr) {
     types::ExprInfo type_arg_expr_info = info()->ExprInfoOf(type_arg_expr).value();
     types::Type* type_arg = type_arg_expr_info.type();
     if (!types::IsAssertableTo(type_param, type_arg)) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       type_arg_expr->start(),
-                                       "type argument can not be used for type parameter"));
+      issues().Add(issues::kTypeArgumentCanNotBeUsedForTypeInstanceParameter,
+                   type_arg_expr->start(), "type argument can not be used for type parameter");
       return false;
     }
 
@@ -357,9 +350,8 @@ types::TypeParameter* TypeHandler::EvaluateTypeParameter(ast::TypeParam* paramet
     types::Type* type = type_info.type();
     types::Type* underlying = types::UnderlyingOf(type);
     if (underlying->type_kind() != types::TypeKind::kInterface) {
-      issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                       parameter_expr->type()->start(),
-                                       "type parameter constraint has to be an interface"));
+      issues().Add(issues::kTypeParamterConstraintIsNotInterface, parameter_expr->type()->start(),
+                   "type parameter constraint has to be an interface");
       return nullptr;
     }
     interface = static_cast<types::Interface*>(underlying);
@@ -490,30 +482,26 @@ types::Type* TypeHandler::EvalutateReceiverTypeInstance(ast::Ident* type_name_id
                                                         types::Func* method) {
   types::TypeName* type_name = static_cast<types::TypeName*>(info()->UseOf(type_name_ident));
   if (type_name->type()->type_kind() != types::TypeKind::kNamedType) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     type_name_ident->start(),
-                                     "receiver does not have named type"));
+    issues().Add(issues::kReceiverOfNonNamedType, type_name_ident->start(),
+                 "receiver does not have named type");
     return nullptr;
   }
   types::NamedType* named_type = static_cast<types::NamedType*>(type_name->type());
   if (named_type->underlying()->type_kind() == types::TypeKind::kInterface) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     type_name_ident->start(),
-                                     "can not define additional methods for interfaces"));
+    issues().Add(issues::kDefinitionOfInterfaceMethodOutsideInterface, type_name_ident->start(),
+                 "can not define additional methods for interfaces");
     return nullptr;
   } else if (named_type->methods().contains(method->name())) {
     types::Func* other_method = named_type->methods().at(method->name());
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     {other_method->position(), method->position()},
-                                     "can not define two methods with the same name"));
+    issues().Add(issues::kRedefinitionOfMethod, {other_method->position(), method->position()},
+                 "can not define two methods with the same name");
     return nullptr;
   }
   info_builder().AddMethodToNamedType(named_type, method);
 
   if (type_param_names.size() != named_type->type_parameters().size()) {
-    issues().push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                     type_name_ident->start(),
-                                     "receiver has wrong number of type arguments"));
+    issues().Add(issues::kWrongNumberOfTypeArgumentsForReceiver, type_name_ident->start(),
+                 "receiver has wrong number of type arguments");
     return nullptr;
   }
   if (!named_type->type_parameters().empty()) {

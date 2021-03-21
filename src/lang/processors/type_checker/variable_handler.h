@@ -30,7 +30,7 @@ class VariableHandler final : public BaseHandler {
 
  private:
   VariableHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
-                  std::vector<issues::Issue>& issues)
+                  issues::IssueTracker& issues)
       : BaseHandler(type_resolver, info_builder, issues) {}
 
   bool ProcessVariableDefinitions(std::vector<types::Variable*> variables, types::Type* type,

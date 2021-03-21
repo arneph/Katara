@@ -16,7 +16,7 @@ namespace type_checker {
 types::Package* IdentifierResolver::CreatePackageAndResolveIdentifiers(
     std::string package_path, std::vector<ast::File*> package_files,
     std::function<types::Package*(std::string)> importer, types::InfoBuilder& info_builder,
-    std::vector<issues::Issue>& issues) {
+    issues::IssueTracker& issues) {
   IdentifierResolver resolver(package_path, package_files, importer, info_builder, issues);
 
   resolver.CreatePackage();
@@ -76,16 +76,14 @@ void IdentifierResolver::ResolveIdentifiers() {
 
 void IdentifierResolver::AddObjectToScope(types::Scope* scope, types::Object* object) {
   if (info_->universe()->Lookup(object->name())) {
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                    object->position(),
-                                    "can not redefine predeclared identifier: " + object->name()));
+    issues_.Add(issues::kRedefinitionOfPredeclaredIdent, object->position(),
+                "can not redefine predeclared identifier: " + object->name());
     return;
 
   } else if (scope->named_objects().contains(object->name())) {
     types::Object* other = scope->named_objects().at(object->name());
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                    {other->position(), object->position()},
-                                    "naming collision: " + object->name()));
+    issues_.Add(issues::kRedefinitionOfIdent, {other->position(), object->position()},
+                "can not redefine identifier: " + object->name());
     return;
   }
 
@@ -130,16 +128,14 @@ void IdentifierResolver::AddDefinedObjectsFromImportSpec(ast::ImportSpec* import
   file_imports_[file];
 
   if (file_imports_.at(file).find(path) != file_imports_.at(file).end()) {
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                    import_spec->path()->start(),
-                                    "can not import package twice: \"" + path + "\""));
+    issues_.Add(issues::kPackageImportedTwice, import_spec->path()->start(),
+                "can not import package twice: \"" + path + "\"");
     return;
   }
   types::Package* referenced_package = importer_(path);
   if (referenced_package == nullptr) {
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                    import_spec->path()->start(),
-                                    "could not import package: \"" + path + "\""));
+    issues_.Add(issues::kPackageCouldNotBeImported, import_spec->path()->start(),
+                "could not import package: \"" + path + "\"");
   }
   file_imports_.at(file).insert(path);
 
@@ -201,8 +197,8 @@ void IdentifierResolver::AddDefinedObjectsFromVarSpec(ast::ValueSpec* value_spec
 void IdentifierResolver::AddDefinedObjectFromTypeSpec(ast::TypeSpec* type_spec,
                                                       types::Scope* scope) {
   if (type_spec->name()->name() == "_") {
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                    type_spec->name()->start(), "blank type name not allowed"));
+    issues_.Add(issues::kForbiddenBlankTypeName, type_spec->name()->start(),
+                "blank type name not allowed");
     return;
   }
 
@@ -216,8 +212,8 @@ void IdentifierResolver::AddDefinedObjectFromTypeSpec(ast::TypeSpec* type_spec,
 void IdentifierResolver::AddDefinedObjectFromFuncDecl(ast::FuncDecl* func_decl,
                                                       types::Scope* scope) {
   if (func_decl->name()->name() == "_") {
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                    func_decl->name()->start(), "blank func name not allowed"));
+    issues_.Add(issues::kForbiddenBlankFuncName, func_decl->name()->start(),
+                "blank func name not allowed");
     return;
   }
 
@@ -301,9 +297,8 @@ void IdentifierResolver::ResolveIdentifiersInTypeParamList(ast::TypeParamList* t
   }
   for (ast::TypeParam* type_param : type_param_list->params()) {
     if (type_param->name()->name() == "_") {
-      issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                      type_param->name()->start(),
-                                      "blank type parameter name not allowed"));
+      issues_.Add(issues::kForbiddenBlankTypeParameterName, type_param->name()->start(),
+                  "blank type parameter name not allowed");
       continue;
     }
 
@@ -577,12 +572,7 @@ void IdentifierResolver::ResolveIdentifiersInForStmt(ast::ForStmt* for_stmt, typ
     ResolveIdentifiersInExpr(for_stmt->cond_expr(), for_scope);
   }
   if (for_stmt->post_stmt()) {
-    if (for_stmt->post_stmt()->node_kind() == ast::NodeKind::kAssignStmt &&
-        static_cast<ast::AssignStmt*>(for_stmt->post_stmt())->tok() == tokens::kDefine) {
-      issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                      for_stmt->post_stmt()->start(),
-                                      "post statements of for loops can not define variables"));
-    }
+    // Note: parser already checks that post_stmt does not define variables.
     ResolveIdentifiersInStmt(for_stmt->post_stmt(), for_scope);
   }
   ResolveIdentifiersInBlockStmt(for_stmt->body(), for_scope);
@@ -596,9 +586,8 @@ void IdentifierResolver::ResolveIdentifiersInBranchStmt(ast::BranchStmt* branch_
   const types::Scope* defining_scope;
   types::Object* obj = scope->Lookup(branch_stmt->label()->name(), defining_scope);
   if (obj->object_kind() != types::ObjectKind::kLabel) {
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                    branch_stmt->label()->start(),
-                                    "branch statement does not refer to known label"));
+    issues_.Add(issues::kUnresolvedBranchStmtLabel, branch_stmt->label()->start(),
+                "branch statement does not refer to known label");
     return;
   }
   ResolveIdentifiersInExpr(branch_stmt->label(), scope);
@@ -690,8 +679,8 @@ void IdentifierResolver::ResolveIdentifiersInSelectionExpr(ast::SelectionExpr* s
                                                            types::Scope* scope) {
   ResolveIdentifiersInExpr(sel->accessed(), scope);
   if (sel->selection()->name() == "_") {
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                    sel->selection()->start(), "can not select underscore"));
+    issues_.Add(issues::kForbiddenBlankSelectionName, sel->selection()->start(),
+                "blank selection name not allowed");
     return;
   }
 
@@ -788,10 +777,8 @@ void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType* struct_
       if (type->node_kind() == ast::NodeKind::kUnaryExpr) {
         ast::UnaryExpr* ptr_type = static_cast<ast::UnaryExpr*>(type);
         if (ptr_type->op() != tokens::kMul && ptr_type->op() != tokens::kRem) {
-          issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                          type->start(),
-                                          "expected embedded field to be defined type or pointer "
-                                          "to defined type"));
+          issues_.Add(issues::kForbiddenEmbeddedFieldType, type->start(),
+                      "expected embedded field to be defined type or pointer to defined type");
           continue;
         }
         type = ptr_type->x();
@@ -800,10 +787,8 @@ void IdentifierResolver::ResolveIdentifiersInStructType(ast::StructType* struct_
         type = static_cast<ast::TypeInstance*>(type)->type();
       }
       if (type->node_kind() != ast::NodeKind::kIdent) {
-        issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Error,
-                                        type->start(),
-                                        "expected embdedded field to be defined type or pointer to "
-                                        "defined type"));
+        issues_.Add(issues::kForbiddenEmbeddedFieldType, type->start(),
+                    "expected embedded field to be defined type or pointer to defined type");
         continue;
       }
       ast::Ident* defined_type = static_cast<ast::Ident*>(type);
@@ -832,9 +817,8 @@ void IdentifierResolver::ResolveIdentifier(ast::Ident* ident, types::Scope* scop
   }
   types::Object* object = scope->Lookup(ident->name());
   if (object == nullptr) {
-    issues_.push_back(issues::Issue(issues::Origin::TypeChecker, issues::Severity::Fatal,
-                                    ident->start(),
-                                    "could not resolve identifier: " + ident->name()));
+    issues_.Add(issues::kUnresolvedIdentifier, ident->start(),
+                "could not resolve identifier: " + ident->name());
   }
   info_builder_.SetUsedObject(ident, object);
 }

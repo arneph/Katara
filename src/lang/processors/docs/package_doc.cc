@@ -18,14 +18,14 @@ namespace {
 void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package,
                               pos::FileSet* pos_file_set) {
   ss << "Issues:<br><dl>\n";
-  for (issues::Issue issue : package->issues()) {
+  for (issues::Issue issue : package->issue_tracker().issues()) {
     ss << "<dt>";
     switch (issue.severity()) {
-      case lang::issues::Severity::Warning:
+      case lang::issues::Severity::kWarning:
         ss << html::TagsForText("Warning: ", formats::kWarning);
         break;
-      case lang::issues::Severity::Error:
-      case lang::issues::Severity::Fatal:
+      case lang::issues::Severity::kError:
+      case lang::issues::Severity::kFatal:
         ss << html::TagsForText("Error: ", formats::kError);
         break;
     }
@@ -66,7 +66,7 @@ void GeneratePackageDescription(std::ostringstream& ss, packages::Package* packa
        << "</dt>\n";
   }
   ss << "</dl>\n";
-  if (!package->issues().empty()) {
+  if (!package->issue_tracker().issues().empty()) {
     GenerateIssueDescription(ss, package, pos_file_set);
   }
 }

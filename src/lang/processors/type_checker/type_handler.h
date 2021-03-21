@@ -34,7 +34,7 @@ class TypeHandler final : public BaseHandler {
 
  private:
   TypeHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
-              std::vector<issues::Issue>& issues)
+              issues::IssueTracker& issues)
       : BaseHandler(type_resolver, info_builder, issues) {}
 
   bool ProcessTypeParameters(types::TypeName* type_name, ast::TypeSpec* type_spec);

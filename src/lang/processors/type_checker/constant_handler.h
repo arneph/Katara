@@ -31,7 +31,7 @@ class ConstantHandler final : public BaseHandler {
 
  private:
   ConstantHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
-                  std::vector<issues::Issue>& issues)
+                  issues::IssueTracker& issues)
       : BaseHandler(type_resolver, info_builder, issues) {}
 
   bool ProcessConstantDefinition(types::Constant* constant, types::Type* type, ast::Expr* value,

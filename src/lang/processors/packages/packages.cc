@@ -20,25 +20,6 @@
 namespace lang {
 namespace packages {
 
-bool Package::has_errors() const {
-  for (auto& issue : issues_) {
-    if (issue.severity() == issues::Severity::Error ||
-        issue.severity() == issues::Severity::Fatal) {
-      return true;
-    }
-  }
-  return false;
-}
-
-bool Package::has_fatal_errors() const {
-  for (auto& issue : issues_) {
-    if (issue.severity() == issues::Severity::Fatal) {
-      return true;
-    }
-  }
-  return false;
-}
-
 PackageManager::PackageManager(std::string stdlib_path) : stdlib_path_(stdlib_path) {
   file_set_ = std::make_unique<pos::FileSet>();
   ast_ = std::make_unique<ast::AST>();
@@ -60,9 +41,9 @@ Package* PackageManager::LoadPackage(std::string import_dir) {
 
   auto source_files = FindSourceFiles(pkg_path);
   if (source_files.empty()) {
-    package->issues_.push_back(issues::Issue(issues::Origin::PackageManager,
-                                             issues::Severity::Warning, std::vector<pos::pos_t>{},
-                                             "package directory does not contain source files"));
+    package->issue_tracker_.Add(issues::kPackageDirectoryWithoutSourceFiles,
+                                std::vector<pos::pos_t>{},
+                                "package directory does not contain source files");
     return nullptr;
   }
   for (auto& source_file : source_files) {
@@ -77,26 +58,26 @@ Package* PackageManager::LoadPackage(std::string import_dir) {
   ast::ASTBuilder ast_builder = ast_->builder();
   std::map<std::string, ast::File*> ast_files;
   for (pos::File* pos_file : package->pos_files_) {
-    ast::File* ast_file = parser::Parser::ParseFile(pos_file, ast_builder, package->issues_);
+    ast::File* ast_file = parser::Parser::ParseFile(pos_file, ast_builder, package->issue_tracker_);
     ast_files.insert({pos_file->name(), ast_file});
   }
   package->ast_package_ = ast_builder.CreatePackage(package->name_, ast_files);
-  if (package->has_fatal_errors()) {
+  if (package->issue_tracker().has_fatal_errors()) {
     return package.get();
   }
 
   auto importer = [&](std::string import) -> types::Package* {
     std::filesystem::path import_path = FindPackagePath(import, pkg_path);
     Package* package = LoadPackage(import_path);
-    if (package->has_errors()) {
+    if (package->issue_tracker().has_errors()) {
       return nullptr;
     }
     return package->types_package_;
   };
   types::Package* types_package = type_checker::Check(import_dir, package->ast_package_, importer,
-                                                      type_info_.get(), package->issues_);
+                                                      type_info_.get(), package->issue_tracker_);
   package->types_package_ = types_package;
-  if (package->has_fatal_errors()) {
+  if (package->issue_tracker().has_fatal_errors()) {
     return package.get();
   }
 
