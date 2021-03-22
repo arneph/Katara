@@ -22,11 +22,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   pos::FileSet pos_file_set;
   pos::File* pos_file = pos_file_set.AddFile("test_file.kat", contents);
-  ast::AST ast;
-  ast::ASTBuilder ast_builder = ast.builder();
-  issues::IssueTracker issues;
 
-  parser::Parser::ParseFile(pos_file, ast_builder, issues);
+  scanner::Scanner scanner(pos_file);
+
+  while (scanner.token() != tokens::kEOF) {
+    scanner.Next();
+  }
 
   return 0;
 }

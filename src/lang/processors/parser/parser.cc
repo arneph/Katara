@@ -902,7 +902,9 @@ ast::Expr* Parser::ParsePrimaryExpr(ExprOptions expr_options) {
       scanner_.SkipPastLine();
       return nullptr;
   }
-
+  if (primary_expr == nullptr) {
+    return nullptr;
+  }
   return ParsePrimaryExpr(primary_expr, expr_options);
 }
 

@@ -45,8 +45,8 @@ void Scanner::Next(bool split_shift_ops) {
   }
   for (; pos_ < file_->end() && (file_->at(pos_) == ' ' || file_->at(pos_) == '\t' ||
                                  (file_->at(pos_) == '\n' && !insert_semicolon));
-       pos_++)
-    ;
+       pos_++) {
+  }
   tok_start_ = pos_;
   if (pos_ == file_->end()) {
     tok_ = tokens::kEOF;
@@ -89,9 +89,14 @@ void Scanner::Next(bool split_shift_ops) {
         for (; pos_ < file_->end() - 1 && (file_->at(pos_) != '*' || file_->at(pos_ + 1) != '/');
              pos_++)
           ;
-        tok_ = tokens::kComment;
-        tok_end_ = (pos_ < file_->end() - 1) ? pos_ + 1 : pos_;
-        pos_ += 2;
+        if (pos_ == file_->end() - 1) {
+          tok_ = tokens::kIllegal;
+          tok_end_ = file_->end();
+        } else {
+          tok_ = tokens::kComment;
+          tok_end_ = (pos_ < file_->end() - 1) ? pos_ + 1 : pos_;
+          pos_ += 2;
+        }
         return;
       }
       NextArithmeticOrBitOpStart(tokens::kQuo);
@@ -218,28 +223,38 @@ void Scanner::Next(bool split_shift_ops) {
       return;
     case '\'': {
       bool escaped = false;
-      for (pos_++; pos_ < file_->end() && !escaped && file_->at(pos_) != '\''; pos_++) {
+      for (; pos_ < file_->end() && !escaped && file_->at(pos_) != '\''; pos_++) {
         if (escaped) {
           escaped = false;
         } else if (file_->at(pos_) == '\\') {
           escaped = true;
         }
       }
-      tok_ = tokens::kChar;
-      tok_end_ = pos_++;
+      if (pos_ == file_->end()) {
+        tok_ = tokens::kIllegal;
+        tok_end_ = file_->end();
+      } else {
+        tok_ = tokens::kChar;
+        tok_end_ = pos_++;
+      }
       return;
     }
     case '\"': {
       bool escaped = false;
-      for (pos_++; pos_ < file_->end() && !escaped && file_->at(pos_) != '\"'; pos_++) {
+      for (; pos_ < file_->end() && !escaped && file_->at(pos_) != '\"'; pos_++) {
         if (escaped) {
           escaped = false;
         } else if (file_->at(pos_) == '\\') {
           escaped = true;
         }
       }
-      tok_ = tokens::kString;
-      tok_end_ = pos_++;
+      if (pos_ == file_->end()) {
+        tok_ = tokens::kIllegal;
+        tok_end_ = file_->end();
+      } else {
+        tok_ = tokens::kString;
+        tok_end_ = pos_++;
+      }
       return;
     }
     case '0':
