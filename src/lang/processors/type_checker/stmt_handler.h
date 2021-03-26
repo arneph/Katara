@@ -26,7 +26,7 @@ namespace type_checker {
 
 class StmtHandler final : public BaseHandler {
  public:
-  void ProcessFuncBody(ast::BlockStmt* body, types::Tuple* func_results);
+  void CheckFuncBody(ast::BlockStmt* body, types::Tuple* func_results);
 
  private:
   StmtHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,

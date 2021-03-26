@@ -281,7 +281,7 @@ void Coordinator::FindActionsForFuncDecl(ast::FuncDecl* func_decl) {
   });
   Action* body_action = CreateAction([=]() -> bool {
     types::Signature* signature = static_cast<types::Signature*>(func->type());
-    type_resolver_.stmt_handler().ProcessFuncBody(body, signature->results());
+    type_resolver_.stmt_handler().CheckFuncBody(body, signature->results());
     return true;
   });
   variable_and_func_decl_actions_.push_back(decl_action);

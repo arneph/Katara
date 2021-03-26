@@ -17,28 +17,75 @@
 namespace lang {
 namespace type_checker {
 
-bool ExprHandler::ProcessExpr(ast::Expr* expr) { return CheckExpr(expr); }
-
-bool ExprHandler::ProcessCondExpr(ast::Expr* cond_expr) {
-  if (!CheckExpr(cond_expr)) {
+bool ExprHandler::CheckBoolExpr(ast::Expr* expr) {
+  if (!CheckValueExpr(expr)) {
     return false;
   }
-  types::ExprInfo cond_expr_info = info()->ExprInfoOf(cond_expr).value();
-  if (!cond_expr_info.is_value()) {
-    issues().Add(issues::kUnexpectedCondExprKind, cond_expr->start(), "expression is not a value");
-    return false;
-  }
-  types::Type* type = types::UnderlyingOf(cond_expr_info.type());
+  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type());
   if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
       !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsBoolean)) {
-    issues().Add(issues::kUnexpectedCondType, cond_expr->start(),
-                 "invalid operation: expected boolean type");
+    issues().Add(issues::kExprTypeIsNotBool, expr->start(), "expression is not of type bool");
     return false;
   }
   return true;
 }
 
-bool ExprHandler::CheckExprs(std::vector<ast::Expr*> exprs) {
+bool ExprHandler::CheckIntExpr(ast::Expr* expr) {
+  if (!CheckValueExpr(expr)) {
+    return false;
+  }
+  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type());
+  if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
+      !(static_cast<types::Basic*>(type)->kind() &
+        (types::Basic::Kind::kInt | types::Basic::Kind::kUntypedInt))) {
+    issues().Add(issues::kExprTypeIsNotInt, expr->start(), "expression is not of type int");
+    return false;
+  }
+  return true;
+}
+
+bool ExprHandler::CheckIntegerExpr(ast::Expr* expr) {
+  if (!CheckValueExpr(expr)) {
+    return false;
+  }
+  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type());
+  if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
+      !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsInteger)) {
+    issues().Add(issues::kExprTypeIsNotInteger, expr->start(), "expression is not of type integer");
+    return false;
+  }
+  return true;
+}
+
+std::vector<types::Type*> ExprHandler::CheckValueExprs(const std::vector<ast::Expr*>& exprs) {
+  std::vector<types::Type*> expr_types;
+  expr_types.reserve(exprs.size());
+  bool ok = true;
+  for (ast::Expr* expr : exprs) {
+    types::Type* expr_type = CheckValueExpr(expr);
+    if (expr_type == nullptr) {
+      ok = false;
+      expr_types.clear();
+    } else if (ok) {
+      expr_types.push_back(expr_type);
+    }
+  }
+  return expr_types;
+}
+
+types::Type* ExprHandler::CheckValueExpr(ast::Expr* expr) {
+  if (!CheckExpr(expr)) {
+    return nullptr;
+  }
+  types::ExprInfo expr_info = info()->ExprInfoOf(expr).value();
+  if (!expr_info.is_value()) {
+    issues().Add(issues::kExprKindIsNotValue, expr->start(), "expression is not a value");
+    return nullptr;
+  }
+  return expr_info.type();
+}
+
+bool ExprHandler::CheckExprs(const std::vector<ast::Expr*>& exprs) {
   bool ok = true;
   for (ast::Expr* expr : exprs) {
     ok = CheckExpr(expr) && ok;  // Order needed to avoid short circuiting.
@@ -304,35 +351,19 @@ bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr* binary_expr) {
 }
 
 bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr) {
-  bool operands_ok = true;
-  std::vector<types::ExprInfo> operand_expr_infos;
-  for (ast::Expr* operand : compare_expr->operands()) {
-    if (!CheckExpr(operand)) {
-      operands_ok = false;
-      continue;
-    }
-    types::ExprInfo operand_info = info()->ExprInfoOf(operand).value();
-    if (!operand_info.is_value()) {
-      issues().Add(issues::kUnexpectedCompareOperandExprKind, operand->start(),
-                   "expression is not a value");
-      return false;
-    }
-    if (operands_ok) {
-      operand_expr_infos.push_back(operand_info);
-    }
-  }
-  if (!operands_ok) {
+  std::vector<types::Type*> operand_types = CheckValueExprs(compare_expr->operands());
+  if (operand_types.empty()) {
     return false;
   }
   for (size_t i = 0; i < compare_expr->compare_ops().size(); i++) {
     tokens::Token op = compare_expr->compare_ops().at(i);
-    types::ExprInfo x = operand_expr_infos.at(i);
-    types::ExprInfo y = operand_expr_infos.at(i + 1);
+    types::Type* x = operand_types.at(i);
+    types::Type* y = operand_types.at(i + 1);
     switch (op) {
       case tokens::kEql:
       case tokens::kNeq:
-        if (!types::IsComparable(x.type(), y.type())) {
-          issues().Add(issues::kCompareExprOperandTypessNotComparable,
+        if (!types::IsComparable(x, y)) {
+          issues().Add(issues::kCompareExprOperandTypesNotComparable,
                        compare_expr->compare_op_starts().at(i),
                        "invalid operation: types are not comparable");
           return false;
@@ -342,7 +373,7 @@ bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr) {
       case tokens::kGtr:
       case tokens::kGeq:
       case tokens::kLeq:
-        if (!types::IsOrderable(x.type(), y.type())) {
+        if (!types::IsOrderable(x, y)) {
           issues().Add(issues::kCompareExprOperandTypesNotOrderable,
                        compare_expr->compare_op_starts().at(i),
                        "invalid operation: types are not orderable");
@@ -361,16 +392,10 @@ bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr) {
 
 std::optional<ExprHandler::CheckBasicOperandResult> ExprHandler::CheckBasicOperand(
     ast::Expr* op_expr) {
-  if (!CheckExpr(op_expr)) {
+  types::Type* op_type = CheckValueExpr(op_expr);
+  if (op_type == nullptr) {
     return std::nullopt;
   }
-  types::ExprInfo op_info = info()->ExprInfoOf(op_expr).value();
-  if (!op_info.is_value()) {
-    issues().Add(issues::kUnexpectedBasicOperandExprKind, op_expr->start(),
-                 "expression is not a value");
-    return std::nullopt;
-  }
-  types::Type* op_type = op_info.type();
   types::Type* op_underlying = types::UnderlyingOf(op_type);
   if (op_underlying == nullptr || op_underlying->type_kind() != types::TypeKind::kBasic) {
     issues().Add(issues::kUnexpectedBasicOperandType, op_expr->start(),
@@ -626,50 +651,30 @@ bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr* type_assert_expr) {
                  "invalid operation: blank type assertion outside type switch");
     return false;
   }
-  if (!CheckExpr(type_assert_expr->x()) || !CheckExpr(type_assert_expr->type())) {
+  types::Type* x = CheckValueExpr(type_assert_expr->x());
+  if (!type_resolver().type_handler().ProcessTypeExpr(type_assert_expr->type()) || x == nullptr) {
     return false;
   }
-  types::ExprInfo x = info()->ExprInfoOf(type_assert_expr->x()).value();
-  if (!x.is_value()) {
-    issues().Add(issues::kUnexpectedTypeAssertionOperandExprKind, type_assert_expr->x()->start(),
-                 "expression is not a value");
-    return false;
-  }
-  if (x.type()->type_kind() != types::TypeKind::kInterface) {
+  if (x->type_kind() != types::TypeKind::kInterface) {
     issues().Add(issues::kUnexpectedTypeAssertionOperandType, type_assert_expr->x()->start(),
                  "invalid operation: expected interface value");
     return false;
   }
-  types::ExprInfo asserted_type = info()->ExprInfoOf(type_assert_expr->type()).value();
-  if (!types::IsAssertableTo(x.type(), asserted_type.type())) {
+  types::Type* asserted_type = info()->ExprInfoOf(type_assert_expr->type()).value().type();
+  if (!types::IsAssertableTo(x, asserted_type)) {
     issues().Add(issues::kTypeAssertionNeverPossible, type_assert_expr->start(),
                  "invalid operation: assertion always fails");
     return false;
   }
 
-  info_builder().SetExprInfo(
-      type_assert_expr, types::ExprInfo(types::ExprInfo::Kind::kValueOk, asserted_type.type()));
+  info_builder().SetExprInfo(type_assert_expr,
+                             types::ExprInfo(types::ExprInfo::Kind::kValueOk, asserted_type));
   return true;
 }
 
 bool ExprHandler::CheckIndexExpr(ast::IndexExpr* index_expr) {
-  if (!CheckExpr(index_expr->accessed()) || !CheckExpr(index_expr->index())) {
-    return false;
-  }
-
-  types::ExprInfo index_info = info()->ExprInfoOf(index_expr->index()).value();
-  if (!index_info.is_value()) {
-    issues().Add(issues::kUnexpectedIndexOperandExprKind, index_expr->index()->start(),
-                 "expression is not a value");
-    return false;
-  }
-  types::Type* index_type = index_info.type();
-  types::Type* index_underlying = types::UnderlyingOf(index_type);
-  if (index_underlying == nullptr || index_underlying->type_kind() != types::TypeKind::kBasic ||
-      !(static_cast<types::Basic*>(index_underlying)->kind() &
-        (types::Basic::Kind::kInt | types::Basic::Kind::kUntypedInt))) {
-    issues().Add(issues::kUnexpectedIndexOperandType, index_expr->start(),
-                 "invalid operation: expected integer value");
+  types::Type* accessed_type = CheckValueExpr(index_expr->accessed());
+  if (!CheckIntExpr(index_expr->index()) || accessed_type == nullptr) {
     return false;
   }
 
@@ -677,13 +682,6 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr* index_expr) {
     issues().Add(issues::kUnexpectedIndexedOperandType, index_expr->start(),
                  "invalid operation: expected array, pointer to array, slice, or string");
   };
-  types::ExprInfo accessed_info = info()->ExprInfoOf(index_expr->accessed()).value();
-  if (!accessed_info.is_value()) {
-    issues().Add(issues::kUnexpectedIndexedOperandType, index_expr->accessed()->start(),
-                 "expression is not a value");
-    return false;
-  }
-  types::Type* accessed_type = accessed_info.type();
   types::Type* accessed_underlying = types::UnderlyingOf(accessed_type);
   if (accessed_underlying == nullptr) {
     add_expected_accessed_value_issue();
@@ -725,11 +723,14 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr* index_expr) {
 
 bool ExprHandler::CheckCallExpr(ast::CallExpr* call_expr) {
   ast::Expr* func_expr = call_expr->func();
+  std::vector<ast::Expr*> type_args = call_expr->type_args();
+  std::vector<ast::Expr*> args = call_expr->args();
 
-  if (!CheckExpr(func_expr) ||
-      (!call_expr->type_args().empty() &&
-       !type_resolver().type_handler().ProcessTypeArgs(call_expr->type_args())) ||
-      !CheckExprs(call_expr->args())) {
+  bool func_expr_ok = CheckExpr(func_expr);
+  bool type_args_ok =
+      type_args.empty() || type_resolver().type_handler().ProcessTypeArgs(type_args);
+  bool args_ok = args.empty() || !CheckValueExprs(args).empty();
+  if (!func_expr_ok || !type_args_ok || !args_ok) {
     return false;
   }
   types::ExprInfo func_expr_info = info()->ExprInfoOf(func_expr).value();
@@ -761,15 +762,8 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr) {
                  "invalid operation: type conversion requires exactly one argument");
     return false;
   }
-  types::ExprInfo func_expr_info = info()->ExprInfoOf(call_expr->func()).value();
-  types::ExprInfo arg_expr_info = info()->ExprInfoOf(call_expr->args().at(0)).value();
-  if (!arg_expr_info.is_value()) {
-    issues().Add(issues::kUnexpectedTypeConversionArgumentExprKind,
-                 call_expr->args().at(0)->start(), "expression is not a value");
-    return false;
-  }
-  types::Type* conversion_start_type = arg_expr_info.type();
-  types::Type* conversion_result_type = func_expr_info.type();
+  types::Type* conversion_start_type = info()->ExprInfoOf(call_expr->func()).value().type();
+  types::Type* conversion_result_type = info()->ExprInfoOf(call_expr->args().at(0)).value().type();
   if (!types::IsConvertibleTo(conversion_start_type, conversion_result_type)) {
     issues().Add(issues::kUnexpectedTypeConversionArgumentType, call_expr->start(),
                  "invalid operation: type conversion not possible");
@@ -798,13 +792,7 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr* call_expr) {
         return false;
       }
       ast::Expr* arg_expr = call_expr->args().at(0);
-      types::ExprInfo arg_expr_info = info()->ExprInfoOf(arg_expr).value();
-      if (!arg_expr_info.is_value()) {
-        issues().Add(issues::kUnexpectedLenArgumentExprKind, arg_expr->start(),
-                     "expression is not a value");
-        return false;
-      }
-      types::Type* arg_type = types::UnderlyingOf(arg_expr_info.type());
+      types::Type* arg_type = types::UnderlyingOf(info()->ExprInfoOf(arg_expr).value().type());
       if (arg_type == nullptr ||
           ((arg_type->type_kind() != types::TypeKind::kBasic ||
             static_cast<types::Basic*>(arg_type)->kind() != types::Basic::kString) &&
@@ -840,11 +828,6 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr* call_expr) {
       types::Slice* slice = static_cast<types::Slice*>(slice_expr_info.type());
       ast::Expr* length_expr = call_expr->args().at(0);
       types::ExprInfo length_expr_info = info()->ExprInfoOf(length_expr).value();
-      if (!length_expr_info.is_value()) {
-        issues().Add(issues::kUnexpectedMakeArgumentExprKind, length_expr->start(),
-                     "expression is not a value");
-        return false;
-      }
       if (length_expr_info.type()->type_kind() != types::TypeKind::kBasic) {
         issues().Add(issues::kUnexpectedMakeArgumentType, length_expr->start(),
                      "make expected length of type int");
@@ -943,21 +926,9 @@ types::Signature* ExprHandler::CheckFuncCallTypeArgs(types::Signature* signature
 
 void ExprHandler::CheckFuncCallArgs(types::Signature* signature, ast::CallExpr* call_expr,
                                     std::vector<ast::Expr*> arg_exprs) {
-  bool args_ok = true;
   std::vector<types::Type*> arg_types;
   for (ast::Expr* arg_expr : arg_exprs) {
-    types::ExprInfo arg_expr_info = info()->ExprInfoOf(arg_expr).value();
-    if (!arg_expr_info.is_value()) {
-      issues().Add(issues::kUnexpectedFuncCallArgumentExprKind, arg_expr->start(),
-                   "expression is not a value");
-      args_ok = false;
-    }
-    if (args_ok) {
-      arg_types.push_back(arg_expr_info.type());
-    }
-  }
-  if (!args_ok) {
-    return;
+    arg_types.push_back(info()->ExprInfoOf(arg_expr).value().type());
   }
   if (arg_types.size() == 1 && arg_types.at(0)->type_kind() == types::TypeKind::kTuple) {
     types::Tuple* tuple = static_cast<types::Tuple*>(arg_types.at(0));
@@ -1018,7 +989,7 @@ bool ExprHandler::CheckFuncLit(ast::FuncLit* func_lit) {
   types::ExprInfo func_type_expr_info = info()->ExprInfoOf(func_type_expr).value();
   types::Signature* func_type = static_cast<types::Signature*>(func_type_expr_info.type());
 
-  type_resolver().stmt_handler().ProcessFuncBody(func_body, func_type->results());
+  type_resolver().stmt_handler().CheckFuncBody(func_body, func_type->results());
 
   info_builder().SetObjectType(func, func_type);
   info_builder().SetExprInfo(func_lit, types::ExprInfo(types::ExprInfo::Kind::kValue, func_type));

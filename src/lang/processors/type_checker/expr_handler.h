@@ -26,9 +26,27 @@ namespace type_checker {
 
 class ExprHandler final : public BaseHandler {
  public:
-  bool ProcessExpr(ast::Expr* expr);
+  // Type checks expr and checks that the expression is a boolean value. Returns if this is
+  // successful.
+  bool CheckBoolExpr(ast::Expr* expr);
+  // Type checks expr and checks that the expression is an int value (possibly untyped). Returns if
+  // this is successful.
+  bool CheckIntExpr(ast::Expr* expr);
+  // Type checks expr and checks that the expression is an integer value (uint8, int64, etc).
+  // Returns if this is successful.
+  bool CheckIntegerExpr(ast::Expr* expr);
 
-  bool ProcessCondExpr(ast::Expr* expr);
+  // Type checks all exprs and checks that the expressions are values. If successful, the types of
+  // exprs are returned, otherwise an empty vector.
+  std::vector<types::Type*> CheckValueExprs(const std::vector<ast::Expr*>& exprs);
+  // Type checks expr and checks that the expression is a value. If successful, the type of expr is
+  // returned, otherwise nullptr.
+  types::Type* CheckValueExpr(ast::Expr* expr);
+
+  // Type checks all exprs and returns if this is successful.
+  bool CheckExprs(const std::vector<ast::Expr*>& exprs);
+  // Type checks expr and returns if this is successful.
+  bool CheckExpr(ast::Expr* expr);
 
  private:
   ExprHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
@@ -44,9 +62,6 @@ class ExprHandler final : public BaseHandler {
     kCheckFailed,
     kCheckSucceeded,
   };
-
-  bool CheckExprs(std::vector<ast::Expr*> exprs);
-  bool CheckExpr(ast::Expr* expr);
 
   bool CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr* unary_expr);
   bool CheckUnaryLogicExpr(ast::UnaryExpr* unary_expr);

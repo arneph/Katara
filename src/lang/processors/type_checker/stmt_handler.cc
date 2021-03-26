@@ -15,7 +15,7 @@
 namespace lang {
 namespace type_checker {
 
-void StmtHandler::ProcessFuncBody(ast::BlockStmt* body, types::Tuple* func_results) {
+void StmtHandler::CheckFuncBody(ast::BlockStmt* body, types::Tuple* func_results) {
   Context ctx{
       .func_results = func_results,
       .labels = {},
@@ -175,7 +175,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
       lhs_types.push_back(nullptr);
       continue;
     }
-    if (!type_resolver().expr_handler().ProcessExpr(lhs_expr)) {
+    if (!type_resolver().expr_handler().CheckExpr(lhs_expr)) {
       lhs_types.push_back(nullptr);
       continue;
     }
@@ -189,18 +189,8 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
     lhs_types.push_back(lhs_info.type());
   }
   for (ast::Expr* rhs_expr : assign_stmt->rhs()) {
-    if (!type_resolver().expr_handler().ProcessExpr(rhs_expr)) {
-      rhs_types.push_back(nullptr);
-      continue;
-    }
-    types::ExprInfo rhs_info = info()->ExprInfoOf(rhs_expr).value();
-    if (!rhs_info.is_value()) {
-      issues().Add(issues::kUnexpectedAssignStmtRhsExprKind, rhs_expr->start(),
-                   "expression is not a value");
-      rhs_types.push_back(nullptr);
-      continue;
-    }
-    rhs_types.push_back(rhs_info.type());
+    types::Type* rhs_type = type_resolver().expr_handler().CheckValueExpr(rhs_expr);
+    rhs_types.push_back(rhs_type);
   }
 
   if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr &&
@@ -266,52 +256,26 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
 
 void StmtHandler::CheckExprStmt(ast::ExprStmt* expr_stmt) {
   // TODO: check no value gets discarded.
-  type_resolver().expr_handler().ProcessExpr(expr_stmt->x());
+  type_resolver().expr_handler().CheckExpr(expr_stmt->x());
 }
 
 void StmtHandler::CheckIncDecStmt(ast::IncDecStmt* inc_dec_stmt) {
-  if (!type_resolver().expr_handler().ProcessExpr(inc_dec_stmt->x())) {
-    return;
-  }
-  types::ExprInfo x = info()->ExprInfoOf(inc_dec_stmt->x()).value();
-  if (!x.is_value()) {
-    issues().Add(issues::kUnexpectedIncDecStmtOperandExprKind, inc_dec_stmt->start(),
-                 "expression is not a value");
-    return;
-  }
-  types::Type* underlying = types::UnderlyingOf(x.type());
-  if (underlying == nullptr || underlying->type_kind() != types::TypeKind::kBasic ||
-      !(static_cast<types::Basic*>(underlying)->info() & types::Basic::Info::kIsInteger)) {
-    issues().Add(issues::kUnexpectedIncDecStmtOperandType, inc_dec_stmt->start(),
-                 "invalid operation: expected integer type");
-  }
+  type_resolver().expr_handler().CheckIntegerExpr(inc_dec_stmt->x());
 }
 
 void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
-  bool results_ok = true;
-  std::vector<types::Type*> result_types;
-  for (ast::Expr* result_expr : return_stmt->results()) {
-    if (!type_resolver().expr_handler().ProcessExpr(result_expr)) {
-      results_ok = false;
-      continue;
-    }
-    types::ExprInfo result_expr_info = info()->ExprInfoOf(result_expr).value();
-    if (!result_expr_info.is_value()) {
-      issues().Add(issues::kUnexpectedReturnStmtOperandExprKind, return_stmt->start(),
-                   "expression is not a value");
-      results_ok = false;
-      continue;
-    }
-    if (results_ok) {
-      result_types.push_back(result_expr_info.type());
-    }
+  // TODO: check return stmt is last in block
+  std::vector<ast::Expr*> result_exprs = return_stmt->results();
+  if (result_exprs.empty()) {
+    return;
   }
-  if (!results_ok) {
+  std::vector<types::Type*> result_types =
+      type_resolver().expr_handler().CheckValueExprs(result_exprs);
+  if (result_types.empty()) {
     return;
   }
 
-  if (return_stmt->results().size() == 1 &&
-      result_types.at(0)->type_kind() == types::TypeKind::kTuple) {
+  if (result_exprs.size() == 1 && result_types.at(0)->type_kind() == types::TypeKind::kTuple) {
     types::Tuple* result_tuple = static_cast<types::Tuple*>(result_types.at(0));
     if (!types::IsAssignableTo(result_tuple, ctx.func_results)) {
       issues().Add(issues::kUnexpectedReturnStmtFuncCallOperandType, return_stmt->start(),
@@ -340,7 +304,7 @@ void StmtHandler::CheckIfStmt(ast::IfStmt* if_stmt, Context ctx) {
   if (if_stmt->init_stmt()) {
     CheckStmt(if_stmt->init_stmt(), ctx);
   }
-  type_resolver().expr_handler().ProcessCondExpr(if_stmt->cond_expr());
+  type_resolver().expr_handler().CheckBoolExpr(if_stmt->cond_expr());
 
   ctx.can_fallthrough = false;
   CheckBlockStmt(if_stmt->body(), ctx);
@@ -355,18 +319,7 @@ void StmtHandler::CheckExprSwitchStmt(ast::ExprSwitchStmt* switch_stmt, Context 
   }
   types::Type* tag_type = info()->basic_type(types::Basic::Kind::kUntypedBool);
   if (switch_stmt->tag_expr()) {
-    if (!type_resolver().expr_handler().ProcessExpr(switch_stmt->tag_expr())) {
-      tag_type = nullptr;
-    } else {
-      types::ExprInfo tag_expr_info = info()->ExprInfoOf(switch_stmt->tag_expr()).value();
-      if (!tag_expr_info.is_value()) {
-        issues().Add(issues::kUnexpectedSwitchStmtOperandExprKind, switch_stmt->tag_expr()->start(),
-                     "expression is not a value");
-        tag_type = nullptr;
-      } else {
-        tag_type = tag_expr_info.type();
-      }
-    }
+    tag_type = type_resolver().expr_handler().CheckValueExpr(switch_stmt->tag_expr());
   }
   ctx.can_break = true;
   bool seen_default = false;
@@ -389,16 +342,11 @@ void StmtHandler::CheckExprSwitchStmt(ast::ExprSwitchStmt* switch_stmt, Context 
 void StmtHandler::CheckExprCaseClause(ast::CaseClause* case_clause, types::Type* tag_type,
                                       Context ctx) {
   for (ast::Expr* expr : case_clause->cond_vals()) {
-    if (!type_resolver().expr_handler().ProcessExpr(expr)) {
+    types::Type* expr_type = type_resolver().expr_handler().CheckValueExpr(expr);
+    if (expr_type == nullptr || tag_type == nullptr) {
       continue;
     }
-    types::ExprInfo expr_info = info()->ExprInfoOf(expr).value();
-    if (!expr_info.is_value()) {
-      issues().Add(issues::kUnexpectedExprCaseValueExprKind, expr->start(),
-                   "expression is not a value");
-      continue;
-    }
-    if (tag_type != nullptr && !types::IsComparable(tag_type, expr_info.type())) {
+    if (!types::IsComparable(tag_type, expr_type)) {
       issues().Add(issues::kUnexpectedExprCaseValueType, expr->start(),
                    "invalid operation: can not compare value expression with switch tag");
     }
@@ -411,16 +359,7 @@ void StmtHandler::CheckExprCaseClause(ast::CaseClause* case_clause, types::Type*
 }
 
 void StmtHandler::CheckTypeSwitchStmt(ast::TypeSwitchStmt* switch_stmt, Context ctx) {
-  types::Type* tag_type = nullptr;
-  if (type_resolver().expr_handler().ProcessExpr(switch_stmt->tag_expr())) {
-    types::ExprInfo tag_expr_info = info()->ExprInfoOf(switch_stmt->tag_expr()).value();
-    if (!tag_expr_info.is_value()) {
-      issues().Add(issues::kUnexpectedSwitchStmtOperandExprKind, switch_stmt->tag_expr()->start(),
-                   "expression is not a value");
-    } else {
-      tag_type = tag_expr_info.type();
-    }
-  }
+  types::Type* tag_type = type_resolver().expr_handler().CheckValueExpr(switch_stmt->tag_expr());
   ctx.can_break = true;
   ctx.can_fallthrough = false;
   bool seen_default = false;
@@ -470,7 +409,7 @@ void StmtHandler::CheckForStmt(ast::ForStmt* for_stmt, Context ctx) {
   if (for_stmt->init_stmt() != nullptr) {
     CheckStmt(for_stmt->init_stmt(), ctx);
   }
-  type_resolver().expr_handler().ProcessCondExpr(for_stmt->cond_expr());
+  type_resolver().expr_handler().CheckBoolExpr(for_stmt->cond_expr());
   if (for_stmt->post_stmt()) {
     CheckStmt(for_stmt->post_stmt(), ctx);
   }
