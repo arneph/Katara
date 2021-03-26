@@ -19,6 +19,25 @@ namespace type_checker {
 
 bool ExprHandler::ProcessExpr(ast::Expr* expr) { return CheckExpr(expr); }
 
+bool ExprHandler::ProcessCondExpr(ast::Expr* cond_expr) {
+  if (!CheckExpr(cond_expr)) {
+    return false;
+  }
+  types::ExprInfo cond_expr_info = info()->ExprInfoOf(cond_expr).value();
+  if (!cond_expr_info.is_value()) {
+    issues().Add(issues::kUnexpectedCondExprKind, cond_expr->start(), "expression is not a value");
+    return false;
+  }
+  types::Type* type = types::UnderlyingOf(cond_expr_info.type());
+  if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
+      !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsBoolean)) {
+    issues().Add(issues::kUnexpectedCondType, cond_expr->start(),
+                 "invalid operation: expected boolean type");
+    return false;
+  }
+  return true;
+}
+
 bool ExprHandler::CheckExprs(std::vector<ast::Expr*> exprs) {
   bool ok = true;
   for (ast::Expr* expr : exprs) {

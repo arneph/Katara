@@ -28,6 +28,8 @@ class ExprHandler final : public BaseHandler {
  public:
   bool ProcessExpr(ast::Expr* expr);
 
+  bool ProcessCondExpr(ast::Expr* expr);
+
  private:
   ExprHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
               issues::IssueTracker& issues)

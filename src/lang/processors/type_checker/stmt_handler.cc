@@ -340,20 +340,7 @@ void StmtHandler::CheckIfStmt(ast::IfStmt* if_stmt, Context ctx) {
   if (if_stmt->init_stmt()) {
     CheckStmt(if_stmt->init_stmt(), ctx);
   }
-  if (type_resolver().expr_handler().ProcessExpr(if_stmt->cond_expr())) {
-    types::ExprInfo cond_expr_info = info()->ExprInfoOf(if_stmt->cond_expr()).value();
-    if (!cond_expr_info.is_value()) {
-      issues().Add(issues::kUnexpectedIfStmtCondExprKind, if_stmt->cond_expr()->start(),
-                   "expression is not a value");
-    } else {
-      types::Type* type = types::UnderlyingOf(cond_expr_info.type());
-      if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
-          !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsBoolean)) {
-        issues().Add(issues::kUnexpectedIfStmtCondType, if_stmt->cond_expr()->start(),
-                     "invalid operation: expected boolean type");
-      }
-    }
-  }
+  type_resolver().expr_handler().ProcessCondExpr(if_stmt->cond_expr());
 
   ctx.can_fallthrough = false;
   CheckBlockStmt(if_stmt->body(), ctx);
@@ -483,20 +470,7 @@ void StmtHandler::CheckForStmt(ast::ForStmt* for_stmt, Context ctx) {
   if (for_stmt->init_stmt() != nullptr) {
     CheckStmt(for_stmt->init_stmt(), ctx);
   }
-  if (type_resolver().expr_handler().ProcessExpr(for_stmt->cond_expr())) {
-    types::ExprInfo cond_expr_info = info()->ExprInfoOf(for_stmt->cond_expr()).value();
-    if (!cond_expr_info.is_value()) {
-      issues().Add(issues::kUnexpectedForStmtCondExprKind, for_stmt->cond_expr()->start(),
-                   "expression is not a value");
-    } else {
-      types::Type* type = types::UnderlyingOf(cond_expr_info.type());
-      if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
-          !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsBoolean)) {
-        issues().Add(issues::kUnexpectedForStmtCondType, for_stmt->cond_expr()->start(),
-                     "invalid operation: expected boolean type");
-      }
-    }
-  }
+  type_resolver().expr_handler().ProcessCondExpr(for_stmt->cond_expr());
   if (for_stmt->post_stmt()) {
     CheckStmt(for_stmt->post_stmt(), ctx);
   }
