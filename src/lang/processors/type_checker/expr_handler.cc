@@ -1067,10 +1067,14 @@ void ExprHandler::CheckFuncCallArgs(types::Signature* signature, ast::CallExpr* 
     if (!types::IsAssignableTo(arg_type, param_type)) {
       if (arg_exprs.size() == expected_args) {
         issues().Add(issues::kUnexpectedFuncCallArgumentType, arg_exprs.at(i)->start(),
-                     "can not assign argument to parameter");
+                     "can not assign argument of type " +
+                         arg_type->ToString(types::StringRep::kShort) + " to parameter of type " +
+                         param_type->ToString(types::StringRep::kShort));
       } else {
         issues().Add(issues::kUnexpectedFuncCallArgumentType, arg_exprs.at(0)->start(),
-                     "can not assign argument to parameter");
+                     "can not assign argument of type " +
+                         arg_type->ToString(types::StringRep::kShort) + " to parameter of type " +
+                         param_type->ToString(types::StringRep::kShort));
         return;
       }
     }
