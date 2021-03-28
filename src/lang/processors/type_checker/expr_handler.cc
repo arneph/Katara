@@ -859,8 +859,8 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr, Cont
                  "invalid operation: type conversion requires exactly one argument");
     return false;
   }
-  types::ExprInfo conversion_start_info = info()->ExprInfoOf(call_expr->func()).value();
-  types::ExprInfo conversion_result_info = info()->ExprInfoOf(call_expr->args().at(0)).value();
+  types::ExprInfo conversion_start_info = info()->ExprInfoOf(call_expr->args().at(0)).value();
+  types::ExprInfo conversion_result_info = info()->ExprInfoOf(call_expr->func()).value();
   types::Type* conversion_result_underlying = types::UnderlyingOf(conversion_result_info.type());
   if (ctx.expect_constant_ &&
       (conversion_result_underlying == nullptr ||
