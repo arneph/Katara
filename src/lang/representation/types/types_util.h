@@ -16,6 +16,17 @@
 namespace lang {
 namespace types {
 
+// Converts the given Basic::Kind to its typed equivalent if untyped, otherwise returns the already
+// typed input, e.g. for
+// var a = 5
+// it converts from untyped int, the type of "5", to int, the type of "a". Conversion of untyped nil
+// is not possible.
+Basic::Kind ConvertIfUntyped(Basic::Kind untyped_basic_kind);
+
+// Converts the given constants::Value of an untyped Basic::Kind to its typed equivalent, e.g. for
+// var x int8 = 17
+// const y = uint32(42)
+// it converts from untyped int, the type of "17" and "42", to int8 or uint32.
 constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_basic_kind);
 
 Type* UnderlyingOf(Type* type);

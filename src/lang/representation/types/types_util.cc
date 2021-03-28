@@ -13,6 +13,34 @@
 namespace lang {
 namespace types {
 
+Basic::Kind ConvertIfUntyped(Basic::Kind basic_kind) {
+  switch (basic_kind) {
+    case Basic::kBool:
+    case Basic::kInt:
+    case Basic::kInt8:
+    case Basic::kInt16:
+    case Basic::kInt32:
+    case Basic::kInt64:
+    case Basic::kUint:
+    case Basic::kUint8:
+    case Basic::kUint16:
+    case Basic::kUint32:
+    case Basic::kUint64:
+    case Basic::kString:
+      return basic_kind;
+    case Basic::kUntypedBool:
+      return Basic::kBool;
+    case Basic::kUntypedInt:
+      return Basic::kInt;
+    case Basic::kUntypedRune:
+      return Basic::kRune;
+    case Basic::kUntypedString:
+      return Basic::kString;
+    default:
+      throw "internal error: unexpected basic kind";
+  }
+}
+
 constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_basic_kind) {
   switch (typed_basic_kind) {
     case Basic::kBool:

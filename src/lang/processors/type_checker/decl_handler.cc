@@ -49,7 +49,7 @@ bool DeclHandler::ProcessUnderlyingTypeOfTypeName(types::TypeName* type_name,
 
 bool DeclHandler::ProcessConstant(types::Constant* constant, ast::Expr* type_expr,
                                   ast::Expr* value_expr, int64_t iota) {
-  types::Type *type = nullptr;
+  types::Type* type = nullptr;
   if (type_expr != nullptr) {
     type = type_resolver().type_handler().EvaluateTypeExpr(type_expr);
     if (type == nullptr) {
@@ -117,7 +117,7 @@ bool DeclHandler::ProcessVariable(types::Variable* variable, ast::Expr* variable
 
 bool DeclHandler::ProcessVariables(std::vector<types::Variable*> variables,
                                    ast::Expr* all_variables_type_expr, ast::Expr* value_expr) {
-  types::Type *all_variables_type = nullptr;
+  types::Type* all_variables_type = nullptr;
   if (all_variables_type_expr != nullptr) {
     all_variables_type = type_resolver().type_handler().EvaluateTypeExpr(all_variables_type_expr);
   }
@@ -140,10 +140,14 @@ bool DeclHandler::ProcessVariables(std::vector<types::Variable*> variables,
   if (value_expr == nullptr) {
     return true;
   }
-  
+
   types::Type* value_type = type_resolver().expr_handler().CheckValueExpr(value_expr);
   if (value_type == nullptr) {
     return false;
+  } else if (value_type->type_kind() == types::TypeKind::kBasic) {
+    types::Basic::Kind basic_kind = static_cast<types::Basic*>(value_type)->kind();
+    types::Basic::Kind typed_basic_kind = types::ConvertIfUntyped(basic_kind);
+    value_type = info()->basic_type(typed_basic_kind);
   }
 
   if (variables.size() == 1) {

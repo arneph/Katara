@@ -211,6 +211,11 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
       ast::Ident* ident = static_cast<ast::Ident*>(assign_stmt->lhs().at(i));
       types::Object* obj = info()->DefinitionOf(ident);
       if (obj->object_kind() == types::ObjectKind::kVariable && rhs_type != nullptr) {
+        if (rhs_type->type_kind() == types::TypeKind::kBasic) {
+          types::Basic::Kind basic_kind = static_cast<types::Basic*>(rhs_type)->kind();
+          types::Basic::Kind typed_basic_kind = types::ConvertIfUntyped(basic_kind);
+          rhs_type = info()->basic_type(typed_basic_kind);
+        }
         info_builder().SetObjectType(static_cast<types::Variable*>(obj), rhs_type);
       }
       continue;
