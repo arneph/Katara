@@ -172,8 +172,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
     lhs_types.push_back(lhs_info.type());
   }
   for (ast::Expr* rhs_expr : assign_stmt->rhs()) {
-    types::Type* rhs_type = type_resolver().expr_handler().CheckValueExpr(rhs_expr);
-    rhs_types.push_back(rhs_type);
+    rhs_types.push_back(type_resolver().expr_handler().CheckValueExpr(rhs_expr));
   }
 
   if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr &&
