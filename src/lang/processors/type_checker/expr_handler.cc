@@ -767,7 +767,8 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr* index_expr) {
 
   auto add_expected_accessed_value_issue = [&]() {
     issues().Add(issues::kUnexpectedIndexedOperandType, index_expr->start(),
-                 "invalid operation: expected array, pointer to array, slice, or string");
+                 "invalid operation: expected array, pointer to array, slice, or string, but got " +
+                     accessed_type->ToString(types::StringRep::kShort));
   };
   types::Type* accessed_underlying = types::UnderlyingOf(accessed_type);
   if (accessed_underlying == nullptr) {
