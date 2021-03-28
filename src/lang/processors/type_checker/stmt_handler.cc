@@ -281,7 +281,10 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
     ast::Expr* result_expr = return_stmt->results().at(i);
     if (!types::IsAssignableTo(given_result_type, expected_result_type)) {
       issues().Add(issues::kUnexpectedReturnStmtOperandType, result_expr->start(),
-                   "invalid operation: result can not be assigned to function result type");
+                   "invalid operation: result of type " +
+                       given_result_type->ToString(types::StringRep::kShort) +
+                       " can not be assigned to function result type " +
+                       expected_result_type->ToString(types::StringRep::kShort));
     }
   }
   return;
