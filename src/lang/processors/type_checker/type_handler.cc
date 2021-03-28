@@ -206,13 +206,13 @@ bool TypeHandler::EvaluateArrayType(ast::ArrayType* array_expr) {
   bool is_slice = (array_expr->len() == nullptr);
   uint64_t length = -1;
   if (!is_slice) {
-    if (!type_resolver().constant_handler().ProcessConstantExpr(array_expr->len(),
-                                                                /* iota= */ 0)) {
+    if (!type_resolver().expr_handler().CheckExpr(
+            array_expr->len(), ExprHandler::Context(/*expect_constant=*/true, /* iota= */ 0))) {
       issues().Add(issues::kConstantForArraySizeCanNotBeEvaluated, array_expr->len()->start(),
                    "can not evaluate constant for array size");
       return false;
     }
-    constants::Value length_value = info()->constant_values().at(array_expr->len());
+    constants::Value length_value = info()->ExprInfoOf(array_expr->len()).value().constant_value();
     if (!length_value.CanConvertToArraySize()) {
       issues().Add(issues::kConstantCanNotBeUsedAsArraySize, array_expr->len()->start(),
                    "can not use constant as array size");

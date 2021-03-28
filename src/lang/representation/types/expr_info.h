@@ -9,12 +9,14 @@
 #ifndef lang_types_expr_info_h
 #define lang_types_expr_info_h
 
+#include <optional>
+
+#include "lang/representation/constants/constants.h"
 #include "lang/representation/types/types.h"
 
 namespace lang {
 namespace types {
 
-// TODO: add optional constant value
 class ExprInfo {
  public:
   enum class Kind {
@@ -28,17 +30,20 @@ class ExprInfo {
     kValueOk,
   };
 
-  ExprInfo(Kind kind, Type* type) : kind_(kind), type_(type) {}
+  ExprInfo(Kind kind, Type* type, std::optional<constants::Value> constant_value = std::nullopt);
 
   bool is_type() const;
   bool is_value() const;
+  bool is_constant() const;
   bool is_addressable() const;
   Kind kind() const { return kind_; }
   Type* type() const { return type_; }
+  constants::Value constant_value() const { return constant_value_.value(); }
 
  private:
   Kind kind_;
   Type* type_;
+  std::optional<constants::Value> constant_value_;
 };
 
 }  // namespace types

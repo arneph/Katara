@@ -26,6 +26,14 @@ namespace type_checker {
 
 class ExprHandler final : public BaseHandler {
  public:
+  struct Context {
+    Context(bool expect_constant = false, int64_t iota = 0)
+        : expect_constant_(expect_constant), iota_(iota) {}
+
+    bool expect_constant_;
+    int64_t iota_;
+  };
+
   // Type checks expr and checks that the expression is a boolean value. Returns if this is
   // successful.
   bool CheckBoolExpr(ast::Expr* expr);
@@ -33,49 +41,53 @@ class ExprHandler final : public BaseHandler {
   // this is successful.
   bool CheckIntExpr(ast::Expr* expr);
   // Type checks expr and checks that the expression is an integer value (uint8, int64, etc).
-  // Returns if this is successful.
+  // Returns if this is succExprHandler::Context
   bool CheckIntegerExpr(ast::Expr* expr);
 
   // Type checks all exprs and checks that the expressions are values. If successful, the types of
   // exprs are returned, otherwise an empty vector.
-  std::vector<types::Type*> CheckValueExprs(const std::vector<ast::Expr*>& exprs);
+  std::vector<types::Type*> CheckValueExprs(const std::vector<ast::Expr*>& exprs,
+                                            Context ctx = Context());
   // Type checks expr and checks that the expression is a value. If successful, the type of expr is
   // returned, otherwise nullptr.
-  types::Type* CheckValueExpr(ast::Expr* expr);
+  types::Type* CheckValueExpr(ast::Expr* expr, Context ctx = Context());
 
   // Type checks all exprs and returns if this is successful.
-  bool CheckExprs(const std::vector<ast::Expr*>& exprs);
+  bool CheckExprs(const std::vector<ast::Expr*>& exprs, Context ctx = Context());
   // Type checks expr and returns if this is successful.
-  bool CheckExpr(ast::Expr* expr);
+  bool CheckExpr(ast::Expr* expr, Context ctx = Context());
 
  private:
-  ExprHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
-              issues::IssueTracker& issues)
-      : BaseHandler(type_resolver, info_builder, issues) {}
-
   struct CheckBasicOperandResult {
     types::Type* type;
     types::Basic* underlying;
+    std::optional<constants::Value> value;
   };
+
   enum class CheckSelectionExprResult {
     kNotApplicable,
     kCheckFailed,
     kCheckSucceeded,
   };
 
-  bool CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr* unary_expr);
-  bool CheckUnaryLogicExpr(ast::UnaryExpr* unary_expr);
+  ExprHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
+              issues::IssueTracker& issues)
+      : BaseHandler(type_resolver, info_builder, issues) {}
+
+  bool CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr* unary_expr, Context ctx);
+  bool CheckUnaryLogicExpr(ast::UnaryExpr* unary_expr, Context ctx);
   bool CheckUnaryAddressExpr(ast::UnaryExpr* unary_expr);
-  bool CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr* binary_expr);
-  bool CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr);
-  bool CheckBinaryLogicExpr(ast::BinaryExpr* binary_expr);
-  bool CheckCompareExpr(ast::CompareExpr* compare_expr);
-  std::optional<CheckBasicOperandResult> CheckBasicOperand(ast::Expr* op_expr);
+  bool CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr* binary_expr, Context ctx);
+  bool CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr, Context ctx);
+  bool CheckBinaryLogicExpr(ast::BinaryExpr* binary_expr, Context ctx);
+  bool CheckCompareExpr(ast::CompareExpr* compare_expr, Context ctx);
+  std::optional<CheckBasicOperandResult> CheckBasicOperand(ast::Expr* op_expr, Context ctx);
 
-  bool CheckParenExpr(ast::ParenExpr* paren_expr);
+  bool CheckParenExpr(ast::ParenExpr* paren_expr, Context ctx);
 
-  bool CheckSelectionExpr(ast::SelectionExpr* selection_expr);
-  CheckSelectionExprResult CheckPackageSelectionExpr(ast::SelectionExpr* selection_expr);
+  bool CheckSelectionExpr(ast::SelectionExpr* selection_expr, Context ctx);
+  CheckSelectionExprResult CheckPackageSelectionExpr(ast::SelectionExpr* selection_expr,
+                                                     Context ctx);
   CheckSelectionExprResult CheckNamedTypeMethodSelectionExpr(
       ast::SelectionExpr* selection_expr, types::NamedType* type,
       types::InfoBuilder::TypeParamsToArgsMap type_params_to_args);
@@ -89,8 +101,8 @@ class ExprHandler final : public BaseHandler {
   bool CheckTypeAssertExpr(ast::TypeAssertExpr* type_assert_expr);
   bool CheckIndexExpr(ast::IndexExpr* index_expr);
 
-  bool CheckCallExpr(ast::CallExpr* call_expr);
-  bool CheckCallExprWithTypeConversion(ast::CallExpr* call_expr);
+  bool CheckCallExpr(ast::CallExpr* call_expr, Context ctx);
+  bool CheckCallExprWithTypeConversion(ast::CallExpr* call_expr, Context ctx);
   bool CheckCallExprWithBuiltin(ast::CallExpr* call_expr);
   bool CheckCallExprWithFuncCall(ast::CallExpr* call_expr);
   types::Signature* CheckFuncCallTypeArgs(types::Signature* signature,
@@ -103,7 +115,7 @@ class ExprHandler final : public BaseHandler {
   bool CheckCompositeLit(ast::CompositeLit* composite_lit);
 
   bool CheckBasicLit(ast::BasicLit* basic_lit);
-  bool CheckIdent(ast::Ident* ident);
+  bool CheckIdent(ast::Ident* ident, Context ctx);
 
   friend class TypeResolver;
 };

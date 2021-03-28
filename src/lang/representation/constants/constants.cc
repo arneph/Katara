@@ -668,5 +668,25 @@ Value UnaryOp(tokens::Token op, Value x) {
   }
 }
 
+template <>
+Value Convert<bool>(Value x) {
+  switch (x.value_.index()) {
+    case 0:
+      return x;
+    default:
+      throw "unexpected value_t";
+  }
+}
+
+template <>
+Value Convert<std::string>(Value x) {
+  switch (x.value_.index()) {
+    case 9:
+      return x;
+    default:
+      throw "unexpected value_t";
+  }
+}
+
 }  // namespace constants
 }  // namespace lang

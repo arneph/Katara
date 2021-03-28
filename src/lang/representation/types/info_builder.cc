@@ -651,13 +651,6 @@ void InfoBuilder::SetExprInfo(ast::Expr* expr, ExprInfo kind) {
   info_->expr_infos_.insert({expr, kind});
 }
 
-void InfoBuilder::SetExprConstantValue(ast::Expr* expr, constants::Value value) {
-  if (info_->constant_values().contains(expr)) {
-    throw "internal error: attempted to set expression value twice";
-  }
-  info_->constant_values_.insert({expr, value});
-}
-
 void InfoBuilder::SetDefinedObject(ast::Ident* ident, Object* object) {
   if (info_->definitions().contains(ident)) {
     throw "internal error: attempted to set defined object of identifier twice";

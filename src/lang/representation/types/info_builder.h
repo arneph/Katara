@@ -93,7 +93,6 @@ class InfoBuilder {
   void SetConstantValue(Constant* constant, constants::Value value);
 
   void SetExprInfo(ast::Expr* expr, ExprInfo expr_info);
-  void SetExprConstantValue(ast::Expr* expr, constants::Value value);
 
   void SetDefinedObject(ast::Ident* ident, Object* object);
   void SetUsedObject(ast::Ident* ident, Object* object);

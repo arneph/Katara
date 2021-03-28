@@ -27,26 +27,12 @@ class ConstantHandler final : public BaseHandler {
   bool ProcessConstant(types::Constant* constant, types::Type* type, ast::Expr* value,
                        int64_t iota);
 
-  bool ProcessConstantExpr(ast::Expr* constant_expr, int64_t iota);
-
  private:
   ConstantHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
                   issues::IssueTracker& issues)
       : BaseHandler(type_resolver, info_builder, issues) {}
 
-  bool ProcessConstantDefinition(types::Constant* constant, types::Type* type, ast::Expr* value,
-                                 int64_t iota);
-
-  bool EvaluateConstantExpr(ast::Expr* expr, int64_t iota);
-  bool EvaluateConstantUnaryExpr(ast::UnaryExpr* expr, int64_t iota);
-  bool EvaluateConstantCompareExpr(ast::BinaryExpr* expr, int64_t iota);
-  bool EvaluateConstantShiftExpr(ast::BinaryExpr* expr, int64_t iota);
-  bool EvaluateConstantBinaryExpr(ast::BinaryExpr* expr, int64_t iota);
-  bool CheckTypesForRegualarConstantBinaryExpr(ast::BinaryExpr* expr, constants::Value& x_value,
-                                               constants::Value& y_value,
-                                               types::Basic*& result_type);
-
-  static constants::Value ConvertUntypedInt(constants::Value value, types::Basic::Kind kind);
+  constants::Value ConvertUntypedInt(constants::Value value, types::Basic::Kind kind);
 
   friend class TypeResolver;
 };

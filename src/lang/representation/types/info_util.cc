@@ -74,20 +74,26 @@ void ConstantExpressionsToText(pos::FileSet* file_set, Info* info, std::stringst
   size_t max_pos = 0;
   size_t max_expr = 0;
   size_t max_value = 0;
-  for (auto& [expr, value] : info->constant_values()) {
+  for (auto& [expr, info] : info->expr_infos()) {
+    if (!info.is_constant()) {
+      continue;
+    }
     pos::Position pos = file_set->PositionFor(expr->start());
     max_pos = std::max(max_pos, pos.ToString().size());
     max_expr = std::max(max_expr, size_t(expr->end() - expr->start() + 1));
-    max_value = std::max(max_value, value.ToString().size());
+    max_value = std::max(max_value, info.constant_value().ToString().size());
   }
-  for (auto& [expr, value] : info->constant_values()) {
+  for (auto& [expr, info] : info->expr_infos()) {
+    if (!info.is_constant()) {
+      continue;
+    }
     pos::Position pos = file_set->PositionFor(expr->start());
     pos::File* file = file_set->FileAt(expr->start());
 
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
     ss << std::setw(int(max_expr)) << std::left << file->contents(expr->start(), expr->end())
        << " ";
-    ss << std::setw(int(max_value)) << std::left << value.ToString() << "\n";
+    ss << std::setw(int(max_value)) << std::left << info.constant_value().ToString() << "\n";
   }
   ss << "\n";
 }
@@ -105,14 +111,16 @@ void ConstantsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) 
     max_ident = std::max(max_ident, ident->name().size());
     max_value = std::max(max_value, constant->value().ToString().size());
   }
-  for (auto& [expr, value] : info->constant_values()) {
+  for (auto& [expr, obj] : info->definitions()) {
+    if (obj->object_kind() != ObjectKind::kConstant) continue;
+    Constant* constant = static_cast<Constant*>(obj);
     pos::Position pos = file_set->PositionFor(expr->start());
     pos::File* file = file_set->FileAt(expr->start());
 
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
     ss << std::setw(int(max_ident)) << std::left << file->contents(expr->start(), expr->end())
        << " ";
-    ss << std::setw(int(max_value)) << std::left << value.ToString() << "\n";
+    ss << std::setw(int(max_value)) << std::left << constant->value().ToString() << "\n";
   }
   ss << "\n";
 }

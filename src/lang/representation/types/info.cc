@@ -13,32 +13,6 @@
 namespace lang {
 namespace types {
 
-const std::unordered_map<ast::Expr*, ExprInfo>& Info::expr_infos() const { return expr_infos_; }
-
-const std::unordered_map<ast::Expr*, constants::Value>& Info::constant_values() const {
-  return constant_values_;
-}
-
-const std::unordered_map<ast::Ident*, Object*>& Info::definitions() const { return definitions_; }
-
-const std::unordered_map<ast::Ident*, Object*>& Info::uses() const { return uses_; }
-
-const std::unordered_map<ast::Node*, Object*>& Info::implicits() const { return implicits_; }
-
-const std::unordered_map<ast::SelectionExpr*, Selection>& Info::selections() const {
-  return selections_;
-}
-
-const std::unordered_map<ast::Node*, Scope*>& Info::scopes() const { return scopes_; }
-
-const std::unordered_set<Package*>& Info::packages() const { return packages_; }
-
-const std::vector<Initializer>& Info::init_order() const { return init_order_; }
-
-Scope* Info::universe() const { return universe_; }
-
-Basic* Info::basic_type(Basic::Kind kind) { return basic_types_.at(kind); }
-
 Object* Info::ObjectOf(ast::Ident* ident) const {
   auto defs_it = definitions_.find(ident);
   if (defs_it != definitions_.end()) {
@@ -86,14 +60,6 @@ Scope* Info::ScopeOf(ast::Node* node) const {
 std::optional<ExprInfo> Info::ExprInfoOf(ast::Expr* expr) const {
   auto it = expr_infos_.find(expr);
   if (it != expr_infos_.end()) {
-    return it->second;
-  }
-  return std::nullopt;
-}
-
-std::optional<constants::Value> Info::ConstantValueOf(ast::Expr* expr) const {
-  auto it = constant_values_.find(expr);
-  if (it != constant_values_.end()) {
     return it->second;
   }
   return std::nullopt;

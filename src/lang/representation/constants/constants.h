@@ -39,6 +39,36 @@ Value BinaryOp(Value x, tokens::Token op, Value y);
 Value ShiftOp(Value x, tokens::Token op, Value y);
 Value UnaryOp(tokens::Token op, Value x);
 
+template <typename ConvertedType>
+Value Convert(Value x) {
+  switch (x.value_.index()) {
+    case 1:
+      return Value(static_cast<ConvertedType>(std::get<int8_t>(x.value_)));
+    case 2:
+      return Value(static_cast<ConvertedType>(std::get<uint8_t>(x.value_)));
+    case 3:
+      return Value(static_cast<ConvertedType>(std::get<int16_t>(x.value_)));
+    case 4:
+      return Value(static_cast<ConvertedType>(std::get<uint16_t>(x.value_)));
+    case 5:
+      return Value(static_cast<ConvertedType>(std::get<int32_t>(x.value_)));
+    case 6:
+      return Value(static_cast<ConvertedType>(std::get<uint32_t>(x.value_)));
+    case 7:
+      return Value(static_cast<ConvertedType>(std::get<int64_t>(x.value_)));
+    case 8:
+      return Value(static_cast<ConvertedType>(std::get<uint64_t>(x.value_)));
+    default:
+      throw "unexpected value_t";
+  }
+}
+
+template <>
+Value Convert<bool>(Value x);
+
+template <>
+Value Convert<std::string>(Value x);
+
 }  // namespace constants
 }  // namespace lang
 

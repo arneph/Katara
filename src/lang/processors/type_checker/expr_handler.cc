@@ -57,12 +57,13 @@ bool ExprHandler::CheckIntegerExpr(ast::Expr* expr) {
   return true;
 }
 
-std::vector<types::Type*> ExprHandler::CheckValueExprs(const std::vector<ast::Expr*>& exprs) {
+std::vector<types::Type*> ExprHandler::CheckValueExprs(const std::vector<ast::Expr*>& exprs,
+                                                       Context ctx) {
   std::vector<types::Type*> expr_types;
   expr_types.reserve(exprs.size());
   bool ok = true;
   for (ast::Expr* expr : exprs) {
-    types::Type* expr_type = CheckValueExpr(expr);
+    types::Type* expr_type = CheckValueExpr(expr, ctx);
     if (expr_type == nullptr) {
       ok = false;
       expr_types.clear();
@@ -73,8 +74,8 @@ std::vector<types::Type*> ExprHandler::CheckValueExprs(const std::vector<ast::Ex
   return expr_types;
 }
 
-types::Type* ExprHandler::CheckValueExpr(ast::Expr* expr) {
-  if (!CheckExpr(expr)) {
+types::Type* ExprHandler::CheckValueExpr(ast::Expr* expr, Context ctx) {
+  if (!CheckExpr(expr, ctx)) {
     return nullptr;
   }
   types::ExprInfo expr_info = info()->ExprInfoOf(expr).value();
@@ -85,27 +86,32 @@ types::Type* ExprHandler::CheckValueExpr(ast::Expr* expr) {
   return expr_info.type();
 }
 
-bool ExprHandler::CheckExprs(const std::vector<ast::Expr*>& exprs) {
+bool ExprHandler::CheckExprs(const std::vector<ast::Expr*>& exprs, Context ctx) {
   bool ok = true;
   for (ast::Expr* expr : exprs) {
-    ok = CheckExpr(expr) && ok;  // Order needed to avoid short circuiting.
+    ok = CheckExpr(expr, ctx) && ok;  // Order needed to avoid short circuiting.
   }
   return ok;
 }
 
-bool ExprHandler::CheckExpr(ast::Expr* expr) {
+bool ExprHandler::CheckExpr(ast::Expr* expr, Context ctx) {
   switch (expr->node_kind()) {
     case ast::NodeKind::kUnaryExpr:
       switch (static_cast<ast::UnaryExpr*>(expr)->op()) {
         case tokens::kAdd:
         case tokens::kSub:
         case tokens::kXor:
-          return CheckUnaryArithmeticOrBitExpr(static_cast<ast::UnaryExpr*>(expr));
+          return CheckUnaryArithmeticOrBitExpr(static_cast<ast::UnaryExpr*>(expr), ctx);
         case tokens::kNot:
-          return CheckUnaryLogicExpr(static_cast<ast::UnaryExpr*>(expr));
+          return CheckUnaryLogicExpr(static_cast<ast::UnaryExpr*>(expr), ctx);
         case tokens::kMul:
         case tokens::kRem:
         case tokens::kAnd:
+          if (ctx.expect_constant_) {
+            issues().Add(issues::kConstantExprContainsAddressOp, expr->start(),
+                         "address operator not allowed in constant expression");
+            return false;
+          }
           return CheckUnaryAddressExpr(static_cast<ast::UnaryExpr*>(expr));
         default:
           throw "internal error: unexpected unary op";
@@ -121,43 +127,64 @@ bool ExprHandler::CheckExpr(ast::Expr* expr) {
         case tokens::kOr:
         case tokens::kXor:
         case tokens::kAndNot:
-          return CheckBinaryArithmeticOrBitExpr(static_cast<ast::BinaryExpr*>(expr));
+          return CheckBinaryArithmeticOrBitExpr(static_cast<ast::BinaryExpr*>(expr), ctx);
         case tokens::kShl:
         case tokens::kShr:
-          return CheckBinaryShiftExpr(static_cast<ast::BinaryExpr*>(expr));
+          return CheckBinaryShiftExpr(static_cast<ast::BinaryExpr*>(expr), ctx);
         case tokens::kLAnd:
         case tokens::kLOr:
-          return CheckBinaryLogicExpr(static_cast<ast::BinaryExpr*>(expr));
+          return CheckBinaryLogicExpr(static_cast<ast::BinaryExpr*>(expr), ctx);
         default:
           throw "internal error: unexpected binary op";
       }
     case ast::NodeKind::kCompareExpr:
-      return CheckCompareExpr(static_cast<ast::CompareExpr*>(expr));
+      return CheckCompareExpr(static_cast<ast::CompareExpr*>(expr), ctx);
     case ast::NodeKind::kParenExpr:
-      return CheckParenExpr(static_cast<ast::ParenExpr*>(expr));
+      return CheckParenExpr(static_cast<ast::ParenExpr*>(expr), ctx);
     case ast::NodeKind::kSelectionExpr:
-      return CheckSelectionExpr(static_cast<ast::SelectionExpr*>(expr));
+      return CheckSelectionExpr(static_cast<ast::SelectionExpr*>(expr), ctx);
     case ast::NodeKind::kTypeAssertExpr:
+      if (ctx.expect_constant_) {
+        issues().Add(issues::kConstantExprContainsTypeAssertion, expr->start(),
+                     "type assertion not allowed in constant expression");
+        return false;
+      }
       return CheckTypeAssertExpr(static_cast<ast::TypeAssertExpr*>(expr));
     case ast::NodeKind::kIndexExpr:
+      if (ctx.expect_constant_) {
+        // TODO: consider supporting constant string access
+        issues().Add(issues::kConstantExprContainsIndexExpr, expr->start(),
+                     "index operation not allowed in constant expression");
+        return false;
+      }
       return CheckIndexExpr(static_cast<ast::IndexExpr*>(expr));
     case ast::NodeKind::kCallExpr:
-      return CheckCallExpr(static_cast<ast::CallExpr*>(expr));
+      return CheckCallExpr(static_cast<ast::CallExpr*>(expr), ctx);
     case ast::NodeKind::kFuncLit:
+      if (ctx.expect_constant_) {
+        issues().Add(issues::kConstantExprContainsFuncLit, expr->start(),
+                     "function literal not allowed in constant expression");
+        return false;
+      }
       return CheckFuncLit(static_cast<ast::FuncLit*>(expr));
     case ast::NodeKind::kCompositeLit:
+      if (ctx.expect_constant_) {
+        issues().Add(issues::kConstantExprContainsCompositeLit, expr->start(),
+                     "composite literal not allowed in constant expression");
+        return false;
+      }
       return CheckCompositeLit(static_cast<ast::CompositeLit*>(expr));
     case ast::NodeKind::kBasicLit:
       return CheckBasicLit(static_cast<ast::BasicLit*>(expr));
     case ast::NodeKind::kIdent:
-      return CheckIdent(static_cast<ast::Ident*>(expr));
+      return CheckIdent(static_cast<ast::Ident*>(expr), ctx);
     default:
       throw "unexpected AST expr";
   }
 }
 
-bool ExprHandler::CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr* unary_expr) {
-  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(unary_expr->x());
+bool ExprHandler::CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr* unary_expr, Context ctx) {
+  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(unary_expr->x(), ctx);
   if (!x.has_value()) {
     return false;
   }
@@ -166,12 +193,19 @@ bool ExprHandler::CheckUnaryArithmeticOrBitExpr(ast::UnaryExpr* unary_expr) {
                  "invalid operation: expected integer type");
     return false;
   }
-  info_builder().SetExprInfo(unary_expr, types::ExprInfo(types::ExprInfo::Kind::kValue, x->type));
+  types::ExprInfo::Kind expr_kind = types::ExprInfo::Kind::kValue;
+  std::optional<constants::Value> expr_value;
+  if (x->value.has_value()) {
+    constants::Value x_value = x->value.value();
+    expr_value = constants::UnaryOp(unary_expr->op(), x_value);
+    expr_kind = types::ExprInfo::Kind::kConstant;
+  }
+  info_builder().SetExprInfo(unary_expr, types::ExprInfo(expr_kind, x->type, expr_value));
   return true;
 }
 
-bool ExprHandler::CheckUnaryLogicExpr(ast::UnaryExpr* unary_expr) {
-  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(unary_expr->x());
+bool ExprHandler::CheckUnaryLogicExpr(ast::UnaryExpr* unary_expr, Context ctx) {
+  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(unary_expr->x(), ctx);
   if (!x.has_value()) {
     return false;
   }
@@ -180,7 +214,14 @@ bool ExprHandler::CheckUnaryLogicExpr(ast::UnaryExpr* unary_expr) {
                  "invalid operation: expected boolean type");
     return false;
   }
-  info_builder().SetExprInfo(unary_expr, types::ExprInfo(types::ExprInfo::Kind::kValue, x->type));
+  types::ExprInfo::Kind expr_kind = types::ExprInfo::Kind::kValue;
+  std::optional<constants::Value> expr_value;
+  if (x->value.has_value()) {
+    constants::Value x_value = x->value.value();
+    expr_value = constants::UnaryOp(unary_expr->op(), x_value);
+    expr_kind = types::ExprInfo::Kind::kConstant;
+  }
+  info_builder().SetExprInfo(unary_expr, types::ExprInfo(expr_kind, x->type, expr_value));
   return true;
 }
 
@@ -226,9 +267,9 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr* unary_expr) {
   }
 }
 
-bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr* binary_expr) {
-  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(binary_expr->x());
-  std::optional<CheckBasicOperandResult> y = CheckBasicOperand(binary_expr->y());
+bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr* binary_expr, Context ctx) {
+  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(binary_expr->x(), ctx);
+  std::optional<CheckBasicOperandResult> y = CheckBasicOperand(binary_expr->y(), ctx);
   if (!x.has_value() || !y.has_value()) {
     return false;
   }
@@ -280,14 +321,22 @@ bool ExprHandler::CheckBinaryArithmeticOrBitExpr(ast::BinaryExpr* binary_expr) {
   } else {
     binary_expr_type = x->type;
   }
-  info_builder().SetExprInfo(binary_expr,
-                             types::ExprInfo(types::ExprInfo::Kind::kValue, binary_expr_type));
+  types::ExprInfo::Kind binary_expr_kind = types::ExprInfo::Kind::kValue;
+  std::optional<constants::Value> binary_expr_value;
+  if (x->value.has_value() && y->value.has_value()) {
+    constants::Value x_value = x->value.value();
+    constants::Value y_value = y->value.value();
+    binary_expr_value = constants::BinaryOp(x_value, binary_expr->op(), y_value);
+    binary_expr_kind = types::ExprInfo::Kind::kConstant;
+  }
+  info_builder().SetExprInfo(
+      binary_expr, types::ExprInfo(binary_expr_kind, binary_expr_type, binary_expr_value));
   return true;
 }
 
-bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr) {
-  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(binary_expr->x());
-  std::optional<CheckBasicOperandResult> y = CheckBasicOperand(binary_expr->y());
+bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr, Context ctx) {
+  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(binary_expr->x(), ctx);
+  std::optional<CheckBasicOperandResult> y = CheckBasicOperand(binary_expr->y(), ctx);
   if (!x.has_value() || !y.has_value()) {
     return false;
   }
@@ -308,14 +357,21 @@ bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr) {
   if (x->type == x->underlying && x->underlying->info() & types::Basic::Info::kIsUntyped) {
     expr_type = info()->basic_type(types::Basic::Kind::kInt);
   }
-  info_builder().SetExprInfo(binary_expr,
-                             types::ExprInfo(types::ExprInfo::Kind::kValue, expr_type));
+  types::ExprInfo::Kind expr_kind = types::ExprInfo::Kind::kValue;
+  std::optional<constants::Value> expr_value;
+  if (x->value.has_value() && y->value.has_value()) {
+    constants::Value x_value = x->value.value();
+    constants::Value y_value = y->value.value();
+    expr_value = constants::ShiftOp(x_value, binary_expr->op(), y_value);
+    expr_kind = types::ExprInfo::Kind::kConstant;
+  }
+  info_builder().SetExprInfo(binary_expr, types::ExprInfo(expr_kind, expr_type, expr_value));
   return true;
 }
 
-bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr* binary_expr) {
-  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(binary_expr->x());
-  std::optional<CheckBasicOperandResult> y = CheckBasicOperand(binary_expr->y());
+bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr* binary_expr, Context ctx) {
+  std::optional<CheckBasicOperandResult> x = CheckBasicOperand(binary_expr->x(), ctx);
+  std::optional<CheckBasicOperandResult> y = CheckBasicOperand(binary_expr->y(), ctx);
   if (!x.has_value() || !y.has_value()) {
     return false;
   }
@@ -345,16 +401,26 @@ bool ExprHandler::CheckBinaryLogicExpr(ast::BinaryExpr* binary_expr) {
   } else {
     binary_expr_type = x->type;
   }
-  info_builder().SetExprInfo(binary_expr,
-                             types::ExprInfo(types::ExprInfo::Kind::kValue, binary_expr_type));
+  std::optional<constants::Value> binary_expr_value;
+  types::ExprInfo::Kind binary_expr_kind = types::ExprInfo::Kind::kValue;
+  if (x->value.has_value() && y->value.has_value()) {
+    constants::Value x_value = x->value.value();
+    constants::Value y_value = y->value.value();
+    binary_expr_value = constants::BinaryOp(x_value, binary_expr->op(), y_value);
+    binary_expr_kind = types::ExprInfo::Kind::kConstant;
+  }
+  info_builder().SetExprInfo(
+      binary_expr, types::ExprInfo(binary_expr_kind, binary_expr_type, binary_expr_value));
   return true;
 }
 
-bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr) {
-  std::vector<types::Type*> operand_types = CheckValueExprs(compare_expr->operands());
+bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr, Context ctx) {
+  std::vector<types::Type*> operand_types = CheckValueExprs(compare_expr->operands(), ctx);
   if (operand_types.empty()) {
     return false;
   }
+  bool expr_value = true;
+  types::ExprInfo::Kind expr_kind = types::ExprInfo::Kind::kConstant;
   for (size_t i = 0; i < compare_expr->compare_ops().size(); i++) {
     tokens::Token op = compare_expr->compare_ops().at(i);
     types::Type* x = operand_types.at(i);
@@ -383,16 +449,34 @@ bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr) {
       default:
         throw "internal error: unexpected compare operation";
     }
+    if (expr_kind != types::ExprInfo::Kind::kConstant) {
+      continue;
+    }
+    types::ExprInfo x_info = info()->ExprInfoOf(compare_expr->operands().at(i)).value();
+    types::ExprInfo y_info = info()->ExprInfoOf(compare_expr->operands().at(i + 1)).value();
+    if (!x_info.is_constant() || !y_info.is_constant()) {
+      expr_kind = types::ExprInfo::Kind::kValue;
+      continue;
+    }
+    expr_value =
+        expr_value && constants::Compare(x_info.constant_value(), op, y_info.constant_value());
   }
-  info_builder().SetExprInfo(compare_expr,
-                             types::ExprInfo(types::ExprInfo::Kind::kValue,
-                                             info()->basic_type(types::Basic::Kind::kBool)));
+  if (expr_kind == types::ExprInfo::Kind::kConstant) {
+    info_builder().SetExprInfo(compare_expr,
+                               types::ExprInfo(types::ExprInfo::Kind::kConstant,
+                                               info()->basic_type(types::Basic::kUntypedBool),
+                                               constants::Value(expr_value)));
+  } else {
+    info_builder().SetExprInfo(
+        compare_expr,
+        types::ExprInfo(expr_kind, info()->basic_type(types::Basic::Kind::kUntypedBool)));
+  }
   return true;
 }
 
 std::optional<ExprHandler::CheckBasicOperandResult> ExprHandler::CheckBasicOperand(
-    ast::Expr* op_expr) {
-  types::Type* op_type = CheckValueExpr(op_expr);
+    ast::Expr* op_expr, Context ctx) {
+  types::Type* op_type = CheckValueExpr(op_expr, ctx);
   if (op_type == nullptr) {
     return std::nullopt;
   }
@@ -402,14 +486,19 @@ std::optional<ExprHandler::CheckBasicOperandResult> ExprHandler::CheckBasicOpera
                  "invalid operation: operand does not have basic type");
     return std::nullopt;
   }
+  std::optional<constants::Value> value;
+  if (info()->ExprInfoOf(op_expr)->is_constant()) {
+    value = info()->ExprInfoOf(op_expr)->constant_value();
+  }
   return CheckBasicOperandResult{
       .type = op_type,
       .underlying = static_cast<types::Basic*>(op_underlying),
+      .value = value,
   };
 }
 
-bool ExprHandler::CheckParenExpr(ast::ParenExpr* paren_expr) {
-  if (!CheckExpr(paren_expr->x())) {
+bool ExprHandler::CheckParenExpr(ast::ParenExpr* paren_expr, Context ctx) {
+  if (!CheckExpr(paren_expr->x(), ctx)) {
     return false;
   }
   types::ExprInfo x_info = info()->ExprInfoOf(paren_expr->x()).value();
@@ -417,16 +506,19 @@ bool ExprHandler::CheckParenExpr(ast::ParenExpr* paren_expr) {
   return true;
 }
 
-bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr) {
-  switch (CheckPackageSelectionExpr(selection_expr)) {
+bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr, Context ctx) {
+  switch (CheckPackageSelectionExpr(selection_expr, ctx)) {
     case CheckSelectionExprResult::kNotApplicable:
       break;
     case CheckSelectionExprResult::kCheckFailed:
       return false;
     case CheckSelectionExprResult::kCheckSucceeded:
       return true;
-    default:
-      throw "internal error: unexpected CheckSelectionExprResult";
+  }
+  if (ctx.expect_constant_) {
+    issues().Add(issues::kConstantExprContainsNonPackageSelection, selection_expr->start(),
+                 "selection from non-package not allowed in constant expression");
+    return false;
   }
 
   if (!CheckExpr(selection_expr->accessed())) {
@@ -475,8 +567,6 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr) {
         return false;
       case CheckSelectionExprResult::kCheckSucceeded:
         return true;
-      default:
-        throw "internal error: unexpected CheckSelectionExprResult";
     }
     accessed_type = named_type->underlying();
   }
@@ -491,8 +581,6 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr) {
           return false;
         case CheckSelectionExprResult::kCheckSucceeded:
           return true;
-        default:
-          throw "internal error: unexpected CheckSelectionExprResult";
       }
       // fallthrough
     case types::ExprInfo::Kind::kType:
@@ -504,8 +592,6 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr) {
           return false;
         case CheckSelectionExprResult::kCheckSucceeded:
           return true;
-        default:
-          throw "internal error: unexpected CheckSelectionExprResult";
       }
     default:
       break;
@@ -516,7 +602,7 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr) {
 }
 
 ExprHandler::CheckSelectionExprResult ExprHandler::CheckPackageSelectionExpr(
-    ast::SelectionExpr* selection_expr) {
+    ast::SelectionExpr* selection_expr, Context ctx) {
   if (selection_expr->accessed()->node_kind() != ast::NodeKind::kIdent) {
     return CheckSelectionExprResult::kNotApplicable;
   }
@@ -525,7 +611,7 @@ ExprHandler::CheckSelectionExprResult ExprHandler::CheckPackageSelectionExpr(
   if (accessed_obj->object_kind() != types::ObjectKind::kPackageName) {
     return CheckSelectionExprResult::kNotApplicable;
   }
-  if (!CheckIdent(selection_expr->selection())) {
+  if (!CheckIdent(selection_expr->selection(), ctx)) {
     return CheckSelectionExprResult::kCheckFailed;
   }
   types::ExprInfo selection_info = info()->ExprInfoOf(selection_expr->selection()).value();
@@ -721,7 +807,7 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr* index_expr) {
   }
 }
 
-bool ExprHandler::CheckCallExpr(ast::CallExpr* call_expr) {
+bool ExprHandler::CheckCallExpr(ast::CallExpr* call_expr, Context ctx) {
   ast::Expr* func_expr = call_expr->func();
   std::vector<ast::Expr*> type_args = call_expr->type_args();
   std::vector<ast::Expr*> args = call_expr->args();
@@ -729,19 +815,29 @@ bool ExprHandler::CheckCallExpr(ast::CallExpr* call_expr) {
   bool func_expr_ok = CheckExpr(func_expr);
   bool type_args_ok =
       type_args.empty() || type_resolver().type_handler().ProcessTypeArgs(type_args);
-  bool args_ok = args.empty() || !CheckValueExprs(args).empty();
+  bool args_ok = args.empty() || !CheckValueExprs(args, ctx).empty();
   if (!func_expr_ok || !type_args_ok || !args_ok) {
     return false;
   }
   types::ExprInfo func_expr_info = info()->ExprInfoOf(func_expr).value();
   switch (func_expr_info.kind()) {
     case types::ExprInfo::Kind::kBuiltin:
+      if (ctx.expect_constant_) {
+        issues().Add(issues::kConstantExprContainsBuiltinCall, call_expr->start(),
+                     "builtin call not allowed in constant expression");
+        return false;
+      }
       return CheckCallExprWithBuiltin(call_expr);
     case types::ExprInfo::Kind::kType:
-      return CheckCallExprWithTypeConversion(call_expr);
+      return CheckCallExprWithTypeConversion(call_expr, ctx);
     case types::ExprInfo::Kind::kVariable:
     case types::ExprInfo::Kind::kValue:
     case types::ExprInfo::Kind::kValueOk:
+      if (ctx.expect_constant_) {
+        issues().Add(issues::kConstantExprContainsFuncCall, call_expr->start(),
+                     "function call not allowed in constant expression");
+        return false;
+      }
       return CheckCallExprWithFuncCall(call_expr);
     default:
       issues().Add(issues::kUnexpectedFuncExprKind, call_expr->start(),
@@ -750,7 +846,7 @@ bool ExprHandler::CheckCallExpr(ast::CallExpr* call_expr) {
   }
 }
 
-bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr) {
+bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr, Context ctx) {
   if (!call_expr->type_args().empty()) {
     // TODO: handle this in future
     issues().Add(issues::kForbiddenTypeArgumentsForTypeConversion, call_expr->start(),
@@ -762,16 +858,66 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr) {
                  "invalid operation: type conversion requires exactly one argument");
     return false;
   }
-  types::Type* conversion_start_type = info()->ExprInfoOf(call_expr->func()).value().type();
-  types::Type* conversion_result_type = info()->ExprInfoOf(call_expr->args().at(0)).value().type();
-  if (!types::IsConvertibleTo(conversion_start_type, conversion_result_type)) {
+  types::ExprInfo conversion_start_info = info()->ExprInfoOf(call_expr->func()).value();
+  types::ExprInfo conversion_result_info = info()->ExprInfoOf(call_expr->args().at(0)).value();
+  types::Type* conversion_result_underlying = types::UnderlyingOf(conversion_result_info.type());
+  if (ctx.expect_constant_ &&
+      (conversion_result_underlying == nullptr ||
+       conversion_result_underlying->type_kind() != types::TypeKind::kBasic)) {
+    issues().Add(issues::kConstantExprContainsConversionToNonBasicType, call_expr->func()->start(),
+                 "type conversion to non-basic type not allowed in constant expression");
+    return false;
+  }
+  if (!types::IsConvertibleTo(conversion_start_info.type(), conversion_result_info.type())) {
     issues().Add(issues::kUnexpectedTypeConversionArgumentType, call_expr->start(),
                  "invalid operation: type conversion not possible");
     return false;
   }
-
+  types::ExprInfo::Kind call_expr_kind = types::ExprInfo::Kind::kValue;
+  std::optional<constants::Value> call_expr_value;
+  if (conversion_start_info.is_constant() &&
+      (conversion_result_underlying == nullptr ||
+       conversion_result_underlying->type_kind() != types::TypeKind::kBasic)) {
+    constants::Value start_value = conversion_start_info.constant_value();
+    switch (static_cast<types::Basic*>(conversion_result_underlying)->kind()) {
+      case types::Basic::kBool:
+        call_expr_value = constants::Convert<bool>(start_value);
+        break;
+      case types::Basic::kInt8:
+        call_expr_value = constants::Convert<int8_t>(start_value);
+        break;
+      case types::Basic::kInt16:
+        call_expr_value = constants::Convert<int16_t>(start_value);
+        break;
+      case types::Basic::kInt32:
+        call_expr_value = constants::Convert<int32_t>(start_value);
+        break;
+      case types::Basic::kInt:
+      case types::Basic::kInt64:
+        call_expr_value = constants::Convert<int64_t>(start_value);
+        break;
+      case types::Basic::kUint8:
+        call_expr_value = constants::Convert<uint8_t>(start_value);
+        break;
+      case types::Basic::kUint16:
+        call_expr_value = constants::Convert<uint16_t>(start_value);
+        break;
+      case types::Basic::kUint32:
+        call_expr_value = constants::Convert<uint32_t>(start_value);
+        break;
+      case types::Basic::kUint:
+      case types::Basic::kUint64:
+        call_expr_value = constants::Convert<uint64_t>(start_value);
+        break;
+      case types::Basic::kString:
+        call_expr_value = constants::Convert<std::string>(start_value);
+      default:
+        throw "internal error: unexpected basic type";
+    }
+    call_expr_kind = types::ExprInfo::Kind::kConstant;
+  }
   info_builder().SetExprInfo(
-      call_expr, types::ExprInfo(types::ExprInfo::Kind::kValue, conversion_result_type));
+      call_expr, types::ExprInfo(call_expr_kind, conversion_result_info.type(), call_expr_value));
   return true;
 }
 
@@ -1010,13 +1156,40 @@ bool ExprHandler::CheckCompositeLit(ast::CompositeLit* composite_lit) {
 }
 
 bool ExprHandler::CheckBasicLit(ast::BasicLit* basic_lit) {
-  return type_resolver().constant_handler().ProcessConstantExpr(basic_lit, /* iota= */ 0);
+  types::Basic* type;
+  constants::Value value(0);
+  switch (basic_lit->kind()) {
+    case tokens::kInt:
+      type = info()->basic_type(types::Basic::kUntypedInt);
+      value = constants::Value(std::stoull(basic_lit->value()));
+      break;
+    case tokens::kChar:
+      // TODO: support UTF-8 and character literals
+      type = info()->basic_type(types::Basic::kUntypedRune);
+      value = constants::Value(int32_t(basic_lit->value().at(1)));
+      break;
+    case tokens::kString:
+      type = info()->basic_type(types::Basic::kUntypedString);
+      value = constants::Value(basic_lit->value().substr(1, basic_lit->value().length() - 2));
+      break;
+    default:
+      throw "internal error: unexpected basic literal kind";
+  }
+
+  info_builder().SetExprInfo(basic_lit,
+                             types::ExprInfo(types::ExprInfo::Kind::kConstant, type, value));
+  return true;
 }
 
-bool ExprHandler::CheckIdent(ast::Ident* ident) {
+bool ExprHandler::CheckIdent(ast::Ident* ident, Context ctx) {
   types::Object* object = info()->ObjectOf(ident);
+  if (ctx.expect_constant_ && object->object_kind() != types::ObjectKind::kConstant) {
+    issues().Add(issues::kConstantDependsOnNonConstant, ident->start(),
+                 "constant can not depend on non-constant: " + ident->name());
+  }
   types::ExprInfo::Kind expr_kind;
   types::Type* type = nullptr;
+  std::optional<constants::Value> value;
   switch (object->object_kind()) {
     case types::ObjectKind::kTypeName:
       expr_kind = types::ExprInfo::Kind::kType;
@@ -1025,6 +1198,11 @@ bool ExprHandler::CheckIdent(ast::Ident* ident) {
     case types::ObjectKind::kConstant:
       expr_kind = types::ExprInfo::Kind::kConstant;
       type = static_cast<types::Constant*>(object)->type();
+      if (object->parent() == info()->universe() && object->name() == "iota") {
+        value = constants::Value(ctx.iota_);
+      } else {
+        value = static_cast<types::Constant*>(object)->value();
+      }
       break;
     case types::ObjectKind::kVariable:
       expr_kind = types::ExprInfo::Kind::kVariable;
@@ -1053,7 +1231,7 @@ bool ExprHandler::CheckIdent(ast::Ident* ident) {
     throw "internal error: expect to know type at this point";
   }
 
-  info_builder().SetExprInfo(ident, types::ExprInfo(expr_kind, type));
+  info_builder().SetExprInfo(ident, types::ExprInfo(expr_kind, type, value));
   return true;
 }
 

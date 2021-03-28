@@ -29,10 +29,6 @@ class StmtHandler final : public BaseHandler {
   void CheckFuncBody(ast::BlockStmt* body, types::Tuple* func_results);
 
  private:
-  StmtHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
-              issues::IssueTracker& issues)
-      : BaseHandler(type_resolver, info_builder, issues) {}
-
   struct Context {
     types::Tuple* func_results;
     std::unordered_map<std::string, ast::Stmt*> labels;
@@ -41,6 +37,10 @@ class StmtHandler final : public BaseHandler {
     bool can_fallthrough;
     bool is_last_stmt_in_block;
   };
+
+  StmtHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
+              issues::IssueTracker& issues)
+      : BaseHandler(type_resolver, info_builder, issues) {}
 
   void CheckBlockStmt(ast::BlockStmt* block_stmt, Context ctx);
   void CheckStmt(ast::Stmt* stmt, Context ctx);
