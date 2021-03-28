@@ -92,7 +92,13 @@ func (n *Node<T>) ForEachNeighbor(f func(neighbor *Node<T>)) {
     n.neighbors.ForEach(f)
 }
 
+type String = string
+
+func (s String) Hash() HashValue {
+    return HashValue(len(s))
+}
+
 func Test() {
     l := NewArrayList<int>()
-    m := NewHashMap<string, List<int>>()
+    m := NewHashMap<String, List<int>>()
 }
