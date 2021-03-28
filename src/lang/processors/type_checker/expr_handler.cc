@@ -738,7 +738,9 @@ bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr* type_assert_expr) {
     return false;
   }
   types::Type* x = CheckValueExpr(type_assert_expr->x());
-  if (!type_resolver().type_handler().ProcessTypeExpr(type_assert_expr->type()) || x == nullptr) {
+  types::Type* asserted_type =
+      type_resolver().type_handler().EvaluateTypeExpr(type_assert_expr->type());
+  if (x == nullptr || asserted_type == nullptr) {
     return false;
   }
   if (x->type_kind() != types::TypeKind::kInterface) {
@@ -746,7 +748,6 @@ bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr* type_assert_expr) {
                  "invalid operation: expected interface value");
     return false;
   }
-  types::Type* asserted_type = info()->ExprInfoOf(type_assert_expr->type()).value().type();
   if (!types::IsAssertableTo(x, asserted_type)) {
     issues().Add(issues::kTypeAssertionNeverPossible, type_assert_expr->start(),
                  "invalid operation: assertion always fails");
@@ -814,7 +815,7 @@ bool ExprHandler::CheckCallExpr(ast::CallExpr* call_expr, Context ctx) {
 
   bool func_expr_ok = CheckExpr(func_expr);
   bool type_args_ok =
-      type_args.empty() || type_resolver().type_handler().ProcessTypeArgs(type_args);
+      type_args.empty() || !type_resolver().type_handler().EvaluateTypeExprs(type_args).empty();
   bool args_ok = args.empty() || !CheckValueExprs(args, ctx).empty();
   if (!func_expr_ok || !type_args_ok || !args_ok) {
     return false;
@@ -879,41 +880,8 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr, Cont
       (conversion_result_underlying == nullptr ||
        conversion_result_underlying->type_kind() != types::TypeKind::kBasic)) {
     constants::Value start_value = conversion_start_info.constant_value();
-    switch (static_cast<types::Basic*>(conversion_result_underlying)->kind()) {
-      case types::Basic::kBool:
-        call_expr_value = constants::Convert<bool>(start_value);
-        break;
-      case types::Basic::kInt8:
-        call_expr_value = constants::Convert<int8_t>(start_value);
-        break;
-      case types::Basic::kInt16:
-        call_expr_value = constants::Convert<int16_t>(start_value);
-        break;
-      case types::Basic::kInt32:
-        call_expr_value = constants::Convert<int32_t>(start_value);
-        break;
-      case types::Basic::kInt:
-      case types::Basic::kInt64:
-        call_expr_value = constants::Convert<int64_t>(start_value);
-        break;
-      case types::Basic::kUint8:
-        call_expr_value = constants::Convert<uint8_t>(start_value);
-        break;
-      case types::Basic::kUint16:
-        call_expr_value = constants::Convert<uint16_t>(start_value);
-        break;
-      case types::Basic::kUint32:
-        call_expr_value = constants::Convert<uint32_t>(start_value);
-        break;
-      case types::Basic::kUint:
-      case types::Basic::kUint64:
-        call_expr_value = constants::Convert<uint64_t>(start_value);
-        break;
-      case types::Basic::kString:
-        call_expr_value = constants::Convert<std::string>(start_value);
-      default:
-        throw "internal error: unexpected basic type";
-    }
+    call_expr_value = types::ConvertUntypedValue(
+        start_value, static_cast<types::Basic*>(conversion_result_underlying)->kind());
     call_expr_kind = types::ExprInfo::Kind::kConstant;
   }
   info_builder().SetExprInfo(
@@ -1128,14 +1096,14 @@ void ExprHandler::CheckFuncCallResultType(types::Signature* signature, ast::Call
 bool ExprHandler::CheckFuncLit(ast::FuncLit* func_lit) {
   ast::FuncType* func_type_expr = func_lit->type();
   ast::BlockStmt* func_body = func_lit->body();
-  if (!type_resolver().type_handler().ProcessTypeExpr(func_type_expr)) {
+  types::Type* func_type = type_resolver().type_handler().EvaluateTypeExpr(func_type_expr);
+  if (func_type_expr == nullptr || func_type->type_kind() != types::TypeKind::kSignature) {
     return false;
   }
+  types::Signature* func_signature = static_cast<types::Signature*>(func_type);
   types::Func* func = static_cast<types::Func*>(info()->ImplicitOf(func_lit));
-  types::ExprInfo func_type_expr_info = info()->ExprInfoOf(func_type_expr).value();
-  types::Signature* func_type = static_cast<types::Signature*>(func_type_expr_info.type());
 
-  type_resolver().stmt_handler().CheckFuncBody(func_body, func_type->results());
+  type_resolver().stmt_handler().CheckFuncBody(func_body, func_signature->results());
 
   info_builder().SetObjectType(func, func_type);
   info_builder().SetExprInfo(func_lit, types::ExprInfo(types::ExprInfo::Kind::kValue, func_type));
@@ -1143,11 +1111,10 @@ bool ExprHandler::CheckFuncLit(ast::FuncLit* func_lit) {
 }
 
 bool ExprHandler::CheckCompositeLit(ast::CompositeLit* composite_lit) {
-  if (!type_resolver().type_handler().ProcessTypeExpr(composite_lit->type())) {
+  types::Type* type = type_resolver().type_handler().EvaluateTypeExpr(composite_lit->type());
+  if (type == nullptr) {
     return false;
   }
-  types::ExprInfo type_expr_info = info()->ExprInfoOf(composite_lit->type()).value();
-  types::Type* type = type_expr_info.type();
 
   // TODO: check contents of composite lit
 

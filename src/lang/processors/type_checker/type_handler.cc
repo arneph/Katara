@@ -16,135 +16,47 @@
 namespace lang {
 namespace type_checker {
 
-bool TypeHandler::ProcessTypeName(types::TypeName* type_name, ast::TypeSpec* type_spec) {
-  if (!ProcessTypeParameters(type_name, type_spec)) {
-    return false;
-  }
-  return ProcessUnderlyingType(type_name, type_spec);
-}
-
-bool TypeHandler::ProcessTypeParametersOfTypeName(types::TypeName* type_name,
-                                                  ast::TypeSpec* type_spec) {
-  return ProcessTypeParameters(type_name, type_spec);
-}
-
-bool TypeHandler::ProcessUnderlyingTypeOfTypeName(types::TypeName* type_name,
-                                                  ast::TypeSpec* type_spec) {
-  return ProcessUnderlyingType(type_name, type_spec);
-}
-
-bool TypeHandler::ProcessFuncDecl(types::Func* func, ast::FuncDecl* func_decl) {
-  return ProcessFuncDefinition(func, func_decl);
-}
-
-bool TypeHandler::ProcessTypeArgs(std::vector<ast::Expr*> type_args) {
+std::vector<types::Type*> TypeHandler::EvaluateTypeExprs(const std::vector<ast::Expr*>& exprs) {
+  std::vector<types::Type*> types;
+  types.reserve(exprs.size());
   bool ok = true;
-  for (ast::Expr* arg : type_args) {
-    ok = EvaluateTypeExpr(arg) && ok;
+  for (ast::Expr* expr : exprs) {
+    types::Type* type = EvaluateTypeExpr(expr);
+    if (type == nullptr) {
+      ok = false;
+      types.clear();
+    } else {
+      types.push_back(type);
+    }
   }
-  return ok;
+  return types;
 }
 
-bool TypeHandler::ProcessTypeExpr(ast::Expr* type_expr) { return EvaluateTypeExpr(type_expr); }
-
-bool TypeHandler::ProcessTypeParameters(types::TypeName* type_name, ast::TypeSpec* type_spec) {
-  std::vector<types::TypeParameter*> type_parameters;
-  if (type_spec->type_params() != nullptr) {
-    type_parameters = EvaluateTypeParameters(type_spec->type_params());
-    if (type_parameters.empty()) {
-      return false;
-    }
-  }
-  types::NamedType* named_type = static_cast<types::NamedType*>(type_name->type());
-  info_builder().SetTypeParametersOfNamedType(named_type, type_parameters);
-  return true;
-}
-
-bool TypeHandler::ProcessUnderlyingType(types::TypeName* type_name, ast::TypeSpec* type_spec) {
-  if (!EvaluateTypeExpr(type_spec->type())) {
-    return false;
-  }
-  types::ExprInfo underling_info = info()->ExprInfoOf(type_spec->type()).value();
-  types::Type* underlying_type = underling_info.type();
-  types::NamedType* named_type = static_cast<types::NamedType*>(type_name->type());
-  info_builder().SetUnderlyingTypeOfNamedType(named_type, underlying_type);
-  return true;
-}
-
-bool TypeHandler::ProcessFuncDefinition(types::Func* func, ast::FuncDecl* func_decl) {
-  if (func_decl->kind() != ast::FuncDecl::Kind::kFunc && func_decl->type_params()) {
-    issues().Add(issues::kForbiddenTypeParameterDeclarationForMethod, func_decl->start(),
-                 "method can not declare type parameters");
-  }
-
-  types::Variable* expr_receiver = nullptr;
-  types::Type* type_receiver = nullptr;
-  if (func_decl->kind() == ast::FuncDecl::Kind::kInstanceMethod) {
-    expr_receiver = EvaluateExprReceiver(func_decl->expr_receiver(), func);
-    if (expr_receiver == nullptr) {
-      return false;
-    }
-  } else if (func_decl->kind() == ast::FuncDecl::Kind::kTypeMethod) {
-    type_receiver = EvaluateTypeReceiver(func_decl->type_receiver(), func);
-    if (type_receiver == nullptr) {
-      return false;
-    }
-  }
-
-  std::vector<types::TypeParameter*> type_parameters;
-  if (func_decl->type_params() != nullptr) {
-    type_parameters = EvaluateTypeParameters(func_decl->type_params());
-    if (type_parameters.empty()) {
-      return false;
-    }
-  }
-
-  types::Tuple* parameters = EvaluateTuple(func_decl->func_type()->params());
-  types::Tuple* results = nullptr;
-  if (func_decl->func_type()->results() != nullptr) {
-    results = EvaluateTuple(func_decl->func_type()->results());
-    if (results == nullptr) {
-      return false;
-    }
-  }
-
-  types::Signature* signature;
-  if (expr_receiver != nullptr) {
-    signature = info_builder().CreateSignature(expr_receiver, parameters, results);
-  } else if (type_receiver != nullptr) {
-    signature = info_builder().CreateSignature(type_receiver, parameters, results);
-  } else {
-    signature = info_builder().CreateSignature(type_parameters, parameters, results);
-  }
-  info_builder().SetObjectType(func, signature);
-  return true;
-}
-
-bool TypeHandler::EvaluateTypeExpr(ast::Expr* expr) {
+types::Type* TypeHandler::EvaluateTypeExpr(ast::Expr* expr) {
   switch (expr->node_kind()) {
     case ast::NodeKind::kIdent:
       return EvaluateTypeIdent(static_cast<ast::Ident*>(expr));
     case ast::NodeKind::kParenExpr: {
       ast::ParenExpr* paren_expr = static_cast<ast::ParenExpr*>(expr);
-      if (!EvaluateTypeExpr(paren_expr->x())) {
-        return false;
+      types::Type* x_type = EvaluateTypeExpr(paren_expr->x());
+      if (x_type == nullptr) {
+        return nullptr;
       }
-      types::ExprInfo x_info = info()->ExprInfoOf(paren_expr->x()).value();
-      info_builder().SetExprInfo(expr, x_info);
-      return true;
+      info_builder().SetExprInfo(paren_expr, types::ExprInfo(types::ExprInfo::Kind::kType, x_type));
+      return x_type;
     }
     case ast::NodeKind::kSelectionExpr: {
       ast::SelectionExpr* selector_expr = static_cast<ast::SelectionExpr*>(expr);
       if (selector_expr->accessed()->node_kind() != ast::NodeKind::kIdent) {
         issues().Add(issues::kForbiddenTypeExpression, expr->start(),
                      "type expression not allowed");
-        return false;
+        return nullptr;
       }
       ast::Ident* ident = static_cast<ast::Ident*>(selector_expr->accessed());
       if (info()->uses().at(ident)->object_kind() != types::ObjectKind::kPackageName) {
         issues().Add(issues::kForbiddenTypeExpression, expr->start(),
                      "type expression not allowed");
-        return false;
+        return nullptr;
       }
       return EvaluateTypeIdent(selector_expr->selection());
     }
@@ -162,23 +74,23 @@ bool TypeHandler::EvaluateTypeExpr(ast::Expr* expr) {
       return EvaluateTypeInstance(static_cast<ast::TypeInstance*>(expr));
     default:
       issues().Add(issues::kForbiddenTypeExpression, expr->start(), "type expression not allowed");
-      return false;
+      return nullptr;
   }
 }
 
-bool TypeHandler::EvaluateTypeIdent(ast::Ident* ident) {
+types::Type* TypeHandler::EvaluateTypeIdent(ast::Ident* ident) {
   types::Object* used = info()->uses().at(ident);
   if (used->object_kind() != types::ObjectKind::kTypeName) {
     issues().Add(issues::kObjectIsNotTypeName, ident->start(), "expected type name");
-    return false;
+    return nullptr;
   }
   types::TypeName* type_name = static_cast<types::TypeName*>(used);
   info_builder().SetExprInfo(ident,
                              types::ExprInfo(types::ExprInfo::Kind::kType, type_name->type()));
-  return true;
+  return type_name->type();
 }
 
-bool TypeHandler::EvaluatePointerType(ast::UnaryExpr* pointer_expr) {
+types::Pointer* TypeHandler::EvaluatePointerType(ast::UnaryExpr* pointer_expr) {
   types::Pointer::Kind kind;
   switch (pointer_expr->op()) {
     case tokens::kMul:
@@ -190,19 +102,19 @@ bool TypeHandler::EvaluatePointerType(ast::UnaryExpr* pointer_expr) {
     default:
       issues().Add(issues::kUnexpectedPointerPrefix, pointer_expr->start(),
                    "expected '*' or '%' as pointer prefix");
-      return false;
+      return nullptr;
   }
-  if (!EvaluateTypeExpr(pointer_expr->x())) {
-    return false;
+  types::Type* element_type = EvaluateTypeExpr(pointer_expr->x());
+  if (element_type == nullptr) {
+    return nullptr;
   }
-  types::ExprInfo element_info = info()->ExprInfoOf(pointer_expr->x()).value();
-  types::Pointer* pointer_type = info_builder().CreatePointer(kind, element_info.type());
+  types::Pointer* pointer_type = info_builder().CreatePointer(kind, element_type);
   info_builder().SetExprInfo(pointer_expr,
                              types::ExprInfo(types::ExprInfo::Kind::kType, pointer_type));
-  return true;
+  return pointer_type;
 }
 
-bool TypeHandler::EvaluateArrayType(ast::ArrayType* array_expr) {
+types::Container* TypeHandler::EvaluateArrayType(ast::ArrayType* array_expr) {
   bool is_slice = (array_expr->len() == nullptr);
   uint64_t length = -1;
   if (!is_slice) {
@@ -210,54 +122,53 @@ bool TypeHandler::EvaluateArrayType(ast::ArrayType* array_expr) {
             array_expr->len(), ExprHandler::Context(/*expect_constant=*/true, /* iota= */ 0))) {
       issues().Add(issues::kConstantForArraySizeCanNotBeEvaluated, array_expr->len()->start(),
                    "can not evaluate constant for array size");
-      return false;
+      return nullptr;
     }
     constants::Value length_value = info()->ExprInfoOf(array_expr->len()).value().constant_value();
     if (!length_value.CanConvertToArraySize()) {
       issues().Add(issues::kConstantCanNotBeUsedAsArraySize, array_expr->len()->start(),
                    "can not use constant as array size");
-      return false;
+      return nullptr;
     }
     length = length_value.ConvertToArraySize();
   }
-  if (!EvaluateTypeExpr(array_expr->element_type())) {
-    return false;
+  types::Type* element_type = EvaluateTypeExpr(array_expr->element_type());
+  if (element_type == nullptr) {
+    return nullptr;
   }
-  types::ExprInfo element_info = info()->ExprInfoOf(array_expr->element_type()).value();
-  types::Type* element_type = element_info.type();
 
   if (!is_slice) {
     types::Array* array_type = info_builder().CreateArray(element_type, length);
     info_builder().SetExprInfo(array_expr,
                                types::ExprInfo(types::ExprInfo::Kind::kType, array_type));
-    return true;
+    return array_type;
 
   } else {
     types::Slice* slice_type = info_builder().CreateSlice(element_type);
     info_builder().SetExprInfo(array_expr,
                                types::ExprInfo(types::ExprInfo::Kind::kType, slice_type));
-    return true;
+    return slice_type;
   }
 }
 
-bool TypeHandler::EvaluateFuncType(ast::FuncType* func_expr) {
+types::Signature* TypeHandler::EvaluateFuncType(ast::FuncType* func_expr) {
   types::Tuple* parameters = EvaluateTuple(func_expr->params());
   if (parameters == nullptr) {
-    return false;
+    return nullptr;
   }
   types::Tuple* results = nullptr;
   if (func_expr->results() != nullptr) {
     results = EvaluateTuple(func_expr->results());
     if (results == nullptr) {
-      return false;
+      return nullptr;
     }
   }
   types::Signature* signature = info_builder().CreateSignature(parameters, results);
   info_builder().SetExprInfo(func_expr, types::ExprInfo(types::ExprInfo::Kind::kType, signature));
-  return true;
+  return signature;
 }
 
-bool TypeHandler::EvaluateInterfaceType(ast::InterfaceType* interface_expr) {
+types::Interface* TypeHandler::EvaluateInterfaceType(ast::InterfaceType* interface_expr) {
   types::Interface* interface_type = info_builder().CreateInterface();
 
   std::vector<types::Func*> methods;
@@ -265,7 +176,7 @@ bool TypeHandler::EvaluateInterfaceType(ast::InterfaceType* interface_expr) {
   for (ast::MethodSpec* method_spec : interface_expr->methods()) {
     types::Func* method = EvaluateMethodSpec(method_spec, interface_type);
     if (method == nullptr) {
-      return false;
+      return nullptr;
     }
     methods.push_back(method);
   }
@@ -273,57 +184,57 @@ bool TypeHandler::EvaluateInterfaceType(ast::InterfaceType* interface_expr) {
   info_builder().SetInterfaceMembers(interface_type, {}, methods);
   info_builder().SetExprInfo(interface_expr,
                              types::ExprInfo(types::ExprInfo::Kind::kType, interface_type));
-  return true;
+  return interface_type;
 }
 
-bool TypeHandler::EvaluateStructType(ast::StructType* struct_expr) {
+types::Struct* TypeHandler::EvaluateStructType(ast::StructType* struct_expr) {
   std::vector<types::Variable*> fields = EvaluateFieldList(struct_expr->fields());
   if (fields.empty()) {
-    return false;
+    // TODO: handle empty struct
+    return nullptr;
   }
   types::Struct* struct_type = info_builder().CreateStruct(fields);
   info_builder().SetExprInfo(struct_expr,
                              types::ExprInfo(types::ExprInfo::Kind::kType, struct_type));
-  return true;
+  return struct_type;
 }
 
-bool TypeHandler::EvaluateTypeInstance(ast::TypeInstance* type_instance_expr) {
-  if (!EvaluateTypeExpr(type_instance_expr->type())) {
-    return false;
+types::TypeInstance* TypeHandler::EvaluateTypeInstance(ast::TypeInstance* type_instance_expr) {
+  types::Type* instantiated_type = EvaluateTypeExpr(type_instance_expr->type());
+  if (instantiated_type == nullptr ||
+      instantiated_type->type_kind() != types::TypeKind::kNamedType) {
+    return nullptr;
   }
-  types::ExprInfo instantiated_type_info = info()->ExprInfoOf(type_instance_expr->type()).value();
-  types::NamedType* instantiated_type =
-      static_cast<types::NamedType*>(instantiated_type_info.type());
-  if (type_instance_expr->type_args().size() != instantiated_type->type_parameters().size()) {
+  types::NamedType* instantiated_named_type = static_cast<types::NamedType*>(instantiated_type);
+  if (type_instance_expr->type_args().size() != instantiated_named_type->type_parameters().size()) {
     issues().Add(issues::kWrongNumberOfTypeArgumentsForTypeInstance, type_instance_expr->l_brack(),
                  "type instance has wrong number of type arguments");
-    return false;
+    return nullptr;
   }
 
   std::vector<types::Type*> type_args;
-  type_args.reserve(instantiated_type->type_parameters().size());
-  for (size_t i = 0; i < instantiated_type->type_parameters().size(); i++) {
-    types::TypeParameter* type_param = instantiated_type->type_parameters().at(i);
+  type_args.reserve(instantiated_named_type->type_parameters().size());
+  for (size_t i = 0; i < instantiated_named_type->type_parameters().size(); i++) {
+    types::TypeParameter* type_param = instantiated_named_type->type_parameters().at(i);
     ast::Expr* type_arg_expr = type_instance_expr->type_args().at(i);
-    if (!EvaluateTypeExpr(type_arg_expr)) {
-      return false;
+    types::Type* type_arg = EvaluateTypeExpr(type_arg_expr);
+    if (type_arg == nullptr) {
+      return nullptr;
     }
-    types::ExprInfo type_arg_expr_info = info()->ExprInfoOf(type_arg_expr).value();
-    types::Type* type_arg = type_arg_expr_info.type();
     if (!types::IsAssertableTo(type_param, type_arg)) {
       issues().Add(issues::kTypeArgumentCanNotBeUsedForTypeInstanceParameter,
                    type_arg_expr->start(), "type argument can not be used for type parameter");
-      return false;
+      return nullptr;
     }
 
     type_args.push_back(type_arg);
   }
 
   types::TypeInstance* type_instance =
-      info_builder().CreateTypeInstance(instantiated_type, type_args);
+      info_builder().CreateTypeInstance(instantiated_named_type, type_args);
   info_builder().SetExprInfo(type_instance_expr,
                              types::ExprInfo(types::ExprInfo::Kind::kType, type_instance));
-  return true;
+  return type_instance;
 }
 
 std::vector<types::TypeParameter*> TypeHandler::EvaluateTypeParameters(
@@ -435,89 +346,6 @@ std::vector<types::Variable*> TypeHandler::EvaluateField(ast::Field* field) {
     variables.push_back(variable);
   }
   return variables;
-}
-
-types::Variable* TypeHandler::EvaluateExprReceiver(ast::ExprReceiver* expr_receiver,
-                                                   types::Func* method) {
-  types::Type* type = EvalutateReceiverTypeInstance(expr_receiver->type_name(),
-                                                    expr_receiver->type_parameter_names(), method);
-  if (type == nullptr) {
-    return nullptr;
-  }
-
-  if (expr_receiver->pointer() != tokens::kIllegal) {
-    types::Pointer::Kind kind;
-    switch (expr_receiver->pointer()) {
-      case tokens::kMul:
-        kind = types::Pointer::Kind::kStrong;
-        break;
-      case tokens::kRem:
-        kind = types::Pointer::Kind::kWeak;
-      default:
-        throw "unexpected pointer type";
-    }
-
-    types::Pointer* pointer_type = info_builder().CreatePointer(kind, type);
-    type = pointer_type;
-  }
-
-  types::Variable* receiver;
-  if (expr_receiver->name() != nullptr) {
-    receiver = static_cast<types::Variable*>(info()->DefinitionOf(expr_receiver->name()));
-  } else {
-    receiver = static_cast<types::Variable*>(info()->ImplicitOf(expr_receiver));
-  }
-  info_builder().SetObjectType(receiver, type);
-  return receiver;
-}
-
-types::Type* TypeHandler::EvaluateTypeReceiver(ast::TypeReceiver* type_receiver,
-                                               types::Func* method) {
-  return EvalutateReceiverTypeInstance(type_receiver->type_name(),
-                                       type_receiver->type_parameter_names(), method);
-}
-
-types::Type* TypeHandler::EvalutateReceiverTypeInstance(ast::Ident* type_name_ident,
-                                                        std::vector<ast::Ident*> type_param_names,
-                                                        types::Func* method) {
-  types::TypeName* type_name = static_cast<types::TypeName*>(info()->UseOf(type_name_ident));
-  if (type_name->type()->type_kind() != types::TypeKind::kNamedType) {
-    issues().Add(issues::kReceiverOfNonNamedType, type_name_ident->start(),
-                 "receiver does not have named type");
-    return nullptr;
-  }
-  types::NamedType* named_type = static_cast<types::NamedType*>(type_name->type());
-  if (named_type->underlying()->type_kind() == types::TypeKind::kInterface) {
-    issues().Add(issues::kDefinitionOfInterfaceMethodOutsideInterface, type_name_ident->start(),
-                 "can not define additional methods for interfaces");
-    return nullptr;
-  } else if (named_type->methods().contains(method->name())) {
-    types::Func* other_method = named_type->methods().at(method->name());
-    issues().Add(issues::kRedefinitionOfMethod, {other_method->position(), method->position()},
-                 "can not define two methods with the same name");
-    return nullptr;
-  }
-  info_builder().AddMethodToNamedType(named_type, method);
-
-  if (type_param_names.size() != named_type->type_parameters().size()) {
-    issues().Add(issues::kWrongNumberOfTypeArgumentsForReceiver, type_name_ident->start(),
-                 "receiver has wrong number of type arguments");
-    return nullptr;
-  }
-  if (!named_type->type_parameters().empty()) {
-    std::vector<types::Type*> type_instance_args;
-    type_instance_args.reserve(named_type->type_parameters().size());
-    for (size_t i = 0; i < named_type->type_parameters().size(); i++) {
-      types::TypeParameter* instantiated = named_type->type_parameters().at(i);
-      ast::Ident* arg_name = type_param_names.at(i);
-      types::TypeName* arg = static_cast<types::TypeName*>(info()->DefinitionOf(arg_name));
-      types::TypeParameter* instance = static_cast<types::TypeParameter*>(arg->type());
-      info_builder().SetTypeParameterInstance(instantiated, instance);
-      type_instance_args.push_back(instance);
-    }
-    return info_builder().CreateTypeInstance(named_type, type_instance_args);
-  }
-  return named_type;
 }
 
 }  // namespace type_checker

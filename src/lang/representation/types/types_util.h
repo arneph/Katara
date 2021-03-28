@@ -9,11 +9,14 @@
 #ifndef lang_types_util_h
 #define lang_types_util_h
 
+#include "lang/representation/constants/constants.h"
 #include "lang/representation/tokens/tokens.h"
 #include "lang/representation/types/types.h"
 
 namespace lang {
 namespace types {
+
+constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_basic_kind);
 
 Type* UnderlyingOf(Type* type);
 

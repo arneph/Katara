@@ -24,13 +24,19 @@ namespace type_checker {
 
 class TypeHandler final : public BaseHandler {
  public:
-  bool ProcessTypeName(types::TypeName* type_name, ast::TypeSpec* type_spec);
-  bool ProcessTypeParametersOfTypeName(types::TypeName* type_name, ast::TypeSpec* type_spec);
-  bool ProcessUnderlyingTypeOfTypeName(types::TypeName* type_name, ast::TypeSpec* type_spec);
-  bool ProcessFuncDecl(types::Func* func, ast::FuncDecl* func_decl);
+  // Evaluatest the given type expressions. If successful, the types are returned, otherwise an
+  // empty vector.
+  std::vector<types::Type*> EvaluateTypeExprs(const std::vector<ast::Expr*>& exprs);
+  // Evaluates the given type expression. if successful, the type is returned, otherise nullptr.
+  types::Type* EvaluateTypeExpr(ast::Expr* expr);
 
-  bool ProcessTypeArgs(std::vector<ast::Expr*> type_args);
-  bool ProcessTypeExpr(ast::Expr* type_expr);
+  // Evaluates the given field list. If successful, the defined tuple is returned, otherwise
+  // nullptr.
+  types::Tuple* EvaluateTuple(ast::FieldList* field_list);
+
+  // Evaluates the given type parameter list and returns the type parameters if successful,
+  // otherwise an empty vector.
+  std::vector<types::TypeParameter*> EvaluateTypeParameters(ast::TypeParamList* type_parameters);
 
  private:
   TypeHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
@@ -42,30 +48,19 @@ class TypeHandler final : public BaseHandler {
 
   bool ProcessFuncDefinition(types::Func* func, ast::FuncDecl* func_decl);
 
-  bool EvaluateTypeExpr(ast::Expr* expr);
-  bool EvaluateTypeIdent(ast::Ident* ident);
-  bool EvaluatePointerType(ast::UnaryExpr* pointer_type);
-  bool EvaluateArrayType(ast::ArrayType* array_type);
-  bool EvaluateFuncType(ast::FuncType* func_type);
-  bool EvaluateInterfaceType(ast::InterfaceType* interface_type);
-  bool EvaluateStructType(ast::StructType* struct_type);
-  bool EvaluateTypeInstance(ast::TypeInstance* type_instance);
+  types::Type* EvaluateTypeIdent(ast::Ident* ident);
+  types::Pointer* EvaluatePointerType(ast::UnaryExpr* pointer_type);
+  types::Container* EvaluateArrayType(ast::ArrayType* array_type);
+  types::Signature* EvaluateFuncType(ast::FuncType* func_type);
+  types::Interface* EvaluateInterfaceType(ast::InterfaceType* interface_type);
+  types::Struct* EvaluateStructType(ast::StructType* struct_type);
+  types::TypeInstance* EvaluateTypeInstance(ast::TypeInstance* type_instance);
 
-  std::vector<types::TypeParameter*> EvaluateTypeParameters(ast::TypeParamList* type_parameters);
   types::TypeParameter* EvaluateTypeParameter(ast::TypeParam* type_parameter);
 
   types::Func* EvaluateMethodSpec(ast::MethodSpec* method_spec, types::Interface* interface);
-  types::Tuple* EvaluateTuple(ast::FieldList* field_list);
   std::vector<types::Variable*> EvaluateFieldList(ast::FieldList* field_list);
   std::vector<types::Variable*> EvaluateField(ast::Field* field);
-
-  types::Variable* EvaluateExprReceiver(ast::ExprReceiver* expr_receiver,
-                                        types::Func* instance_method);
-  types::Type* EvaluateTypeReceiver(ast::TypeReceiver* type_receiver, types::Func* type_method);
-
-  types::Type* EvalutateReceiverTypeInstance(ast::Ident* type_name,
-                                             std::vector<ast::Ident*> type_param_names,
-                                             types::Func* method);
 
   friend class TypeResolver;
 };

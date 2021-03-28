@@ -87,8 +87,7 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt* stmt) {
         types::TypeName* type_name =
             static_cast<types::TypeName*>(info()->definitions().at(type_spec->name()));
 
-        type_resolver().type_handler().ProcessTypeParametersOfTypeName(type_name, type_spec);
-        type_resolver().type_handler().ProcessUnderlyingTypeOfTypeName(type_name, type_spec);
+        type_resolver().decl_handler().ProcessTypeName(type_name, type_spec);
       }
       return;
     case tokens::kConst: {
@@ -96,14 +95,6 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt* stmt) {
       for (ast::Spec* spec : stmt->decl()->specs()) {
         ast::ValueSpec* value_spec = static_cast<ast::ValueSpec*>(spec);
         ast::Expr* type_expr = value_spec->type();
-        types::Type* type = nullptr;
-        if (type_expr != nullptr) {
-          if (!type_resolver().type_handler().ProcessTypeExpr(type_expr)) {
-            return;
-          }
-          types::ExprInfo type_expr_info = info()->ExprInfoOf(type_expr).value();
-          type = type_expr_info.type();
-        }
         for (size_t i = 0; i < value_spec->names().size(); i++) {
           ast::Ident* name = value_spec->names().at(i);
           types::Constant* constant = static_cast<types::Constant*>(info()->definitions().at(name));
@@ -112,7 +103,7 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt* stmt) {
           if (value_spec->values().size() > i) {
             value = value_spec->values().at(i);
           }
-          type_resolver().constant_handler().ProcessConstant(constant, type, value, iota);
+          type_resolver().decl_handler().ProcessConstant(constant, type_expr, value, iota);
         }
         iota++;
       }
@@ -122,14 +113,6 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt* stmt) {
       for (ast::Spec* spec : stmt->decl()->specs()) {
         ast::ValueSpec* value_spec = static_cast<ast::ValueSpec*>(spec);
         ast::Expr* type_expr = value_spec->type();
-        types::Type* type = nullptr;
-        if (type_expr != nullptr) {
-          if (!type_resolver().type_handler().ProcessTypeExpr(type_expr)) {
-            return;
-          }
-          types::ExprInfo type_expr_info = info()->ExprInfoOf(type_expr).value();
-          type = type_expr_info.type();
-        }
         if (value_spec->names().size() > 1 && value_spec->names().size() == 1) {
           std::vector<types::Variable*> variables;
           for (ast::Ident* name : value_spec->names()) {
@@ -138,7 +121,7 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt* stmt) {
             variables.push_back(variable);
           }
           ast::Expr* value = value_spec->values().at(0);
-          type_resolver().variable_handler().ProcessVariables(variables, type, value);
+          type_resolver().decl_handler().ProcessVariables(variables, type_expr, value);
         } else {
           for (size_t i = 0; i < value_spec->names().size(); i++) {
             ast::Ident* name = value_spec->names().at(i);
@@ -149,7 +132,7 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt* stmt) {
             if (value_spec->values().size() > i) {
               value = value_spec->values().at(i);
             }
-            type_resolver().variable_handler().ProcessVariable(variable, type, value);
+            type_resolver().decl_handler().ProcessVariable(variable, type_expr, value);
           }
         }
       }
@@ -382,17 +365,17 @@ void StmtHandler::CheckTypeCaseClause(ast::CaseClause* case_clause, types::Type*
                                       Context ctx) {
   types::Type* implicit_tag_type = tag_type;
   for (ast::Expr* expr : case_clause->cond_vals()) {
-    if (!type_resolver().type_handler().ProcessTypeExpr(expr)) {
+    types::Type* expr_type = type_resolver().type_handler().EvaluateTypeExpr(expr);
+    if (expr_type == nullptr) {
       continue;
     }
-    types::ExprInfo expr_info = info()->ExprInfoOf(expr).value();
-    if (tag_type != nullptr && !types::IsAssertableTo(tag_type, expr_info.type())) {
+    if (tag_type != nullptr && !types::IsAssertableTo(tag_type, expr_type)) {
       issues().Add(issues::kTypeSwitchCaseNeverPossible, expr->start(),
                    "invalid operation: value of type switch tag can never have the given type");
       continue;
     }
     if (case_clause->cond_vals().size() == 1) {
-      implicit_tag_type = expr_info.type();
+      implicit_tag_type = expr_type;
     }
   }
   types::Variable* implicit_tag = static_cast<types::Variable*>(info()->ImplicitOf(case_clause));

@@ -13,6 +13,35 @@
 namespace lang {
 namespace types {
 
+constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_basic_kind) {
+  switch (typed_basic_kind) {
+    case Basic::kBool:
+      return constants::Convert<bool>(value);
+    case Basic::kInt8:
+      return constants::Convert<int8_t>(value);
+    case Basic::kInt16:
+      return constants::Convert<int16_t>(value);
+    case Basic::kInt32:
+      return constants::Convert<int32_t>(value);
+    case Basic::kInt64:
+    case Basic::kInt:
+      return constants::Convert<int64_t>(value);
+    case Basic::kUint8:
+      return constants::Convert<uint8_t>(value);
+    case Basic::kUint16:
+      return constants::Convert<uint16_t>(value);
+    case Basic::kUint32:
+      return constants::Convert<uint32_t>(value);
+    case Basic::kUint64:
+    case Basic::kUint:
+      return constants::Convert<uint16_t>(value);
+    case Basic::kString:
+      return constants::Convert<std::string>(value);
+    default:
+      throw "internal error: unexpected typed basic kind";
+  }
+}
+
 Type* UnderlyingOf(Type* type) {
   switch (type->type_kind()) {
     case TypeKind::kBasic:

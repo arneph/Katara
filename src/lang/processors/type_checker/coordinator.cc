@@ -130,11 +130,11 @@ void Coordinator::FindActionsForTypeDecl(ast::GenDecl* type_decl) {
       if (type_spec->type_params() == nullptr) {
         return true;
       }
-      return type_resolver_.type_handler().ProcessTypeParametersOfTypeName(type_name, type_spec);
+      return type_resolver_.decl_handler().ProcessTypeParametersOfTypeName(type_name, type_spec);
     });
     Action* underlying_action =
         CreateAction(underlying_prerequisites, std::unordered_set<types::Object*>{}, [=]() -> bool {
-          return type_resolver_.type_handler().ProcessUnderlyingTypeOfTypeName(type_name,
+          return type_resolver_.decl_handler().ProcessUnderlyingTypeOfTypeName(type_name,
                                                                                type_spec);
         });
     const_and_type_actions_.push_back(param_action);
@@ -174,16 +174,7 @@ void Coordinator::FindActionsForConstDecl(ast::GenDecl* const_decl) {
       }
 
       Action* action = CreateAction(prerequisites, constant, [=]() -> bool {
-        types::Type* type = nullptr;
-        if (type_expr != nullptr) {
-          if (!type_resolver_.type_handler().ProcessTypeExpr(type_expr)) {
-            return false;
-          }
-          types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
-          type = type_expr_info.type();
-        }
-
-        return type_resolver_.constant_handler().ProcessConstant(constant, type, value, iota);
+        return type_resolver_.decl_handler().ProcessConstant(constant, type_expr, value, iota);
       });
       const_and_type_actions_.push_back(action);
     }
@@ -224,16 +215,7 @@ void Coordinator::FindActionsForVarDecl(ast::GenDecl* var_decl) {
       prerequisites.insert(type_prerequisites.begin(), type_prerequisites.end());
 
       Action* action = CreateAction(prerequisites, objects, [=]() -> bool {
-        types::Type* type = nullptr;
-        if (type_expr != nullptr) {
-          if (!type_resolver_.type_handler().ProcessTypeExpr(type_expr)) {
-            return false;
-          }
-          types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
-          type = type_expr_info.type();
-        }
-
-        return type_resolver_.variable_handler().ProcessVariables(variables, type, value);
+        return type_resolver_.decl_handler().ProcessVariables(variables, type_expr, value);
       });
       variable_and_func_decl_actions_.push_back(action);
 
@@ -252,16 +234,7 @@ void Coordinator::FindActionsForVarDecl(ast::GenDecl* var_decl) {
         }
 
         Action* action = CreateAction(prerequisites, variable, [=]() -> bool {
-          types::Type* type = nullptr;
-          if (type_expr != nullptr) {
-            if (!type_resolver_.type_handler().ProcessTypeExpr(type_expr)) {
-              return false;
-            }
-            types::ExprInfo type_expr_info = info_->ExprInfoOf(type_expr).value();
-            type = type_expr_info.type();
-          }
-
-          return type_resolver_.variable_handler().ProcessVariable(variable, type, value);
+          return type_resolver_.decl_handler().ProcessVariable(variable, type_expr, value);
         });
         variable_and_func_decl_actions_.push_back(action);
       }
@@ -277,7 +250,7 @@ void Coordinator::FindActionsForFuncDecl(ast::FuncDecl* func_decl) {
   std::unordered_set<types::Object*> prerequisites = FindPrerequisites(func_decl);
 
   Action* decl_action = CreateAction(prerequisites, func, [=]() -> bool {
-    return type_resolver_.type_handler().ProcessFuncDecl(func, func_decl);
+    return type_resolver_.decl_handler().ProcessFunction(func, func_decl);
   });
   Action* body_action = CreateAction([=]() -> bool {
     types::Signature* signature = static_cast<types::Signature*>(func->type());
