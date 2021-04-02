@@ -107,8 +107,8 @@ std::string NamedType::ToString(StringRep rep) const {
   return s;
 }
 
-std::string TypeInstance::ToString(StringRep rep) const {
-  std::string s = instantiated_type_->ToString(rep) + "<";
+std::string TypeInstance::ToString(StringRep) const {
+  std::string s = instantiated_type_->name() + "<";
   for (size_t i = 0; i < type_args_.size(); i++) {
     if (i > 0) s += ", ";
     s += type_args_.at(i)->ToString(StringRep::kShort);
@@ -175,15 +175,24 @@ std::string Struct::ToString(StringRep rep) const {
   return s;
 }
 
-std::string Interface::ToString(StringRep) const {
-  std::string s = "interface {";
-  for (size_t i = 0; i < embedded_interfaces_.size(); i++) {
-    if (i > 0) s += "; ";
-    s += embedded_interfaces_.at(i)->ToString(StringRep::kShort);
-  }
-  for (size_t i = 0; i < methods_.size(); i++) {
-    if (i > 0 || !embedded_interfaces_.empty()) s += "; ";
-    s += methods_.at(i)->ToString();
+std::string Interface::ToString(StringRep rep) const {
+  std::string s = "interface{";
+  switch (rep) {
+    case StringRep::kShort:
+      if (!embedded_interfaces_.empty() || !methods_.empty()) {
+        s += "...";
+      }
+      break;
+    case StringRep::kExpanded:
+      for (size_t i = 0; i < embedded_interfaces_.size(); i++) {
+        if (i > 0) s += "; ";
+        s += embedded_interfaces_.at(i)->ToString(StringRep::kShort);
+      }
+      for (size_t i = 0; i < methods_.size(); i++) {
+        if (i > 0 || !embedded_interfaces_.empty()) s += "; ";
+        s += methods_.at(i)->ToString();
+      }
+      break;
   }
   s += "}";
   return s;
