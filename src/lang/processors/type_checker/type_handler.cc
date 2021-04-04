@@ -254,11 +254,10 @@ std::vector<types::TypeParameter*> TypeHandler::EvaluateTypeParameters(
 types::TypeParameter* TypeHandler::EvaluateTypeParameter(ast::TypeParam* parameter_expr) {
   types::Interface* interface = nullptr;
   if (parameter_expr->type() != nullptr) {
-    if (!EvaluateTypeExpr(parameter_expr->type())) {
+    types::Type* type = EvaluateTypeExpr(parameter_expr->type());
+    if (type == nullptr) {
       return nullptr;
     }
-    types::ExprInfo type_info = info()->ExprInfoOf(parameter_expr->type()).value();
-    types::Type* type = type_info.type();
     types::Type* underlying = types::UnderlyingOf(type);
     if (underlying->type_kind() != types::TypeKind::kInterface) {
       issues().Add(issues::kTypeParamterConstraintIsNotInterface, parameter_expr->type()->start(),
@@ -326,23 +325,23 @@ std::vector<types::Variable*> TypeHandler::EvaluateFieldList(ast::FieldList* fie
 }
 
 std::vector<types::Variable*> TypeHandler::EvaluateField(ast::Field* field) {
-  if (!EvaluateTypeExpr(field->type())) {
+  types::Type* field_type = EvaluateTypeExpr(field->type());
+  if (field_type == nullptr) {
     return {};
   }
-  types::ExprInfo field_type_info = info()->ExprInfoOf(field->type()).value();
 
   std::vector<types::Variable*> variables;
   variables.reserve(std::max(size_t{1}, field->names().size()));
   if (!field->names().empty()) {
     for (ast::Ident* name : field->names()) {
       types::Variable* variable = static_cast<types::Variable*>(info()->DefinitionOf(name));
-      info_builder().SetObjectType(variable, field_type_info.type());
+      info_builder().SetObjectType(variable, field_type);
       variables.push_back(variable);
     }
 
   } else {
     types::Variable* variable = static_cast<types::Variable*>(info()->ImplicitOf(field));
-    info_builder().SetObjectType(variable, field_type_info.type());
+    info_builder().SetObjectType(variable, field_type);
     variables.push_back(variable);
   }
   return variables;
