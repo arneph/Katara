@@ -203,6 +203,8 @@ class NamedType final : public Type {
   const std::vector<TypeParameter*>& type_parameters() const { return type_parameters_; }
   const std::unordered_map<std::string, Func*>& methods() const { return methods_; }
 
+  Type* InstanceForTypeArgs(const std::vector<Type*>& type_args) const;
+
   TypeKind type_kind() const override { return TypeKind::kNamedType; }
   std::string ToString(StringRep rep) const override;
 
@@ -210,11 +212,14 @@ class NamedType final : public Type {
   NamedType(bool is_alias, std::string name)
       : is_alias_(is_alias), name_(name), underlying_(nullptr) {}
 
+  void SetInstanceForTypeArgs(const std::vector<Type*>& type_args, Type* instance);
+
   bool is_alias_;
   std::string name_;
   Type* underlying_;
   std::vector<TypeParameter*> type_parameters_;
   std::unordered_map<std::string, Func*> methods_;
+  std::vector<std::pair<std::vector<Type*>, Type*>> instances_;
 
   friend class InfoBuilder;
 };

@@ -66,8 +66,8 @@ bool DeclHandler::ProcessConstant(types::Constant* constant, ast::Expr* type_exp
   constants::Value value(int64_t{0});
 
   if (type != nullptr) {
-    types::Type* underlying = types::UnderlyingOf(type);
-    if (underlying == nullptr || underlying->type_kind() != types::TypeKind::kBasic) {
+    types::Type* underlying = types::UnderlyingOf(type, info_builder());
+    if (underlying->type_kind() != types::TypeKind::kBasic) {
       issues().Add(issues::kConstantWithNonBasicType, constant->position(),
                    "constant can not have non-basic type: " + constant->name());
       return false;
@@ -152,7 +152,8 @@ bool DeclHandler::ProcessVariables(std::vector<types::Variable*> variables,
 
   if (variables.size() == 1) {
     types::Variable* variable = variables.at(0);
-    if (all_variables_type != nullptr && !types::IsAssignableTo(value_type, all_variables_type)) {
+    if (all_variables_type != nullptr &&
+        !types::IsAssignableTo(value_type, all_variables_type, info_builder())) {
       issues().Add(issues::kVariableValueOfWrongType, variable->position(),
                    "variable can not be assigned given value: " + variable->name());
       return false;
@@ -178,7 +179,8 @@ bool DeclHandler::ProcessVariables(std::vector<types::Variable*> variables,
     types::Variable* var = variables.at(i);
     types::Type* val_type = static_cast<types::Tuple*>(value_type)->variables().at(i)->type();
 
-    if (all_variables_type != nullptr && !types::IsAssignableTo(val_type, all_variables_type)) {
+    if (all_variables_type != nullptr &&
+        !types::IsAssignableTo(val_type, all_variables_type, info_builder())) {
       issues().Add(issues::kVariableValueOfWrongType, var->position(),
                    "variable can not be assigned given value: " + var->name());
       return false;

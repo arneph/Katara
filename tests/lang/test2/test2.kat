@@ -88,7 +88,7 @@ type Node<T> struct {
     neighbors Set<%Node<T>>
 }
 
-func (n *Node<T>) ForEachNeighbor(f func(neighbor *Node<T>)) {
+func (n *Node<T>) ForEachNeighbor(f func(neighbor %Node<T>)) {
     n.neighbors.ForEach(f)
 }
 

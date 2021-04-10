@@ -21,8 +21,8 @@ bool ExprHandler::CheckBoolExpr(ast::Expr* expr) {
   if (!CheckValueExpr(expr)) {
     return false;
   }
-  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type());
-  if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
+  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type(), info_builder());
+  if (type->type_kind() != types::TypeKind::kBasic ||
       !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsBoolean)) {
     issues().Add(issues::kExprTypeIsNotBool, expr->start(), "expression is not of type bool");
     return false;
@@ -34,8 +34,8 @@ bool ExprHandler::CheckIntExpr(ast::Expr* expr) {
   if (!CheckValueExpr(expr)) {
     return false;
   }
-  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type());
-  if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
+  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type(), info_builder());
+  if (type->type_kind() != types::TypeKind::kBasic ||
       !(static_cast<types::Basic*>(type)->kind() &
         (types::Basic::Kind::kInt | types::Basic::Kind::kUntypedInt))) {
     issues().Add(issues::kExprTypeIsNotInt, expr->start(), "expression is not of type int");
@@ -48,8 +48,8 @@ bool ExprHandler::CheckIntegerExpr(ast::Expr* expr) {
   if (!CheckValueExpr(expr)) {
     return false;
   }
-  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type());
-  if (type == nullptr || type->type_kind() != types::TypeKind::kBasic ||
+  types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type(), info_builder());
+  if (type->type_kind() != types::TypeKind::kBasic ||
       !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsInteger)) {
     issues().Add(issues::kExprTypeIsNotInteger, expr->start(), "expression is not of type integer");
     return false;
@@ -480,8 +480,8 @@ std::optional<ExprHandler::CheckBasicOperandResult> ExprHandler::CheckBasicOpera
   if (op_type == nullptr) {
     return std::nullopt;
   }
-  types::Type* op_underlying = types::UnderlyingOf(op_type);
-  if (op_underlying == nullptr || op_underlying->type_kind() != types::TypeKind::kBasic) {
+  types::Type* op_underlying = types::UnderlyingOf(op_type, info_builder());
+  if (op_underlying->type_kind() != types::TypeKind::kBasic) {
     issues().Add(issues::kUnexpectedBasicOperandType, op_expr->start(),
                  "invalid operation: operand does not have basic type");
     return std::nullopt;
@@ -533,8 +533,8 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr, Context
   types::Type* accessed_type = accessed_info.type();
   if (accessed_type->type_kind() == types::TypeKind::kPointer) {
     accessed_type = static_cast<types::Pointer*>(accessed_type)->element_type();
-    types::Type* underlying = types::UnderlyingOf(accessed_type);
-    if ((underlying != nullptr && underlying->type_kind() == types::TypeKind::kInterface) ||
+    types::Type* underlying = types::UnderlyingOf(accessed_type, info_builder());
+    if (underlying->type_kind() == types::TypeKind::kInterface ||
         accessed_type->type_kind() == types::TypeKind::kTypeParameter) {
       issues().Add(issues::kForbiddenSelectionFromPointerToInterfaceOrTypeParameter,
                    selection_expr->selection()->start(),
@@ -770,11 +770,7 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr* index_expr) {
                  "invalid operation: expected array, pointer to array, slice, or string, but got " +
                      accessed_type->ToString(types::StringRep::kShort));
   };
-  types::Type* accessed_underlying = types::UnderlyingOf(accessed_type);
-  if (accessed_underlying == nullptr) {
-    add_expected_accessed_value_issue();
-    return false;
-  }
+  types::Type* accessed_underlying = types::UnderlyingOf(accessed_type, info_builder());
   if (accessed_underlying->type_kind() == types::TypeKind::kPointer) {
     types::Pointer* pointer_type = static_cast<types::Pointer*>(accessed_underlying);
     if (pointer_type->element_type()->type_kind() != types::TypeKind::kArray) {
@@ -862,10 +858,10 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr, Cont
   }
   types::ExprInfo conversion_start_info = info()->ExprInfoOf(call_expr->args().at(0)).value();
   types::ExprInfo conversion_result_info = info()->ExprInfoOf(call_expr->func()).value();
-  types::Type* conversion_result_underlying = types::UnderlyingOf(conversion_result_info.type());
+  types::Type* conversion_result_underlying =
+      types::UnderlyingOf(conversion_result_info.type(), info_builder());
   if (ctx.expect_constant_ &&
-      (conversion_result_underlying == nullptr ||
-       conversion_result_underlying->type_kind() != types::TypeKind::kBasic)) {
+      conversion_result_underlying->type_kind() != types::TypeKind::kBasic) {
     issues().Add(issues::kConstantExprContainsConversionToNonBasicType, call_expr->func()->start(),
                  "type conversion to non-basic type not allowed in constant expression");
     return false;
@@ -907,12 +903,12 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr* call_expr) {
         return false;
       }
       ast::Expr* arg_expr = call_expr->args().at(0);
-      types::Type* arg_type = types::UnderlyingOf(info()->ExprInfoOf(arg_expr).value().type());
-      if (arg_type == nullptr ||
-          ((arg_type->type_kind() != types::TypeKind::kBasic ||
-            static_cast<types::Basic*>(arg_type)->kind() != types::Basic::kString) &&
-           arg_type->type_kind() != types::TypeKind::kArray &&
-           arg_type->type_kind() != types::TypeKind::kSlice)) {
+      types::Type* arg_type =
+          types::UnderlyingOf(info()->ExprInfoOf(arg_expr).value().type(), info_builder());
+      if ((arg_type->type_kind() != types::TypeKind::kBasic ||
+           static_cast<types::Basic*>(arg_type)->kind() != types::Basic::kString) &&
+          arg_type->type_kind() != types::TypeKind::kArray &&
+          arg_type->type_kind() != types::TypeKind::kSlice) {
         issues().Add(issues::kUnexpectedLenArgumentType, arg_expr->start(),
                      "len expected array, slice, or string");
         return false;
@@ -995,8 +991,8 @@ bool ExprHandler::CheckCallExprWithFuncCall(ast::CallExpr* call_expr) {
                    "expected type, function or function variable");
       return false;
   }
-  types::Type* func_type = types::UnderlyingOf(func_expr_info.type());
-  if (func_type == nullptr || func_type->type_kind() != types::TypeKind::kSignature) {
+  types::Type* func_type = types::UnderlyingOf(func_expr_info.type(), info_builder());
+  if (func_type->type_kind() != types::TypeKind::kSignature) {
     issues().Add(issues::kUnexpectedFuncCallFuncType, call_expr->start(),
                  "expected type, function or function variable");
     return false;
@@ -1029,7 +1025,7 @@ types::Signature* ExprHandler::CheckFuncCallTypeArgs(types::Signature* signature
     types::Type* type_arg = type_arg_expr_info.type();
     types::TypeParameter* type_param = signature->type_parameters().at(i);
 
-    if (!types::IsAssignableTo(type_arg, type_param)) {
+    if (!types::IsAssignableTo(type_arg, type_param, info_builder())) {
       issues().Add(issues::kTypeArgumentCanNotBeUsedForFuncTypeParameter, type_arg_expr->start(),
                    "can not assign type argument to parameter");
       return nullptr;
@@ -1065,7 +1061,7 @@ void ExprHandler::CheckFuncCallArgs(types::Signature* signature, ast::CallExpr* 
     types::Type* arg_type = arg_types.at(i);
     types::Type* param_type = signature->parameters()->variables().at(i)->type();
 
-    if (!types::IsAssignableTo(arg_type, param_type)) {
+    if (!types::IsAssignableTo(arg_type, param_type, info_builder())) {
       if (arg_exprs.size() == expected_args) {
         issues().Add(issues::kUnexpectedFuncCallArgumentType, arg_exprs.at(i)->start(),
                      "can not assign argument of type " +

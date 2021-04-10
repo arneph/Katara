@@ -223,7 +223,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
 
     if (lhs_type == nullptr || rhs_type == nullptr) {
       continue;
-    } else if (!types::IsAssignableTo(rhs_type, lhs_type)) {
+    } else if (!types::IsAssignableTo(rhs_type, lhs_type, info_builder())) {
       if (assign_stmt->rhs().size() == assign_stmt->lhs().size()) {
         issues().Add(issues::kMismatchedAssignStmtValueType,
                      {assign_stmt->lhs().at(i)->start(), assign_stmt->rhs().at(i)->start()},
@@ -264,7 +264,7 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
 
   if (result_exprs.size() == 1 && result_types.at(0)->type_kind() == types::TypeKind::kTuple) {
     types::Tuple* result_tuple = static_cast<types::Tuple*>(result_types.at(0));
-    if (!types::IsAssignableTo(result_tuple, ctx.func_results)) {
+    if (!types::IsAssignableTo(result_tuple, ctx.func_results, info_builder())) {
       issues().Add(issues::kUnexpectedReturnStmtFuncCallOperandType, return_stmt->start(),
                    "invalid operation: results can not be assigned to function result types");
     }
@@ -278,8 +278,13 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
   for (size_t i = 0; i < result_types.size(); i++) {
     types::Type* expected_result_type = ctx.func_results->variables().at(i)->type();
     types::Type* given_result_type = result_types.at(i);
+    if (given_result_type->type_kind() == types::TypeKind::kBasic) {
+      types::Basic::Kind basic_kind = static_cast<types::Basic*>(given_result_type)->kind();
+      types::Basic::Kind typed_basic_kind = types::ConvertIfUntyped(basic_kind);
+      given_result_type = info()->basic_type(typed_basic_kind);
+    }
     ast::Expr* result_expr = return_stmt->results().at(i);
-    if (!types::IsAssignableTo(given_result_type, expected_result_type)) {
+    if (!types::IsAssignableTo(given_result_type, expected_result_type, info_builder())) {
       issues().Add(issues::kUnexpectedReturnStmtOperandType, result_expr->start(),
                    "invalid operation: result of type " +
                        given_result_type->ToString(types::StringRep::kShort) +

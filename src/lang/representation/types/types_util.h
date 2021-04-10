@@ -11,6 +11,8 @@
 
 #include "lang/representation/constants/constants.h"
 #include "lang/representation/tokens/tokens.h"
+#include "lang/representation/types/info.h"
+#include "lang/representation/types/info_builder.h"
 #include "lang/representation/types/types.h"
 
 namespace lang {
@@ -29,7 +31,7 @@ Basic::Kind ConvertIfUntyped(Basic::Kind untyped_basic_kind);
 // it converts from untyped int, the type of "17" and "42", to int8 or uint32.
 constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_basic_kind);
 
-Type* UnderlyingOf(Type* type);
+Type* UnderlyingOf(Type* type, InfoBuilder& info_builder);
 
 Type* ResolveAlias(Type* type);
 
@@ -46,7 +48,7 @@ bool IsIdentical(Signature* a, Signature* b);
 bool IsIdentical(Struct* a, Struct* b);
 bool IsIdentical(Interface* a, Interface* b);
 
-bool IsAssignableTo(Type* src, Type* dst);
+bool IsAssignableTo(Type* src, Type* dst, InfoBuilder& info_builder);
 bool IsComparable(Type* t, Type* v);
 bool IsOrderable(Type* t, Type* v);
 bool IsConvertibleTo(Type* src, Type* dst);

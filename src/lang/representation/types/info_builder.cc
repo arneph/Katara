@@ -542,6 +542,11 @@ void InfoBuilder::AddMethodToNamedType(NamedType* named_type, Func* method) {
   named_type->methods_[method->name()] = method;
 }
 
+void InfoBuilder::AddInstanceToNamedType(NamedType* named_type, std::vector<types::Type*> type_args,
+                                         Type* instance) {
+  named_type->SetInstanceForTypeArgs(type_args, instance);
+}
+
 void InfoBuilder::SetInterfaceMembers(Interface* interface,
                                       std::vector<NamedType*> embdedded_interfaces,
                                       std::vector<Func*> methods) {

@@ -70,7 +70,7 @@ constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_b
   }
 }
 
-Type* UnderlyingOf(Type* type) {
+Type* UnderlyingOf(Type* type, InfoBuilder& info_builder) {
   switch (type->type_kind()) {
     case TypeKind::kBasic:
     case TypeKind::kPointer:
@@ -86,7 +86,26 @@ Type* UnderlyingOf(Type* type) {
     case TypeKind::kNamedType:
       return static_cast<NamedType*>(type)->underlying();
     case TypeKind::kTypeInstance:
-      return nullptr;
+      TypeInstance* type_instance = static_cast<TypeInstance*>(type);
+      NamedType* instantiated_type = type_instance->instantiated_type();
+      if (instantiated_type->type_parameters().empty()) {
+        return instantiated_type->underlying();
+      }
+      const std::vector<Type*>& type_args = type_instance->type_args();
+      Type* underlying = instantiated_type->InstanceForTypeArgs(type_args);
+      if (underlying == nullptr) {
+        InfoBuilder::TypeParamsToArgsMap type_params_to_args;
+        type_params_to_args.reserve(type_args.size());
+        for (size_t i = 0; i < type_args.size(); i++) {
+          TypeParameter* type_param = instantiated_type->type_parameters().at(i);
+          Type* type_arg = type_args.at(i);
+          type_params_to_args.insert({type_param, type_arg});
+        }
+        underlying =
+            info_builder.InstantiateType(instantiated_type->underlying(), type_params_to_args);
+        info_builder.AddInstanceToNamedType(instantiated_type, type_args, underlying);
+      }
+      return underlying;
   }
 }
 
@@ -217,7 +236,9 @@ bool IsIdentical(Signature* a, Signature* b) {
   if (!IsIdentical(a->parameters(), b->parameters())) {
     return false;
   }
-  if (!IsIdentical(a->results(), b->results())) {
+  if ((a->results() == nullptr) != (b->results() == nullptr)) {
+    return false;
+  } else if (a->results() != nullptr && !IsIdentical(a->results(), b->results())) {
     return false;
   }
   return true;
@@ -255,9 +276,15 @@ bool IsIdentical(Interface* a, Interface* b) {
   return true;
 }
 
-bool IsAssignableTo(Type* src, Type* dst) {
+bool IsAssignableTo(Type* src, Type* dst, InfoBuilder& info_builder) {
   if (IsIdentical(src, dst)) {
     return true;
+  }
+  if (dst->type_kind() == TypeKind::kTypeInstance) {
+    dst = UnderlyingOf(dst, info_builder);
+    if (IsIdentical(src, dst)) {
+      return true;
+    }
   }
   if (src->type_kind() == TypeKind::kNamedType && dst->type_kind() != TypeKind::kNamedType &&
       IsIdentical(static_cast<NamedType*>(src)->underlying(), dst)) {
@@ -277,11 +304,6 @@ bool IsAssignableTo(Type* src, Type* dst) {
     return false;
   }
   Basic* basic_src = static_cast<Basic*>(src);
-  if (dst->type_kind() == TypeKind::kTypeInstance) {
-    dst = static_cast<TypeInstance*>(dst)->instantiated_type()->underlying();
-  } else if (dst) {
-    dst = UnderlyingOf(dst);
-  }
   if (basic_src->kind() == Basic::kUntypedNil) {
     switch (dst->type_kind()) {
       case TypeKind::kPointer:

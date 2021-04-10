@@ -55,18 +55,6 @@ class InfoBuilder {
                                         TypeParamsToArgsMap& type_params_to_args,
                                         bool receiver_to_arg);
   Type* InstantiateType(Type* parameterized_type, TypeParamsToArgsMap& type_params_to_args);
-  Pointer* InstantiatePointer(Pointer* pointer, TypeParamsToArgsMap& type_params_to_args);
-  Array* InstantiateArray(Array* array, TypeParamsToArgsMap& type_params_to_args);
-  Slice* InstantiateSlice(Slice* slice, TypeParamsToArgsMap& type_params_to_args);
-  Type* InstantiateTypeParameter(TypeParameter* type_parameter,
-                                 TypeParamsToArgsMap& type_params_to_args);
-  NamedType* InstantiateNamedType(NamedType* named_type);
-  TypeInstance* InstantiateTypeInstance(TypeInstance* type_instance,
-                                        TypeParamsToArgsMap& type_params_to_args);
-  Tuple* InstantiateTuple(Tuple* tuple, TypeParamsToArgsMap& type_params_to_args);
-  Signature* InstantiateSignature(Signature* signature, TypeParamsToArgsMap& type_params_to_args);
-  Struct* InstantiateStruct(Struct* struct_type, TypeParamsToArgsMap& type_params_to_args);
-  Interface* InstantiateInterface(Interface* interface, TypeParamsToArgsMap& type_params_to_args);
 
   void SetTypeParameterInstance(TypeParameter* instantiated, TypeParameter* instance);
   void SetTypeParameterInterface(TypeParameter* type_parameter, Interface* interface);
@@ -74,6 +62,8 @@ class InfoBuilder {
                                     std::vector<TypeParameter*> type_parameters);
   void SetUnderlyingTypeOfNamedType(NamedType* named_type, Type* underlying_type);
   void AddMethodToNamedType(NamedType* named_type, Func* method);
+  void AddInstanceToNamedType(NamedType* named_type, std::vector<types::Type*> type_args,
+                              Type* instance);
   void SetInterfaceMembers(Interface* interface, std::vector<NamedType*> embdedded_interfaces,
                            std::vector<Func*> methods);
 
@@ -118,6 +108,19 @@ class InfoBuilder {
 
   TypeParameter* CreateTypeParameter(std::string name);
   NamedType* CreateNamedType(bool is_alias, std::string name);
+
+  Pointer* InstantiatePointer(Pointer* pointer, TypeParamsToArgsMap& type_params_to_args);
+  Array* InstantiateArray(Array* array, TypeParamsToArgsMap& type_params_to_args);
+  Slice* InstantiateSlice(Slice* slice, TypeParamsToArgsMap& type_params_to_args);
+  Type* InstantiateTypeParameter(TypeParameter* type_parameter,
+                                 TypeParamsToArgsMap& type_params_to_args);
+  NamedType* InstantiateNamedType(NamedType* named_type);
+  TypeInstance* InstantiateTypeInstance(TypeInstance* type_instance,
+                                        TypeParamsToArgsMap& type_params_to_args);
+  Tuple* InstantiateTuple(Tuple* tuple, TypeParamsToArgsMap& type_params_to_args);
+  Signature* InstantiateSignature(Signature* signature, TypeParamsToArgsMap& type_params_to_args);
+  Struct* InstantiateStruct(Struct* struct_type, TypeParamsToArgsMap& type_params_to_args);
+  Interface* InstantiateInterface(Interface* interface, TypeParamsToArgsMap& type_params_to_args);
 
   void CheckObjectArgs(Scope* parent, Package* package) const;
 

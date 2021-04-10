@@ -90,6 +90,37 @@ std::string TypeParameter::ToString(StringRep rep) const {
   }
 }
 
+Type* NamedType::InstanceForTypeArgs(const std::vector<Type*>& type_args) const {
+  if (type_parameters_.empty()) {
+    throw "internal error: attempted to access instance of named type without type parameters";
+  }
+  if (type_args.size() != type_parameters_.size()) {
+    throw "internal error: unexpected number of type arguments for instance";
+  }
+  for (auto& [instance_type_args, instance] : instances_) {
+    bool match = true;
+    for (size_t j = 0; j < type_args.size(); j++) {
+      Type* type_arg = type_args.at(j);
+      Type* instance_type_arg = instance_type_args.at(j);
+      if (type_arg != instance_type_arg) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      return instance;
+    }
+  }
+  return nullptr;
+}
+
+void NamedType::SetInstanceForTypeArgs(const std::vector<Type*>& type_args, Type* instance) {
+  if (InstanceForTypeArgs(type_args) != nullptr) {
+    throw "internal error: attempted to set named type instance for type arguments twice";
+  }
+  instances_.push_back({type_args, instance});
+}
+
 std::string NamedType::ToString(StringRep rep) const {
   std::string s;
   if (is_alias_) {

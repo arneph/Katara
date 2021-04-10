@@ -258,7 +258,7 @@ types::TypeParameter* TypeHandler::EvaluateTypeParameter(ast::TypeParam* paramet
     if (type == nullptr) {
       return nullptr;
     }
-    types::Type* underlying = types::UnderlyingOf(type);
+    types::Type* underlying = types::UnderlyingOf(type, info_builder());
     if (underlying->type_kind() != types::TypeKind::kInterface) {
       issues().Add(issues::kTypeParamterConstraintIsNotInterface, parameter_expr->type()->start(),
                    "type parameter constraint has to be an interface");
