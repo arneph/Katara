@@ -6,16 +6,21 @@ import (
 
 type Number interface {
     <T> Add(a, b T) T
+    <T> Add3(a, b, c T) T
     <T> Sub(a, b T) T
     <T> Mul(a, b T) T
     <T> Div(a, b T) T
     <T> Mod(a, b T) T
-    <T> Sqrt(a, b T) T
-    fmt.Stringer
+    <T> Sqrt(a T) T
+    <T> String() string
 }
 
 func <Int> Add(a, b Int) Int {
     return a + b
+}
+
+func <Int> Add3(a, b, c Int) Int {
+    return a + b + c
 }
 
 func <Int> Sub(a, b Int) Int {
@@ -34,7 +39,7 @@ func <Int> Mod(a, b Int) Int {
     return a % b
 }
 
-func <Int> Sqrt(a, b Int) Int {
+func <Int> Sqrt(a Int) Int {
     return 0
 }
 

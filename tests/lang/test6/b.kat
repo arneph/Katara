@@ -11,7 +11,7 @@ type Vec3<T Number> [Three]T
 type Vec4<T Number> [Four]T
 
 func (v Vec3<T>) Norm() Vec3<T> {
-    l := T.Sqrt(T.Add(
+    l := T.Sqrt(T.Add3(
         T.Mul(v[0], v[0]),
         T.Mul(v[1], v[1]),
         T.Mul(v[2], v[2])))
