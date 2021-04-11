@@ -129,6 +129,11 @@ bool IsIdentical(Type* a, Type* b) {
   if (a == b) {
     return true;
   }
+  if (a->type_kind() == TypeKind::kTypeParameter && b->type_kind() == TypeKind::kInterface) {
+    return IsIdentical(static_cast<TypeParameter*>(a)->interface(), static_cast<Interface*>(b));
+  } else if (a->type_kind() == TypeKind::kInterface && b->type_kind() == TypeKind::kTypeParameter) {
+    return IsIdentical(static_cast<Interface*>(a), static_cast<TypeParameter*>(b)->interface());
+  }
   if (a->type_kind() != b->type_kind()) {
     return false;
   }
@@ -261,8 +266,11 @@ bool IsIdentical(Struct* a, Struct* b) {
 }
 
 bool IsIdentical(Interface* a, Interface* b) {
+  if (a == b) {
+    return true;
+  }
   // TODO: handle embedded interfaces
-  if (a->methods().size() != b->embedded_interfaces().size()) {
+  if (a->methods().size() != b->methods().size()) {
     return false;
   }
   for (size_t i = 0; i < a->methods().size(); i++) {
@@ -280,23 +288,21 @@ bool IsAssignableTo(Type* src, Type* dst, InfoBuilder& info_builder) {
   if (IsIdentical(src, dst)) {
     return true;
   }
-  if (dst->type_kind() == TypeKind::kTypeInstance) {
-    dst = UnderlyingOf(dst, info_builder);
-    if (IsIdentical(src, dst)) {
+  Type* src_underlying = UnderlyingOf(src, info_builder);
+  Type* dst_underlying = UnderlyingOf(dst, info_builder);
+  if (src->type_kind() != TypeKind::kTypeParameter && src->type_kind() != TypeKind::kNamedType &&
+      src->type_kind() != TypeKind::kTypeInstance) {
+    if (IsIdentical(src_underlying, dst_underlying)) {
+      return true;
+    }
+  } else if (dst->type_kind() != TypeKind::kTypeParameter &&
+             dst->type_kind() != TypeKind::kNamedType &&
+             dst->type_kind() != TypeKind::kTypeInstance) {
+    if (IsIdentical(src_underlying, dst_underlying)) {
       return true;
     }
   }
-  if (src->type_kind() == TypeKind::kNamedType && dst->type_kind() != TypeKind::kNamedType &&
-      IsIdentical(static_cast<NamedType*>(src)->underlying(), dst)) {
-    return true;
-  } else if (src->type_kind() != TypeKind::kNamedType && dst->type_kind() == TypeKind::kNamedType &&
-             IsIdentical(src, static_cast<NamedType*>(dst)->underlying())) {
-    return true;
-  }
-  if (dst->type_kind() == TypeKind::kInterface && Implements(src, static_cast<Interface*>(dst))) {
-    return true;
-  } else if (dst->type_kind() == TypeKind::kTypeParameter &&
-             Implements(src, static_cast<TypeParameter*>(dst)->interface())) {
+  if (Implements(src, dst, info_builder)) {
     return true;
   }
 
@@ -347,19 +353,26 @@ bool IsConvertibleTo(Type*, Type*) {
   return true;
 }
 
-bool Implements(Type* impl, Interface* interface) {
-  if (interface->is_empty()) {
+bool Implements(Type* impl, Type* interface, InfoBuilder& info_builder) {
+  Interface* underlying_interface;
+  if (Type* underlying = UnderlyingOf(interface, info_builder);
+      underlying->type_kind() == TypeKind::kInterface) {
+    underlying_interface = static_cast<Interface*>(underlying);
+  } else {
+    return false;
+  }
+  if (underlying_interface->is_empty()) {
     return true;
   }
   switch (impl->type_kind()) {
     case TypeKind::kTypeParameter:
-      return Implements(static_cast<TypeParameter*>(impl), interface);
+      return Implements(static_cast<TypeParameter*>(impl), underlying_interface);
     case TypeKind::kNamedType:
-      return Implements(static_cast<NamedType*>(impl), interface);
+      return Implements(static_cast<NamedType*>(impl), underlying_interface);
     case TypeKind::kTypeInstance:
-      return Implements(static_cast<TypeInstance*>(impl), interface);
+      return Implements(static_cast<TypeInstance*>(impl), underlying_interface);
     case TypeKind::kInterface:
-      return Implements(static_cast<Interface*>(impl), interface);
+      return Implements(static_cast<Interface*>(impl), underlying_interface);
     default:
       return false;
   }

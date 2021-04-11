@@ -53,7 +53,7 @@ bool IsComparable(Type* t, Type* v);
 bool IsOrderable(Type* t, Type* v);
 bool IsConvertibleTo(Type* src, Type* dst);
 
-bool Implements(Type* impl, Interface* interface);
+bool Implements(Type* impl, Type* interface, InfoBuilder& info_builder);
 bool Implements(TypeParameter* impl, Interface* interface);
 bool Implements(NamedType* impl, Interface* interface);
 bool Implements(TypeInstance* impl, Interface* interface);
