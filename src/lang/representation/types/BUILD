@@ -39,6 +39,7 @@ cc_library(
         "//src/lang/representation/positions",
         "//src/lang/representation/ast",
         ":base",
+        ":info",
      ],
     visibility = [
         "//src/lang/representation:__subpackages__",

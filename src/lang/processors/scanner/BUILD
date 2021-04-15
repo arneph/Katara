@@ -3,8 +3,8 @@ load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "scanner",
-    srcs = glob(["*.cc"]),
-    hdrs = glob(["*.h"]),
+    srcs = ["scanner.cc"],
+    hdrs = ["scanner.h"],
     copts = COPTS,
     deps = [
         "//src/lang/representation",

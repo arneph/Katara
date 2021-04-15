@@ -40,19 +40,17 @@ cc_library(
     srcs = [
         "base_handler.cc",
         "type_handler.cc",
-        "constant_handler.cc",
-        "variable_handler.cc",
         "expr_handler.cc",
         "stmt_handler.cc",
+        "decl_handler.cc",
     ],
     hdrs = [
         "base_handler.h",
         "type_resolver.h",
         "type_handler.h",
-        "constant_handler.h",
-        "variable_handler.h",
         "expr_handler.h",
         "stmt_handler.h",
+        "decl_handler.h",
     ],
     copts = COPTS,
     deps = [
