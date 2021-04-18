@@ -6,13 +6,13 @@ cc_library(
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
     copts = COPTS,
+    visibility = [
+        "//src/lang/processors:__subpackages__",
+    ],
     deps = [
-        "//src/lang/representation",
         "//src/lang/processors/issues",
         "//src/lang/processors/parser",
         "//src/lang/processors/type_checker",
-     ],
-    visibility = [
-        "//src/lang/processors:__subpackages__",
+        "//src/lang/representation",
     ],
 )

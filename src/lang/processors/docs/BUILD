@@ -6,11 +6,11 @@ cc_library(
     srcs = ["common.cc"],
     hdrs = ["common.h"],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-    ],
     visibility = [
         "//visibility:private",
+    ],
+    deps = [
+        "//src/lang/representation",
     ],
 )
 
@@ -19,14 +19,14 @@ cc_library(
     srcs = ["file_doc.cc"],
     hdrs = ["file_doc.h"],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-        "//src/lang/processors/scanner",
-        "//src/lang/processors/packages",
-        ":common",
-     ],
     visibility = [
         "//src/lang/processors:__subpackages__",
+    ],
+    deps = [
+        ":common",
+        "//src/lang/processors/packages",
+        "//src/lang/processors/scanner",
+        "//src/lang/representation",
     ],
 )
 
@@ -35,13 +35,13 @@ cc_library(
     srcs = ["package_doc.cc"],
     hdrs = ["package_doc.h"],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-        "//src/lang/processors/packages",
-        ":common",
-        ":file_doc",
-     ],
     visibility = [
         "//src/lang/processors:__subpackages__",
+    ],
+    deps = [
+        ":common",
+        ":file_doc",
+        "//src/lang/processors/packages",
+        "//src/lang/representation",
     ],
 )

@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ir/func.h"
+#include "ir/representation/func.h"
 #include "vcg/graph.h"
 
 namespace ir {

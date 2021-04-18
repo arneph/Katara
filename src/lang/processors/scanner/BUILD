@@ -6,10 +6,10 @@ cc_library(
     srcs = ["scanner.cc"],
     hdrs = ["scanner.h"],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-     ],
     visibility = [
         "//src/lang/processors:__subpackages__",
+    ],
+    deps = [
+        "//src/lang/representation",
     ],
 )

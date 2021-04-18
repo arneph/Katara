@@ -6,10 +6,10 @@ cc_library(
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
     copts = COPTS,
-    deps = [
-        "//src/lang/representation/tokens",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        "//src/lang/representation/tokens",
     ],
 )

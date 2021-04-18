@@ -8,7 +8,7 @@
 
 #include "instr.h"
 
-#include "ir/block.h"
+#include "ir/representation/block.h"
 
 namespace ir {
 

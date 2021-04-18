@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ir/value.h"
+#include "ir/representation/value.h"
 #include "vcg/graph.h"
 
 namespace ir_info {

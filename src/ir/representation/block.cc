@@ -14,7 +14,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "ir/func.h"
+#include "ir/representation/func.h"
 
 namespace ir {
 

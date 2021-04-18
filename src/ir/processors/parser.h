@@ -12,12 +12,12 @@
 #include <iostream>
 #include <memory>
 
-#include "ir/block.h"
-#include "ir/func.h"
-#include "ir/instr.h"
-#include "ir/prog.h"
-#include "ir/value.h"
-#include "ir_processors/scanner.h"
+#include "ir/representation/block.h"
+#include "ir/representation/func.h"
+#include "ir/representation/instr.h"
+#include "ir/representation/prog.h"
+#include "ir/representation/value.h"
+#include "ir/processors/scanner.h"
 
 namespace ir_proc {
 

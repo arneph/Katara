@@ -7,13 +7,13 @@ cc_library(
     srcs = glob(["*.cc"]),
     hdrs = glob(["*.h"]),
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-        "//src/lang/processors/issues",
-        "//src/lang/processors/scanner",
-     ],
     visibility = [
         "//src/lang/processors:__subpackages__",
+    ],
+    deps = [
+        "//src/lang/processors/issues",
+        "//src/lang/processors/scanner",
+        "//src/lang/representation",
     ],
 )
 
@@ -22,8 +22,8 @@ cc_fuzz_test(
     srcs = ["parser_fuzz_test.cc"],
     copts = COPTS,
     deps = [
-        "//src/lang/representation",
-        "//src/lang/processors/issues",
         ":parser",
+        "//src/lang/processors/issues",
+        "//src/lang/representation",
     ],
 )

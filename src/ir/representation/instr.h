@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "ir/value.h"
+#include "ir/representation/value.h"
 
 namespace ir {
 

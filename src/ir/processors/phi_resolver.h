@@ -9,10 +9,10 @@
 #ifndef ir_proc_phi_resolver_h
 #define ir_proc_phi_resolver_h
 
-#include "ir/block.h"
-#include "ir/func.h"
-#include "ir/instr.h"
-#include "ir/value.h"
+#include "ir/representation/block.h"
+#include "ir/representation/func.h"
+#include "ir/representation/instr.h"
+#include "ir/representation/value.h"
 
 namespace ir_proc {
 

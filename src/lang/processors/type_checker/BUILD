@@ -6,14 +6,14 @@ cc_library(
     srcs = ["type_checker.cc"],
     hdrs = ["type_checker.h"],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-        "//src/lang/processors/issues",
-        ":identifier_resolver",
-        ":coordinator",
-    ],
     visibility = [
         "//src/lang/processors:__subpackages__",
+    ],
+    deps = [
+        ":coordinator",
+        ":identifier_resolver",
+        "//src/lang/processors/issues",
+        "//src/lang/representation",
     ],
 )
 
@@ -26,12 +26,12 @@ cc_library(
         "identifier_resolver.h",
     ],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-        "//src/lang/processors/issues",
-    ],
     visibility = [
         "//visibility:private",
+    ],
+    deps = [
+        "//src/lang/processors/issues",
+        "//src/lang/representation",
     ],
 )
 
@@ -39,26 +39,26 @@ cc_library(
     name = "type_resolver",
     srcs = [
         "base_handler.cc",
-        "type_handler.cc",
+        "decl_handler.cc",
         "expr_handler.cc",
         "stmt_handler.cc",
-        "decl_handler.cc",
+        "type_handler.cc",
     ],
     hdrs = [
         "base_handler.h",
-        "type_resolver.h",
-        "type_handler.h",
+        "decl_handler.h",
         "expr_handler.h",
         "stmt_handler.h",
-        "decl_handler.h",
+        "type_handler.h",
+        "type_resolver.h",
     ],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-        "//src/lang/processors/issues",
-    ],
     visibility = [
         "//visibility:private",
+    ],
+    deps = [
+        "//src/lang/processors/issues",
+        "//src/lang/representation",
     ],
 )
 
@@ -71,12 +71,12 @@ cc_library(
         "coordinator.h",
     ],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation",
-        "//src/lang/processors/issues",
-        ":type_resolver",
-    ],
     visibility = [
         "//visibility:private",
+    ],
+    deps = [
+        ":type_resolver",
+        "//src/lang/processors/issues",
+        "//src/lang/representation",
     ],
 )

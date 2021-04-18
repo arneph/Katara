@@ -8,7 +8,7 @@
 
 #include "live_range_analyzer.h"
 
-#include "ir_info/block_live_range_info.h"
+#include "ir/info/block_live_range_info.h"
 
 namespace ir_proc {
 

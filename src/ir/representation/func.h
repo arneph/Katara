@@ -15,8 +15,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "ir/block.h"
-#include "ir/value.h"
+#include "ir/representation/block.h"
+#include "ir/representation/value.h"
 #include "vcg/graph.h"
 
 namespace ir {

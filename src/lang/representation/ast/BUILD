@@ -6,12 +6,12 @@ cc_library(
     srcs = ["nodes.cc"],
     hdrs = ["nodes.h"],
     copts = COPTS,
+    visibility = [
+        "//src/lang/representation:__subpackages__",
+    ],
     deps = [
         "//src/lang/representation/positions",
         "//src/lang/representation/tokens",
-     ],
-    visibility = [
-        "//src/lang/representation:__subpackages__",
     ],
 )
 
@@ -26,11 +26,11 @@ cc_library(
         "ast_builder.h",
     ],
     copts = COPTS,
-    deps = [
-        ":nodes",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":nodes",
     ],
 )
 
@@ -39,12 +39,12 @@ cc_library(
     srcs = ["ast_util.cc"],
     hdrs = ["ast_util.h"],
     copts = COPTS,
-    deps = [
-        "//src/vcg:katara_vcg_lib",
-        "//src/lang/representation/positions",
-        ":nodes",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":nodes",
+        "//src/lang/representation/positions",
+        "//src/vcg:vcg_lib",
     ],
 )

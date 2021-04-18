@@ -4,24 +4,24 @@ load("//src:katara.bzl", "COPTS")
 cc_library(
     name = "base",
     srcs = [
-        "types.cc",
         "objects.cc",
         "scope.cc",
+        "types.cc",
     ],
     hdrs = [
-        "types.h",
         "objects.h",
-        "scope.h",
         "package.h",
+        "scope.h",
+        "types.h",
     ],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation/positions",
-        "//src/lang/representation/ast",
-        "//src/lang/representation/constants",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        "//src/lang/representation/ast",
+        "//src/lang/representation/constants",
+        "//src/lang/representation/positions",
     ],
 )
 
@@ -34,15 +34,15 @@ cc_library(
         "types_util.h",
     ],
     copts = COPTS,
-    deps = [
-        "//src/vcg:katara_vcg_lib",
-        "//src/lang/representation/positions",
-        "//src/lang/representation/ast",
-        ":base",
-        ":info",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":base",
+        ":info",
+        "//src/lang/representation/ast",
+        "//src/lang/representation/positions",
+        "//src/vcg:vcg_lib",
     ],
 )
 
@@ -55,11 +55,11 @@ cc_library(
         "expr_info.h",
     ],
     copts = COPTS,
-    deps = [
-        ":base",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":base",
     ],
 )
 
@@ -69,11 +69,11 @@ cc_library(
         "selection.h",
     ],
     copts = COPTS,
-    deps = [
-        ":base",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":base",
     ],
 )
 
@@ -83,12 +83,12 @@ cc_library(
         "initializer.h",
     ],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation/ast",
-        ":base",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":base",
+        "//src/lang/representation/ast",
     ],
 )
 
@@ -103,17 +103,17 @@ cc_library(
         "info_builder.h",
     ],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation/positions",
-        "//src/lang/representation/ast",
-        "//src/lang/representation/constants",
-        ":base",
-        ":expr_info",
-        ":selection",
-        ":initializer",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":base",
+        ":expr_info",
+        ":initializer",
+        ":selection",
+        "//src/lang/representation/ast",
+        "//src/lang/representation/constants",
+        "//src/lang/representation/positions",
     ],
 )
 
@@ -126,17 +126,17 @@ cc_library(
         "info_util.h",
     ],
     copts = COPTS,
-    deps = [
-        "//src/lang/representation/positions",
-        "//src/lang/representation/ast",
-        "//src/lang/representation/constants",
-        ":base",
-        ":expr_info",
-        ":selection",
-        ":initializer",
-        ":info",
-     ],
     visibility = [
         "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":base",
+        ":expr_info",
+        ":info",
+        ":initializer",
+        ":selection",
+        "//src/lang/representation/ast",
+        "//src/lang/representation/constants",
+        "//src/lang/representation/positions",
     ],
 )

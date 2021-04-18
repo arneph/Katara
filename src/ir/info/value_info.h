@@ -12,10 +12,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ir/block.h"
-#include "ir/func.h"
-#include "ir/instr.h"
-#include "ir/value.h"
+#include "ir/representation/block.h"
+#include "ir/representation/func.h"
+#include "ir/representation/instr.h"
+#include "ir/representation/value.h"
 
 namespace ir_info {
 

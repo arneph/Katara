@@ -12,10 +12,10 @@
 #include <string>
 #include <unordered_map>
 
-#include "ir/block.h"
-#include "ir/func.h"
-#include "ir_info/block_live_range_info.h"
-#include "ir_info/interference_graph.h"
+#include "ir/representation/block.h"
+#include "ir/representation/func.h"
+#include "ir/info/block_live_range_info.h"
+#include "ir/info/interference_graph.h"
 
 namespace ir_info {
 

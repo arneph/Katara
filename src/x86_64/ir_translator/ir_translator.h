@@ -12,14 +12,14 @@
 #include <memory>
 #include <unordered_map>
 
-#include "ir/block.h"
-#include "ir/func.h"
-#include "ir/instr.h"
-#include "ir/prog.h"
-#include "ir/value.h"
-#include "ir_info/block_live_range_info.h"
-#include "ir_info/func_live_range_info.h"
-#include "ir_info/interference_graph.h"
+#include "ir/representation/block.h"
+#include "ir/representation/func.h"
+#include "ir/representation/instr.h"
+#include "ir/representation/prog.h"
+#include "ir/representation/value.h"
+#include "ir/info/block_live_range_info.h"
+#include "ir/info/func_live_range_info.h"
+#include "ir/info/interference_graph.h"
 #include "x86_64/block.h"
 #include "x86_64/func.h"
 #include "x86_64/instr.h"
