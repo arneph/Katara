@@ -12,19 +12,19 @@
 #include <iostream>
 #include <memory>
 
+#include "ir/processors/scanner.h"
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
 #include "ir/representation/instr.h"
-#include "ir/representation/prog.h"
+#include "ir/representation/program.h"
 #include "ir/representation/value.h"
-#include "ir/processors/scanner.h"
 
 namespace ir_proc {
 
 class Parser {
  public:
-  static ir::Prog* Parse(std::istream& in_stream);
-  static ir::Prog* Parse(Scanner& scanner);
+  static ir::Program* Parse(std::istream& in_stream);
+  static ir::Program* Parse(Scanner& scanner);
 
  private:
   Parser(Scanner& scanner);
@@ -61,7 +61,7 @@ class Parser {
   ir::Type ParseType();
 
   Scanner& scanner_;
-  ir::Prog* prog_;
+  ir::Program* prog_;
 };
 
 }  // namespace ir_proc

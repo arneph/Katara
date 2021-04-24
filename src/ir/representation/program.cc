@@ -6,29 +6,29 @@
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#include "prog.h"
+#include "program.h"
 
 #include <sstream>
 
 namespace ir {
 
-Prog::Prog() {
+Program::Program() {
   func_count_ = 0;
 
   entry_func_ = nullptr;
 }
 
-Prog::~Prog() {
+Program::~Program() {
   for (Func* func : funcs_) {
     delete func;
   }
 }
 
-const std::unordered_set<Func*>& Prog::funcs() const { return funcs_; }
+const std::unordered_set<Func*>& Program::funcs() const { return funcs_; }
 
-Func* Prog::entry_func() const { return entry_func_; }
+Func* Program::entry_func() const { return entry_func_; }
 
-void Prog::set_entry_func(Func* func) {
+void Program::set_entry_func(Func* func) {
   if (func == entry_func_) return;
   if (func != nullptr && func->prog_ != this)
     throw "tried to set entry func to func not owned by program";
@@ -36,9 +36,9 @@ void Prog::set_entry_func(Func* func) {
   entry_func_ = func;
 }
 
-bool Prog::HasFunc(int64_t num) const { return func_lookup_.count(num) > 0; }
+bool Program::HasFunc(int64_t num) const { return func_lookup_.count(num) > 0; }
 
-Func* Prog::GetFunc(int64_t fnum) const {
+Func* Program::GetFunc(int64_t fnum) const {
   auto it = func_lookup_.find(fnum);
   if (it == func_lookup_.end()) {
     return nullptr;
@@ -46,7 +46,7 @@ Func* Prog::GetFunc(int64_t fnum) const {
   return it->second;
 }
 
-Func* Prog::AddFunc(int64_t fnum) {
+Func* Program::AddFunc(int64_t fnum) {
   if (fnum < 0) {
     fnum = func_count_++;
   } else {
@@ -62,14 +62,14 @@ Func* Prog::AddFunc(int64_t fnum) {
   return func;
 }
 
-void Prog::RemoveFunc(int64_t fnum) {
+void Program::RemoveFunc(int64_t fnum) {
   auto it = func_lookup_.find(fnum);
   if (it == func_lookup_.end()) throw "tried to remove func not owned by program";
 
   RemoveFunc(it->second);
 }
 
-void Prog::RemoveFunc(Func* func) {
+void Program::RemoveFunc(Func* func) {
   if (func == nullptr) throw "tried to remove nullptr func";
   if (func->prog_ != this) throw "tried to remove func not owned by program";
   if (entry_func_ == func) entry_func_ = nullptr;
@@ -80,7 +80,7 @@ void Prog::RemoveFunc(Func* func) {
   delete func;
 }
 
-std::string Prog::ToString() const {
+std::string Program::ToString() const {
   std::vector<int64_t> fnums;
   fnums.reserve(func_lookup_.size());
 

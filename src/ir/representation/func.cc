@@ -15,7 +15,7 @@
 
 namespace ir {
 
-Func::Func(int64_t number, Prog* prog) : number_(number), prog_(prog) {}
+Func::Func(int64_t number, Program* prog) : number_(number), prog_(prog) {}
 
 Func::~Func() {
   for (Block* block : blocks_) {

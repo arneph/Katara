@@ -11,7 +11,7 @@
 namespace x86_64_ir_translator {
 
 IRTranslator::IRTranslator(
-    ir::Prog* program,
+    ir::Program* program,
     std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo>& /*live_range_infos*/,
     std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& inteference_graphs)
     : ir_program_(program),

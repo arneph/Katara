@@ -21,7 +21,7 @@
 
 namespace ir {
 
-class Prog;
+class Program;
 
 class Func {
  public:
@@ -56,7 +56,7 @@ class Func {
   vcg::Graph ToControlFlowGraph() const;
   vcg::Graph ToDominatorTree() const;
 
-  friend Prog;
+  friend Program;
   friend Block;
 
  private:
@@ -76,7 +76,7 @@ class Func {
 
   int64_t number_;
   std::string name_;
-  Prog* prog_;
+  Program* prog_;
 
   std::vector<Computed> args_;
   std::vector<Type> result_types_;
@@ -92,7 +92,7 @@ class Func {
   int64_t instr_count_ = 0;
   std::unordered_map<int64_t, Instr*> instr_lookup_;
 
-  Func(int64_t number, Prog* prog);
+  Func(int64_t number, Program* prog);
   ~Func();
 
   void UpdateDominatorTree();

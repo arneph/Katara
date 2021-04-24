@@ -6,8 +6,8 @@
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_prog_h
-#define ir_prog_h
+#ifndef ir_program_h
+#define ir_program_h
 
 #include <memory>
 #include <string>
@@ -19,10 +19,10 @@
 
 namespace ir {
 
-class Prog {
+class Program {
  public:
-  Prog();
-  ~Prog();
+  Program();
+  ~Program();
 
   const std::unordered_set<Func*>& funcs() const;
 
@@ -47,4 +47,4 @@ class Prog {
 
 }  // namespace ir
 
-#endif /* ir_prog_h */
+#endif /* ir_program_h */

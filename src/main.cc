@@ -16,18 +16,19 @@
 #include <iostream>
 #include <memory>
 
-#include "ir/representation/block.h"
-#include "ir/representation/func.h"
-#include "ir/representation/instr.h"
-#include "ir/representation/prog.h"
-#include "ir/representation/value.h"
 #include "ir/processors/live_range_analyzer.h"
 #include "ir/processors/parser.h"
 #include "ir/processors/phi_resolver.h"
 #include "ir/processors/register_allocator.h"
 #include "ir/processors/scanner.h"
+#include "ir/representation/block.h"
+#include "ir/representation/func.h"
+#include "ir/representation/instr.h"
+#include "ir/representation/program.h"
+#include "ir/representation/value.h"
 #include "lang/processors/docs/file_doc.h"
 #include "lang/processors/docs/package_doc.h"
+#include "lang/processors/ir_builder/ir_builder.h"
 #include "lang/processors/packages/packages.h"
 #include "lang/representation/ast/ast.h"
 #include "lang/representation/ast/ast_util.h"
@@ -111,6 +112,11 @@ void run_lang_test(std::filesystem::path test_dir) {
   for (auto file_doc : pkg_doc.docs) {
     to_file(file_doc.html, test_dir.string() + "/docs/" + file_doc.name + ".html");
   }
+
+  auto program = lang::ir_builder::IRBuilder::TranslateProgram(test_pkg);
+  if (program != nullptr) {
+    to_file(program->ToString(), test_dir.string() + "/debug/" + test_pkg->name() + ".ir.txt");
+  }
 }
 
 void test_lang() {
@@ -146,7 +152,7 @@ void run_ir_test(std::filesystem::path test_dir) {
 
   std::ifstream in_stream(in_file, std::ios::in);
   ir_proc::Scanner scanner(in_stream);
-  ir::Prog* prog = ir_proc::Parser::Parse(scanner);
+  ir::Program* prog = ir_proc::Parser::Parse(scanner);
 
   std::cout << prog->ToString() << "\n";
 

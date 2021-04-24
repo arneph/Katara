@@ -9,9 +9,9 @@
 #ifndef ir_proc_live_range_analyzer_h
 #define ir_proc_live_range_analyzer_h
 
+#include "ir/info/func_live_range_info.h"
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
-#include "ir/info/func_live_range_info.h"
 
 namespace ir_proc {
 

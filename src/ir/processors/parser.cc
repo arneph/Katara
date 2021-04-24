@@ -10,12 +10,12 @@
 
 namespace ir_proc {
 
-ir::Prog* Parser::Parse(std::istream& in_stream) {
+ir::Program* Parser::Parse(std::istream& in_stream) {
   Scanner scanner(in_stream);
   return Parse(scanner);
 }
 
-ir::Prog* Parser::Parse(Scanner& scanner) {
+ir::Program* Parser::Parse(Scanner& scanner) {
   Parser parser(scanner);
 
   parser.ParseProg();
@@ -25,7 +25,7 @@ ir::Prog* Parser::Parse(Scanner& scanner) {
 
 Parser::Parser(Scanner& scanner) : scanner_(scanner) {
   scanner_.Next();
-  prog_ = new ir::Prog();
+  prog_ = new ir::Program();
 }
 Parser::~Parser() {}
 

@@ -12,14 +12,14 @@
 #include <memory>
 #include <unordered_map>
 
-#include "ir/representation/block.h"
-#include "ir/representation/func.h"
-#include "ir/representation/instr.h"
-#include "ir/representation/prog.h"
-#include "ir/representation/value.h"
 #include "ir/info/block_live_range_info.h"
 #include "ir/info/func_live_range_info.h"
 #include "ir/info/interference_graph.h"
+#include "ir/representation/block.h"
+#include "ir/representation/func.h"
+#include "ir/representation/instr.h"
+#include "ir/representation/program.h"
+#include "ir/representation/value.h"
 #include "x86_64/block.h"
 #include "x86_64/func.h"
 #include "x86_64/instr.h"
@@ -33,7 +33,7 @@ namespace x86_64_ir_translator {
 
 class IRTranslator {
  public:
-  IRTranslator(ir::Prog* program,
+  IRTranslator(ir::Program* program,
                std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo>& live_range_infos,
                std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& inteference_graphs);
   ~IRTranslator();
@@ -84,7 +84,7 @@ class IRTranslator {
 
   x86_64::InstrCond TranslateCompareOperation(ir::Type type, ir::CompareOperation op);
 
-  ir::Prog* ir_program_;
+  ir::Program* ir_program_;
   // std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo>& live_range_infos_;
   std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& interference_graphs_;
 
