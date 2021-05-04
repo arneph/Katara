@@ -10,24 +10,23 @@
 
 namespace ir_proc {
 
-ir::Program* Parser::Parse(std::istream& in_stream) {
+std::unique_ptr<ir::Program> Parser::Parse(std::istream& in_stream) {
   Scanner scanner(in_stream);
   return Parse(scanner);
 }
 
-ir::Program* Parser::Parse(Scanner& scanner) {
+std::unique_ptr<ir::Program> Parser::Parse(Scanner& scanner) {
   Parser parser(scanner);
 
   parser.ParseProg();
 
-  return parser.prog_;
+  return std::move(parser.program_);
 }
 
 Parser::Parser(Scanner& scanner) : scanner_(scanner) {
   scanner_.Next();
-  prog_ = new ir::Program();
+  program_ = std::make_unique<ir::Program>();
 }
-Parser::~Parser() {}
 
 // Prog ::= (Func | NL)*
 void Parser::ParseProg() {
@@ -51,7 +50,7 @@ void Parser::ParseFunc() {
 
   if (scanner_.token() != Scanner::kNumber) throw "expected number";
 
-  ir::Func* func = prog_->AddFunc(scanner_.number());
+  ir::Func* func = program_->AddFunc(scanner_.number());
 
   scanner_.Next();
 
@@ -79,7 +78,7 @@ void Parser::ParseFuncArgs(ir::Func* func) {
     scanner_.Next();
   } else {
     for (;;) {
-      ir::Computed arg = ParseComputed();
+      std::shared_ptr<ir::Computed> arg = ParseComputed(/*expected_type=*/std::nullopt);
 
       func->args().push_back(arg);
 
@@ -104,7 +103,7 @@ void Parser::ParseFuncResultTypes(ir::Func* func) {
     scanner_.Next();
   } else {
     for (;;) {
-      ir::Type type = ParseType();
+      ir::AtomicType* type = ParseType();
 
       func->result_types().push_back(type);
 
@@ -145,23 +144,20 @@ void Parser::ParseFuncBody(ir::Func* func) {
 }
 
 void Parser::ConnectBlocks(ir::Func* func) {
-  for (ir::Block* block : func->blocks()) {
-    ir::Instr* last_instr = block->instrs().back();
+  for (auto& block : func->blocks()) {
+    ir::Instr* last_instr = block->instrs().back().get();
 
     if (ir::JumpInstr* jump = dynamic_cast<ir::JumpInstr*>(last_instr)) {
-      int64_t child_num = jump->destination().block();
-      ir::Block* child = func->GetBlock(child_num);
+      ir::block_num_t child_num = jump->destination();
 
-      func->AddControlFlow(block, child);
+      func->AddControlFlow(block->number(), child_num);
 
     } else if (ir::JumpCondInstr* jump_cond = dynamic_cast<ir::JumpCondInstr*>(last_instr)) {
-      int64_t child_a_num = jump_cond->destination_true().block();
-      int64_t child_b_num = jump_cond->destination_false().block();
-      ir::Block* child_a = func->GetBlock(child_a_num);
-      ir::Block* child_b = func->GetBlock(child_b_num);
+      ir::block_num_t child_a_num = jump_cond->destination_true();
+      ir::block_num_t child_b_num = jump_cond->destination_false();
 
-      func->AddControlFlow(block, child_a);
-      func->AddControlFlow(block, child_b);
+      func->AddControlFlow(block->number(), child_a_num);
+      func->AddControlFlow(block->number(), child_b_num);
     }
   }
 }
@@ -181,7 +177,7 @@ void Parser::ParseBlock(ir::Func* func) {
   ir::Block* block = func->AddBlock(bnum);
 
   if (func->entry_block() == nullptr) {
-    func->set_entry_block(block);
+    func->set_entry_block_num(bnum);
   }
 
   if (scanner_.token() == Scanner::kIdentifier) {
@@ -198,14 +194,14 @@ void Parser::ParseBlock(ir::Func* func) {
         scanner_.token() == Scanner::kCurlyBracketClose) {
       break;
     } else {
-      block->AddInstr(ParseInstr());
+      block->instrs().push_back(ParseInstr());
     }
   }
 }
 
 // Instr ::= InstrResults Idenifier (':' Type)? (Value (',' Value)*)? NL
-ir::Instr* Parser::ParseInstr() {
-  std::vector<ir::Computed> results = ParseInstrResults();
+std::unique_ptr<ir::Instr> Parser::ParseInstr() {
+  std::vector<std::shared_ptr<ir::Computed>> results = ParseInstrResults();
 
   if (scanner_.token() != Scanner::kIdentifier) throw "expected '%' or identifier";
   std::string instr_name = scanner_.string();
@@ -221,22 +217,22 @@ ir::Instr* Parser::ParseInstr() {
 
     return ParsePhiInstr(results.at(0));
 
-  } else if (ir::is_unary_al_operation_string(instr_name)) {
-    ir::UnaryALOperation op = ir::to_unary_al_operation(instr_name);
+  } else if (ir::IsUnaryALOperationString(instr_name)) {
+    ir::UnaryALOperation op = ir::ToUnaryALOperation(instr_name);
 
     if (results.size() != 1) throw "expected one result for unary al instruction";
 
     return ParseUnaryALInstr(results.at(0), op);
 
-  } else if (ir::is_binary_al_operation_string(instr_name)) {
-    ir::BinaryALOperation op = ir::to_binary_al_operation(instr_name);
+  } else if (ir::IsBinaryALOperationString(instr_name)) {
+    ir::BinaryALOperation op = ir::ToBinaryALOperation(instr_name);
 
     if (results.size() != 1) throw "expected one result for binary al instruction";
 
     return ParseBinaryALInstr(results.at(0), op);
 
-  } else if (ir::is_compare_operation_string(instr_name)) {
-    ir::CompareOperation op = ir::to_compare_operation(instr_name);
+  } else if (ir::IsCompareOperationString(instr_name)) {
+    ir::CompareOperation op = ir::ToCompareOperation(instr_name);
 
     if (results.size() != 1) throw "expected one result for compare instruction";
 
@@ -446,21 +442,20 @@ ir::Instr* Parser::ParseInstr() {
 }
 
 // MovInstr ::= Computed 'mov' Value NL
-ir::MovInstr* Parser::ParseMovInstr(ir::Computed result) {
-  ir::Value arg = ParseValue(result.type());
+std::unique_ptr<ir::MovInstr> Parser::ParseMovInstr(std::shared_ptr<ir::Computed> result) {
+  std::shared_ptr<ir::Value> arg = ParseValue(static_cast<ir::AtomicType*>(result->type())->kind());
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return new ir::MovInstr(result, arg);
+  return std::make_unique<ir::MovInstr>(result, arg);
 }
 
 // PhiInstr ::= Computed 'phi' InheritedValue (',' InheritedValue)+ NL
-ir::PhiInstr* Parser::ParsePhiInstr(ir::Computed result) {
-  std::vector<ir::InheritedValue> args;
+std::unique_ptr<ir::PhiInstr> Parser::ParsePhiInstr(std::shared_ptr<ir::Computed> result) {
+  std::vector<std::shared_ptr<ir::InheritedValue>> args;
 
-  ir::InheritedValue first_arg = ParseInheritedValue(result.type());
-  args.push_back(first_arg);
+  args.push_back(ParseInheritedValue(static_cast<ir::AtomicType*>(result->type())->kind()));
 
   for (;;) {
     if (scanner_.token() == Scanner::kNewLine) {
@@ -469,8 +464,7 @@ ir::PhiInstr* Parser::ParsePhiInstr(ir::Computed result) {
     } else if (scanner_.token() == Scanner::kComma) {
       scanner_.Next();
 
-      ir::InheritedValue arg = ParseInheritedValue(result.type());
-      args.push_back(arg);
+      args.push_back(ParseInheritedValue(static_cast<ir::AtomicType*>(result->type())->kind()));
 
     } else {
       throw "expected ',' or new line";
@@ -479,101 +473,106 @@ ir::PhiInstr* Parser::ParsePhiInstr(ir::Computed result) {
 
   if (args.size() < 2) throw "expected at least two arguments for phi instruction";
 
-  return new ir::PhiInstr(result, args);
+  return std::make_unique<ir::PhiInstr>(result, args);
 }
 
 // UnaryALInstr ::= Computed UnaryALOp ':' Type Value NL
-ir::UnaryALInstr* Parser::ParseUnaryALInstr(ir::Computed result, ir::UnaryALOperation op) {
+std::unique_ptr<ir::UnaryALInstr> Parser::ParseUnaryALInstr(std::shared_ptr<ir::Computed> result,
+                                                            ir::UnaryALOperation op) {
   if (scanner_.token() != Scanner::kColon) throw "expected ':'";
   scanner_.Next();
 
-  ir::Type instr_type = ParseType();
-  if (instr_type != result.type()) throw "result type does not match type of unary AL instruction";
+  ir::AtomicType* instr_type = ParseType();
+  if (instr_type != result->type()) throw "result type does not match type of unary AL instruction";
 
-  ir::Value operand = ParseValue(instr_type);
+  std::shared_ptr<ir::Value> operand = ParseValue(instr_type->kind());
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return new ir::UnaryALInstr(op, result, operand);
+  return std::make_unique<ir::UnaryALInstr>(op, result, operand);
 }
 
 // BinaryALInstr ::= Computed BinaryALOp ':' Type Value ',' Value NL
-ir::BinaryALInstr* Parser::ParseBinaryALInstr(ir::Computed result, ir::BinaryALOperation op) {
+std::unique_ptr<ir::BinaryALInstr> Parser::ParseBinaryALInstr(std::shared_ptr<ir::Computed> result,
+                                                              ir::BinaryALOperation op) {
   if (scanner_.token() != Scanner::kColon) throw "expected ':'";
   scanner_.Next();
 
-  ir::Type instr_type = ParseType();
-  if (instr_type != result.type()) throw "result type does not match type of binary AL instruction";
+  ir::AtomicType* instr_type = ParseType();
+  if (instr_type != result->type())
+    throw "result type does not match type of binary AL instruction";
 
-  ir::Value operand_a = ParseValue(instr_type);
+  std::shared_ptr<ir::Value> operand_a = ParseValue(instr_type->kind());
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
   scanner_.Next();
 
-  ir::Value operand_b = ParseValue(instr_type);
+  std::shared_ptr<ir::Value> operand_b = ParseValue(instr_type->kind());
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return new ir::BinaryALInstr(op, result, operand_a, operand_b);
+  return std::make_unique<ir::BinaryALInstr>(op, result, operand_a, operand_b);
 }
 
 // CompareInstr ::= Computed CompareOp ':' Type Value ',' Value NL
-ir::CompareInstr* Parser::ParseCompareInstr(ir::Computed result, ir::CompareOperation op) {
+std::unique_ptr<ir::CompareInstr> Parser::ParseCompareInstr(std::shared_ptr<ir::Computed> result,
+                                                            ir::CompareOperation op) {
   if (scanner_.token() != Scanner::kColon) throw "expected ':'";
   scanner_.Next();
 
-  ir::Type instr_type = ParseType();
-  ir::Value operand_a = ParseValue(instr_type);
+  ir::AtomicType* instr_type = ParseType();
+  std::shared_ptr<ir::Value> operand_a = ParseValue(instr_type->kind());
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
   scanner_.Next();
 
-  ir::Value operand_b = ParseValue(instr_type);
+  std::shared_ptr<ir::Value> operand_b = ParseValue(instr_type->kind());
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return new ir::CompareInstr(op, result, operand_a, operand_b);
+  return std::make_unique<ir::CompareInstr>(op, result, operand_a, operand_b);
 }
 
 // JumpInstr ::= 'jmp' BlockValue NL
-ir::JumpInstr* Parser::ParseJumpInstr() {
-  ir::BlockValue destionation = ParseBlockValue();
+std::unique_ptr<ir::JumpInstr> Parser::ParseJumpInstr() {
+  ir::block_num_t destination = ParseBlockValue();
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return new ir::JumpInstr(destionation);
+  return std::make_unique<ir::JumpInstr>(destination);
 }
 
 // JumpCondInstr ::= 'jcc' Value ',' BlockValue ',' BlockValue NL
-ir::JumpCondInstr* Parser::ParseJumpCondInstr() {
-  ir::Value condition = ParseValue(ir::Type::kBool);
+std::unique_ptr<ir::JumpCondInstr> Parser::ParseJumpCondInstr() {
+  std::shared_ptr<ir::Value> condition = ParseValue(ir::AtomicTypeKind::kBool);
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
   scanner_.Next();
 
-  ir::BlockValue destination_true = ParseBlockValue();
+  ir::block_num_t destination_true = ParseBlockValue();
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
   scanner_.Next();
 
-  ir::BlockValue destination_false = ParseBlockValue();
+  ir::block_num_t destination_false = ParseBlockValue();
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return new ir::JumpCondInstr(condition, destination_true, destination_false);
+  return std::make_unique<ir::JumpCondInstr>(condition, destination_true, destination_false);
 }
 
 // CallInstr ::= (Computed (',' Computed)* '=')?
 //               'call' Value (',' Value)* NL
-ir::CallInstr* Parser::ParseCallInstr(std::vector<ir::Computed> results) {
-  ir::Value func = ParseValue(ir::Type::kFunc);
+std::unique_ptr<ir::CallInstr> Parser::ParseCallInstr(
+    std::vector<std::shared_ptr<ir::Computed>> results) {
+  std::shared_ptr<ir::Value> func = ParseValue(ir::AtomicTypeKind::kFunc);
 
-  std::vector<ir::Value> args;
+  std::vector<std::shared_ptr<ir::Value>> args;
 
   for (;;) {
     if (scanner_.token() == Scanner::kNewLine) {
@@ -582,28 +581,26 @@ ir::CallInstr* Parser::ParseCallInstr(std::vector<ir::Computed> results) {
     } else if (scanner_.token() == Scanner::kComma) {
       scanner_.Next();
 
-      ir::Value arg = ParseValue();
-      args.push_back(arg);
+      args.push_back(ParseValue(/*expected_type=*/std::nullopt));
 
     } else {
       throw "expected ',' or NL";
     }
   }
 
-  return new ir::CallInstr(func, results, args);
+  return std::make_unique<ir::CallInstr>(func, results, args);
 }
 
-ir::ReturnInstr* Parser::ParseReturnInstr() {
-  std::vector<ir::Value> args;
+std::unique_ptr<ir::ReturnInstr> Parser::ParseReturnInstr() {
+  std::vector<std::shared_ptr<ir::Value>> args;
 
   if (scanner_.token() == Scanner::kNewLine) {
     scanner_.Next();
 
-    return new ir::ReturnInstr(args);
+    return std::make_unique<ir::ReturnInstr>(args);
   }
 
-  ir::Value first_arg = ParseValue();
-  args.push_back(first_arg);
+  args.push_back(ParseValue(/*expected_type=*/std::nullopt));
 
   for (;;) {
     if (scanner_.token() == Scanner::kNewLine) {
@@ -613,26 +610,23 @@ ir::ReturnInstr* Parser::ParseReturnInstr() {
     } else if (scanner_.token() == Scanner::kComma) {
       scanner_.Next();
 
-      ir::Value arg = ParseValue();
-      args.push_back(arg);
+      args.push_back(ParseValue(/*expected_type=*/std::nullopt));
 
     } else {
       throw "expected ',' or new line";
     }
   }
 
-  return new ir::ReturnInstr(args);
+  return std::make_unique<ir::ReturnInstr>(args);
 }
 
 // InstrResults ::= (Computed (',' Computed)* '=')?
-std::vector<ir::Computed> Parser::ParseInstrResults() {
-  std::vector<ir::Computed> results;
+std::vector<std::shared_ptr<ir::Computed>> Parser::ParseInstrResults() {
+  std::vector<std::shared_ptr<ir::Computed>> results;
 
   if (scanner_.token() == Scanner::kPercentSign) {
     for (;;) {
-      ir::Computed result = ParseComputed();
-
-      results.push_back(result);
+      results.push_back(ParseComputed(/*expected_type=*/std::nullopt));
 
       if (scanner_.token() == Scanner::kEqualSign) {
         scanner_.Next();
@@ -649,26 +643,23 @@ std::vector<ir::Computed> Parser::ParseInstrResults() {
 }
 
 // InheritedValue ::= (Constant | Computed) BlockValue
-ir::InheritedValue Parser::ParseInheritedValue(ir::Type expected_type) {
-  ir::Value value = ParseValue(expected_type);
-  ir::BlockValue origin = ParseBlockValue();
+std::shared_ptr<ir::InheritedValue> Parser::ParseInheritedValue(
+    std::optional<ir::AtomicTypeKind> expected_type) {
+  std::shared_ptr<ir::Value> value = ParseValue(expected_type);
+  ir::block_num_t origin = ParseBlockValue();
 
-  return ir::InheritedValue(value, origin);
+  return std::make_shared<ir::InheritedValue>(value, origin);
 }
 
 // Value ::= (Constant | Computed | BlockValue)
-ir::Value Parser::ParseValue(ir::Type expected_type) {
+std::shared_ptr<ir::Value> Parser::ParseValue(std::optional<ir::AtomicTypeKind> expected_type) {
   switch (scanner_.token()) {
     case Scanner::kAtSign:
     case Scanner::kHashSign:
+    case Scanner::kCurlyBracketOpen:
       return ParseConstant(expected_type);
-      break;
     case Scanner::kPercentSign:
       return ParseComputed(expected_type);
-      break;
-    case Scanner::kCurlyBracketOpen:
-      return ParseBlockValue();
-      break;
     default:
       throw "expected '#', '%', '{', or '@'";
   }
@@ -677,30 +668,35 @@ ir::Value Parser::ParseValue(ir::Type expected_type) {
 // Constant ::= '@' Number
 //              | '#t' | '#f'
 //              | '#' Number (':' Type)?
-ir::Constant Parser::ParseConstant(ir::Type expected_type) {
+std::shared_ptr<ir::Constant> Parser::ParseConstant(
+    std::optional<ir::AtomicTypeKind> expected_type) {
   if (scanner_.token() == Scanner::kAtSign) {
-    if (expected_type != ir::Type::kFunc) throw "unexpected '@'";
+    if (expected_type != ir::AtomicTypeKind::kFunc) throw "unexpected '@'";
     scanner_.Next();
 
     if (scanner_.token() != Scanner::kNumber) throw "expected number";
-    int64_t number = scanner_.number();
+    ir::func_num_t number = scanner_.number();
     scanner_.Next();
 
-    return ir::Constant(ir::Type::kFunc, number);
+    ir::AtomicType* func_type =
+        program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kFunc);
+    return std::make_shared<ir::Constant>(func_type, number);
   }
 
   if (scanner_.token() != Scanner::kHashSign) throw "expected '@' or '#'";
   scanner_.Next();
 
   if (scanner_.token() == Scanner::kIdentifier) {
+    ir::AtomicType* bool_type =
+        program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kBool);
     if (scanner_.string() == "f") {
-      if (expected_type != ir::Type::kBool) throw "unexpected 'f'";
+      if (expected_type != ir::AtomicTypeKind::kBool) throw "unexpected 'f'";
 
-      return ir::Constant(ir::Type::kBool, false);
+      return std::make_shared<ir::Constant>(bool_type, false);
     } else if (scanner_.string() == "t") {
-      if (expected_type != ir::Type::kBool) throw "unexpected 't'";
+      if (expected_type != ir::AtomicTypeKind::kBool) throw "unexpected 't'";
 
-      return ir::Constant(ir::Type::kBool, true);
+      return std::make_shared<ir::Constant>(bool_type, true);
     } else {
       throw "expected number, 't' or 'f'";
     }
@@ -711,24 +707,25 @@ ir::Constant Parser::ParseConstant(ir::Type expected_type) {
   uint64_t number = scanner_.number();
   scanner_.Next();
 
-  ir::Type type;
+  ir::AtomicType* type;
   if (scanner_.token() == Scanner::kColon) {
     scanner_.Next();
     type = ParseType();
 
-    if (expected_type != ir::Type::kUnknown && expected_type != type)
-      throw "expected: " + ir::to_string(expected_type) + " got: " + ir::to_string(type);
+    if (expected_type.has_value() && expected_type != type->kind())
+      throw "expected: " + ir::ToString(expected_type.value()) + " got: " + type->ToString();
   } else {
-    if (expected_type == ir::Type::kUnknown) throw "expected ':'";
+    if (!expected_type.has_value()) throw "expected ':'";
 
-    type = expected_type;
+    type = program_->atomic_type_table().AtomicTypeForKind(expected_type.value());
   }
 
-  return ir::Constant(type, sign * number);
+  return std::make_shared<ir::Constant>(type, sign * number);
 }
 
 // Computed ::= '%' Identifier (':' Type)?
-ir::Computed Parser::ParseComputed(ir::Type expected_type) {
+std::shared_ptr<ir::Computed> Parser::ParseComputed(
+    std::optional<ir::AtomicTypeKind> expected_type) {
   if (scanner_.token() != Scanner::kPercentSign) throw "expected '%'";
   scanner_.Next();
 
@@ -736,44 +733,43 @@ ir::Computed Parser::ParseComputed(ir::Type expected_type) {
   int64_t number = scanner_.number();
   scanner_.Next();
 
-  ir::Type type;
+  ir::AtomicType* type;
   if (scanner_.token() == Scanner::kColon) {
     scanner_.Next();
     type = ParseType();
 
-    if (expected_type != ir::Type::kUnknown && expected_type != type)
-      throw "expected: " + ir::to_string(expected_type) + " got: " + ir::to_string(type);
+    if (expected_type.has_value() && expected_type != type->kind())
+      throw "expected: " + ir::ToString(expected_type.value()) + " got: " + type->ToString();
   } else {
-    if (expected_type == ir::Type::kUnknown) throw "expected ':'";
+    if (!expected_type.has_value()) throw "expected ':'";
 
-    type = expected_type;
+    type = program_->atomic_type_table().AtomicTypeForKind(expected_type.value());
   }
 
-  return ir::Computed(type, number);
+  return std::make_shared<ir::Computed>(type, number);
 }
 
-// BlockValue ::= '{' Number '}'
-ir::BlockValue Parser::ParseBlockValue() {
+ir::block_num_t Parser::ParseBlockValue() {
   if (scanner_.token() != Scanner::kCurlyBracketOpen) throw "expected '{'";
   scanner_.Next();
 
   if (scanner_.token() != Scanner::kNumber) throw "expected number";
-  int64_t number = scanner_.number();
+  ir::block_num_t number = scanner_.number();
   scanner_.Next();
-
+  
   if (scanner_.token() != Scanner::kCurlyBracketClose) throw "expected '}'";
   scanner_.Next();
-
-  return ir::BlockValue(number);
+  
+  return number;
 }
 
 // Type ::= Identifier
-ir::Type Parser::ParseType() {
+ir::AtomicType* Parser::ParseType() {
   if (scanner_.token() != Scanner::kIdentifier) throw "expected identifier";
   std::string name = scanner_.string();
   scanner_.Next();
 
-  return ir::to_type(name);
+  return program_->atomic_type_table().AtomicTypeForKind(ir::ToAtomicTypeKind(name));
 }
 
 }  // namespace ir_proc

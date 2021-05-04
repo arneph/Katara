@@ -82,9 +82,9 @@ html::TextFormat FormatForIdent(ast::Ident* ident, types::Info* type_info) {
   switch (obj->object_kind()) {
     case types::ObjectKind::kTypeName:
       switch (static_cast<types::TypeName*>(obj)->type()->type_kind()) {
-        case types::TypeKind::kNamedType:
+        case ir::TypeKind::kLangNamedType:
           return formats::kNamedType;
-        case types::TypeKind::kTypeParameter:
+        case ir::TypeKind::kLangTypeParameter:
           return formats::kTypeParameter;
         default:
           return formats::kDefault;

@@ -12,91 +12,48 @@
 
 namespace ir {
 
-Program::Program() {
-  func_count_ = 0;
-
-  entry_func_ = nullptr;
+Func* Program::GetFunc(func_num_t fnum) const {
+  auto it = std::find_if(funcs_.begin(), funcs_.end(),
+                         [=](auto& func) { return func->number() == fnum; });
+  return (it != funcs_.end()) ? it->get() : nullptr;
 }
 
-Program::~Program() {
-  for (Func* func : funcs_) {
-    delete func;
-  }
-}
-
-const std::unordered_set<Func*>& Program::funcs() const { return funcs_; }
-
-Func* Program::entry_func() const { return entry_func_; }
-
-void Program::set_entry_func(Func* func) {
-  if (func == entry_func_) return;
-  if (func != nullptr && func->prog_ != this)
-    throw "tried to set entry func to func not owned by program";
-
-  entry_func_ = func;
-}
-
-bool Program::HasFunc(int64_t num) const { return func_lookup_.count(num) > 0; }
-
-Func* Program::GetFunc(int64_t fnum) const {
-  auto it = func_lookup_.find(fnum);
-  if (it == func_lookup_.end()) {
-    return nullptr;
-  }
-  return it->second;
-}
-
-Func* Program::AddFunc(int64_t fnum) {
-  if (fnum < 0) {
+Func* Program::AddFunc(func_num_t fnum) {
+  if (fnum == kNoFuncNum) {
     fnum = func_count_++;
+  } else if (fnum < func_count_ && HasFunc(fnum)) {
+    throw "tried to add function with used function number";
   } else {
-    if (func_lookup_.count(fnum) != 0) throw "tried to add function with used function number";
-
     func_count_ = std::max(func_count_, fnum + 1);
   }
-  Func* func = new Func(fnum, this);
-
-  funcs_.insert(func);
-  func_lookup_.insert({func->number_, func});
-
-  return func;
+  auto func = std::make_unique<Func>(fnum);
+  auto func_ptr = func.get();
+  funcs_.push_back(std::move(func));
+  return func_ptr;
 }
 
-void Program::RemoveFunc(int64_t fnum) {
-  auto it = func_lookup_.find(fnum);
-  if (it == func_lookup_.end()) throw "tried to remove func not owned by program";
-
-  RemoveFunc(it->second);
-}
-
-void Program::RemoveFunc(Func* func) {
-  if (func == nullptr) throw "tried to remove nullptr func";
-  if (func->prog_ != this) throw "tried to remove func not owned by program";
-  if (entry_func_ == func) entry_func_ = nullptr;
-
-  funcs_.erase(func);
-  func_lookup_.erase(func->number_);
-
-  delete func;
+void Program::RemoveFunc(func_num_t fnum) {
+  auto it = std::find_if(funcs_.begin(), funcs_.end(),
+                         [=](auto& func) { return func->number() == fnum; });
+  if (it == funcs_.end()) throw "tried to remove func not owned by program";
+  if (entry_func_num_ == fnum) entry_func_num_ = kNoFuncNum;
+  funcs_.erase(it);
 }
 
 std::string Program::ToString() const {
-  std::vector<int64_t> fnums;
-  fnums.reserve(func_lookup_.size());
-
-  for (auto it : func_lookup_) fnums.push_back(it.first);
-
+  std::vector<func_num_t> fnums;
+  fnums.reserve(funcs_.size());
+  for (auto& func : funcs_) {
+    fnums.push_back(func->number());
+  }
   std::sort(fnums.begin(), fnums.end());
-
   std::stringstream ss;
   bool first = true;
-
-  for (int64_t fnum : fnums) {
+  for (func_num_t fnum : fnums) {
     if (!first) ss << "\n\n";
-    ss << func_lookup_.at(fnum)->ToString();
+    ss << GetFunc(fnum)->ToString();
     first = false;
   }
-
   return ss.str();
 }
 

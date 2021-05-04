@@ -16,92 +16,84 @@
 #include <vector>
 
 #include "ir/representation/block.h"
-#include "ir/representation/value.h"
+#include "ir/representation/num_types.h"
 #include "vcg/graph.h"
 
 namespace ir {
 
-class Program;
-
 class Func {
  public:
-  int64_t number() const;
-  std::string name() const;
-  void set_name(std::string name);
+  Func(func_num_t fnum)
+      : number_(fnum), block_count_(0), entry_block_num_(kNoBlockNum), dominator_tree_ok_(false) {}
+
+  func_num_t number() const { return number_; }
+  std::string name() const { return name_; }
+  void set_name(std::string name) { name_ = name; }
 
   std::string ReferenceString() const;
 
-  Constant func_value() const;
+  std::vector<std::shared_ptr<Computed>>& args() { return args_; }
+  const std::vector<std::shared_ptr<Computed>>& args() const { return args_; }
+  std::vector<Type*>& result_types() { return result_types_; }
+  const std::vector<Type*>& result_types() const { return result_types_; }
 
-  std::vector<Computed>& args();
-  const std::vector<Computed>& args() const;
-  std::vector<Type>& result_types();
-  const std::vector<Type>& result_types() const;
+  const std::vector<std::unique_ptr<Block>>& blocks() const { return blocks_; }
 
-  const std::unordered_set<Block*>& blocks() const;
+  Block* entry_block() const { return GetBlock(entry_block_num_); }
+  block_num_t entry_block_num() const { return entry_block_num_; }
+  void set_entry_block_num(block_num_t entry_block_num) { entry_block_num_ = entry_block_num; }
 
-  Block* entry_block() const;
-  void set_entry_block(Block* block);
+  bool HasBlock(block_num_t bnum) const { return GetBlock(bnum) != nullptr; }
+  Block* GetBlock(block_num_t bnum) const;
+  Block* AddBlock(block_num_t bnum = kNoBlockNum);
+  void RemoveBlock(block_num_t bnum);
 
-  bool HasBlock(int64_t bnum) const;
-  Block* GetBlock(int64_t bnum) const;
-  Block* AddBlock(int64_t bnum = -1);
-  void RemoveBlock(int64_t bnum);
-  void RemoveBlock(Block* block);
+  void AddControlFlow(block_num_t parent, block_num_t child);
+  void RemoveControlFlow(block_num_t parent, block_num_t child);
 
-  void AddControlFlow(Block* parent, Block* child);
-  void RemoveControlFlow(Block* parent, Block* child);
+  block_num_t DominatorOf(block_num_t dominee_num) const;
+  std::unordered_set<block_num_t> DomineesOf(block_num_t dominator_num) const;
 
   std::string ToString() const;
   vcg::Graph ToControlFlowGraph() const;
   vcg::Graph ToDominatorTree() const;
 
-  friend Program;
-  friend Block;
-
  private:
   struct DomTreeContext {
-    DomTreeContext(int64_t n);
-    ~DomTreeContext();
+    DomTreeContext(int64_t block_count);
 
-    std::vector<int64_t> tree_order_;   // tree index   -> vertex index
-    std::vector<int64_t> tree_parent_;  // vertex index -> vertex index
-    std::vector<int64_t> sdom_;         // vertex index -> tree index
-    std::vector<int64_t> idom_;         // vertex index -> vertex index
-    std::vector<std::unordered_set<int64_t>> bucket_;
-    // vertex index -> vertex indices
-    std::vector<int64_t> ancestor_;  // vertex index -> vertex index
-    std::vector<int64_t> label_;     // vertex index -> vertex index
+    std::vector<block_num_t> tree_order_;   // tree_num_t -> block_num_t
+    std::vector<block_num_t> tree_parent_;  // block_num_t -> block_num_t
+    std::vector<tree_num_t> sdom_;          // block_num_t -> tree_num_t
+    std::vector<block_num_t> idom_;         // block_num_t -> block_num_t
+    std::vector<std::unordered_set<block_num_t>>
+        bucket_;                         // block_num_t -> std::unordered_set<block_num_t>
+    std::vector<block_num_t> ancestor_;  // block_num_t -> block_num_t
+    std::vector<block_num_t> label_;     // block_num_t -> block_num_t
   };
 
-  int64_t number_;
-  std::string name_;
-  Program* prog_;
-
-  std::vector<Computed> args_;
-  std::vector<Type> result_types_;
-
-  int64_t block_count_ = 0;
-  std::unordered_set<Block*> blocks_;
-  std::unordered_map<int64_t, Block*> block_lookup_;
-
-  Block* entry_block_ = nullptr;
-
-  bool dom_tree_ok_ = false;
-
-  int64_t instr_count_ = 0;
-  std::unordered_map<int64_t, Instr*> instr_lookup_;
-
-  Func(int64_t number, Program* prog);
-  ~Func();
-
-  void UpdateDominatorTree();
+  void UpdateDominatorTree() const;
   void FindDFSTree(DomTreeContext& ctx) const;
-  void Link(DomTreeContext& ctx, int64_t v, int64_t w) const;
-  void Compress(DomTreeContext& ctx, int64_t v) const;
-  int64_t Eval(DomTreeContext& ctx, int64_t v) const;
+  void Link(DomTreeContext& ctx, block_num_t v, block_num_t w) const { ctx.ancestor_[w] = v; }
+  void Compress(DomTreeContext& ctx, block_num_t v) const;
+  block_num_t Eval(DomTreeContext& ctx, block_num_t v) const;
   void FindImplicitIDoms(DomTreeContext& ctx) const;
   void FindExplicitIDoms(DomTreeContext& ctx) const;
+
+  func_num_t number_;
+  std::string name_;
+
+  std::vector<std::shared_ptr<Computed>> args_;
+  std::vector<Type*> result_types_;
+
+  int64_t block_count_;
+  std::vector<std::unique_ptr<Block>> blocks_;
+
+  block_num_t entry_block_num_;
+
+  mutable bool dominator_tree_ok_;
+  mutable std::unordered_map<block_num_t, block_num_t> dominators_;
+  mutable std::unordered_map<block_num_t, std::unordered_set<block_num_t>> dominees_;
 };
 
 }  // namespace ir

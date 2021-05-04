@@ -11,9 +11,7 @@
 namespace lang {
 namespace testing {
 
-Context Context::SubContextWithIncreasedDepth() const {
-  return Context(max_depth_ - 1);
-}
+Context Context::SubContextWithIncreasedDepth() const { return Context(max_depth_ - 1); }
 
 int AtomGenerator::NumOptions(Context&) const { return static_cast<int>(atoms_.size()); }
 void AtomGenerator::GenerateOption(int index, Context&, std::stringstream& code) const {
@@ -21,7 +19,7 @@ void AtomGenerator::GenerateOption(int index, Context&, std::stringstream& code)
 }
 
 int CombinationGenerator::NumOptions(Context& ctx) const {
-  if (ctx.max_depth() == 0){
+  if (ctx.max_depth() == 0) {
     return 0;
   }
   Context sub_ctx = ctx.SubContextWithIncreasedDepth();
@@ -46,7 +44,7 @@ void CombinationGenerator::GenerateOption(int index, Context& ctx, std::stringst
 }
 
 int SequenceGenerator::NumOptions(Context& ctx) const {
-  if (ctx.max_depth() == 0){
+  if (ctx.max_depth() == 0) {
     return 0;
   }
   Context sub_ctx = ctx.SubContextWithIncreasedDepth();
@@ -76,8 +74,6 @@ void SequenceGenerator::GenerateOption(int index, Context& ctx, std::stringstrea
   }
   throw "unexpected index";
 }
-
-
 
 }  // namespace testing
 }  // namespace lang

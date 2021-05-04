@@ -12,27 +12,30 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ir/representation/block.h"
-#include "ir/representation/func.h"
 #include "ir/representation/instr.h"
-#include "ir/representation/value.h"
+#include "ir/representation/num_types.h"
 
 namespace ir_info {
 
 class ValueInfo {
  public:
-  ValueInfo();
-  ~ValueInfo();
+  ValueInfo() {}
 
-  ir::Instr* GetDefiningInstr(ir::Computed value) const;
-  void SetDefiningInstr(ir::Computed value, ir::Instr* instr);
+  ir::Instr* GetDefiningInstr(ir::value_num_t value) const { return defining_instrs_.at(value); }
+  void SetDefiningInstr(ir::value_num_t value, ir::Instr* instr) {
+    defining_instrs_.insert({value, instr});
+  }
 
-  const std::unordered_set<ir::Instr*>& GetUsingInstrs(ir::Computed value) const;
-  void AddUsingInstr(ir::Computed value, ir::Instr* instr);
+  const std::unordered_set<ir::Instr*>& GetUsingInstrs(ir::value_num_t value) const {
+    return using_instrs_.at(value);
+  }
+  void AddUsingInstr(ir::value_num_t value, ir::Instr* instr) {
+    using_instrs_[value].insert(instr);
+  }
 
  private:
-  std::unordered_map<ir::Computed, ir::Instr*> defining_instrs_;
-  std::unordered_map<ir::Computed, std::unordered_set<ir::Instr*>> using_instrs_;
+  std::unordered_map<ir::value_num_t, ir::Instr*> defining_instrs_;
+  std::unordered_map<ir::value_num_t, std::unordered_set<ir::Instr*>> using_instrs_;
 };
 
 }  // namespace ir_info

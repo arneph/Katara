@@ -10,6 +10,7 @@ cc_library(
     deps = [
         "//src/lang/processors/docs:file_doc",
         "//src/lang/processors/docs:package_doc",
+        "//src/lang/processors/ir_builder",
         "//src/lang/processors/issues",
         "//src/lang/processors/packages",
         "//src/lang/processors/parser",

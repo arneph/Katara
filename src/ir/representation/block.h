@@ -12,73 +12,49 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 #include "ir/representation/instr.h"
-#include "ir/representation/value.h"
+#include "ir/representation/num_types.h"
 #include "vcg/node.h"
 
 namespace ir {
 
-class Func;
-
 class Block {
  public:
-  int64_t number() const;
-  std::string name() const;
-  void set_name(std::string name);
-  Func* func() const;
+  Block(block_num_t bnum) : number_(bnum) {}
+
+  block_num_t number() const { return number_; }
+  std::string name() const { return name_; }
+  void set_name(std::string name) { name_ = name; }
 
   std::string ReferenceString() const;
 
-  BlockValue block_value() const;
-
-  const std::vector<Instr*>& instrs() const;
+  const std::vector<std::unique_ptr<Instr>>& instrs() const { return instrs_; }
+  std::vector<std::unique_ptr<Instr>>& instrs() { return instrs_; }
 
   void for_each_phi_instr(std::function<void(PhiInstr*)> f);
   void for_each_phi_instr_reverse(std::function<void(PhiInstr*)> f);
   void for_each_non_phi_instr(std::function<void(Instr*)> f);
   void for_each_non_phi_instr_reverse(std::function<void(Instr*)> f);
 
-  void AddInstr(Instr* instr);
-  void InsertInstr(size_t index, Instr* instr);
-  void RemoveInstr(int64_t inum);
-  void RemoveInstr(Instr* instr);
-
-  const std::unordered_set<Block*>& parents() const;
-  const std::unordered_set<Block*>& children() const;
-
-  bool HasBranchingParent() const;
-  Block* BranchingParent() const;
-  bool HasMergingChild() const;
-  Block* MergingChild() const;
-  // only a merging child can have phi instructions
-
-  Block* dominator() const;
-  const std::unordered_set<Block*>& dominees() const;
+  const std::unordered_set<block_num_t>& parents() const { return parents_; }
+  const std::unordered_set<block_num_t>& children() const { return children_; }
 
   std::string ToString() const;
   vcg::Node ToVCGNode() const;
 
-  friend Func;
+  friend class Func;
 
  private:
-  Block(int64_t number, Func* func);
-  ~Block();
-
-  int64_t number_;
+  block_num_t number_;
   std::string name_;
-  Func* func_;
 
-  std::vector<Instr*> instrs_;
+  std::vector<std::unique_ptr<Instr>> instrs_;
 
-  std::unordered_set<Block*> parents_;
-  std::unordered_set<Block*> children_;
-
-  Block* dominator_;
-  std::unordered_set<Block*> dominees_;
+  std::unordered_set<block_num_t> parents_;
+  std::unordered_set<block_num_t> children_;
 };
 
 }  // namespace ir

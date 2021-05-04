@@ -14,33 +14,33 @@ PhiResolver::PhiResolver(ir::Func* func) : func_(func) {}
 PhiResolver::~PhiResolver() {}
 
 void PhiResolver::ResolvePhis() {
-  for (ir::Block* block : func_->blocks()) {
-    ResolvePhisInBlock(block);
+  for (auto& block : func_->blocks()) {
+    ResolvePhisInBlock(block.get());
   }
 }
 
 void PhiResolver::ResolvePhisInBlock(ir::Block* block) {
   for (;;) {
-    ir::Instr* instr = block->instrs().front();
+    ir::Instr* instr = block->instrs().front().get();
     ir::PhiInstr* phi_instr = dynamic_cast<ir::PhiInstr*>(instr);
     if (phi_instr == nullptr) {
       break;
     }
 
-    ir::Computed destination = phi_instr->result();
+    const auto& destination = phi_instr->result();
 
-    for (ir::InheritedValue inherited_value : phi_instr->args()) {
-      ir::Value source = inherited_value.value();
+    for (auto& inherited_value : phi_instr->args()) {
+      const auto& source = inherited_value->value();
 
-      ir::MovInstr* mov_instr = new ir::MovInstr(destination, source);
+      auto mov_instr = std::make_unique<ir::MovInstr>(destination, source);
 
-      ir::BlockValue origin = inherited_value.origin();
-      ir::Block* parent = func_->GetBlock(origin.block());
+      ir::block_num_t origin = inherited_value->origin();
+      ir::Block* parent = func_->GetBlock(origin);
 
-      parent->InsertInstr(parent->instrs().size() - 1, mov_instr);
+      parent->instrs().insert(parent->instrs().end() - 1, std::move(mov_instr));
     }
 
-    block->RemoveInstr(phi_instr);
+    block->instrs().erase(block->instrs().begin());
   }
 }
 

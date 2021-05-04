@@ -11,38 +11,40 @@
 
 #include <memory>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
+#include <vector>
 
 #include "ir/representation/func.h"
+#include "ir/representation/types.h"
 #include "vcg/graph.h"
 
 namespace ir {
 
 class Program {
  public:
-  Program();
-  ~Program();
+  Program() : func_count_(0), entry_func_num_(kNoFuncNum) {}
 
-  const std::unordered_set<Func*>& funcs() const;
+  const std::vector<std::unique_ptr<Func>>& funcs() const { return funcs_; }
 
-  Func* entry_func() const;
-  void set_entry_func(Func* func);
+  Func* entry_func() const { return GetFunc(entry_func_num_); }
+  func_num_t entry_func_num() const { return entry_func_num_; }
+  void set_entry_func_num(func_num_t entry_func_num) { entry_func_num_ = entry_func_num; }
 
-  bool HasFunc(int64_t fnum) const;
-  Func* GetFunc(int64_t fnum) const;
-  Func* AddFunc(int64_t fnum = -1);
-  void RemoveFunc(int64_t fnum);
-  void RemoveFunc(Func* func);
+  bool HasFunc(func_num_t fnum) const { return GetFunc(fnum) != nullptr; }
+  Func* GetFunc(func_num_t fnum) const;
+  Func* AddFunc(func_num_t fnum = kNoFuncNum);
+  void RemoveFunc(func_num_t fnum);
+
+  const AtomicTypeTable& atomic_type_table() const { return atomic_type_table_; }
 
   std::string ToString() const;
 
  private:
   int64_t func_count_;
-  std::unordered_set<Func*> funcs_;
-  std::unordered_map<int64_t, Func*> func_lookup_;
+  std::vector<std::unique_ptr<Func>> funcs_;
 
-  Func* entry_func_;
+  func_num_t entry_func_num_;
+
+  AtomicTypeTable atomic_type_table_;
 };
 
 }  // namespace ir

@@ -24,8 +24,10 @@
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
 #include "ir/representation/instr.h"
+#include "ir/representation/num_types.h"
 #include "ir/representation/program.h"
-#include "ir/representation/value.h"
+#include "ir/representation/types.h"
+#include "ir/representation/values.h"
 #include "lang/processors/docs/file_doc.h"
 #include "lang/processors/docs/package_doc.h"
 #include "lang/processors/ir_builder/ir_builder.h"
@@ -152,11 +154,11 @@ void run_ir_test(std::filesystem::path test_dir) {
 
   std::ifstream in_stream(in_file, std::ios::in);
   ir_proc::Scanner scanner(in_stream);
-  ir::Program* prog = ir_proc::Parser::Parse(scanner);
+  std::unique_ptr<ir::Program> prog = ir_proc::Parser::Parse(scanner);
 
   std::cout << prog->ToString() << "\n";
 
-  for (ir::Func* func : prog->funcs()) {
+  for (auto& func : prog->funcs()) {
     vcg::Graph cfg = func->ToControlFlowGraph();
     vcg::Graph dom_tree = func->ToDominatorTree();
 
@@ -169,27 +171,27 @@ void run_ir_test(std::filesystem::path test_dir) {
   std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo> live_range_infos;
   std::unordered_map<ir::Func*, ir_info::InterferenceGraph> interference_graphs;
 
-  for (ir::Func* func : prog->funcs()) {
-    ir_proc::LiveRangeAnalyzer live_range_analyzer(func);
+  for (auto& func : prog->funcs()) {
+    ir_proc::LiveRangeAnalyzer live_range_analyzer(func.get());
 
     ir_info::FuncLiveRangeInfo& func_live_range_info = live_range_analyzer.func_info();
     ir_info::InterferenceGraph& interference_graph = live_range_analyzer.interference_graph();
 
-    live_range_infos.insert({func, func_live_range_info});
-    interference_graphs.insert({func, interference_graph});
+    live_range_infos.insert({func.get(), func_live_range_info});
+    interference_graphs.insert({func.get(), interference_graph});
 
     to_file(
         func_live_range_info.ToString(),
         out_file_base.string() + ".@" + std::to_string(func->number()) + ".live_range_info.txt");
   }
 
-  x86_64_ir_translator::IRTranslator translator(prog, live_range_infos, interference_graphs);
+  x86_64_ir_translator::IRTranslator translator(prog.get(), live_range_infos, interference_graphs);
   translator.PrepareInterferenceGraphs();
 
-  for (ir::Func* func : prog->funcs()) {
-    ir_info::InterferenceGraph& interference_graph = interference_graphs.at(func);
+  for (auto& func : prog->funcs()) {
+    ir_info::InterferenceGraph& interference_graph = interference_graphs.at(func.get());
 
-    ir_proc::RegisterAllocator register_allocator(func, interference_graph);
+    ir_proc::RegisterAllocator register_allocator(func.get(), interference_graph);
     register_allocator.AllocateRegisters();
 
     to_file(
@@ -199,7 +201,7 @@ void run_ir_test(std::filesystem::path test_dir) {
         interference_graph.ToVCGGraph().ToVCGFormat(),
         out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.vcg");
 
-    ir_proc::PhiResolver phi_resolver(func);
+    ir_proc::PhiResolver phi_resolver(func.get());
     phi_resolver.ResolvePhis();
 
     vcg::Graph cfg = func->ToControlFlowGraph();
@@ -216,8 +218,6 @@ void run_ir_test(std::filesystem::path test_dir) {
   x86_64::Prog* x86_64_program = translator.x86_64_program();
 
   to_file(x86_64_program->ToString(), out_file_base.string() + ".x86_64.txt");
-
-  delete prog;
 }
 
 void test_ir() {

@@ -67,7 +67,7 @@ bool DeclHandler::ProcessConstant(types::Constant* constant, ast::Expr* type_exp
 
   if (type != nullptr) {
     types::Type* underlying = types::UnderlyingOf(type, info_builder());
-    if (underlying->type_kind() != types::TypeKind::kBasic) {
+    if (underlying->type_kind() != ir::TypeKind::kLangBasic) {
       issues().Add(issues::kConstantWithNonBasicType, constant->position(),
                    "constant can not have non-basic type: " + constant->name());
       return false;
@@ -144,7 +144,7 @@ bool DeclHandler::ProcessVariables(std::vector<types::Variable*> variables,
   types::Type* value_type = type_resolver().expr_handler().CheckValueExpr(value_expr);
   if (value_type == nullptr) {
     return false;
-  } else if (value_type->type_kind() == types::TypeKind::kBasic) {
+  } else if (value_type->type_kind() == ir::TypeKind::kLangBasic) {
     types::Basic::Kind basic_kind = static_cast<types::Basic*>(value_type)->kind();
     types::Basic::Kind typed_basic_kind = types::ConvertIfUntyped(basic_kind);
     value_type = info()->basic_type(typed_basic_kind);
@@ -168,7 +168,7 @@ bool DeclHandler::ProcessVariables(std::vector<types::Variable*> variables,
   }
 
   // TODO: handle ValueOk
-  if (value_type->type_kind() != types::TypeKind::kTuple ||
+  if (value_type->type_kind() != ir::TypeKind::kLangTuple ||
       static_cast<types::Tuple*>(value_type)->variables().size() != variables.size()) {
     issues().Add(issues::kVariableValueOfWrongType, variables.at(0)->position(),
                  "variables can not be assigned given value");
@@ -290,13 +290,13 @@ types::Type* DeclHandler::EvalutateReceiverTypeInstance(ast::Ident* type_name_id
                                                         std::vector<ast::Ident*> type_param_names,
                                                         types::Func* method) {
   types::TypeName* type_name = static_cast<types::TypeName*>(info()->UseOf(type_name_ident));
-  if (type_name->type()->type_kind() != types::TypeKind::kNamedType) {
+  if (type_name->type()->type_kind() != ir::TypeKind::kLangNamedType) {
     issues().Add(issues::kReceiverOfNonNamedType, type_name_ident->start(),
                  "receiver does not have named type");
     return nullptr;
   }
   types::NamedType* named_type = static_cast<types::NamedType*>(type_name->type());
-  if (named_type->underlying()->type_kind() == types::TypeKind::kInterface) {
+  if (named_type->underlying()->type_kind() == ir::TypeKind::kLangInterface) {
     issues().Add(issues::kDefinitionOfInterfaceMethodOutsideInterface, type_name_ident->start(),
                  "can not define additional methods for interfaces");
     return nullptr;

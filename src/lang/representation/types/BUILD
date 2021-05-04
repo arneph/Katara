@@ -19,6 +19,7 @@ cc_library(
         "//src/lang/representation:__subpackages__",
     ],
     deps = [
+        "//src/ir/representation:types",
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
         "//src/lang/representation/positions",

@@ -22,16 +22,15 @@ namespace ir_info {
 class FuncLiveRangeInfo {
  public:
   FuncLiveRangeInfo(ir::Func* func_);
-  ~FuncLiveRangeInfo();
 
-  BlockLiveRangeInfo& GetBlockLiveRangeInfo(ir::Block* block);
+  BlockLiveRangeInfo& GetBlockLiveRangeInfo(ir::block_num_t bnum);
 
   std::string ToString() const;
 
  private:
   const ir::Func* func_;
 
-  std::unordered_map<ir::Block*, BlockLiveRangeInfo> block_live_range_infos_;
+  std::unordered_map<ir::block_num_t, BlockLiveRangeInfo> block_live_range_infos_;
 };
 
 }  // namespace ir_info

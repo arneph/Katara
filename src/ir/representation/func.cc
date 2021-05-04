@@ -15,127 +15,81 @@
 
 namespace ir {
 
-Func::Func(int64_t number, Program* prog) : number_(number), prog_(prog) {}
-
-Func::~Func() {
-  for (Block* block : blocks_) {
-    delete block;
-  }
-}
-
-int64_t Func::number() const { return number_; }
-
-std::string Func::name() const { return name_; }
-
-void Func::set_name(std::string name) { name_ = name; }
-
 std::string Func::ReferenceString() const {
   std::string title = "@" + std::to_string(number_);
   if (!name_.empty()) title += " " + name_;
   return title;
 }
 
-Constant Func::func_value() const { return Constant(Type::kFunc, number_); }
-
-std::vector<Computed>& Func::args() { return args_; }
-
-const std::vector<Computed>& Func::args() const { return args_; }
-
-std::vector<Type>& Func::result_types() { return result_types_; }
-
-const std::vector<Type>& Func::result_types() const { return result_types_; }
-
-const std::unordered_set<Block*>& Func::blocks() const { return blocks_; }
-
-Block* Func::entry_block() const { return entry_block_; }
-
-void Func::set_entry_block(Block* block) {
-  if (block == entry_block_) return;
-  if (block != nullptr && block->func() != this)
-    throw "tried to set entry block to block not owned by function";
-
-  entry_block_ = block;
-  dom_tree_ok_ = false;
+Block* Func::GetBlock(block_num_t bnum) const {
+  auto it = std::find_if(blocks_.begin(), blocks_.end(),
+                         [=](auto& block) { return block->number() == bnum; });
+  return (it != blocks_.end()) ? it->get() : nullptr;
 }
 
-bool Func::HasBlock(int64_t bnum) const { return block_lookup_.count(bnum) > 0; }
-
-Block* Func::GetBlock(int64_t bnum) const {
-  auto it = block_lookup_.find(bnum);
-  if (it == block_lookup_.end()) {
-    return nullptr;
-  }
-
-  return it->second;
-}
-
-Block* Func::AddBlock(int64_t bnum) {
-  if (bnum < 0) {
+Block* Func::AddBlock(block_num_t bnum) {
+  if (bnum == kNoBlockNum) {
     bnum = block_count_++;
+  } else if (bnum < block_count_ && HasBlock(bnum)) {
+    throw "tried to add block with used block number";
   } else {
-    if (block_lookup_.count(bnum) != 0) throw "tried to add block with used block number";
-
     block_count_ = std::max(block_count_, bnum + 1);
   }
-  Block* block = new Block(bnum, this);
-
-  blocks_.insert(block);
-  block_lookup_.insert({block->number(), block});
-
-  dom_tree_ok_ = false;
-
-  return block;
+  auto& block = blocks_.emplace_back(new Block(bnum));
+  dominator_tree_ok_ = false;
+  return block.get();
 }
 
-void Func::RemoveBlock(int64_t bnum) {
-  auto it = block_lookup_.find(bnum);
-  if (it == block_lookup_.end()) throw "tried to remove block not owned by function";
-
-  RemoveBlock(it->second);
-}
-
-void Func::RemoveBlock(Block* block) {
-  if (block == nullptr) throw "tried to remove nullptr block";
-  if (block->func() != this) throw "tried to remove block not owned by function";
-  if (entry_block_ == block) entry_block_ = nullptr;
-
-  for (Block* parent : block->parents_) {
-    parent->children_.erase(block);
+void Func::RemoveBlock(block_num_t bnum) {
+  auto it = std::find_if(blocks_.begin(), blocks_.end(),
+                         [=](auto& block) { return block->number() == bnum; });
+  if (it == blocks_.end()) throw "tried to remove block not owned by function";
+  if (entry_block_num_ == bnum) entry_block_num_ = kNoBlockNum;
+  Block* block = it->get();
+  for (block_num_t parent_num : block->parents()) {
+    Block* parent = GetBlock(parent_num);
+    parent->children_.erase(bnum);
   }
-  for (Block* child : block->children_) {
-    child->parents_.erase(block);
+  for (block_num_t child_num : block->children()) {
+    Block* child = GetBlock(child_num);
+    child->parents_.erase(bnum);
   }
-
-  blocks_.erase(block);
-  block_lookup_.erase(block->number());
-
-  dom_tree_ok_ = false;
-
-  delete block;
+  blocks_.erase(it);
+  dominator_tree_ok_ = false;
 }
 
-void Func::AddControlFlow(Block* parent, Block* child) {
-  if (parent == nullptr) throw "tried to add control flow to nullptr block";
-  if (parent->func() != this) throw "tried to add control flow to block not owned by function";
-  if (child == nullptr) throw "tried to add control flow to nullptr block";
-  if (child->func() != this) throw "tried to add control flow to block not owned by function";
-
-  parent->children_.insert(child);
-  child->parents_.insert(parent);
-
-  dom_tree_ok_ = false;
+void Func::AddControlFlow(block_num_t parent_num, block_num_t child_num) {
+  Block* parent = GetBlock(parent_num);
+  Block* child = GetBlock(child_num);
+  if (parent == nullptr) throw "tried to add control flow to unknown block";
+  if (child == nullptr) throw "tried to add control flow to unknown block";
+  parent->children_.insert(child_num);
+  child->parents_.insert(parent_num);
+  dominator_tree_ok_ = false;
 }
 
-void Func::RemoveControlFlow(Block* parent, Block* child) {
+void Func::RemoveControlFlow(block_num_t parent_num, block_num_t child_num) {
+  Block* parent = GetBlock(parent_num);
+  Block* child = GetBlock(child_num);
   if (parent == nullptr) throw "tried to remove control flow from nullptr block";
-  if (parent->func() != this) throw "tried to remove control flow from block not owned by function";
   if (child == nullptr) throw "tried to remove control flow from nullptr block";
-  if (child->func() != this) throw "tried to remove control flow from block not owned by function";
+  parent->children_.erase(child_num);
+  child->parents_.erase(parent_num);
+  dominator_tree_ok_ = false;
+}
 
-  parent->children_.erase(child);
-  child->parents_.erase(parent);
+block_num_t Func::DominatorOf(block_num_t dominee_num) const {
+  if (!dominator_tree_ok_) {
+    UpdateDominatorTree();
+  }
+  return dominators_.at(dominee_num);
+}
 
-  dom_tree_ok_ = false;
+std::unordered_set<block_num_t> Func::DomineesOf(block_num_t dominator_num) const {
+  if (!dominator_tree_ok_) {
+    UpdateDominatorTree();
+  }
+  return dominees_.at(dominator_num);
 }
 
 std::string Func::ToString() const {
@@ -144,26 +98,23 @@ std::string Func::ToString() const {
   ss << "(";
   for (size_t i = 0; i < args_.size(); i++) {
     if (i > 0) ss << ", ";
-    ss << args_.at(i).ToStringWithType();
+    ss << args_.at(i)->ToStringWithType();
   }
   ss << ") => (";
   for (size_t i = 0; i < result_types_.size(); i++) {
     if (i > 0) ss << ", ";
-    ss << to_string(result_types_.at(i));
+    ss << result_types_.at(i)->ToString();
   }
   ss << ") {";
-
-  std::vector<int64_t> bnums;
-  bnums.reserve(block_lookup_.size());
-
-  for (auto it : block_lookup_) bnums.push_back(it.first);
-
-  std::sort(bnums.begin(), bnums.end());
-
-  for (int64_t bnum : bnums) {
-    ss << "\n" << block_lookup_.at(bnum)->ToString();
+  std::vector<block_num_t> bnums;
+  bnums.reserve(blocks_.size());
+  for (auto& block : blocks_) {
+    bnums.push_back(block->number());
   }
-
+  std::sort(bnums.begin(), bnums.end());
+  for (block_num_t bnum : bnums) {
+    ss << "\n" << GetBlock(bnum)->ToString();
+  }
   ss << "\n}";
   return ss.str();
 }
@@ -171,11 +122,11 @@ std::string Func::ToString() const {
 vcg::Graph Func::ToControlFlowGraph() const {
   vcg::Graph graph;
 
-  for (Block* block : blocks_) {
+  for (auto& block : blocks_) {
     graph.nodes().push_back(block->ToVCGNode());
 
-    for (Block* child : block->children()) {
-      graph.edges().push_back(vcg::Edge(block->number(), child->number(),
+    for (block_num_t child_num : block->children()) {
+      graph.edges().push_back(vcg::Edge(block->number(), child_num,
                                         /*is_directed=*/true));
     }
   }
@@ -186,11 +137,11 @@ vcg::Graph Func::ToControlFlowGraph() const {
 vcg::Graph Func::ToDominatorTree() const {
   vcg::Graph graph;
 
-  for (Block* block : blocks_) {
+  for (auto& block : blocks_) {
     graph.nodes().push_back(block->ToVCGNode());
 
-    for (Block* child : block->dominees()) {
-      graph.edges().push_back(vcg::Edge(block->number(), child->number(),
+    for (block_num_t dominee_num : DomineesOf(block->number())) {
+      graph.edges().push_back(vcg::Edge(block->number(), dominee_num,
                                         /*is_directed=*/true));
     }
   }
@@ -198,54 +149,54 @@ vcg::Graph Func::ToDominatorTree() const {
   return graph;
 }
 
-Func::DomTreeContext::DomTreeContext(int64_t n) {
-  tree_order_ = std::vector<int64_t>();
-  tree_order_.reserve(n);
-  tree_parent_ = std::vector<int64_t>(n, -1);
-  sdom_ = std::vector<int64_t>(n, -1);
-  idom_ = std::vector<int64_t>(n, -1);
-  bucket_ = std::vector<std::unordered_set<int64_t>>(n, std::unordered_set<int64_t>());
-  ancestor_ = std::vector<int64_t>(n, -1);
-  label_ = std::vector<int64_t>(n, -1);
+Func::DomTreeContext::DomTreeContext(int64_t block_count) {
+  tree_order_ = std::vector<block_num_t>();
+  tree_order_.reserve(block_count);
+  tree_parent_ = std::vector<block_num_t>(block_count, -1);
+  sdom_ = std::vector<tree_num_t>(block_count, -1);
+  idom_ = std::vector<block_num_t>(block_count, -1);
+  bucket_ =
+      std::vector<std::unordered_set<block_num_t>>(block_count, std::unordered_set<block_num_t>());
+  ancestor_ = std::vector<block_num_t>(block_count, -1);
+  label_ = std::vector<block_num_t>(block_count, -1);
 }
 
-Func::DomTreeContext::~DomTreeContext() {}
-
-void Func::UpdateDominatorTree() {
-  if (dom_tree_ok_) return;
-  if (entry_block_ == nullptr) throw "can not determine dominator tree without entry block";
-
-  for (Block* block : blocks_) {
-    block->dominator_ = nullptr;
-    block->dominees_.clear();
+void Func::UpdateDominatorTree() const {
+  if (dominator_tree_ok_) return;
+  if (entry_block_num_ == kNoBlockNum) {
+    throw "can not determine dominator tree without entry block";
   }
 
   DomTreeContext ctx(block_count_);
-
   FindDFSTree(ctx);
   FindImplicitIDoms(ctx);
   FindExplicitIDoms(ctx);
 
+  dominators_.clear();
+  dominees_.clear();
+  dominators_.reserve(blocks_.size());
+  dominees_.reserve(blocks_.size());
+  for (auto& block : blocks_) {
+    dominators_.insert({block->number(), kNoBlockNum});
+    dominees_.insert({block->number(), std::unordered_set<block_num_t>{}});
+  }
   for (size_t i = 1; i < ctx.tree_order_.size(); i++) {
-    int64_t v = ctx.tree_order_.at(i);
-    int64_t w = ctx.idom_.at(v);
+    block_num_t dominee_num = ctx.tree_order_.at(i);
+    block_num_t dominator_num = ctx.idom_.at(dominee_num);
 
-    Block* dominator = block_lookup_.at(w);
-    Block* dominee = block_lookup_.at(v);
-
-    dominator->dominees_.insert(dominee);
-    dominee->dominator_ = nullptr;
+    dominators_.insert({dominee_num, dominator_num});
+    dominees_.at(dominator_num).insert(dominee_num);
   }
 
-  dom_tree_ok_ = true;
+  dominator_tree_ok_ = true;
 }
 
 void Func::FindDFSTree(DomTreeContext& ctx) const {
-  std::vector<int64_t> stack;
-  std::unordered_set<int64_t> seen;
+  std::vector<block_num_t> stack;
+  std::unordered_set<block_num_t> seen;
 
-  stack.push_back(entry_block_->number());
-  seen.insert(entry_block_->number());
+  stack.push_back(entry_block_num_);
+  seen.insert(entry_block_num_);
 
   while (!stack.empty()) {
     int64_t v = stack.back();
@@ -255,10 +206,9 @@ void Func::FindDFSTree(DomTreeContext& ctx) const {
     ctx.sdom_[v] = ctx.tree_order_.size() - 1;
     ctx.label_[v] = v;
 
-    Block* block = block_lookup_.at(v);
+    Block* block = GetBlock(v);
 
-    for (Block* child : block->children_) {
-      int64_t w = child->number();
+    for (block_num_t w : block->children_) {
       if (seen.count(w) > 0) continue;
 
       stack.push_back(w);
@@ -269,9 +219,7 @@ void Func::FindDFSTree(DomTreeContext& ctx) const {
   }
 }
 
-void Func::Link(DomTreeContext& ctx, int64_t v, int64_t w) const { ctx.ancestor_[w] = v; }
-
-void Func::Compress(DomTreeContext& ctx, int64_t v) const {
+void Func::Compress(DomTreeContext& ctx, block_num_t v) const {
   if (ctx.ancestor_.at(ctx.ancestor_.at(v)) == -1) {
     return;
   }
@@ -285,7 +233,7 @@ void Func::Compress(DomTreeContext& ctx, int64_t v) const {
   ctx.ancestor_[v] = ctx.ancestor_.at(ctx.ancestor_.at(v));
 }
 
-int64_t Func::Eval(DomTreeContext& ctx, int64_t v) const {
+block_num_t Func::Eval(DomTreeContext& ctx, block_num_t v) const {
   if (ctx.ancestor_.at(v) == -1) {
     return v;
   }
@@ -296,13 +244,12 @@ int64_t Func::Eval(DomTreeContext& ctx, int64_t v) const {
 }
 
 void Func::FindImplicitIDoms(DomTreeContext& ctx) const {
-  for (size_t i = (int)ctx.tree_order_.size() - 1; i > 0; i--) {
-    int64_t w = ctx.tree_order_.at(i);
-    Block* block = block_lookup_.at(w);
+  for (tree_num_t i = (tree_num_t)ctx.tree_order_.size() - 1; i > 0; i--) {
+    block_num_t w = ctx.tree_order_.at(i);
+    Block* block = GetBlock(w);
 
     // Step 2:
-    for (Block* parent : block->parents_) {
-      int64_t v = parent->number();
+    for (block_num_t v : block->parents_) {
       int64_t u = Eval(ctx, v);
 
       if (ctx.sdom_.at(w) > ctx.sdom_.at(u)) {
@@ -315,8 +262,8 @@ void Func::FindImplicitIDoms(DomTreeContext& ctx) const {
     Link(ctx, ctx.tree_parent_.at(w), w);
 
     // Step 3:
-    for (int64_t v : ctx.bucket_.at(ctx.tree_parent_.at(w))) {
-      int64_t u = Eval(ctx, v);
+    for (block_num_t v : ctx.bucket_.at(ctx.tree_parent_.at(w))) {
+      block_num_t u = Eval(ctx, v);
 
       if (ctx.sdom_.at(u) < ctx.sdom_.at(v)) {
         ctx.idom_[v] = u;
@@ -330,8 +277,8 @@ void Func::FindImplicitIDoms(DomTreeContext& ctx) const {
 }
 
 void Func::FindExplicitIDoms(DomTreeContext& ctx) const {
-  for (size_t i = 1; i < ctx.tree_order_.size(); i++) {
-    int64_t w = ctx.tree_order_.at(i);
+  for (tree_num_t i = 1; i < (tree_num_t)ctx.tree_order_.size(); i++) {
+    block_num_t w = ctx.tree_order_.at(i);
 
     if (ctx.idom_.at(w) != ctx.tree_order_.at(ctx.sdom_.at(w))) {
       ctx.idom_[w] = ctx.idom_.at(ctx.idom_.at(w));

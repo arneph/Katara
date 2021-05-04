@@ -14,13 +14,13 @@ namespace lang {
 namespace types {
 
 bool Type::is_wrapper() const {
-  TypeKind kind = type_kind();
-  return TypeKind::kWrapperStart <= kind && kind <= TypeKind::kWrapperEnd;
+  ir::TypeKind kind = type_kind();
+  return ir::TypeKind::kLangWrapperStart <= kind && kind <= ir::TypeKind::kLangWrapperEnd;
 }
 
 bool Type::is_container() const {
-  TypeKind kind = type_kind();
-  return TypeKind::kContainerStart <= kind && kind <= TypeKind::kContainerEnd;
+  ir::TypeKind kind = type_kind();
+  return ir::TypeKind::kLangContainerStart <= kind && kind <= ir::TypeKind::kLangContainerEnd;
 }
 
 std::string Basic::ToString(StringRep) const {

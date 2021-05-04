@@ -12,35 +12,36 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ir/representation/value.h"
+#include "ir/representation/num_types.h"
 #include "vcg/graph.h"
 
 namespace ir_info {
 
 class InterferenceGraph {
  public:
-  InterferenceGraph();
-  ~InterferenceGraph();
+  InterferenceGraph() {}
 
-  const std::unordered_set<ir::Computed>& values() const;
-  const std::unordered_set<ir::Computed>& GetNeighbors(ir::Computed value) const;
+  const std::unordered_set<ir::value_num_t>& values() const { return values_; }
+  const std::unordered_set<ir::value_num_t>& GetNeighbors(ir::value_num_t value) const {
+    return graph_.at(value);
+  }
 
-  void AddValue(ir::Computed value);
-  void AddEdge(ir::Computed value_a, ir::Computed value_b);
-  void AddEdgesIn(std::unordered_set<ir::Computed> group);
-  void AddEdgesBetween(std::unordered_set<ir::Computed> group, ir::Computed individual);
+  void AddValue(ir::value_num_t value);
+  void AddEdge(ir::value_num_t value_a, ir::value_num_t value_b);
+  void AddEdgesIn(std::unordered_set<ir::value_num_t> group);
+  void AddEdgesBetween(std::unordered_set<ir::value_num_t> group, ir::value_num_t individual);
 
-  int64_t GetRegister(ir::Computed value) const;
-  void SetRegister(ir::Computed value, int64_t reg);
+  int64_t GetRegister(ir::value_num_t value) const;
+  void SetRegister(ir::value_num_t value, int64_t reg);
   void ResetRegisters();
 
   std::string ToString() const;
   vcg::Graph ToVCGGraph() const;
 
  private:
-  std::unordered_set<ir::Computed> values_;
-  std::unordered_map<ir::Computed, std::unordered_set<ir::Computed>> graph_;
-  std::unordered_map<ir::Computed, int64_t> regs_;
+  std::unordered_set<ir::value_num_t> values_;
+  std::unordered_map<ir::value_num_t, std::unordered_set<ir::value_num_t>> graph_;
+  std::unordered_map<ir::value_num_t, int64_t> regs_;
 };
 
 }  // namespace ir_info

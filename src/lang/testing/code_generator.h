@@ -20,11 +20,12 @@ namespace testing {
 class Context {
  public:
   Context(int max_depth) : max_depth_(max_depth) {}
-  
+
   int max_depth() const { return max_depth_; }
 
   Context SubContextWithIncreasedDepth() const;
-private:
+
+ private:
   int max_depth_;
 };
 
@@ -76,8 +77,6 @@ class SequenceGenerator final : public Generator {
   int min_length_;
   int max_length_;
 };
-
-
 
 }  // namespace testing
 }  // namespace lang

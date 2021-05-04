@@ -41,14 +41,14 @@ void RegisterAllocator::AllocateRegisters() {
              std::vector<ir::Computed>,
              queue_compare> queue;*/
 
-  for (ir::Computed value : graph_.values()) {
+  for (ir::value_num_t value : graph_.values()) {
     if (graph_.GetRegister(value) != -1) {
       continue;
     }
 
     std::unordered_set<int64_t> neighbor_colors;
 
-    for (ir::Computed neighbor : graph_.GetNeighbors(value)) {
+    for (ir::value_num_t neighbor : graph_.GetNeighbors(value)) {
       int64_t neighbor_color = graph_.GetRegister(neighbor);
 
       neighbor_colors.insert(neighbor_color);

@@ -16,24 +16,23 @@
 #include "ir/info/interference_graph.h"
 #include "ir/representation/block.h"
 #include "ir/representation/instr.h"
-#include "ir/representation/value.h"
+#include "ir/representation/num_types.h"
 
 namespace ir_info {
 
 class BlockLiveRangeInfo {
  public:
-  BlockLiveRangeInfo(ir::Block* block);
-  ~BlockLiveRangeInfo();
+  BlockLiveRangeInfo(ir::Block* block) : block_(block) {}
 
-  bool HasValue(ir::Computed value) const;
-  bool HasValueDefinition(ir::Computed value) const;
-  void AddValueDefinition(ir::Computed value, int64_t index);
-  void AddValueUse(ir::Computed value, int64_t index);
-  void PropagateBackwardsFromExitSet(ir::Computed value);
+  bool HasValue(ir::value_num_t value) const;
+  bool HasValueDefinition(ir::value_num_t value) const;
+  void AddValueDefinition(ir::value_num_t value, int64_t index);
+  void AddValueUse(ir::value_num_t value, int64_t index);
+  void PropagateBackwardsFromExitSet(ir::value_num_t value);
 
-  std::unordered_set<ir::Computed> GetEntrySet() const;
-  std::unordered_set<ir::Computed> GetExitSet() const;
-  std::unordered_set<ir::Computed> GetLiveSet(int64_t index) const;
+  std::unordered_set<ir::value_num_t> GetEntrySet() const;
+  std::unordered_set<ir::value_num_t> GetExitSet() const;
+  std::unordered_set<ir::value_num_t> GetLiveSet(int64_t index) const;
 
   std::string ToString() const;
 
@@ -45,7 +44,7 @@ class BlockLiveRangeInfo {
 
   const ir::Block* block_;
 
-  std::unordered_map<ir::Computed, ValueRange> value_ranges_;
+  std::unordered_map<ir::value_num_t, ValueRange> value_ranges_;
 };
 
 }  // namespace ir_info

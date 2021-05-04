@@ -13,21 +13,19 @@
 namespace ir_info {
 
 FuncLiveRangeInfo::FuncLiveRangeInfo(ir::Func* func) : func_(func) {
-  for (ir::Block* block : func_->blocks()) {
-    block_live_range_infos_.insert({block, BlockLiveRangeInfo(block)});
+  for (auto& block : func->blocks()) {
+    block_live_range_infos_.insert({block->number(), BlockLiveRangeInfo(block.get())});
   }
 }
 
-FuncLiveRangeInfo::~FuncLiveRangeInfo() {}
-
-BlockLiveRangeInfo& FuncLiveRangeInfo::GetBlockLiveRangeInfo(ir::Block* block) {
-  return block_live_range_infos_.at(block);
+BlockLiveRangeInfo& FuncLiveRangeInfo::GetBlockLiveRangeInfo(ir::block_num_t bnum) {
+  return block_live_range_infos_.at(bnum);
 }
 
 std::string FuncLiveRangeInfo::ToString() const {
   std::stringstream ss;
   ss << "live range info for " << func_->ReferenceString() << ":";
-  for (auto& [block, block_info] : block_live_range_infos_) {
+  for (auto& [bnum, block_info] : block_live_range_infos_) {
     ss << "\n" << block_info.ToString();
   }
   return ss.str();

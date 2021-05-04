@@ -17,8 +17,7 @@ namespace ir_proc {
 
 class LiveRangeAnalyzer {
  public:
-  LiveRangeAnalyzer(ir::Func* func);
-  ~LiveRangeAnalyzer();
+  LiveRangeAnalyzer(ir::Func* func) : func_(func), func_info_(func) {}
 
   ir_info::FuncLiveRangeInfo& func_info();
   ir_info::InterferenceGraph& interference_graph();

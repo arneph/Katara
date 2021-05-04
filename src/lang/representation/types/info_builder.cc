@@ -306,28 +306,30 @@ Signature* InfoBuilder::InstantiateMethodSignature(Signature* parameterized_sign
 
 Type* InfoBuilder::InstantiateType(Type* type, TypeParamsToArgsMap& type_params_to_args) {
   switch (type->type_kind()) {
-    case TypeKind::kBasic:
+    case ir::TypeKind::kLangBasic:
       return type;
-    case TypeKind::kPointer:
+    case ir::TypeKind::kLangPointer:
       return InstantiatePointer(static_cast<Pointer*>(type), type_params_to_args);
-    case TypeKind::kArray:
+    case ir::TypeKind::kLangArray:
       return InstantiateArray(static_cast<Array*>(type), type_params_to_args);
-    case TypeKind::kSlice:
+    case ir::TypeKind::kLangSlice:
       return InstantiateSlice(static_cast<Slice*>(type), type_params_to_args);
-    case TypeKind::kTypeParameter:
+    case ir::TypeKind::kLangTypeParameter:
       return InstantiateTypeParameter(static_cast<TypeParameter*>(type), type_params_to_args);
-    case TypeKind::kNamedType:
+    case ir::TypeKind::kLangNamedType:
       return InstantiateNamedType(static_cast<NamedType*>(type));
-    case TypeKind::kTypeInstance:
+    case ir::TypeKind::kLangTypeInstance:
       return InstantiateTypeInstance(static_cast<TypeInstance*>(type), type_params_to_args);
-    case TypeKind::kTuple:
+    case ir::TypeKind::kLangTuple:
       return InstantiateTuple(static_cast<Tuple*>(type), type_params_to_args);
-    case TypeKind::kSignature:
+    case ir::TypeKind::kLangSignature:
       return InstantiateSignature(static_cast<Signature*>(type), type_params_to_args);
-    case TypeKind::kStruct:
+    case ir::TypeKind::kLangStruct:
       return InstantiateStruct(static_cast<Struct*>(type), type_params_to_args);
-    case TypeKind::kInterface:
+    case ir::TypeKind::kLangInterface:
       return InstantiateInterface(static_cast<Interface*>(type), type_params_to_args);
+    default:
+      throw "unexpected lang type";
   }
 }
 

@@ -13,125 +13,137 @@
 #include <string>
 #include <vector>
 
-#include "ir/representation/value.h"
+#include "ir/representation/values.h"
 
 namespace ir {
 
-class Block;
+enum class InstrKind {
+  kMov,
+  kPhi,
+  kUnaryAL,
+  kBinaryAL,
+  kCompare,
+  kComputationStart = kMov,
+  kComputationEnd = kCompare,
+
+  kJump,
+  kJumpCond,
+  kCall,
+  kReturn
+};
 
 class Instr {
  public:
-  Instr();
   virtual ~Instr() {}
 
-  int64_t number() const;
-  Block* block() const;
+  virtual std::vector<std::shared_ptr<Computed>> DefinedValues() const = 0;
+  virtual std::vector<std::shared_ptr<Value>> UsedValues() const = 0;
 
-  virtual std::vector<Computed> DefinedValues() const = 0;
-  virtual std::vector<Computed> UsedValues() const = 0;
-
+  virtual InstrKind instr_kind() const = 0;
   virtual std::string ToString() const = 0;
-
-  friend Block;
-
- private:
-  int64_t number_;
-  Block* block_;
 };
 
 class Computation : public Instr {
  public:
-  ~Computation() override;
+  std::shared_ptr<Computed> result() const { return result_; }
 
-  Computed result() const;
-
-  std::vector<Computed> DefinedValues() const override;
+  std::vector<std::shared_ptr<Computed>> DefinedValues() const override {
+    return std::vector<std::shared_ptr<Computed>>{result_};
+  }
 
  protected:
-  Computation(Computed result);
+  Computation(std::shared_ptr<Computed> result) : result_(result) {}
 
  private:
-  Computed result_;
+  std::shared_ptr<Computed> result_;
 };
 
 class MovInstr : public Computation {
  public:
-  MovInstr(Computed result, Value origin);
-  ~MovInstr() override;
+  MovInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> origin);
 
-  Value origin() const;
+  std::shared_ptr<Value> origin() const { return origin_; }
 
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Value>> UsedValues() const override {
+    return std::vector<std::shared_ptr<Value>>{origin_};
+  }
 
-  std::string ToString() const override;
+  InstrKind instr_kind() const override { return InstrKind::kMov; }
+  std::string ToString() const override {
+    return result()->ToStringWithType() + " = mov " + origin()->ToString();
+  }
 
  private:
-  Value origin_;
+  std::shared_ptr<Value> origin_;
 };
 
 class PhiInstr : public Computation {
  public:
-  PhiInstr(Computed result, std::vector<InheritedValue> args);
-  ~PhiInstr() override;
+  PhiInstr(std::shared_ptr<Computed> result, std::vector<std::shared_ptr<InheritedValue>> args);
 
-  const std::vector<InheritedValue>& args() const;
+  const std::vector<std::shared_ptr<InheritedValue>>& args() const { return args_; }
 
-  Value ValueInheritedFromBlock(int64_t bnum) const;
+  std::shared_ptr<Value> ValueInheritedFromBlock(block_num_t bnum) const;
 
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Value>> UsedValues() const override;
 
+  InstrKind instr_kind() const override { return InstrKind::kPhi; }
   std::string ToString() const override;
 
  private:
-  std::vector<InheritedValue> args_;
+  std::vector<std::shared_ptr<InheritedValue>> args_;
 };
 
 enum class UnaryALOperation : uint8_t { kNot, kNeg };
 
-extern bool is_unary_al_operation_string(std::string op_str);
-extern UnaryALOperation to_unary_al_operation(std::string op_str);
-extern std::string to_string(UnaryALOperation op);
+extern bool IsUnaryALOperationString(std::string op_str);
+extern UnaryALOperation ToUnaryALOperation(std::string op_str);
+extern std::string ToString(UnaryALOperation op);
 
 class UnaryALInstr : public Computation {
  public:
-  UnaryALInstr(UnaryALOperation operation, Computed result, Value operand);
-  ~UnaryALInstr() override;
+  UnaryALInstr(UnaryALOperation operation, std::shared_ptr<Computed> result,
+               std::shared_ptr<Value> operand);
 
-  UnaryALOperation operation() const;
-  Value operand() const;
+  UnaryALOperation operation() const { return operation_; }
+  std::shared_ptr<Value> operand() const { return operand_; }
 
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
+  InstrKind instr_kind() const override { return InstrKind::kUnaryAL; }
   std::string ToString() const override;
 
  private:
   UnaryALOperation operation_;
-  Value operand_;
+  std::shared_ptr<Value> operand_;
 };
 
 enum class BinaryALOperation : uint8_t { kAnd, kOr, kXor, kAdd, kSub, kMul, kDiv, kRem };
 
-extern bool is_binary_al_operation_string(std::string op_str);
-extern BinaryALOperation to_binary_al_operation(std::string op_str);
-extern std::string to_string(BinaryALOperation op);
+extern bool IsBinaryALOperationString(std::string op_str);
+extern BinaryALOperation ToBinaryALOperation(std::string op_str);
+extern std::string ToString(BinaryALOperation op);
 
 class BinaryALInstr : public Computation {
  public:
-  BinaryALInstr(BinaryALOperation operation, Computed result, Value operand_a, Value operand_b);
-  ~BinaryALInstr() override;
+  BinaryALInstr(BinaryALOperation operation, std::shared_ptr<Computed> result,
+                std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
 
-  BinaryALOperation operation() const;
-  Value operand_a() const;
-  Value operand_b() const;
+  BinaryALOperation operation() const { return operation_; }
+  std::shared_ptr<Value> operand_a() const { return operand_a_; }
+  std::shared_ptr<Value> operand_b() const { return operand_b_; }
 
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Value>> UsedValues() const override {
+    return {operand_a_, operand_a_};
+  }
 
+  InstrKind instr_kind() const override { return InstrKind::kBinaryAL; }
   std::string ToString() const override;
 
  private:
   BinaryALOperation operation_;
-  Value operand_a_;
-  Value operand_b_;
+  std::shared_ptr<Value> operand_a_;
+  std::shared_ptr<Value> operand_b_;
 };
 
 enum class CompareOperation : uint8_t {
@@ -143,101 +155,110 @@ enum class CompareOperation : uint8_t {
   kLess
 };
 
-extern CompareOperation comuted(CompareOperation op);
-extern CompareOperation negated(CompareOperation op);
-extern bool is_compare_operation_string(std::string op_str);
-extern CompareOperation to_compare_operation(std::string op_str);
-extern std::string to_string(CompareOperation op);
+extern CompareOperation Comuted(CompareOperation op);
+extern CompareOperation Negated(CompareOperation op);
+extern bool IsCompareOperationString(std::string op_str);
+extern CompareOperation ToCompareOperation(std::string op_str);
+extern std::string ToString(CompareOperation op);
 
 class CompareInstr : public Computation {
  public:
-  CompareInstr(CompareOperation operation, Computed result, Value operand_a, Value operand_b);
-  ~CompareInstr() override;
+  CompareInstr(CompareOperation operation, std::shared_ptr<Computed> result,
+               std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
 
-  CompareOperation operation() const;
-  Value operand_a() const;
-  Value operand_b() const;
+  CompareOperation operation() const { return operation_; }
+  std::shared_ptr<Value> operand_a() const { return operand_a_; }
+  std::shared_ptr<Value> operand_b() const { return operand_b_; }
 
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Value>> UsedValues() const override {
+    return {operand_a_, operand_b_};
+  }
 
+  InstrKind instr_kind() const override { return InstrKind::kCompare; }
   std::string ToString() const override;
 
  private:
   CompareOperation operation_;
-  Value operand_a_;
-  Value operand_b_;
+  std::shared_ptr<Value> operand_a_;
+  std::shared_ptr<Value> operand_b_;
 };
 
 class JumpInstr : public Instr {
  public:
-  JumpInstr(BlockValue destination);
-  ~JumpInstr() override;
+  JumpInstr(block_num_t destination) : destination_(destination) {}
 
-  BlockValue destination() const;
+  block_num_t destination() const { return destination_; }
 
-  std::vector<Computed> DefinedValues() const override;
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {}; }
 
-  std::string ToString() const override;
+  InstrKind instr_kind() const override { return InstrKind::kJump; }
+  std::string ToString() const override { return "jmp {" + std::to_string(destination_) + "}"; }
 
  private:
-  BlockValue destination_;
+  block_num_t destination_;
 };
 
 class JumpCondInstr : public Instr {
  public:
-  JumpCondInstr(Value condition, BlockValue destination_true, BlockValue destination_false);
-  ~JumpCondInstr() override;
+  JumpCondInstr(std::shared_ptr<Value> condition, block_num_t destination_true,
+                block_num_t destination_false)
+      : condition_(condition),
+        destination_true_(destination_true),
+        destination_false_(destination_false) {}
 
-  Value condition() const;
-  BlockValue destination_true() const;
-  BlockValue destination_false() const;
+  std::shared_ptr<Value> condition() const { return condition_; }
+  block_num_t destination_true() const { return destination_true_; }
+  block_num_t destination_false() const { return destination_false_; }
 
-  std::vector<Computed> DefinedValues() const override;
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {}; }
 
+  InstrKind instr_kind() const override { return InstrKind::kJumpCond; }
   std::string ToString() const override;
 
  private:
-  Value condition_;
-  BlockValue destination_true_;
-  BlockValue destination_false_;
+  std::shared_ptr<Value> condition_;
+  block_num_t destination_true_;
+  block_num_t destination_false_;
 };
 
 class CallInstr : public Instr {
  public:
-  CallInstr(Value func, std::vector<Computed> results, std::vector<Value> args);
-  ~CallInstr() override;
+  CallInstr(std::shared_ptr<Value> func, std::vector<std::shared_ptr<Computed>> results,
+            std::vector<std::shared_ptr<Value>> args)
+      : func_(func), results_(results), args_(args) {}
 
-  Value func() const;
-  const std::vector<Computed>& results() const;
-  const std::vector<Value>& args() const;
+  std::shared_ptr<Value> func() const { return func_; }
+  const std::vector<std::shared_ptr<Computed>>& results() const { return results_; }
+  const std::vector<std::shared_ptr<Value>>& args() const { return args_; }
 
-  std::vector<Computed> DefinedValues() const override;
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return results_; }
+  std::vector<std::shared_ptr<Value>> UsedValues() const override;
 
+  InstrKind instr_kind() const override { return InstrKind::kCall; }
   std::string ToString() const override;
 
  private:
-  Value func_;
-  std::vector<Computed> results_;
-  std::vector<Value> args_;
+  std::shared_ptr<Value> func_;
+  std::vector<std::shared_ptr<Computed>> results_;
+  std::vector<std::shared_ptr<Value>> args_;
 };
 
 class ReturnInstr : public Instr {
  public:
-  ReturnInstr(std::vector<Value> args);
-  ~ReturnInstr() override;
+  ReturnInstr(std::vector<std::shared_ptr<Value>> args) : args_(args) {}
 
-  const std::vector<Value>& args() const;
+  const std::vector<std::shared_ptr<Value>>& args() const { return args_; }
 
-  std::vector<Computed> DefinedValues() const override;
-  std::vector<Computed> UsedValues() const override;
+  std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return args_; }
 
+  InstrKind instr_kind() const override { return InstrKind::kReturn; }
   std::string ToString() const override;
 
  private:
-  std::vector<Value> args_;
+  std::vector<std::shared_ptr<Value>> args_;
 };
 
 }  // namespace ir

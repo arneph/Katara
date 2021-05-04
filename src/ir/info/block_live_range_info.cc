@@ -13,22 +13,18 @@
 
 namespace ir_info {
 
-BlockLiveRangeInfo::BlockLiveRangeInfo(ir::Block* block) : block_(block) {}
-
-BlockLiveRangeInfo::~BlockLiveRangeInfo() {}
-
-bool BlockLiveRangeInfo::HasValue(ir::Computed value) const {
+bool BlockLiveRangeInfo::HasValue(ir::value_num_t value) const {
   return value_ranges_.count(value) != 0;
 }
 
-bool BlockLiveRangeInfo::HasValueDefinition(ir::Computed value) const {
+bool BlockLiveRangeInfo::HasValueDefinition(ir::value_num_t value) const {
   if (value_ranges_.count(value) == 0) {
     return false;
   }
   return value_ranges_.at(value).start_index_ >= 0;
 }
 
-void BlockLiveRangeInfo::AddValueDefinition(ir::Computed value, int64_t index) {
+void BlockLiveRangeInfo::AddValueDefinition(ir::value_num_t value, int64_t index) {
   if (auto it = value_ranges_.find(value); it != value_ranges_.end()) {
     it->second.start_index_ = index;
 
@@ -37,7 +33,7 @@ void BlockLiveRangeInfo::AddValueDefinition(ir::Computed value, int64_t index) {
   }
 }
 
-void BlockLiveRangeInfo::AddValueUse(ir::Computed value, int64_t index) {
+void BlockLiveRangeInfo::AddValueUse(ir::value_num_t value, int64_t index) {
   if (auto it = value_ranges_.find(value); it != value_ranges_.end()) {
     it->second.start_index_ = std::min(it->second.start_index_, index);
     it->second.end_index_ = std::max(it->second.end_index_, index);
@@ -46,7 +42,7 @@ void BlockLiveRangeInfo::AddValueUse(ir::Computed value, int64_t index) {
   }
 }
 
-void BlockLiveRangeInfo::PropagateBackwardsFromExitSet(ir::Computed value) {
+void BlockLiveRangeInfo::PropagateBackwardsFromExitSet(ir::value_num_t value) {
   const int64_t exit_index = block_->instrs().size();
 
   if (auto it = value_ranges_.find(value); it != value_ranges_.end()) {
@@ -57,8 +53,8 @@ void BlockLiveRangeInfo::PropagateBackwardsFromExitSet(ir::Computed value) {
   }
 }
 
-std::unordered_set<ir::Computed> BlockLiveRangeInfo::GetEntrySet() const {
-  std::unordered_set<ir::Computed> entry_set;
+std::unordered_set<ir::value_num_t> BlockLiveRangeInfo::GetEntrySet() const {
+  std::unordered_set<ir::value_num_t> entry_set;
   for (auto& [value, range] : value_ranges_) {
     if (range.start_index_ < 0) {
       entry_set.insert(value);
@@ -67,8 +63,8 @@ std::unordered_set<ir::Computed> BlockLiveRangeInfo::GetEntrySet() const {
   return entry_set;
 }
 
-std::unordered_set<ir::Computed> BlockLiveRangeInfo::GetExitSet() const {
-  std::unordered_set<ir::Computed> exit_set;
+std::unordered_set<ir::value_num_t> BlockLiveRangeInfo::GetExitSet() const {
+  std::unordered_set<ir::value_num_t> exit_set;
   for (auto& [value, range] : value_ranges_) {
     if (range.end_index_ >= int64_t(block_->instrs().size())) {
       exit_set.insert(value);
@@ -77,8 +73,8 @@ std::unordered_set<ir::Computed> BlockLiveRangeInfo::GetExitSet() const {
   return exit_set;
 }
 
-std::unordered_set<ir::Computed> BlockLiveRangeInfo::GetLiveSet(int64_t index) const {
-  std::unordered_set<ir::Computed> live_set;
+std::unordered_set<ir::value_num_t> BlockLiveRangeInfo::GetLiveSet(int64_t index) const {
+  std::unordered_set<ir::value_num_t> live_set;
   for (auto& [value, range] : value_ranges_) {
     if (range.start_index_ <= index && index <= range.end_index_) {
       live_set.insert(value);
@@ -112,15 +108,31 @@ std::string BlockLiveRangeInfo::ToString() const {
       ss << ' ';
     }
 
-    ss << ' ' << value.ToString() << '\n';
+    ss << " %" << value << '\n';
   }
 
   ss << "entry set: ";
-  ir::set_to_stream(GetEntrySet(), ss);
+  bool first = true;
+  for (ir::value_num_t value : GetEntrySet()) {
+    if (first) {
+      first = false;
+    } else {
+      ss << ", ";
+    }
+    ss << "%" << value;
+  }
   ss << '\n';
 
   ss << " exit set: ";
-  ir::set_to_stream(GetExitSet(), ss);
+  first = true;
+  for (ir::value_num_t value : GetExitSet()) {
+    if (first) {
+      first = false;
+    } else {
+      ss << ", ";
+    }
+    ss << "%" << value;
+  }
   ss << '\n';
 
   return ss.str();
