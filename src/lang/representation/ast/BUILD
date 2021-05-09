@@ -44,7 +44,7 @@ cc_library(
     ],
     deps = [
         ":nodes",
+        "//src/common:graph",
         "//src/lang/representation/positions",
-        "//src/vcg:vcg_lib",
     ],
 )

@@ -71,7 +71,6 @@ cc_library(
     deps = [
         ":num_types",
         ":values",
-        "//src/vcg:vcg_lib",
     ],
 )
 
@@ -93,7 +92,7 @@ cc_library(
     deps = [
         ":instr",
         ":num_types",
-        "//src/vcg:vcg_lib",
+        "//src/common:graph",
     ],
 )
 
@@ -115,7 +114,7 @@ cc_library(
     deps = [
         ":block",
         ":num_types",
-        "//src/vcg:vcg_lib",
+        "//src/common:graph",
     ],
 )
 
@@ -136,7 +135,6 @@ cc_library(
     ],
     deps = [
         ":func",
-        "//src/vcg:vcg_lib",
     ],
 )
 

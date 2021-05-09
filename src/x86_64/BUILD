@@ -13,7 +13,8 @@ cc_library(
         "//src:__pkg__",
     ],
     deps = [
-        "//src/common:common_lib",
+        "//src/common:data",
+        "//src/common:graph",
         "//src/ir:ir_lib",
     ],
 )

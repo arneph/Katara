@@ -78,14 +78,14 @@ std::string Block::ToString() const {
   return ss.str();
 }
 
-vcg::Node Block::ToVCGNode() const {
+common::Node Block::ToVCGNode() const {
   std::stringstream ss;
   for (size_t i = 0; i < instrs_.size(); i++) {
     if (i > 0) ss << "\n";
     ss << instrs_.at(i)->ToString();
   }
 
-  return vcg::Node(number_, ReferenceString(), ss.str());
+  return common::Node(number_, ReferenceString(), ss.str());
 }
 
 }  // namespace ir

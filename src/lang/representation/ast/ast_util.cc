@@ -11,14 +11,14 @@
 #include <memory>
 #include <vector>
 
-#include "vcg/edge.h"
-#include "vcg/node.h"
+#include "common/edge.h"
+#include "common/node.h"
 
 namespace lang {
 namespace ast {
 
-vcg::Graph NodeToTree(pos::FileSet* file_set, Node* node) {
-  vcg::Graph graph;
+common::Graph NodeToTree(pos::FileSet* file_set, Node* node) {
+  common::Graph graph;
   std::vector<int64_t> stack;
   int64_t count = 0;
 
@@ -29,19 +29,19 @@ vcg::Graph NodeToTree(pos::FileSet* file_set, Node* node) {
     }
     int64_t number = count++;
     std::string title;
-    vcg::Color color;
+    common::Color color;
     if (ast_node->is_expr()) {
       title = "expr";
-      color = vcg::kTurquoise;
+      color = common::kTurquoise;
     } else if (ast_node->is_stmt()) {
       title = "stmt";
-      color = vcg::kGreen;
+      color = common::kGreen;
     } else if (ast_node->is_decl()) {
       title = "decl";
-      color = vcg::kYellow;
+      color = common::kYellow;
     } else {
       title = "node";
-      color = vcg::kRed;
+      color = common::kRed;
     }
     pos::File* file = file_set->FileAt(ast_node->start());
     std::string text = file->contents(ast_node->start(), ast_node->end());
@@ -49,10 +49,10 @@ vcg::Graph NodeToTree(pos::FileSet* file_set, Node* node) {
       text = std::string(text.begin(), it) + "...";
     }
 
-    graph.nodes().push_back(vcg::Node(number, title, text, color));
+    graph.nodes().push_back(common::Node(number, title, text, color));
 
     if (!stack.empty()) {
-      graph.edges().push_back(vcg::Edge(stack.back(), number, true));
+      graph.edges().push_back(common::Edge(stack.back(), number, true));
     }
 
     stack.push_back(number);

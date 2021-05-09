@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace vcg {
+namespace common {
 
 Graph::Graph() {}
 Graph::~Graph() {}
@@ -56,4 +56,4 @@ std::string Graph::ToVCGFormat(bool exclude_node_text) const {
   return ss.str();
 }
 
-}  // namespace vcg
+}  // namespace common

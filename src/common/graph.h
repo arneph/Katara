@@ -6,8 +6,8 @@
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef vcg_graph_h
-#define vcg_graph_h
+#ifndef common_graph_h
+#define common_graph_h
 
 #include <string>
 #include <vector>
@@ -15,7 +15,7 @@
 #include "edge.h"
 #include "node.h"
 
-namespace vcg {
+namespace common {
 
 class Graph {
  public:
@@ -32,6 +32,6 @@ class Graph {
   std::vector<Edge> edges_;
 };
 
-}  // namespace vcg
+}  // namespace common
 
-#endif /* vcg_graph_h */
+#endif /* common_graph_h */

@@ -41,9 +41,9 @@ cc_library(
     deps = [
         ":base",
         ":info",
+        "//src/common:graph",
         "//src/lang/representation/ast",
         "//src/lang/representation/positions",
-        "//src/vcg:vcg_lib",
     ],
 )
 

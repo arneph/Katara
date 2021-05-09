@@ -100,7 +100,7 @@ void run_lang_test(std::filesystem::path test_dir) {
     }
   }
   for (auto [name, ast_file] : test_pkg->ast_package()->files()) {
-    vcg::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast_file);
+    common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast_file);
 
     to_file(ast_graph.ToVCGFormat(), test_dir.string() + "/debug/" + test_pkg->name() + ".ast.vcg");
   }
@@ -120,8 +120,8 @@ void run_lang_test(std::filesystem::path test_dir) {
     to_file(program->ToString(), test_dir.string() + "/debug/" + test_pkg->name() + ".ir.txt");
 
     for (auto& func : program->funcs()) {
-      vcg::Graph func_cfg = func->ToControlFlowGraph();
-      vcg::Graph func_dom = func->ToDominatorTree();
+      common::Graph func_cfg = func->ToControlFlowGraph();
+      common::Graph func_dom = func->ToDominatorTree();
 
       to_file(func_cfg.ToVCGFormat(), test_dir.string() + "/debug/" + test_pkg->name() + "_@" +
                                           std::to_string(func->number()) + "_" + func->name() +
@@ -171,8 +171,8 @@ void run_ir_test(std::filesystem::path test_dir) {
   std::cout << prog->ToString() << "\n";
 
   for (auto& func : prog->funcs()) {
-    vcg::Graph cfg = func->ToControlFlowGraph();
-    vcg::Graph dom_tree = func->ToDominatorTree();
+    common::Graph cfg = func->ToControlFlowGraph();
+    common::Graph dom_tree = func->ToDominatorTree();
 
     to_file(cfg.ToVCGFormat(),
             out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".cfg.vcg");
@@ -216,8 +216,8 @@ void run_ir_test(std::filesystem::path test_dir) {
     ir_proc::PhiResolver phi_resolver(func.get());
     phi_resolver.ResolvePhis();
 
-    vcg::Graph cfg = func->ToControlFlowGraph();
-    vcg::Graph dom_tree = func->ToDominatorTree();
+    common::Graph cfg = func->ToControlFlowGraph();
+    common::Graph dom_tree = func->ToDominatorTree();
 
     to_file(cfg.ToVCGFormat(),
             out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".cfg.vcg");

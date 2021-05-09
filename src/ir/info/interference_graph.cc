@@ -134,8 +134,8 @@ std::string InterferenceGraph::ToString() const {
   return ss.str();
 }
 
-vcg::Graph InterferenceGraph::ToVCGGraph() const {
-  vcg::Graph vcg_graph;
+common::Graph InterferenceGraph::ToVCGGraph() const {
+  common::Graph vcg_graph;
 
   std::unordered_map<ir::value_num_t, int64_t> value_numbers;
   value_numbers.reserve(graph_.size());
@@ -147,7 +147,7 @@ vcg::Graph InterferenceGraph::ToVCGGraph() const {
     value_numbers.insert({node, node_number});
 
     vcg_graph.nodes().push_back(
-        vcg::Node(node_number, std::to_string(node), "", (vcg::Color)node_reg));
+        common::Node(node_number, std::to_string(node), "", (common::Color)node_reg));
 
     for (ir::value_num_t neighbor : neighbors) {
       auto it = value_numbers.find(neighbor);
@@ -155,7 +155,7 @@ vcg::Graph InterferenceGraph::ToVCGGraph() const {
 
       int64_t neighbor_number = it->second;
 
-      vcg_graph.edges().push_back(vcg::Edge(node_number, neighbor_number));
+      vcg_graph.edges().push_back(common::Edge(node_number, neighbor_number));
     }
   }
 

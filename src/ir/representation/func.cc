@@ -10,8 +10,8 @@
 
 #include <sstream>
 
-#include "vcg/edge.h"
-#include "vcg/node.h"
+#include "common/edge.h"
+#include "common/node.h"
 
 namespace ir {
 
@@ -119,30 +119,30 @@ std::string Func::ToString() const {
   return ss.str();
 }
 
-vcg::Graph Func::ToControlFlowGraph() const {
-  vcg::Graph graph;
+common::Graph Func::ToControlFlowGraph() const {
+  common::Graph graph;
 
   for (auto& block : blocks_) {
     graph.nodes().push_back(block->ToVCGNode());
 
     for (block_num_t child_num : block->children()) {
-      graph.edges().push_back(vcg::Edge(block->number(), child_num,
-                                        /*is_directed=*/true));
+      graph.edges().push_back(common::Edge(block->number(), child_num,
+                                           /*is_directed=*/true));
     }
   }
 
   return graph;
 }
 
-vcg::Graph Func::ToDominatorTree() const {
-  vcg::Graph graph;
+common::Graph Func::ToDominatorTree() const {
+  common::Graph graph;
 
   for (auto& block : blocks_) {
     graph.nodes().push_back(block->ToVCGNode());
 
     for (block_num_t dominee_num : DomineesOf(block->number())) {
-      graph.edges().push_back(vcg::Edge(block->number(), dominee_num,
-                                        /*is_directed=*/true));
+      graph.edges().push_back(common::Edge(block->number(), dominee_num,
+                                           /*is_directed=*/true));
     }
   }
 

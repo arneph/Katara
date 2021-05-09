@@ -15,9 +15,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/graph.h"
 #include "ir/representation/block.h"
 #include "ir/representation/num_types.h"
-#include "vcg/graph.h"
 
 namespace ir {
 
@@ -55,8 +55,8 @@ class Func {
   std::unordered_set<block_num_t> DomineesOf(block_num_t dominator_num) const;
 
   std::string ToString() const;
-  vcg::Graph ToControlFlowGraph() const;
-  vcg::Graph ToDominatorTree() const;
+  common::Graph ToControlFlowGraph() const;
+  common::Graph ToDominatorTree() const;
 
  private:
   struct DomTreeContext {

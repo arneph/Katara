@@ -12,8 +12,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "common/graph.h"
 #include "ir/representation/num_types.h"
-#include "vcg/graph.h"
 
 namespace ir_info {
 
@@ -36,7 +36,7 @@ class InterferenceGraph {
   void ResetRegisters();
 
   std::string ToString() const;
-  vcg::Graph ToVCGGraph() const;
+  common::Graph ToVCGGraph() const;
 
  private:
   std::unordered_set<ir::value_num_t> values_;

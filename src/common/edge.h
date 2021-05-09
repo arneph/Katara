@@ -6,12 +6,12 @@
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef vcg_edge_h
-#define vcg_edge_h
+#ifndef common_edge_h
+#define common_edge_h
 
 #include "node.h"
 
-namespace vcg {
+namespace common {
 
 class Edge {
  public:
@@ -28,6 +28,6 @@ class Edge {
   const bool is_directed_;
 };
 
-}  // namespace vcg
+}  // namespace common
 
-#endif /* vcg_edge_h */
+#endif /* common_edge_h */

@@ -8,7 +8,7 @@
 
 #include "edge.h"
 
-namespace vcg {
+namespace common {
 
 Edge::Edge(int64_t source_number, int64_t target_number, bool is_directed)
     : source_number_(source_number), target_number_(target_number), is_directed_(is_directed) {}
@@ -20,4 +20,4 @@ int64_t Edge::target_number() const { return target_number_; }
 
 bool Edge::is_directed() const { return is_directed_; }
 
-}  // namespace vcg
+}  // namespace common

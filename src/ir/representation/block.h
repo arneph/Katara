@@ -15,9 +15,9 @@
 #include <unordered_set>
 #include <vector>
 
+#include "common/node.h"
 #include "ir/representation/instr.h"
 #include "ir/representation/num_types.h"
-#include "vcg/node.h"
 
 namespace ir {
 
@@ -43,7 +43,7 @@ class Block {
   const std::unordered_set<block_num_t>& children() const { return children_; }
 
   std::string ToString() const;
-  vcg::Node ToVCGNode() const;
+  common::Node ToVCGNode() const;
 
   friend class Func;
 

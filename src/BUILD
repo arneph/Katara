@@ -5,10 +5,10 @@ cc_library(
     name = "katara_lib",
     copts = COPTS,
     deps = [
-        "//src/common:common_lib",
+        "//src/common:data",
+        "//src/common:graph",
         "//src/ir:ir_lib",
         "//src/lang:lang_lib",
-        "//src/vcg:vcg_lib",
         "//src/x86_64:x86_64_lib",
     ],
 )

@@ -8,7 +8,7 @@
 
 #include "node.h"
 
-namespace vcg {
+namespace common {
 
 std::string to_string(Color color) {
   switch (color) {
@@ -41,4 +41,4 @@ std::string Node::text() const { return text_; }
 
 Color Node::color() const { return color_; }
 
-}  // namespace vcg
+}  // namespace common

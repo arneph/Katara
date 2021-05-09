@@ -11,14 +11,14 @@
 
 #include <functional>
 
+#include "common/graph.h"
 #include "lang/representation/ast/nodes.h"
 #include "lang/representation/positions/positions.h"
-#include "vcg/graph.h"
 
 namespace lang {
 namespace ast {
 
-vcg::Graph NodeToTree(pos::FileSet* file_set, Node* node);
+common::Graph NodeToTree(pos::FileSet* file_set, Node* node);
 
 class WalkFunction {
  public:

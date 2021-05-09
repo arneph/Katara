@@ -6,12 +6,12 @@
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef vcg_node_h
-#define vcg_node_h
+#ifndef common_node_h
+#define common_node_h
 
 #include <string>
 
-namespace vcg {
+namespace common {
 
 typedef enum : int64_t {
   kWhite = 0,
@@ -42,6 +42,6 @@ class Node {
   Color color_;
 };
 
-}  // namespace vcg
+}  // namespace common
 
-#endif /* vcg_node_h */
+#endif /* common_node_h */
