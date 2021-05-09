@@ -753,13 +753,17 @@ ir::block_num_t Parser::ParseBlockValue() {
   if (scanner_.token() != Scanner::kCurlyBracketOpen) throw "expected '{'";
   scanner_.Next();
 
-  if (scanner_.token() != Scanner::kNumber) throw "expected number";
+  if (scanner_.token() != Scanner::kNumber) {
+    throw "expected number";
+  }
   ir::block_num_t number = scanner_.number();
   scanner_.Next();
-  
-  if (scanner_.token() != Scanner::kCurlyBracketClose) throw "expected '}'";
+
+  if (scanner_.token() != Scanner::kCurlyBracketClose) {
+    throw "expected '}'";
+  }
   scanner_.Next();
-  
+
   return number;
 }
 
