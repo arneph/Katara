@@ -56,8 +56,10 @@ void to_file(std::string text, std::filesystem::path out_file) {
 void run_lang_test(std::filesystem::path test_dir) {
   std::string test_name = test_dir.filename();
   std::cout << "testing " + test_name << "\n";
-  std::filesystem::create_directory(test_dir / "docs");
-  std::filesystem::create_directory(test_dir / "debug");
+  std::filesystem::path docs_dir = test_dir / "docs";
+  std::filesystem::path debug_dir = test_dir / "debug";
+  std::filesystem::create_directory(docs_dir);
+  std::filesystem::create_directory(debug_dir);
 
   lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib");
   lang::packages::Package* test_pkg = pkg_manager.LoadPackage(test_dir);
@@ -102,33 +104,31 @@ void run_lang_test(std::filesystem::path test_dir) {
   for (auto [name, ast_file] : test_pkg->ast_package()->files()) {
     common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast_file);
 
-    to_file(ast_graph.ToVCGFormat(), test_dir.string() + "/debug/" + test_pkg->name() + ".ast.vcg");
+    to_file(ast_graph.ToDotFormat(), debug_dir / (test_pkg->name() + ".ast.dot"));
   }
 
   std::string type_info = lang::types::InfoToText(pkg_manager.file_set(), pkg_manager.type_info());
-  to_file(type_info, test_dir.string() + "/debug/" + test_pkg->name() + ".types.txt");
+  to_file(type_info, debug_dir / (test_pkg->name() + ".types.txt"));
 
   lang::docs::PackageDoc pkg_doc = lang::docs::GenerateDocumentationForPackage(
       test_pkg, pkg_manager.file_set(), pkg_manager.type_info());
-  to_file(pkg_doc.html, test_dir.string() + "/docs/" + pkg_doc.name + ".html");
+  to_file(pkg_doc.html, docs_dir / (pkg_doc.name + ".html"));
   for (auto file_doc : pkg_doc.docs) {
-    to_file(file_doc.html, test_dir.string() + "/docs/" + file_doc.name + ".html");
+    to_file(file_doc.html, docs_dir / (file_doc.name + ".html"));
   }
 
   std::unique_ptr<ir::Program> program = lang::ir_builder::IRBuilder::TranslateProgram(test_pkg);
   if (program) {
-    to_file(program->ToString(), test_dir.string() + "/debug/" + test_pkg->name() + ".ir.txt");
+    to_file(program->ToString(), docs_dir / (test_pkg->name() + ".ir.txt"));
 
     for (auto& func : program->funcs()) {
+      std::string file_name =
+          test_pkg->name() + "_@" + std::to_string(func->number()) + "_" + func->name();
       common::Graph func_cfg = func->ToControlFlowGraph();
       common::Graph func_dom = func->ToDominatorTree();
 
-      to_file(func_cfg.ToVCGFormat(), test_dir.string() + "/debug/" + test_pkg->name() + "_@" +
-                                          std::to_string(func->number()) + "_" + func->name() +
-                                          ".cfg.vcg");
-      to_file(func_dom.ToVCGFormat(), test_dir.string() + "/debug/" + test_pkg->name() + "_@" +
-                                          std::to_string(func->number()) + "_" + func->name() +
-                                          ".dom.vcg");
+      to_file(func_cfg.ToDotFormat(), debug_dir / (file_name + ".cfg.dot"));
+      to_file(func_dom.ToDotFormat(), debug_dir / (file_name + ".dom.dot"));
     }
   }
 }
@@ -174,10 +174,10 @@ void run_ir_test(std::filesystem::path test_dir) {
     common::Graph cfg = func->ToControlFlowGraph();
     common::Graph dom_tree = func->ToDominatorTree();
 
-    to_file(cfg.ToVCGFormat(),
-            out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".cfg.vcg");
-    to_file(dom_tree.ToVCGFormat(/*exclude_node_text=*/false),
-            out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".dom.vcg");
+    to_file(cfg.ToDotFormat(),
+            out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".cfg.dot");
+    to_file(dom_tree.ToDotFormat(),
+            out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".dom.dot");
   }
 
   std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo> live_range_infos;
@@ -210,8 +210,8 @@ void run_ir_test(std::filesystem::path test_dir) {
         interference_graph.ToString(),
         out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.txt");
     to_file(
-        interference_graph.ToVCGGraph().ToVCGFormat(),
-        out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.vcg");
+        interference_graph.ToGraph().ToDotFormat(),
+        out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.dot");
 
     ir_proc::PhiResolver phi_resolver(func.get());
     phi_resolver.ResolvePhis();
@@ -219,10 +219,10 @@ void run_ir_test(std::filesystem::path test_dir) {
     common::Graph cfg = func->ToControlFlowGraph();
     common::Graph dom_tree = func->ToDominatorTree();
 
-    to_file(cfg.ToVCGFormat(),
-            out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".cfg.vcg");
-    to_file(dom_tree.ToVCGFormat(/*exclude_node_text=*/false),
-            out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".dom.vcg");
+    to_file(cfg.ToDotFormat(),
+            out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".cfg.dot");
+    to_file(dom_tree.ToDotFormat(),
+            out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".dom.dot");
   }
 
   translator.TranslateProgram();

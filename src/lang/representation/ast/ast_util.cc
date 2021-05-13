@@ -11,14 +11,11 @@
 #include <memory>
 #include <vector>
 
-#include "common/edge.h"
-#include "common/node.h"
-
 namespace lang {
 namespace ast {
 
 common::Graph NodeToTree(pos::FileSet* file_set, Node* node) {
-  common::Graph graph;
+  common::Graph graph(/*is_directed=*/true);
   std::vector<int64_t> stack;
   int64_t count = 0;
 
@@ -52,7 +49,7 @@ common::Graph NodeToTree(pos::FileSet* file_set, Node* node) {
     graph.nodes().push_back(common::Node(number, title, text, color));
 
     if (!stack.empty()) {
-      graph.edges().push_back(common::Edge(stack.back(), number, true));
+      graph.edges().push_back(common::Edge(stack.back(), number));
     }
 
     stack.push_back(number);

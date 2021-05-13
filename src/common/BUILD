@@ -13,16 +13,8 @@ cc_library(
 
 cc_library(
     name = "graph",
-    srcs = [
-        "edge.cc",
-        "graph.cc",
-        "node.cc",
-    ],
-    hdrs = [
-        "edge.h",
-        "graph.h",
-        "node.h",
-    ],
+    srcs = ["graph.cc"],
+    hdrs = ["graph.h"],
     copts = COPTS,
     visibility = [
         "//visibility:public",

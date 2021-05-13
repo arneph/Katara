@@ -15,7 +15,7 @@
 #include <unordered_set>
 #include <vector>
 
-#include "common/node.h"
+#include "common/graph.h"
 #include "ir/representation/instr.h"
 #include "ir/representation/num_types.h"
 

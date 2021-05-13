@@ -10,9 +10,6 @@
 
 #include <sstream>
 
-#include "common/edge.h"
-#include "common/node.h"
-
 namespace ir {
 
 std::string Func::ReferenceString() const {
@@ -120,14 +117,13 @@ std::string Func::ToString() const {
 }
 
 common::Graph Func::ToControlFlowGraph() const {
-  common::Graph graph;
+  common::Graph graph(/*is_directed=*/true);
 
   for (auto& block : blocks_) {
     graph.nodes().push_back(block->ToVCGNode());
 
     for (block_num_t child_num : block->children()) {
-      graph.edges().push_back(common::Edge(block->number(), child_num,
-                                           /*is_directed=*/true));
+      graph.edges().push_back(common::Edge(block->number(), child_num));
     }
   }
 
@@ -135,14 +131,13 @@ common::Graph Func::ToControlFlowGraph() const {
 }
 
 common::Graph Func::ToDominatorTree() const {
-  common::Graph graph;
+  common::Graph graph(/*is_directed=*/true);
 
   for (auto& block : blocks_) {
     graph.nodes().push_back(block->ToVCGNode());
 
     for (block_num_t dominee_num : DomineesOf(block->number())) {
-      graph.edges().push_back(common::Edge(block->number(), dominee_num,
-                                           /*is_directed=*/true));
+      graph.edges().push_back(common::Edge(block->number(), dominee_num));
     }
   }
 

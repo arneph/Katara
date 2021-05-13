@@ -134,8 +134,8 @@ std::string InterferenceGraph::ToString() const {
   return ss.str();
 }
 
-common::Graph InterferenceGraph::ToVCGGraph() const {
-  common::Graph vcg_graph;
+common::Graph InterferenceGraph::ToGraph() const {
+  common::Graph vcg_graph(/*is_directed=*/false);
 
   std::unordered_map<ir::value_num_t, int64_t> value_numbers;
   value_numbers.reserve(graph_.size());

@@ -2,4 +2,6 @@ bazel*
 tests/**/*.html
 tests/**/*.txt
 tests/**/*.vcg
+tests/**/*.dot
+tests/**/*.png
 .bazelrc

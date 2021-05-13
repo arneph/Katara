@@ -12,25 +12,76 @@
 #include <sstream>
 
 namespace common {
+namespace {
 
-Graph::Graph() {}
-Graph::~Graph() {}
+void WriteEscapedForDot(std::stringstream& ss, std::string_view unescaped_string,
+                        char line_allignment = 'l') {
+  for (const char& c : unescaped_string) {
+    switch (c) {
+      case '\n':
+        ss << "\\" << line_allignment;
+        continue;
+        ;
+      case '"':
+        ss << "\\\"";
+        continue;
+      default:
+        ss << c;
+    }
+  }
+}
 
-std::vector<Node>& Graph::nodes() { return nodes_; }
+std::string ToVCGString(Color color) {
+  switch (color) {
+    case kRed:
+      return "red";
+    case kYellow:
+      return "yellow";
+    case kGreen:
+      return "green";
+    case kBlue:
+      return "blue";
+    case kTurquoise:
+      return "turquoise";
+    case kMagenta:
+      return "magenta";
+    default:
+      return "white";
+  }
+}
 
-std::vector<Edge>& Graph::edges() { return edges_; }
+std::string ToDotString(Color color) {
+  switch (color) {
+    case kRed:
+      return "#ff0000";
+    case kYellow:
+      return "#ffff00";
+    case kGreen:
+      return "#00ff00";
+    case kBlue:
+      return "#0000ff";
+    case kTurquoise:
+      return "#00ffff";
+    case kMagenta:
+      return "#ff007f";
+    default:
+      return "#ffffff";
+  }
+}
 
-std::string Graph::ToVCGFormat(bool exclude_node_text) const {
+}  // namespace
+
+std::string Graph::ToVCGFormat() const {
   std::stringstream ss;
   ss << "graph: { title: \"Graph\"\n";
 
   for (Node node : nodes_) {
     ss << "node: {\n";
     ss << "title: \"" << node.number() << "\"\n";
-    ss << "color: " + to_string(node.color()) << "\n";
+    ss << "color: " + ToVCGString(node.color()) << "\n";
     ss << "label: \n";
     std::string label = node.title();
-    if (!exclude_node_text && !node.text().empty()) {
+    if (!node.text().empty()) {
       label += "\n" + node.text();
     }
     ss << std::quoted(label);
@@ -44,7 +95,7 @@ std::string Graph::ToVCGFormat(bool exclude_node_text) const {
     ss << "\" targetname: \"";
     ss << edge.target_number();
     ss << "\" arrowstyle: ";
-    if (edge.is_directed())
+    if (is_directed_)
       ss << "solid";
     else
       ss << "none";
@@ -52,7 +103,33 @@ std::string Graph::ToVCGFormat(bool exclude_node_text) const {
   }
 
   ss << "}";
+  return ss.str();
+}
 
+std::string Graph::ToDotFormat() const {
+  std::stringstream ss;
+  ss << (is_directed_ ? "digraph" : "graph") << " g {\n";
+
+  for (Node node : nodes_) {
+    ss << "\tn" << node.number() << " [";
+    ss << "label = \"";
+    ss << node.title() << "\\l";
+    if (!node.text().empty()) {
+      WriteEscapedForDot(ss, node.text());
+    }
+    ss << "\", ";
+    ss << "fillcolor = \"" << ToDotString(node.color()) << "\" style = \"filled\"";
+    ss << ", shape = box, labeljust = l";
+    ss << "];\n";
+  }
+
+  for (Edge edge : edges_) {
+    ss << "\tn" << edge.source_number();
+    ss << (is_directed_ ? "->" : "--");
+    ss << "n" << edge.target_number() << "\n";
+  }
+
+  ss << "}";
   return ss.str();
 }
 

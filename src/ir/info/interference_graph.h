@@ -36,7 +36,7 @@ class InterferenceGraph {
   void ResetRegisters();
 
   std::string ToString() const;
-  common::Graph ToVCGGraph() const;
+  common::Graph ToGraph() const;
 
  private:
   std::unordered_set<ir::value_num_t> values_;
