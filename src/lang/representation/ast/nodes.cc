@@ -23,12 +23,12 @@ bool Node::is_spec() const {
 
 bool Node::is_stmt() const {
   NodeKind kind = node_kind();
-  return NodeKind::kStmtStart != kind && kind <= NodeKind::kSpecEnd;
+  return NodeKind::kStmtStart <= kind && kind <= NodeKind::kStmtEnd;
 }
 
 bool Node::is_expr() const {
   NodeKind kind = node_kind();
-  return NodeKind::kExprStart != kind && kind <= NodeKind::kExprEnd;
+  return NodeKind::kExprStart <= kind && kind <= NodeKind::kExprEnd;
 }
 
 pos::pos_t GenDecl::end() const {
