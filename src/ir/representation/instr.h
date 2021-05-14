@@ -20,8 +20,10 @@ namespace ir {
 enum class InstrKind {
   kMov,
   kPhi,
+  kConversion,
   kUnaryAL,
   kBinaryAL,
+  kShift,
   kCompare,
   kComputationStart = kMov,
   kComputationEnd = kCompare,
@@ -29,7 +31,9 @@ enum class InstrKind {
   kJump,
   kJumpCond,
   kCall,
-  kReturn
+  kReturn,
+
+  kLangStringConcat
 };
 
 class Instr {
@@ -94,6 +98,24 @@ class PhiInstr : public Computation {
   std::vector<std::shared_ptr<InheritedValue>> args_;
 };
 
+class Conversion : public Computation {
+ public:
+  Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
+      : Computation(result), operand_(operand) {}
+
+  std::shared_ptr<Value> operand() const { return operand_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kConversion; }
+  std::string ToString() const override {
+    return result()->ToStringWithType() + " = conv " + operand_->ToStringWithType();
+  }
+
+ private:
+  std::shared_ptr<Value> operand_;
+};
+
 enum class UnaryALOperation : uint8_t { kNot, kNeg };
 
 extern bool IsUnaryALOperationString(std::string op_str);
@@ -118,7 +140,7 @@ class UnaryALInstr : public Computation {
   std::shared_ptr<Value> operand_;
 };
 
-enum class BinaryALOperation : uint8_t { kAnd, kOr, kXor, kAdd, kSub, kMul, kDiv, kRem };
+enum class BinaryALOperation : uint8_t { kAnd, kAndNot, kOr, kXor, kAdd, kSub, kMul, kDiv, kRem };
 
 extern bool IsBinaryALOperationString(std::string op_str);
 extern BinaryALOperation ToBinaryALOperation(std::string op_str);
@@ -144,6 +166,32 @@ class BinaryALInstr : public Computation {
   BinaryALOperation operation_;
   std::shared_ptr<Value> operand_a_;
   std::shared_ptr<Value> operand_b_;
+};
+
+enum class ShiftOperation : uint8_t { kShl, kShr };
+
+extern bool IsShiftOperationString(std::string op_str);
+extern ShiftOperation ToShiftOperation(std::string op_str);
+extern std::string ToString(ShiftOperation op);
+
+class ShiftInstr : public Computation {
+ public:
+  ShiftInstr(ShiftOperation operation, std::shared_ptr<Computed> result,
+             std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset);
+
+  ShiftOperation operation() const { return operation_; }
+  std::shared_ptr<Value> shifted() const { return shifted_; }
+  std::shared_ptr<Value> offset() const { return offset_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {shifted_, offset_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kShift; }
+  std::string ToString() const override;
+
+ private:
+  ShiftOperation operation_;
+  std::shared_ptr<Value> shifted_;
+  std::shared_ptr<Value> offset_;
 };
 
 enum class CompareOperation : uint8_t {

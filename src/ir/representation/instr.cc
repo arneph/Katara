@@ -83,12 +83,14 @@ std::string UnaryALInstr::ToString() const {
 }
 
 bool IsBinaryALOperationString(std::string op_str) {
-  return op_str == "and" || op_str == "or" || op_str == "xor" || op_str == "add" ||
-         op_str == "sub" || op_str == "mul" || op_str == "div" || op_str == "rem";
+  return op_str == "and" || op_str == "andn" || op_str == "or" || op_str == "xor" ||
+         op_str == "add" || op_str == "sub" || op_str == "mul" || op_str == "div" ||
+         op_str == "rem";
 }
 
 BinaryALOperation ToBinaryALOperation(std::string op_str) {
   if (op_str == "and") return BinaryALOperation::kAnd;
+  if (op_str == "andn") return BinaryALOperation::kAndNot;
   if (op_str == "or") return BinaryALOperation::kOr;
   if (op_str == "xor") return BinaryALOperation::kXor;
   if (op_str == "add") return BinaryALOperation::kAdd;
@@ -103,6 +105,8 @@ std::string ToString(BinaryALOperation op) {
   switch (op) {
     case BinaryALOperation::kAnd:
       return "and";
+    case BinaryALOperation::kAndNot:
+      return "andn";
     case BinaryALOperation::kOr:
       return "or";
     case BinaryALOperation::kXor:
@@ -131,6 +135,35 @@ std::string BinaryALInstr::ToString() const {
   return result()->ToStringWithType() + " = " + ir::ToString(operation_) + ":" +
          operand_a_->type()->ToString() + " " + operand_a_->ToString() + ", " +
          operand_b_->ToString();
+}
+
+bool IsShiftOperationString(std::string op_str) { return op_str == "shl" || op_str == "shr"; }
+
+ShiftOperation ToShiftOperation(std::string op_str) {
+  if (op_str == "shl") return ShiftOperation::kShl;
+  if (op_str == "shr") return ShiftOperation::kShr;
+  throw "unknown shift operation string";
+}
+
+std::string ToString(ShiftOperation op) {
+  switch (op) {
+    case ShiftOperation::kShl:
+      return "shl";
+    case ShiftOperation::kShr:
+      return "shr";
+  }
+}
+
+ShiftInstr::ShiftInstr(ShiftOperation operation, std::shared_ptr<Computed> result,
+                       std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset)
+: Computation(result), operation_(operation), shifted_(shifted), offset_(offset) {
+  if (result->type() != shifted->type())
+    throw "attempted to create shift instr with mismatched operand type";
+}
+
+std::string ShiftInstr::ToString() const {
+  return result()->ToStringWithType() + " = " + ir::ToString(operation_) + ":" +
+         shifted_->type()->ToString() + " " + shifted_->ToString() + ", " + offset_->ToString();
 }
 
 CompareOperation Comuted(CompareOperation op) {

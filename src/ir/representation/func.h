@@ -24,7 +24,11 @@ namespace ir {
 class Func {
  public:
   Func(func_num_t fnum)
-      : number_(fnum), block_count_(0), entry_block_num_(kNoBlockNum), dominator_tree_ok_(false) {}
+      : number_(fnum),
+        block_count_(0),
+        entry_block_num_(kNoBlockNum),
+        dominator_tree_ok_(false),
+        computed_count_(0) {}
 
   func_num_t number() const { return number_; }
   std::string name() const { return name_; }
@@ -53,6 +57,9 @@ class Func {
 
   block_num_t DominatorOf(block_num_t dominee_num) const;
   std::unordered_set<block_num_t> DomineesOf(block_num_t dominator_num) const;
+
+  int64_t computed_count() const { return computed_count_; }
+  value_num_t next_computed_number() { return computed_count_++; }
 
   std::string ToString() const;
   common::Graph ToControlFlowGraph() const;
@@ -94,6 +101,8 @@ class Func {
   mutable bool dominator_tree_ok_;
   mutable std::unordered_map<block_num_t, block_num_t> dominators_;
   mutable std::unordered_map<block_num_t, std::unordered_set<block_num_t>> dominees_;
+
+  int64_t computed_count_;
 };
 
 }  // namespace ir

@@ -117,7 +117,8 @@ void run_lang_test(std::filesystem::path test_dir) {
     to_file(file_doc.html, docs_dir / (file_doc.name + ".html"));
   }
 
-  std::unique_ptr<ir::Program> program = lang::ir_builder::IRBuilder::TranslateProgram(test_pkg);
+  std::unique_ptr<ir::Program> program =
+      lang::ir_builder::IRBuilder::TranslateProgram(test_pkg, pkg_manager.type_info());
   if (program) {
     to_file(program->ToString(), docs_dir / (test_pkg->name() + ".ir.txt"));
 

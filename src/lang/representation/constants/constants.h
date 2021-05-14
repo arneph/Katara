@@ -26,11 +26,14 @@ class Value {
  public:
   Value(value_t value) : value_(value) {}
 
+  value_t value() const { return value_; }
+
   bool CanConvertToArraySize() const;
   uint64_t ConvertToArraySize() const;
 
   std::string ToString() const;
 
+ private:
   value_t value_;
 };
 
@@ -41,23 +44,23 @@ Value UnaryOp(tokens::Token op, Value x);
 
 template <typename ConvertedType>
 Value Convert(Value x) {
-  switch (x.value_.index()) {
+  switch (x.value().index()) {
     case 1:
-      return Value(static_cast<ConvertedType>(std::get<int8_t>(x.value_)));
+      return Value(static_cast<ConvertedType>(std::get<int8_t>(x.value())));
     case 2:
-      return Value(static_cast<ConvertedType>(std::get<uint8_t>(x.value_)));
+      return Value(static_cast<ConvertedType>(std::get<uint8_t>(x.value())));
     case 3:
-      return Value(static_cast<ConvertedType>(std::get<int16_t>(x.value_)));
+      return Value(static_cast<ConvertedType>(std::get<int16_t>(x.value())));
     case 4:
-      return Value(static_cast<ConvertedType>(std::get<uint16_t>(x.value_)));
+      return Value(static_cast<ConvertedType>(std::get<uint16_t>(x.value())));
     case 5:
-      return Value(static_cast<ConvertedType>(std::get<int32_t>(x.value_)));
+      return Value(static_cast<ConvertedType>(std::get<int32_t>(x.value())));
     case 6:
-      return Value(static_cast<ConvertedType>(std::get<uint32_t>(x.value_)));
+      return Value(static_cast<ConvertedType>(std::get<uint32_t>(x.value())));
     case 7:
-      return Value(static_cast<ConvertedType>(std::get<int64_t>(x.value_)));
+      return Value(static_cast<ConvertedType>(std::get<int64_t>(x.value())));
     case 8:
-      return Value(static_cast<ConvertedType>(std::get<uint64_t>(x.value_)));
+      return Value(static_cast<ConvertedType>(std::get<uint64_t>(x.value())));
     default:
       throw "unexpected value_t";
   }

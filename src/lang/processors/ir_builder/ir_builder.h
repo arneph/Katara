@@ -20,14 +20,18 @@
 #include "ir/representation/types.h"
 #include "ir/representation/values.h"
 #include "lang/processors/packages/packages.h"
+#include "lang/representation/ir_extension/instrs.h"
+#include "lang/representation/ir_extension/values.h"
 #include "lang/representation/positions/positions.h"
+#include "lang/representation/types/info.h"
 
 namespace lang {
 namespace ir_builder {
 
 class IRBuilder {
  public:
-  static std::unique_ptr<ir::Program> TranslateProgram(packages::Package* main_package);
+  static std::unique_ptr<ir::Program> TranslateProgram(packages::Package* main_package,
+                                                       types::Info* type_info);
 
  private:
   class Context {
@@ -38,6 +42,10 @@ class IRBuilder {
     ir::Block* block() const { return block_; }
     void set_block(ir::Block* block) { block_ = block; }
 
+    std::unordered_map<types::Variable*, std::shared_ptr<ir::Value>>& var_values() {
+      return var_values_;
+    }
+
     Context SubContextForBlock(ir::Block* block) const { return Context(func_, block); }
 
    private:
@@ -45,10 +53,11 @@ class IRBuilder {
 
     ir::Func* func_;
     ir::Block* block_;
-    std::unordered_map<pos::pos_t, std::shared_ptr<ir::Value>> var_values_;
+    std::unordered_map<types::Variable*, std::shared_ptr<ir::Value>> var_values_;
   };
 
-  IRBuilder(std::unique_ptr<ir::Program>& prog) : program_(prog) {}
+  IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& prog)
+      : type_info_(type_info), program_(prog) {}
 
   void PrepareDeclsInFile(ast::File* file);
   void PrepareFuncDecl(ast::FuncDecl* func_decl);
@@ -73,8 +82,20 @@ class IRBuilder {
 
   std::vector<std::shared_ptr<ir::Value>> BuildExprs(std::vector<ast::Expr*> exprs, Context& ctx);
   std::vector<std::shared_ptr<ir::Value>> BuildExpr(ast::Expr* expr, Context& ctx);
+
   std::shared_ptr<ir::Value> BuildUnaryExpr(ast::UnaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildUnaryALExpr(ast::UnaryExpr* expr, ir::UnaryALOperation op,
+                                              Context& ctx);
+  std::shared_ptr<ir::Value> BuildUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
+
   std::shared_ptr<ir::Value> BuildBinaryExpr(ast::BinaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildStringConcatExpr(ast::BinaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildBinaryALExpr(ast::BinaryExpr* expr, ir::BinaryALOperation op,
+                                               Context& ctx);
+  std::shared_ptr<ir::Value> BuildBinaryShiftExpr(ast::BinaryExpr* expr, ir::ShiftOperation op,
+                                                  Context& ctx);
+  std::shared_ptr<ir::Value> BuildBinaryLogicExpr(ast::BinaryExpr* expr, Context& ctx);
+
   std::shared_ptr<ir::Value> BuildCompareExpr(ast::CompareExpr* expr, Context& ctx);
   std::vector<std::shared_ptr<ir::Value>> BuildSelectionExpr(ast::SelectionExpr* expr,
                                                              Context& ctx);
@@ -84,11 +105,21 @@ class IRBuilder {
   std::vector<std::shared_ptr<ir::Value>> BuildCallExpr(ast::CallExpr* expr, Context& ctx);
   std::shared_ptr<ir::Constant> BuildFuncLit(ast::FuncLit* expr, Context& ctx);
   std::shared_ptr<ir::Value> BuildCompositeLit(ast::CompositeLit* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildBasicLit(ast::BasicLit* basic_lit, Context& ctx);
+  std::shared_ptr<ir::Value> BuildBasicLit(ast::BasicLit* basic_lit);
   std::shared_ptr<ir::Value> BuildIdent(ast::Ident* ident, Context& ctx);
 
+  std::shared_ptr<ir::Value> ConvertToType(std::shared_ptr<ir::Value> value, ir::Type* desired_type,
+                                           Context& ctx);
+
+  std::shared_ptr<ir::Value> DefaultValueForType(types::Type* type);
+  
+  std::shared_ptr<ir::Value> ConstantToIRValue(types::Basic* basic, constants::Value value) const;
+  ir::Type* BasicToIRType(types::Basic* basic) const;
+
+  types::Info* type_info_;
+
   std::unique_ptr<ir::Program>& program_;
-  std::unordered_map<pos::pos_t, ir::Func*> funcs_;
+  std::unordered_map<types::Func*, ir::Func*> funcs_;
 };
 
 }  // namespace ir_builder

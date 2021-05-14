@@ -21,6 +21,8 @@ enum class ValueKind {
   kConstant,
   kComputed,
   kInherited,
+
+  kLangStringConstant,
 };
 
 class Value {
