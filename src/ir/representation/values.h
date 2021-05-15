@@ -42,9 +42,9 @@ class Value {
 
 class Constant : public Value {
  public:
-  Constant(AtomicType* type, int64_t value) : Value(type), value_(value) {}
+  Constant(Atomic* type, int64_t value) : Value(type), value_(value) {}
 
-  AtomicType* atomic_type() const { return static_cast<AtomicType*>(type()); }
+  Atomic* atomic_type() const { return static_cast<Atomic*>(type()); }
   int64_t value() const { return value_; }
 
   ValueKind value_kind() const override { return ValueKind::kConstant; }

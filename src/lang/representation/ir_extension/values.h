@@ -12,13 +12,14 @@
 #include <string>
 
 #include "ir/representation/values.h"
+#include "lang/representation/ir_extension/types.h"
 
 namespace lang {
 namespace ir_ext {
 
 class StringConstant : public ir::Value {
  public:
-  StringConstant(types::Basic* type, std::string value) : ir::Value(type), value_(value) {}
+  StringConstant(String* type, std::string value) : ir::Value(type), value_(value) {}
 
   std::string value() const { return value_; }
 

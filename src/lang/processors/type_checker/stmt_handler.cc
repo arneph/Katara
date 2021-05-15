@@ -176,7 +176,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
   }
 
   if (rhs_types.size() == 1 && rhs_types.at(0) != nullptr &&
-      rhs_types.at(0)->type_kind() == ir::TypeKind::kLangTuple) {
+      rhs_types.at(0)->type_kind() == types::TypeKind::kTuple) {
     types::Tuple* tuple = static_cast<types::Tuple*>(rhs_types.at(0));
     rhs_types.clear();
     rhs_types.reserve(tuple->variables().size());
@@ -211,7 +211,7 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
       ast::Ident* ident = static_cast<ast::Ident*>(assign_stmt->lhs().at(i));
       types::Object* obj = info()->DefinitionOf(ident);
       if (obj->object_kind() == types::ObjectKind::kVariable && rhs_type != nullptr) {
-        if (rhs_type->type_kind() == ir::TypeKind::kLangBasic) {
+        if (rhs_type->type_kind() == types::TypeKind::kBasic) {
           types::Basic::Kind basic_kind = static_cast<types::Basic*>(rhs_type)->kind();
           types::Basic::Kind typed_basic_kind = types::ConvertIfUntyped(basic_kind);
           rhs_type = info()->basic_type(typed_basic_kind);
@@ -262,7 +262,7 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
     return;
   }
 
-  if (result_exprs.size() == 1 && result_types.at(0)->type_kind() == ir::TypeKind::kLangTuple) {
+  if (result_exprs.size() == 1 && result_types.at(0)->type_kind() == types::TypeKind::kTuple) {
     types::Tuple* result_tuple = static_cast<types::Tuple*>(result_types.at(0));
     if (!types::IsAssignableTo(result_tuple, ctx.func_results, info_builder())) {
       issues().Add(issues::kUnexpectedReturnStmtFuncCallOperandType, return_stmt->start(),
@@ -278,7 +278,7 @@ void StmtHandler::CheckReturnStmt(ast::ReturnStmt* return_stmt, Context ctx) {
   for (size_t i = 0; i < result_types.size(); i++) {
     types::Type* expected_result_type = ctx.func_results->variables().at(i)->type();
     types::Type* given_result_type = result_types.at(i);
-    if (given_result_type->type_kind() == ir::TypeKind::kLangBasic) {
+    if (given_result_type->type_kind() == types::TypeKind::kBasic) {
       types::Basic::Kind basic_kind = static_cast<types::Basic*>(given_result_type)->kind();
       types::Basic::Kind typed_basic_kind = types::ConvertIfUntyped(basic_kind);
       given_result_type = info()->basic_type(typed_basic_kind);

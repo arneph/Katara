@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "common/graph.h"
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/num_types.h"
 
 namespace ir {

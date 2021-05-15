@@ -28,6 +28,12 @@ std::unique_ptr<ir::Program> IRBuilder::TranslateProgram(packages::Package* main
   return prog;
 }
 
+IRBuilder::IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& prog)
+    : type_info_(type_info), program_(prog) {
+  ir_string_type_ = static_cast<ir_ext::String*>(
+      program_->type_table().AddType(std::make_unique<ir_ext::String>()));
+}
+
 void IRBuilder::PrepareDeclsInFile(ast::File* file) {
   for (auto decl : file->decls()) {
     if (decl->node_kind() == ast::NodeKind::kGenDecl) {
@@ -143,8 +149,8 @@ void IRBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, Context& ctx) {
   for (ast::Spec* spec : decl->specs()) {
     ast::ValueSpec* value_spec = static_cast<ast::ValueSpec*>(spec);
     if (value_spec->values().empty()) {
-      for (ast::Ident *name : value_spec->names()) {
-        types::Variable *var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
+      for (ast::Ident* name : value_spec->names()) {
+        types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
         if (var == nullptr) {
           continue;
         }
@@ -154,8 +160,8 @@ void IRBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, Context& ctx) {
     } else {
       std::vector<std::shared_ptr<ir::Value>> values = BuildExprs(value_spec->values(), ctx);
       for (size_t i = 0; i < value_spec->names().size() && i < values.size(); i++) {
-        ast::Ident *name = value_spec->names().at(i);
-        types::Variable *var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
+        ast::Ident* name = value_spec->names().at(i);
+        types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
         if (var == nullptr) {
           continue;
         }
@@ -297,9 +303,8 @@ std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildExprs(std::vector<ast::E
 }
 
 std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildExpr(ast::Expr* expr, Context& ctx) {
-  return {std::make_shared<ir::Constant>(
-      program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kBool),
-      1)};  // TODO: remove
+  return {std::make_shared<ir::Constant>(program_->type_table().AtomicOfKind(ir::AtomicKind::kBool),
+                                         1)};  // TODO: remove
   switch (expr->node_kind()) {
     case ast::NodeKind::kUnaryExpr:
       return {BuildUnaryExpr(static_cast<ast::UnaryExpr*>(expr), ctx)};
@@ -407,8 +412,8 @@ std::shared_ptr<ir::Value> IRBuilder::BuildBinaryExpr(ast::BinaryExpr* expr, Con
 std::shared_ptr<ir::Value> IRBuilder::BuildStringConcatExpr(ast::BinaryExpr* expr, Context& ctx) {
   std::shared_ptr<ir::Value> x = BuildExpr(expr->x(), ctx).front();
   std::shared_ptr<ir::Value> y = BuildExpr(expr->x(), ctx).front();
-  std::shared_ptr<ir::Computed> result = std::make_shared<ir::Computed>(
-      type_info_->basic_type(types::Basic::kString), ctx.func()->next_computed_number());
+  std::shared_ptr<ir::Computed> result =
+      std::make_shared<ir::Computed>(ir_string_type_, ctx.func()->next_computed_number());
   ctx.block()->instrs().push_back(std::make_unique<ir_ext::StringConcatInstr>(
       result, std::vector<std::shared_ptr<ir::Value>>{x, y}));
   return result;
@@ -437,8 +442,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildBinaryShiftExpr(ast::BinaryExpr* expr
   std::shared_ptr<ir::Value> x = BuildExpr(expr->x(), ctx).front();
   x = ConvertToType(x, ir_type, ctx);
   std::shared_ptr<ir::Value> y = BuildExpr(expr->x(), ctx).front();
-  y = ConvertToType(y, program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU64),
-                    ctx);
+  y = ConvertToType(y, program_->type_table().AtomicOfKind(ir::AtomicKind::kU64), ctx);
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(ir_type, ctx.func()->next_computed_number());
   ctx.block()->instrs().push_back(std::make_unique<ir::ShiftInstr>(op, result, x, y));
@@ -458,8 +462,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildBinaryLogicExpr(ast::BinaryExpr* expr
   ctx.set_block(merge_block);
 
   ir::block_num_t destination_true, destination_false;
-  ir::AtomicType* atomic_bool =
-      program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kBool);
+  ir::Atomic* atomic_bool = program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
   std::shared_ptr<ir::Constant> short_circuit_value;
   switch (expr->op()) {
     case tokens::kLAnd:
@@ -555,13 +558,11 @@ std::shared_ptr<ir::Value> IRBuilder::BuildIdent(ast::Ident* ident, Context& ctx
     case types::ObjectKind::kFunc: {
       types::Func* types_func = static_cast<types::Func*>(object);
       ir::Func* ir_func = funcs_.at(types_func);
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kFunc);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kFunc);
       return std::make_shared<ir::Constant>(atomic_type, ir_func->number());
     }
     case types::ObjectKind::kNil: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kPtr);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kPtr);
       return std::make_shared<ir::Constant>(atomic_type, 0);
     }
     default:
@@ -584,17 +585,17 @@ std::shared_ptr<ir::Value> IRBuilder::ConvertToType(std::shared_ptr<ir::Value> v
   }
 }
 
-std::shared_ptr<ir::Value> IRBuilder::DefaultValueForType(types::Type *lang_type) {
+std::shared_ptr<ir::Value> IRBuilder::DefaultValueForType(types::Type* lang_type) {
   switch (lang_type->type_kind()) {
-    case ir::TypeKind::kLangBasic:{
+    case types::TypeKind::kBasic: {
       ir::Type* ir_type = BasicToIRType(static_cast<types::Basic*>(lang_type));
-      if (ir_type->type_kind() == ir::TypeKind::kAtomic) {
-        return std::make_shared<ir::Constant>(static_cast<ir::AtomicType*>(ir_type), 0);
-      } else if (ir_type->type_kind() == ir::TypeKind::kLangBasic &&
-                 static_cast<types::Basic*>(ir_type)->kind() == types::Basic::kString) {
-        return std::make_shared<ir_ext::StringConstant>(static_cast<types::Basic*>(ir_type), "");
-      } else {
-        throw "internal error: unexpected ir type for basic type";
+      switch (ir_type->type_kind()) {
+        case ir::TypeKind::kAtomic:
+          return std::make_shared<ir::Constant>(static_cast<ir::Atomic*>(ir_type), 0);
+        case ir::TypeKind::kLangString:
+          return std::make_shared<ir_ext::StringConstant>(ir_string_type_, "");
+        default:
+          throw "internal error: unexpected ir type for basic type";
       }
     }
     default:
@@ -609,68 +610,58 @@ std::shared_ptr<ir::Value> IRBuilder::ConstantToIRValue(types::Basic* basic,
   switch (basic->kind()) {
     case types::Basic::kBool:
     case types::Basic::kUntypedBool: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kBool);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
       int64_t value = std::get<bool>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kInt8: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI8);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI8);
       int64_t value = std::get<int8_t>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kInt16: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI16);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI16);
       int64_t value = std::get<int16_t>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kInt32:
     case types::Basic::kUntypedRune: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI32);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI32);
       int64_t value = std::get<int32_t>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kInt:
     case types::Basic::kInt64:
     case types::Basic::kUntypedInt: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI64);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI64);
       int64_t value = std::get<int64_t>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kUint8: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU8);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kU8);
       int64_t value = std::get<uint8_t>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kUint16: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU16);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kU16);
       int64_t value = std::get<uint16_t>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kUint32: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU32);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kU32);
       int64_t value = std::get<uint32_t>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kUint:
     case types::Basic::kUint64: {
-      ir::AtomicType* atomic_type =
-          program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU64);
+      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kU64);
       int64_t value = std::get<uint64_t>(constant.value());
       return std::make_shared<ir::Constant>(atomic_type, value);
     }
     case types::Basic::kString:
     case types::Basic::kUntypedString: {
-      types::Basic* string_type = type_info_->basic_type(types::Basic::kString);
       std::string value = std::get<std::string>(constant.value());
-      return std::make_shared<ir_ext::StringConstant>(string_type, value);
+      return std::make_shared<ir_ext::StringConstant>(ir_string_type_, value);
     }
     default:
       throw "internal error: unexpected basic literal type";
@@ -681,32 +672,32 @@ ir::Type* IRBuilder::BasicToIRType(types::Basic* basic) const {
   switch (basic->kind()) {
     case types::Basic::kBool:
     case types::Basic::kUntypedBool:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kBool);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
     case types::Basic::kInt8:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI8);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kI8);
     case types::Basic::kInt16:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI16);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kI16);
     case types::Basic::kInt32:
     case types::Basic::kUntypedRune:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI32);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kI32);
     case types::Basic::kInt:
     case types::Basic::kInt64:
     case types::Basic::kUntypedInt:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI64);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kI64);
     case types::Basic::kUint8:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU8);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kU8);
     case types::Basic::kUint16:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU16);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kU16);
     case types::Basic::kUint32:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU32);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kU32);
     case types::Basic::kUint:
     case types::Basic::kUint64:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU64);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kU64);
     case types::Basic::kString:
     case types::Basic::kUntypedString:
-      return type_info_->basic_type(types::Basic::kString);
+      return ir_string_type_;
     case types::Basic::kUntypedNil:
-      return program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kPtr);
+      return program_->type_table().AtomicOfKind(ir::AtomicKind::kPtr);
     default:
       throw "internal error: unexpected basic literal type";
   }

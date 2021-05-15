@@ -72,20 +72,20 @@ constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_b
 
 Type* UnderlyingOf(Type* type, InfoBuilder& info_builder) {
   switch (type->type_kind()) {
-    case ir::TypeKind::kLangBasic:
-    case ir::TypeKind::kLangPointer:
-    case ir::TypeKind::kLangArray:
-    case ir::TypeKind::kLangSlice:
-    case ir::TypeKind::kLangTuple:
-    case ir::TypeKind::kLangSignature:
-    case ir::TypeKind::kLangStruct:
-    case ir::TypeKind::kLangInterface:
+    case TypeKind::kBasic:
+    case TypeKind::kPointer:
+    case TypeKind::kArray:
+    case TypeKind::kSlice:
+    case TypeKind::kTuple:
+    case TypeKind::kSignature:
+    case TypeKind::kStruct:
+    case TypeKind::kInterface:
       return type;
-    case ir::TypeKind::kLangTypeParameter:
+    case TypeKind::kTypeParameter:
       return static_cast<TypeParameter*>(type)->interface();
-    case ir::TypeKind::kLangNamedType:
+    case TypeKind::kNamedType:
       return static_cast<NamedType*>(type)->underlying();
-    case ir::TypeKind::kLangTypeInstance: {
+    case TypeKind::kTypeInstance: {
       TypeInstance* type_instance = static_cast<TypeInstance*>(type);
       NamedType* instantiated_type = type_instance->instantiated_type();
       if (instantiated_type->type_parameters().empty()) {
@@ -113,7 +113,7 @@ Type* UnderlyingOf(Type* type, InfoBuilder& info_builder) {
 }
 
 Type* ResolveAlias(Type* type) {
-  if (type->type_kind() != ir::TypeKind::kLangNamedType) {
+  if (type->type_kind() != TypeKind::kNamedType) {
     return type;
   }
   NamedType* named_type = static_cast<NamedType*>(type);
@@ -132,38 +132,36 @@ bool IsIdentical(Type* a, Type* b) {
   if (a == b) {
     return true;
   }
-  if (a->type_kind() == ir::TypeKind::kLangTypeParameter &&
-      b->type_kind() == ir::TypeKind::kLangInterface) {
+  if (a->type_kind() == TypeKind::kTypeParameter && b->type_kind() == TypeKind::kInterface) {
     return IsIdentical(static_cast<TypeParameter*>(a)->interface(), static_cast<Interface*>(b));
-  } else if (a->type_kind() == ir::TypeKind::kLangInterface &&
-             b->type_kind() == ir::TypeKind::kLangTypeParameter) {
+  } else if (a->type_kind() == TypeKind::kInterface && b->type_kind() == TypeKind::kTypeParameter) {
     return IsIdentical(static_cast<Interface*>(a), static_cast<TypeParameter*>(b)->interface());
   }
   if (a->type_kind() != b->type_kind()) {
     return false;
   }
   switch (a->type_kind()) {
-    case ir::TypeKind::kLangBasic:
+    case TypeKind::kBasic:
       return IsIdentical(static_cast<Basic*>(a), static_cast<Basic*>(b));
-    case ir::TypeKind::kLangPointer:
+    case TypeKind::kPointer:
       return IsIdentical(static_cast<Pointer*>(a), static_cast<Pointer*>(b));
-    case ir::TypeKind::kLangArray:
+    case TypeKind::kArray:
       return IsIdentical(static_cast<Array*>(a), static_cast<Array*>(b));
-    case ir::TypeKind::kLangSlice:
+    case TypeKind::kSlice:
       return IsIdentical(static_cast<Slice*>(a), static_cast<Slice*>(b));
-    case ir::TypeKind::kLangTypeParameter:
+    case TypeKind::kTypeParameter:
       return IsIdentical(static_cast<TypeParameter*>(a), static_cast<TypeParameter*>(b));
-    case ir::TypeKind::kLangNamedType:
+    case TypeKind::kNamedType:
       return IsIdentical(static_cast<NamedType*>(a), static_cast<NamedType*>(b));
-    case ir::TypeKind::kLangTypeInstance:
+    case TypeKind::kTypeInstance:
       return IsIdentical(static_cast<TypeInstance*>(a), static_cast<TypeInstance*>(b));
-    case ir::TypeKind::kLangTuple:
+    case TypeKind::kTuple:
       return IsIdentical(static_cast<Tuple*>(a), static_cast<Tuple*>(b));
-    case ir::TypeKind::kLangSignature:
+    case TypeKind::kSignature:
       return IsIdentical(static_cast<Signature*>(a), static_cast<Signature*>(b));
-    case ir::TypeKind::kLangStruct:
+    case TypeKind::kStruct:
       return IsIdentical(static_cast<Struct*>(a), static_cast<Struct*>(b));
-    case ir::TypeKind::kLangInterface:
+    case TypeKind::kInterface:
       return IsIdentical(static_cast<Interface*>(a), static_cast<Interface*>(b));
     default:
       throw "unexpected lang type";
@@ -297,15 +295,14 @@ bool IsAssignableTo(Type* src, Type* dst, InfoBuilder& info_builder) {
   }
   Type* src_underlying = UnderlyingOf(src, info_builder);
   Type* dst_underlying = UnderlyingOf(dst, info_builder);
-  if (src->type_kind() != ir::TypeKind::kLangTypeParameter &&
-      src->type_kind() != ir::TypeKind::kLangNamedType &&
-      src->type_kind() != ir::TypeKind::kLangTypeInstance) {
+  if (src->type_kind() != TypeKind::kTypeParameter && src->type_kind() != TypeKind::kNamedType &&
+      src->type_kind() != TypeKind::kTypeInstance) {
     if (IsIdentical(src_underlying, dst_underlying)) {
       return true;
     }
-  } else if (dst->type_kind() != ir::TypeKind::kLangTypeParameter &&
-             dst->type_kind() != ir::TypeKind::kLangNamedType &&
-             dst->type_kind() != ir::TypeKind::kLangTypeInstance) {
+  } else if (dst->type_kind() != TypeKind::kTypeParameter &&
+             dst->type_kind() != TypeKind::kNamedType &&
+             dst->type_kind() != TypeKind::kTypeInstance) {
     if (IsIdentical(src_underlying, dst_underlying)) {
       return true;
     }
@@ -314,23 +311,22 @@ bool IsAssignableTo(Type* src, Type* dst, InfoBuilder& info_builder) {
     return true;
   }
 
-  if (src->type_kind() != ir::TypeKind::kLangBasic) {
+  if (src->type_kind() != TypeKind::kBasic) {
     return false;
   }
   Basic* basic_src = static_cast<Basic*>(src);
   if (basic_src->kind() == Basic::kUntypedNil) {
     switch (dst->type_kind()) {
-      case ir::TypeKind::kLangPointer:
-      case ir::TypeKind::kLangSlice:
-      case ir::TypeKind::kLangTypeParameter:
-      case ir::TypeKind::kLangSignature:
-      case ir::TypeKind::kLangInterface:
+      case TypeKind::kPointer:
+      case TypeKind::kSlice:
+      case TypeKind::kTypeParameter:
+      case TypeKind::kSignature:
+      case TypeKind::kInterface:
         return true;
       default:
         return false;
     }
-  } else if ((basic_src->info() & Basic::kIsUntyped) != 0 &&
-             dst->type_kind() == ir::TypeKind::kLangBasic) {
+  } else if ((basic_src->info() & Basic::kIsUntyped) != 0 && dst->type_kind() == TypeKind::kBasic) {
     Basic* basic_dst = static_cast<Basic*>(dst);
     switch (basic_src->kind()) {
       case Basic::kUntypedBool:
@@ -365,7 +361,7 @@ bool IsConvertibleTo(Type*, Type*) {
 bool Implements(Type* impl, Type* interface, InfoBuilder& info_builder) {
   Interface* underlying_interface;
   if (Type* underlying = UnderlyingOf(interface, info_builder);
-      underlying->type_kind() == ir::TypeKind::kLangInterface) {
+      underlying->type_kind() == TypeKind::kInterface) {
     underlying_interface = static_cast<Interface*>(underlying);
   } else {
     return false;
@@ -374,13 +370,13 @@ bool Implements(Type* impl, Type* interface, InfoBuilder& info_builder) {
     return true;
   }
   switch (impl->type_kind()) {
-    case ir::TypeKind::kLangTypeParameter:
+    case TypeKind::kTypeParameter:
       return Implements(static_cast<TypeParameter*>(impl), underlying_interface);
-    case ir::TypeKind::kLangNamedType:
+    case TypeKind::kNamedType:
       return Implements(static_cast<NamedType*>(impl), underlying_interface);
-    case ir::TypeKind::kLangTypeInstance:
+    case TypeKind::kTypeInstance:
       return Implements(static_cast<TypeInstance*>(impl), underlying_interface);
-    case ir::TypeKind::kLangInterface:
+    case TypeKind::kInterface:
       return Implements(static_cast<Interface*>(impl), underlying_interface);
     default:
       return false;

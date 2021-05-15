@@ -23,7 +23,7 @@
 #include "ir/processors/scanner.h"
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/num_types.h"
 #include "ir/representation/program.h"
 #include "ir/representation/types.h"

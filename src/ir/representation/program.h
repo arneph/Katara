@@ -34,7 +34,8 @@ class Program {
   Func* AddFunc(func_num_t fnum = kNoFuncNum);
   void RemoveFunc(func_num_t fnum);
 
-  const AtomicTypeTable& atomic_type_table() const { return atomic_type_table_; }
+  const TypeTable& type_table() const { return type_table_; }
+  TypeTable& type_table() { return type_table_; }
 
   std::string ToString() const;
 
@@ -44,7 +45,7 @@ class Program {
 
   func_num_t entry_func_num_;
 
-  AtomicTypeTable atomic_type_table_;
+  TypeTable type_table_;
 };
 
 }  // namespace ir

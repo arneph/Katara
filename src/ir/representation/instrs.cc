@@ -1,12 +1,12 @@
 //
-//  instr.cc
+//  instrs.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 12/21/19.
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#include "instr.h"
+#include "instrs.h"
 
 namespace ir {
 
@@ -156,7 +156,7 @@ std::string ToString(ShiftOperation op) {
 
 ShiftInstr::ShiftInstr(ShiftOperation operation, std::shared_ptr<Computed> result,
                        std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset)
-: Computation(result), operation_(operation), shifted_(shifted), offset_(offset) {
+    : Computation(result), operation_(operation), shifted_(shifted), offset_(offset) {
   if (result->type() != shifted->type())
     throw "attempted to create shift instr with mismatched operand type";
 }

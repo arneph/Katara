@@ -1,13 +1,13 @@
 //
-//  instr.h
+//  instrs.h
 //  Katara
 //
 //  Created by Arne Philipeit on 12/21/19.
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_instr_h
-#define ir_instr_h
+#ifndef ir_instrs_h
+#define ir_instrs_h
 
 #include <memory>
 #include <string>
@@ -25,8 +25,13 @@ enum class InstrKind {
   kBinaryAL,
   kShift,
   kCompare,
+  kMalloc,
+  kLoad,
   kComputationStart = kMov,
   kComputationEnd = kCompare,
+
+  kStore,
+  kFree,
 
   kJump,
   kJumpCond,
@@ -231,6 +236,79 @@ class CompareInstr : public Computation {
   std::shared_ptr<Value> operand_b_;
 };
 
+class MallocInstr : public Computation {
+ public:
+  MallocInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> size)
+      : Computation(result), size_(size) {}
+
+  std::shared_ptr<Value> size() const { return size_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {size_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kMalloc; }
+  std::string ToString() const override {
+    return result()->ToStringWithType() + " = malloc " + size_->ToString();
+  }
+
+ private:
+  std::shared_ptr<Value> size_;
+};
+
+class LoadInstr : public Computation {
+ public:
+  LoadInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> address)
+      : Computation(result), address_(address) {}
+
+  std::shared_ptr<Value> address() const { return address_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kLoad; }
+  std::string ToString() const override {
+    return result()->ToStringWithType() + " = load " + address_->ToString();
+  }
+
+ private:
+  std::shared_ptr<Value> address_;
+};
+
+class StoreInstr : public Instr {
+ public:
+  StoreInstr(std::shared_ptr<Value> address, std::shared_ptr<Value> value)
+      : address_(address), value_(value) {}
+
+  std::shared_ptr<Value> address() const { return address_; }
+  std::shared_ptr<Value> value() const { return value_; }
+
+  std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_, value_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kStore; }
+  std::string ToString() const override {
+    return "store " + address_->ToString() + ", " + value_->ToString();
+  }
+
+ private:
+  std::shared_ptr<Value> address_;
+  std::shared_ptr<Value> value_;
+};
+
+class FreeInstr : public Instr {
+ public:
+  FreeInstr(std::shared_ptr<Value> address) : address_(address) {}
+
+  std::shared_ptr<Value> address() const { return address_; }
+
+  std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kFree; }
+  std::string ToString() const override { return "free " + address_->ToString(); }
+
+ private:
+  std::shared_ptr<Value> address_;
+};
+
 class JumpInstr : public Instr {
  public:
   JumpInstr(block_num_t destination) : destination_(destination) {}
@@ -311,4 +389,4 @@ class ReturnInstr : public Instr {
 
 }  // namespace ir
 
-#endif /* ir_instr_h */
+#endif /* ir_instrs_h */

@@ -14,6 +14,7 @@ cc_library(
         "//src/lang/representation/constants",
         "//src/lang/representation/positions",
         "//src/lang/representation/tokens",
+        "//src/lang/representation/ir_extension",
         "//src/lang/representation/types:base",
         "//src/lang/representation/types:info",
         "//src/lang/representation/types:info_util",

@@ -17,7 +17,7 @@
 #include "ir/info/interference_graph.h"
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/program.h"
 #include "ir/representation/values.h"
 #include "x86_64/block.h"
@@ -82,7 +82,7 @@ class IRTranslator {
   x86_64::BlockRef TranslateBlockValue(ir::block_num_t block_value);
   x86_64::FuncRef TranslateFuncValue(ir::Value func_value);
 
-  x86_64::InstrCond TranslateCompareOperation(ir::AtomicType* type, ir::CompareOperation op);
+  x86_64::InstrCond TranslateCompareOperation(ir::Atomic* type, ir::CompareOperation op);
 
   ir::Program* ir_program_;
   // std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo>& live_range_infos_;

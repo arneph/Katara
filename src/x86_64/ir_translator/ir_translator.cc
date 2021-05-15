@@ -207,7 +207,7 @@ void IRTranslator::TranslateBinaryALInstr(ir::BinaryALInstr* ir_binary_al_instr,
   std::shared_ptr<ir::Computed> ir_result = ir_binary_al_instr->result();
   std::shared_ptr<ir::Value> ir_operand_a = ir_binary_al_instr->operand_a();
   std::shared_ptr<ir::Value> ir_operand_b = ir_binary_al_instr->operand_b();
-  ir::AtomicType* ir_operand_b_type = static_cast<ir::AtomicType*>(ir_operand_b->type());
+  ir::Atomic* ir_operand_b_type = static_cast<ir::Atomic*>(ir_operand_b->type());
 
   GenerateMovs(ir_result, ir_operand_a, ir_func, x86_64_block_builder);
 
@@ -219,17 +219,17 @@ void IRTranslator::TranslateBinaryALInstr(ir::BinaryALInstr* ir_binary_al_instr,
     if (ir::SizeOf(ir_operand_b_type->kind()) == 64) {
       int64_t v = ir_operand_b_constant->value();
 
-      if (ir_operand_b_type->kind() == ir::AtomicTypeKind::kI64) {
+      if (ir_operand_b_type->kind() == ir::AtomicKind::kI64) {
         if (INT32_MIN <= v && v <= INT32_MAX) {
           ir_operand_b = std::make_shared<ir::Constant>(
-              ir_program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kI32), v);
+              ir_program_->type_table().AtomicOfKind(ir::AtomicKind::kI32), v);
         } else {
           requires_tmp_reg = true;
         }
-      } else if (ir_operand_b_type->kind() == ir::AtomicTypeKind::kU64) {
+      } else if (ir_operand_b_type->kind() == ir::AtomicKind::kU64) {
         if (0 <= v && v <= UINT32_MAX) {
           ir_operand_b = std::make_shared<ir::Constant>(
-              ir_program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kU32), v);
+              ir_program_->type_table().AtomicOfKind(ir::AtomicKind::kU32), v);
         } else {
           requires_tmp_reg = true;
         }
@@ -328,7 +328,7 @@ void IRTranslator::TranslateCompareInstr(ir::CompareInstr* ir_compare_instr, ir:
     required_tmp_reg_is_result_reg = x86_64_result.is_reg();
   }
 
-  ir::AtomicType* ir_type = static_cast<ir::AtomicType*>(ir_operand_b->type());
+  ir::Atomic* ir_type = static_cast<ir::Atomic*>(ir_operand_b->type());
   x86_64::Size x86_64_size = x86_64::Size(ir::SizeOf(ir_type->kind()));
   x86_64::Reg x86_64_tmp_reg(x86_64_size, 0);
   if (!required_tmp_reg_is_result_reg && x86_64_operand_a.is_reg() &&
@@ -432,7 +432,7 @@ void IRTranslator::GenerateMovs(std::shared_ptr<ir::Computed> ir_result,
     x86_64_block_builder.AddInstr(new x86_64::Mov(x86_64_result, x86_64_origin));
 
   } else {
-    ir::AtomicType* ir_type = static_cast<ir::AtomicType*>(ir_result->type());
+    ir::Atomic* ir_type = static_cast<ir::Atomic*>(ir_result->type());
     x86_64::Size x86_64_size = (x86_64::Size)ir::SizeOf(ir_type->kind());
     x86_64::Reg x86_64_tmp_reg = x86_64::Reg(x86_64_size, 0);
 
@@ -455,28 +455,28 @@ x86_64::Operand IRTranslator::TranslateValue(std::shared_ptr<ir::Value> value, i
 }
 
 x86_64::Imm IRTranslator::TranslateConstant(std::shared_ptr<ir::Constant> constant) {
-  switch (static_cast<ir::AtomicType*>(constant->type())->kind()) {
-    case ir::AtomicTypeKind::kBool:
+  switch (static_cast<ir::Atomic*>(constant->type())->kind()) {
+    case ir::AtomicKind::kBool:
       if (constant->value()) {
         return x86_64::Imm(int8_t{1});
       } else {
         return x86_64::Imm(int8_t{0});
       }
 
-    case ir::AtomicTypeKind::kI8:
-    case ir::AtomicTypeKind::kU8:
+    case ir::AtomicKind::kI8:
+    case ir::AtomicKind::kU8:
       return x86_64::Imm(int8_t(constant->value()));
 
-    case ir::AtomicTypeKind::kI16:
-    case ir::AtomicTypeKind::kU16:
+    case ir::AtomicKind::kI16:
+    case ir::AtomicKind::kU16:
       return x86_64::Imm(int16_t(constant->value()));
 
-    case ir::AtomicTypeKind::kI32:
-    case ir::AtomicTypeKind::kU32:
+    case ir::AtomicKind::kI32:
+    case ir::AtomicKind::kU32:
       return x86_64::Imm(int32_t(constant->value()));
 
-    case ir::AtomicTypeKind::kI64:
-    case ir::AtomicTypeKind::kU64:
+    case ir::AtomicKind::kI64:
+    case ir::AtomicKind::kU64:
       return x86_64::Imm(int64_t(constant->value()));
 
     default:
@@ -491,7 +491,7 @@ x86_64::RM IRTranslator::TranslateComputed(std::shared_ptr<ir::Computed> compute
   ir_info::InterferenceGraph& graph = interference_graphs_.at(ir_func);
 
   int64_t ir_reg = graph.GetRegister(computed->number());
-  int8_t ir_size = ir::SizeOf(static_cast<ir::AtomicType*>(computed->type())->kind());
+  int8_t ir_size = ir::SizeOf(static_cast<ir::Atomic*>(computed->type())->kind());
 
   x86_64::Size x86_64_size = (x86_64::Size)ir_size;
 
@@ -515,7 +515,7 @@ x86_64::FuncRef IRTranslator::TranslateFuncValue(ir::Value /*func_value*/) {
   return x86_64::FuncRef(-1);
 }
 
-x86_64::InstrCond IRTranslator::TranslateCompareOperation(ir::AtomicType* type,
+x86_64::InstrCond IRTranslator::TranslateCompareOperation(ir::Atomic* type,
                                                           ir::CompareOperation op) {
   switch (op) {
     case ir::CompareOperation::kEqual:

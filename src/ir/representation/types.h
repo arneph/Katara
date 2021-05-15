@@ -18,40 +18,18 @@ namespace ir {
 enum class TypeKind {
   kAtomic,
 
-  kLangBasic,
-
-  kLangPointer,
-  kLangArray,
-  kLangSlice,
-  kLangWrapperStart = kLangPointer,
-  kLangWrapperEnd = kLangSlice,
-  kLangContainerStart = kLangArray,
-  kLangContainerEnd = kLangSlice,
-
-  kLangTypeParameter,
-  kLangNamedType,
-  kLangTypeInstance,
-  kLangTuple,
-  kLangSignature,
-  kLangStruct,
-  kLangInterface,
-
-  kLangStart = kLangBasic,
-  kLangEnd = kLangInterface,
+  kLangString,
 };
 
 class Type {
  public:
   virtual ~Type() {}
 
-  bool is_atomic() const { return type_kind() == TypeKind::kAtomic; }
-  bool is_lang_type() const;
-
   virtual TypeKind type_kind() const = 0;
   virtual std::string ToString() const = 0;
 };
 
-enum class AtomicTypeKind : int8_t {
+enum class AtomicKind : int8_t {
   kBool,
   kI8,
   kI16,
@@ -65,35 +43,38 @@ enum class AtomicTypeKind : int8_t {
   kFunc,
 };
 
-extern bool IsIntegral(AtomicTypeKind type);
-extern bool IsUnsigned(AtomicTypeKind type);
-extern int8_t SizeOf(AtomicTypeKind type);
-extern AtomicTypeKind ToAtomicTypeKind(std::string type_str);
-extern std::string ToString(AtomicTypeKind type);
+extern bool IsIntegral(AtomicKind type);
+extern bool IsUnsigned(AtomicKind type);
+extern int8_t SizeOf(AtomicKind type);
+extern AtomicKind ToAtomicTypeKind(std::string type_str);
+extern std::string ToString(AtomicKind type);
 
-class AtomicType : public Type {
+class Atomic : public Type {
  public:
-  AtomicType(AtomicTypeKind kind) : kind_(kind) {}
+  Atomic(AtomicKind kind) : kind_(kind) {}
 
-  AtomicTypeKind kind() const { return kind_; }
+  AtomicKind kind() const { return kind_; }
 
   TypeKind type_kind() const override { return TypeKind::kAtomic; }
   std::string ToString() const override { return ir::ToString(kind_); }
 
  private:
-  AtomicTypeKind kind_;
+  AtomicKind kind_;
 };
 
-class AtomicTypeTable {
+class TypeTable {
  public:
-  AtomicTypeTable();
+  TypeTable();
 
-  AtomicType* AtomicTypeForKind(AtomicTypeKind kind) const {
-    return types_.at(static_cast<int8_t>(kind)).get();
+  Atomic* AtomicOfKind(AtomicKind kind) const {
+    return atomic_types_.at(static_cast<int8_t>(kind)).get();
   }
 
+  Type* AddType(std::unique_ptr<Type> type);
+
  private:
-  std::vector<std::unique_ptr<AtomicType>> types_;
+  std::vector<std::unique_ptr<Atomic>> atomic_types_;
+  std::vector<std::unique_ptr<Type>> types_;
 };
 
 }  // namespace ir

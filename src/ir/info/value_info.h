@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/num_types.h"
 
 namespace ir_info {

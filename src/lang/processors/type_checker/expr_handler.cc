@@ -22,7 +22,7 @@ bool ExprHandler::CheckBoolExpr(ast::Expr* expr) {
     return false;
   }
   types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type(), info_builder());
-  if (type->type_kind() != ir::TypeKind::kLangBasic ||
+  if (type->type_kind() != types::TypeKind::kBasic ||
       !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsBoolean)) {
     issues().Add(issues::kExprTypeIsNotBool, expr->start(), "expression is not of type bool");
     return false;
@@ -35,7 +35,7 @@ bool ExprHandler::CheckIntExpr(ast::Expr* expr) {
     return false;
   }
   types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type(), info_builder());
-  if (type->type_kind() != ir::TypeKind::kLangBasic ||
+  if (type->type_kind() != types::TypeKind::kBasic ||
       !(static_cast<types::Basic*>(type)->kind() &
         (types::Basic::Kind::kInt | types::Basic::Kind::kUntypedInt))) {
     issues().Add(issues::kExprTypeIsNotInt, expr->start(), "expression is not of type int");
@@ -49,7 +49,7 @@ bool ExprHandler::CheckIntegerExpr(ast::Expr* expr) {
     return false;
   }
   types::Type* type = types::UnderlyingOf(info()->ExprInfoOf(expr).value().type(), info_builder());
-  if (type->type_kind() != ir::TypeKind::kLangBasic ||
+  if (type->type_kind() != types::TypeKind::kBasic ||
       !(static_cast<types::Basic*>(type)->info() & types::Basic::Info::kIsInteger)) {
     issues().Add(issues::kExprTypeIsNotInteger, expr->start(), "expression is not of type integer");
     return false;
@@ -243,7 +243,7 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr* unary_expr) {
     return true;
 
   } else if (unary_expr->op() == tokens::kMul || unary_expr->op() == tokens::kRem) {
-    if (x_info.type()->type_kind() != ir::TypeKind::kLangPointer) {
+    if (x_info.type()->type_kind() != types::TypeKind::kPointer) {
       issues().Add(issues::kUnexpectedPointerDereferenceExprOperandType, unary_expr->x()->start(),
                    "invalid operation: expected pointer");
       return false;
@@ -481,7 +481,7 @@ std::optional<ExprHandler::CheckBasicOperandResult> ExprHandler::CheckBasicOpera
     return std::nullopt;
   }
   types::Type* op_underlying = types::UnderlyingOf(op_type, info_builder());
-  if (op_underlying->type_kind() != ir::TypeKind::kLangBasic) {
+  if (op_underlying->type_kind() != types::TypeKind::kBasic) {
     issues().Add(issues::kUnexpectedBasicOperandType, op_expr->start(),
                  "invalid operation: operand does not have basic type");
     return std::nullopt;
@@ -531,11 +531,11 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr, Context
     return false;
   }
   types::Type* accessed_type = accessed_info.type();
-  if (accessed_type->type_kind() == ir::TypeKind::kLangPointer) {
+  if (accessed_type->type_kind() == types::TypeKind::kPointer) {
     accessed_type = static_cast<types::Pointer*>(accessed_type)->element_type();
     types::Type* underlying = types::UnderlyingOf(accessed_type, info_builder());
-    if (underlying->type_kind() == ir::TypeKind::kLangInterface ||
-        accessed_type->type_kind() == ir::TypeKind::kLangTypeParameter) {
+    if (underlying->type_kind() == types::TypeKind::kInterface ||
+        accessed_type->type_kind() == types::TypeKind::kTypeParameter) {
       issues().Add(issues::kForbiddenSelectionFromPointerToInterfaceOrTypeParameter,
                    selection_expr->selection()->start(),
                    "invalid operation: selection from pointer to interface or type parameter not "
@@ -543,11 +543,11 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr, Context
       return false;
     }
   }
-  if (accessed_type->type_kind() == ir::TypeKind::kLangTypeParameter) {
+  if (accessed_type->type_kind() == types::TypeKind::kTypeParameter) {
     accessed_type = static_cast<types::TypeParameter*>(accessed_type)->interface();
   }
   types::InfoBuilder::TypeParamsToArgsMap type_params_to_args;
-  if (accessed_type->type_kind() == ir::TypeKind::kLangTypeInstance) {
+  if (accessed_type->type_kind() == types::TypeKind::kTypeInstance) {
     types::TypeInstance* type_instance = static_cast<types::TypeInstance*>(accessed_type);
     types::NamedType* instantiated_type = type_instance->instantiated_type();
     accessed_type = instantiated_type;
@@ -558,7 +558,7 @@ bool ExprHandler::CheckSelectionExpr(ast::SelectionExpr* selection_expr, Context
     }
   }
 
-  if (accessed_type->type_kind() == ir::TypeKind::kLangNamedType) {
+  if (accessed_type->type_kind() == types::TypeKind::kNamedType) {
     types::NamedType* named_type = static_cast<types::NamedType*>(accessed_type);
     switch (CheckNamedTypeMethodSelectionExpr(selection_expr, named_type, type_params_to_args)) {
       case CheckSelectionExprResult::kNotApplicable:
@@ -632,14 +632,14 @@ ExprHandler::CheckSelectionExprResult ExprHandler::CheckNamedTypeMethodSelection
   types::Type* receiver_type = nullptr;
   if (signature->has_expr_receiver()) {
     receiver_type = signature->expr_receiver()->type();
-    if (receiver_type->type_kind() == ir::TypeKind::kLangPointer) {
+    if (receiver_type->type_kind() == types::TypeKind::kPointer) {
       receiver_type = static_cast<types::Pointer*>(receiver_type)->element_type();
     }
   } else if (signature->has_type_receiver()) {
     receiver_type = signature->type_receiver();
   }
 
-  if (receiver_type->type_kind() == ir::TypeKind::kLangTypeInstance) {
+  if (receiver_type->type_kind() == types::TypeKind::kTypeInstance) {
     types::TypeInstance* type_instance = static_cast<types::TypeInstance*>(receiver_type);
     types::InfoBuilder::TypeParamsToArgsMap method_type_params_to_args;
     method_type_params_to_args.reserve(type_params_to_args.size());
@@ -680,7 +680,7 @@ ExprHandler::CheckSelectionExprResult ExprHandler::CheckInterfaceMethodSelection
     ast::SelectionExpr* selection_expr, types::Type* accessed_type,
     types::InfoBuilder::TypeParamsToArgsMap type_params_to_args) {
   std::string selection_name = selection_expr->selection()->name();
-  if (accessed_type->type_kind() != ir::TypeKind::kLangInterface) {
+  if (accessed_type->type_kind() != types::TypeKind::kInterface) {
     return CheckSelectionExprResult::kNotApplicable;
   }
   types::Interface* interface_type = static_cast<types::Interface*>(accessed_type);
@@ -711,7 +711,7 @@ ExprHandler::CheckSelectionExprResult ExprHandler::CheckStructFieldSelectionExpr
     ast::SelectionExpr* selection_expr, types::Type* accessed_type,
     types::InfoBuilder::TypeParamsToArgsMap type_params_to_args) {
   std::string selection_name = selection_expr->selection()->name();
-  if (accessed_type->type_kind() != ir::TypeKind::kLangStruct) {
+  if (accessed_type->type_kind() != types::TypeKind::kStruct) {
     return CheckSelectionExprResult::kNotApplicable;
   }
   types::Struct* struct_type = static_cast<types::Struct*>(accessed_type);
@@ -743,7 +743,7 @@ bool ExprHandler::CheckTypeAssertExpr(ast::TypeAssertExpr* type_assert_expr) {
   if (x == nullptr || asserted_type == nullptr) {
     return false;
   }
-  if (x->type_kind() != ir::TypeKind::kLangInterface) {
+  if (x->type_kind() != types::TypeKind::kInterface) {
     issues().Add(issues::kUnexpectedTypeAssertionOperandType, type_assert_expr->x()->start(),
                  "invalid operation: expected interface value");
     return false;
@@ -771,9 +771,9 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr* index_expr) {
                      accessed_type->ToString(types::StringRep::kShort));
   };
   types::Type* accessed_underlying = types::UnderlyingOf(accessed_type, info_builder());
-  if (accessed_underlying->type_kind() == ir::TypeKind::kLangPointer) {
+  if (accessed_underlying->type_kind() == types::TypeKind::kPointer) {
     types::Pointer* pointer_type = static_cast<types::Pointer*>(accessed_underlying);
-    if (pointer_type->element_type()->type_kind() != ir::TypeKind::kLangArray) {
+    if (pointer_type->element_type()->type_kind() != types::TypeKind::kArray) {
       add_expected_accessed_value_issue();
       return false;
     }
@@ -787,7 +787,7 @@ bool ExprHandler::CheckIndexExpr(ast::IndexExpr* index_expr) {
                                types::ExprInfo(types::ExprInfo::Kind::kVariable, element_type));
     return true;
 
-  } else if (accessed_underlying->type_kind() == ir::TypeKind::kLangBasic) {
+  } else if (accessed_underlying->type_kind() == types::TypeKind::kBasic) {
     types::Basic* accessed_basic = static_cast<types::Basic*>(accessed_underlying);
     if (!(accessed_basic->info() & types::Basic::Info::kIsString)) {
       add_expected_accessed_value_issue();
@@ -861,7 +861,7 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr, Cont
   types::Type* conversion_result_underlying =
       types::UnderlyingOf(conversion_result_info.type(), info_builder());
   if (ctx.expect_constant_ &&
-      conversion_result_underlying->type_kind() != ir::TypeKind::kLangBasic) {
+      conversion_result_underlying->type_kind() != types::TypeKind::kBasic) {
     issues().Add(issues::kConstantExprContainsConversionToNonBasicType, call_expr->func()->start(),
                  "type conversion to non-basic type not allowed in constant expression");
     return false;
@@ -875,7 +875,7 @@ bool ExprHandler::CheckCallExprWithTypeConversion(ast::CallExpr* call_expr, Cont
   std::optional<constants::Value> call_expr_value;
   if (conversion_start_info.is_constant() &&
       (conversion_result_underlying == nullptr ||
-       conversion_result_underlying->type_kind() != ir::TypeKind::kLangBasic)) {
+       conversion_result_underlying->type_kind() != types::TypeKind::kBasic)) {
     constants::Value start_value = conversion_start_info.constant_value();
     call_expr_value = types::ConvertUntypedValue(
         start_value, static_cast<types::Basic*>(conversion_result_underlying)->kind());
@@ -905,10 +905,10 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr* call_expr) {
       ast::Expr* arg_expr = call_expr->args().at(0);
       types::Type* arg_type =
           types::UnderlyingOf(info()->ExprInfoOf(arg_expr).value().type(), info_builder());
-      if ((arg_type->type_kind() != ir::TypeKind::kLangBasic ||
+      if ((arg_type->type_kind() != types::TypeKind::kBasic ||
            static_cast<types::Basic*>(arg_type)->kind() != types::Basic::kString) &&
-          arg_type->type_kind() != ir::TypeKind::kLangArray &&
-          arg_type->type_kind() != ir::TypeKind::kLangSlice) {
+          arg_type->type_kind() != types::TypeKind::kArray &&
+          arg_type->type_kind() != types::TypeKind::kSlice) {
         issues().Add(issues::kUnexpectedLenArgumentType, arg_expr->start(),
                      "len expected array, slice, or string");
         return false;
@@ -931,7 +931,7 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr* call_expr) {
       }
       ast::Expr* slice_expr = call_expr->type_args().at(0);
       types::ExprInfo slice_expr_info = info()->ExprInfoOf(slice_expr).value();
-      if (slice_expr_info.type()->type_kind() == ir::TypeKind::kLangSlice) {
+      if (slice_expr_info.type()->type_kind() == types::TypeKind::kSlice) {
         issues().Add(issues::kUnexpectedTypeArgumentForMake, slice_expr->start(),
                      "make expected slice type argument");
         return false;
@@ -939,7 +939,7 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr* call_expr) {
       types::Slice* slice = static_cast<types::Slice*>(slice_expr_info.type());
       ast::Expr* length_expr = call_expr->args().at(0);
       types::ExprInfo length_expr_info = info()->ExprInfoOf(length_expr).value();
-      if (length_expr_info.type()->type_kind() != ir::TypeKind::kLangBasic) {
+      if (length_expr_info.type()->type_kind() != types::TypeKind::kBasic) {
         issues().Add(issues::kUnexpectedMakeArgumentType, length_expr->start(),
                      "make expected length of type int");
         return false;
@@ -992,7 +992,7 @@ bool ExprHandler::CheckCallExprWithFuncCall(ast::CallExpr* call_expr) {
       return false;
   }
   types::Type* func_type = types::UnderlyingOf(func_expr_info.type(), info_builder());
-  if (func_type->type_kind() != ir::TypeKind::kLangSignature) {
+  if (func_type->type_kind() != types::TypeKind::kSignature) {
     issues().Add(issues::kUnexpectedFuncCallFuncType, call_expr->start(),
                  "expected type, function or function variable");
     return false;
@@ -1041,7 +1041,7 @@ void ExprHandler::CheckFuncCallArgs(types::Signature* signature, ast::CallExpr* 
   for (ast::Expr* arg_expr : arg_exprs) {
     arg_types.push_back(info()->ExprInfoOf(arg_expr).value().type());
   }
-  if (arg_types.size() == 1 && arg_types.at(0)->type_kind() == ir::TypeKind::kLangTuple) {
+  if (arg_types.size() == 1 && arg_types.at(0)->type_kind() == types::TypeKind::kTuple) {
     types::Tuple* tuple = static_cast<types::Tuple*>(arg_types.at(0));
     arg_types.clear();
     for (types::Variable* var : tuple->variables()) {
@@ -1098,7 +1098,7 @@ bool ExprHandler::CheckFuncLit(ast::FuncLit* func_lit) {
   ast::FuncType* func_type_expr = func_lit->type();
   ast::BlockStmt* func_body = func_lit->body();
   types::Type* func_type = type_resolver().type_handler().EvaluateTypeExpr(func_type_expr);
-  if (func_type_expr == nullptr || func_type->type_kind() != ir::TypeKind::kLangSignature) {
+  if (func_type_expr == nullptr || func_type->type_kind() != types::TypeKind::kSignature) {
     return false;
   }
   types::Signature* func_signature = static_cast<types::Signature*>(func_type);

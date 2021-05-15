@@ -202,7 +202,7 @@ types::Struct* TypeHandler::EvaluateStructType(ast::StructType* struct_expr) {
 types::TypeInstance* TypeHandler::EvaluateTypeInstance(ast::TypeInstance* type_instance_expr) {
   types::Type* instantiated_type = EvaluateTypeExpr(type_instance_expr->type());
   if (instantiated_type == nullptr ||
-      instantiated_type->type_kind() != ir::TypeKind::kLangNamedType) {
+      instantiated_type->type_kind() != types::TypeKind::kNamedType) {
     return nullptr;
   }
   types::NamedType* instantiated_named_type = static_cast<types::NamedType*>(instantiated_type);
@@ -259,7 +259,7 @@ types::TypeParameter* TypeHandler::EvaluateTypeParameter(ast::TypeParam* paramet
       return nullptr;
     }
     types::Type* underlying = types::UnderlyingOf(type, info_builder());
-    if (underlying->type_kind() != ir::TypeKind::kLangInterface) {
+    if (underlying->type_kind() != types::TypeKind::kInterface) {
       issues().Add(issues::kTypeParamterConstraintIsNotInterface, parameter_expr->type()->start(),
                    "type parameter constraint has to be an interface");
       return nullptr;

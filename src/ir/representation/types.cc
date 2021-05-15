@@ -12,119 +12,120 @@
 
 namespace ir {
 
-bool Type::is_lang_type() const {
-  TypeKind kind = type_kind();
-  return TypeKind::kLangStart <= kind && kind <= TypeKind::kLangEnd;
-}
-
-bool IsIntegral(AtomicTypeKind type) {
+bool IsIntegral(AtomicKind type) {
   switch (type) {
-    case AtomicTypeKind::kBool:
-    case AtomicTypeKind::kI8:
-    case AtomicTypeKind::kI16:
-    case AtomicTypeKind::kI32:
-    case AtomicTypeKind::kI64:
-    case AtomicTypeKind::kU8:
-    case AtomicTypeKind::kU16:
-    case AtomicTypeKind::kU32:
-    case AtomicTypeKind::kU64:
-    case AtomicTypeKind::kPtr:
+    case AtomicKind::kBool:
+    case AtomicKind::kI8:
+    case AtomicKind::kI16:
+    case AtomicKind::kI32:
+    case AtomicKind::kI64:
+    case AtomicKind::kU8:
+    case AtomicKind::kU16:
+    case AtomicKind::kU32:
+    case AtomicKind::kU64:
+    case AtomicKind::kPtr:
       return true;
     default:
       return false;
   }
 }
 
-bool IsUnsigned(AtomicTypeKind type) {
+bool IsUnsigned(AtomicKind type) {
   switch (type) {
-    case AtomicTypeKind::kBool:
-    case AtomicTypeKind::kU8:
-    case AtomicTypeKind::kU16:
-    case AtomicTypeKind::kU32:
-    case AtomicTypeKind::kU64:
-    case AtomicTypeKind::kPtr:
+    case AtomicKind::kBool:
+    case AtomicKind::kU8:
+    case AtomicKind::kU16:
+    case AtomicKind::kU32:
+    case AtomicKind::kU64:
+    case AtomicKind::kPtr:
       return true;
-    case AtomicTypeKind::kI8:
-    case AtomicTypeKind::kI16:
-    case AtomicTypeKind::kI32:
-    case AtomicTypeKind::kI64:
+    case AtomicKind::kI8:
+    case AtomicKind::kI16:
+    case AtomicKind::kI32:
+    case AtomicKind::kI64:
       return false;
     default:
       throw "type is non-integral";
   }
 }
 
-extern int8_t SizeOf(AtomicTypeKind type) {
+extern int8_t SizeOf(AtomicKind type) {
   switch (type) {
-    case AtomicTypeKind::kBool:
-    case AtomicTypeKind::kI8:
-    case AtomicTypeKind::kU8:
+    case AtomicKind::kBool:
+    case AtomicKind::kI8:
+    case AtomicKind::kU8:
       return 8;
-    case AtomicTypeKind::kI16:
-    case AtomicTypeKind::kU16:
+    case AtomicKind::kI16:
+    case AtomicKind::kU16:
       return 16;
-    case AtomicTypeKind::kI32:
-    case AtomicTypeKind::kU32:
+    case AtomicKind::kI32:
+    case AtomicKind::kU32:
       return 32;
-    case AtomicTypeKind::kI64:
-    case AtomicTypeKind::kU64:
-    case AtomicTypeKind::kPtr:
-    case AtomicTypeKind::kFunc:
+    case AtomicKind::kI64:
+    case AtomicKind::kU64:
+    case AtomicKind::kPtr:
+    case AtomicKind::kFunc:
       return 64;
     default:
       throw "type has no associated size";
   }
 }
 
-AtomicTypeKind ToAtomicTypeKind(std::string type_str) {
-  if (type_str == "b") return AtomicTypeKind::kBool;
-  if (type_str == "i8") return AtomicTypeKind::kI8;
-  if (type_str == "i16") return AtomicTypeKind::kI16;
-  if (type_str == "i32") return AtomicTypeKind::kI32;
-  if (type_str == "i64") return AtomicTypeKind::kI64;
-  if (type_str == "u8") return AtomicTypeKind::kU8;
-  if (type_str == "u16") return AtomicTypeKind::kU16;
-  if (type_str == "u32") return AtomicTypeKind::kU32;
-  if (type_str == "u64") return AtomicTypeKind::kU64;
-  if (type_str == "ptr") return AtomicTypeKind::kPtr;
-  if (type_str == "func") return AtomicTypeKind::kFunc;
+AtomicKind ToAtomicTypeKind(std::string type_str) {
+  if (type_str == "b") return AtomicKind::kBool;
+  if (type_str == "i8") return AtomicKind::kI8;
+  if (type_str == "i16") return AtomicKind::kI16;
+  if (type_str == "i32") return AtomicKind::kI32;
+  if (type_str == "i64") return AtomicKind::kI64;
+  if (type_str == "u8") return AtomicKind::kU8;
+  if (type_str == "u16") return AtomicKind::kU16;
+  if (type_str == "u32") return AtomicKind::kU32;
+  if (type_str == "u64") return AtomicKind::kU64;
+  if (type_str == "ptr") return AtomicKind::kPtr;
+  if (type_str == "func") return AtomicKind::kFunc;
   throw "unknown type string";
 }
 
-std::string ToString(AtomicTypeKind type) {
+std::string ToString(AtomicKind type) {
   switch (type) {
-    case AtomicTypeKind::kBool:
+    case AtomicKind::kBool:
       return "b";
-    case AtomicTypeKind::kI8:
+    case AtomicKind::kI8:
       return "i8";
-    case AtomicTypeKind::kI16:
+    case AtomicKind::kI16:
       return "i16";
-    case AtomicTypeKind::kI32:
+    case AtomicKind::kI32:
       return "i32";
-    case AtomicTypeKind::kI64:
+    case AtomicKind::kI64:
       return "i64";
-    case AtomicTypeKind::kU8:
+    case AtomicKind::kU8:
       return "u8";
-    case AtomicTypeKind::kU16:
+    case AtomicKind::kU16:
       return "u16";
-    case AtomicTypeKind::kU32:
+    case AtomicKind::kU32:
       return "u32";
-    case AtomicTypeKind::kU64:
+    case AtomicKind::kU64:
       return "u64";
-    case AtomicTypeKind::kPtr:
+    case AtomicKind::kPtr:
       return "ptr";
-    case AtomicTypeKind::kFunc:
+    case AtomicKind::kFunc:
       return "func";
   }
 }
 
-AtomicTypeTable::AtomicTypeTable() {
-  for (AtomicTypeKind kind : std::array<AtomicTypeKind, 11>{
-           AtomicTypeKind::kBool, AtomicTypeKind::kI8, AtomicTypeKind::kI16, AtomicTypeKind::kI32,
-           AtomicTypeKind::kI64, AtomicTypeKind::kU8, AtomicTypeKind::kU16, AtomicTypeKind::kU32,
-           AtomicTypeKind::kU64, AtomicTypeKind::kPtr, AtomicTypeKind::kFunc}) {
-    types_.push_back(std::make_unique<AtomicType>(kind));
+TypeTable::TypeTable() {
+  for (AtomicKind kind : std::array<AtomicKind, 11>{
+           AtomicKind::kBool, AtomicKind::kI8, AtomicKind::kI16, AtomicKind::kI32, AtomicKind::kI64,
+           AtomicKind::kU8, AtomicKind::kU16, AtomicKind::kU32, AtomicKind::kU64, AtomicKind::kPtr,
+           AtomicKind::kFunc}) {
+    atomic_types_.push_back(std::make_unique<Atomic>(kind));
   }
+}
+
+Type* TypeTable::AddType(std::unique_ptr<Type> type) {
+  Type* type_ptr = type.get();
+  types_.push_back(std::move(type));
+  return type_ptr;
 }
 
 }  // namespace ir

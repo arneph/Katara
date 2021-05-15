@@ -15,7 +15,7 @@
 #include "ir/info/func_live_range_info.h"
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/values.h"
 
 namespace ir_proc {

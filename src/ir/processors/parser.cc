@@ -103,7 +103,7 @@ void Parser::ParseFuncResultTypes(ir::Func* func) {
     scanner_.Next();
   } else {
     for (;;) {
-      ir::AtomicType* type = ParseType();
+      ir::Atomic* type = ParseType();
 
       func->result_types().push_back(type);
 
@@ -443,7 +443,7 @@ std::unique_ptr<ir::Instr> Parser::ParseInstr() {
 
 // MovInstr ::= Computed 'mov' Value NL
 std::unique_ptr<ir::MovInstr> Parser::ParseMovInstr(std::shared_ptr<ir::Computed> result) {
-  std::shared_ptr<ir::Value> arg = ParseValue(static_cast<ir::AtomicType*>(result->type())->kind());
+  std::shared_ptr<ir::Value> arg = ParseValue(static_cast<ir::Atomic*>(result->type())->kind());
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
@@ -455,7 +455,7 @@ std::unique_ptr<ir::MovInstr> Parser::ParseMovInstr(std::shared_ptr<ir::Computed
 std::unique_ptr<ir::PhiInstr> Parser::ParsePhiInstr(std::shared_ptr<ir::Computed> result) {
   std::vector<std::shared_ptr<ir::InheritedValue>> args;
 
-  args.push_back(ParseInheritedValue(static_cast<ir::AtomicType*>(result->type())->kind()));
+  args.push_back(ParseInheritedValue(static_cast<ir::Atomic*>(result->type())->kind()));
 
   for (;;) {
     if (scanner_.token() == Scanner::kNewLine) {
@@ -464,7 +464,7 @@ std::unique_ptr<ir::PhiInstr> Parser::ParsePhiInstr(std::shared_ptr<ir::Computed
     } else if (scanner_.token() == Scanner::kComma) {
       scanner_.Next();
 
-      args.push_back(ParseInheritedValue(static_cast<ir::AtomicType*>(result->type())->kind()));
+      args.push_back(ParseInheritedValue(static_cast<ir::Atomic*>(result->type())->kind()));
 
     } else {
       throw "expected ',' or new line";
@@ -482,7 +482,7 @@ std::unique_ptr<ir::UnaryALInstr> Parser::ParseUnaryALInstr(std::shared_ptr<ir::
   if (scanner_.token() != Scanner::kColon) throw "expected ':'";
   scanner_.Next();
 
-  ir::AtomicType* instr_type = ParseType();
+  ir::Atomic* instr_type = ParseType();
   if (instr_type != result->type()) throw "result type does not match type of unary AL instruction";
 
   std::shared_ptr<ir::Value> operand = ParseValue(instr_type->kind());
@@ -499,7 +499,7 @@ std::unique_ptr<ir::BinaryALInstr> Parser::ParseBinaryALInstr(std::shared_ptr<ir
   if (scanner_.token() != Scanner::kColon) throw "expected ':'";
   scanner_.Next();
 
-  ir::AtomicType* instr_type = ParseType();
+  ir::Atomic* instr_type = ParseType();
   if (instr_type != result->type())
     throw "result type does not match type of binary AL instruction";
 
@@ -522,7 +522,7 @@ std::unique_ptr<ir::CompareInstr> Parser::ParseCompareInstr(std::shared_ptr<ir::
   if (scanner_.token() != Scanner::kColon) throw "expected ':'";
   scanner_.Next();
 
-  ir::AtomicType* instr_type = ParseType();
+  ir::Atomic* instr_type = ParseType();
   std::shared_ptr<ir::Value> operand_a = ParseValue(instr_type->kind());
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
@@ -548,7 +548,7 @@ std::unique_ptr<ir::JumpInstr> Parser::ParseJumpInstr() {
 
 // JumpCondInstr ::= 'jcc' Value ',' BlockValue ',' BlockValue NL
 std::unique_ptr<ir::JumpCondInstr> Parser::ParseJumpCondInstr() {
-  std::shared_ptr<ir::Value> condition = ParseValue(ir::AtomicTypeKind::kBool);
+  std::shared_ptr<ir::Value> condition = ParseValue(ir::AtomicKind::kBool);
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
   scanner_.Next();
@@ -570,7 +570,7 @@ std::unique_ptr<ir::JumpCondInstr> Parser::ParseJumpCondInstr() {
 //               'call' Value (',' Value)* NL
 std::unique_ptr<ir::CallInstr> Parser::ParseCallInstr(
     std::vector<std::shared_ptr<ir::Computed>> results) {
-  std::shared_ptr<ir::Value> func = ParseValue(ir::AtomicTypeKind::kFunc);
+  std::shared_ptr<ir::Value> func = ParseValue(ir::AtomicKind::kFunc);
 
   std::vector<std::shared_ptr<ir::Value>> args;
 
@@ -644,7 +644,7 @@ std::vector<std::shared_ptr<ir::Computed>> Parser::ParseInstrResults() {
 
 // InheritedValue ::= (Constant | Computed) BlockValue
 std::shared_ptr<ir::InheritedValue> Parser::ParseInheritedValue(
-    std::optional<ir::AtomicTypeKind> expected_type) {
+    std::optional<ir::AtomicKind> expected_type) {
   std::shared_ptr<ir::Value> value = ParseValue(expected_type);
   ir::block_num_t origin = ParseBlockValue();
 
@@ -652,7 +652,7 @@ std::shared_ptr<ir::InheritedValue> Parser::ParseInheritedValue(
 }
 
 // Value ::= (Constant | Computed | BlockValue)
-std::shared_ptr<ir::Value> Parser::ParseValue(std::optional<ir::AtomicTypeKind> expected_type) {
+std::shared_ptr<ir::Value> Parser::ParseValue(std::optional<ir::AtomicKind> expected_type) {
   switch (scanner_.token()) {
     case Scanner::kAtSign:
     case Scanner::kHashSign:
@@ -668,18 +668,16 @@ std::shared_ptr<ir::Value> Parser::ParseValue(std::optional<ir::AtomicTypeKind> 
 // Constant ::= '@' Number
 //              | '#t' | '#f'
 //              | '#' Number (':' Type)?
-std::shared_ptr<ir::Constant> Parser::ParseConstant(
-    std::optional<ir::AtomicTypeKind> expected_type) {
+std::shared_ptr<ir::Constant> Parser::ParseConstant(std::optional<ir::AtomicKind> expected_type) {
   if (scanner_.token() == Scanner::kAtSign) {
-    if (expected_type != ir::AtomicTypeKind::kFunc) throw "unexpected '@'";
+    if (expected_type != ir::AtomicKind::kFunc) throw "unexpected '@'";
     scanner_.Next();
 
     if (scanner_.token() != Scanner::kNumber) throw "expected number";
     ir::func_num_t number = scanner_.number();
     scanner_.Next();
 
-    ir::AtomicType* func_type =
-        program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kFunc);
+    ir::Atomic* func_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kFunc);
     return std::make_shared<ir::Constant>(func_type, number);
   }
 
@@ -687,14 +685,13 @@ std::shared_ptr<ir::Constant> Parser::ParseConstant(
   scanner_.Next();
 
   if (scanner_.token() == Scanner::kIdentifier) {
-    ir::AtomicType* bool_type =
-        program_->atomic_type_table().AtomicTypeForKind(ir::AtomicTypeKind::kBool);
+    ir::Atomic* bool_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
     if (scanner_.string() == "f") {
-      if (expected_type != ir::AtomicTypeKind::kBool) throw "unexpected 'f'";
+      if (expected_type != ir::AtomicKind::kBool) throw "unexpected 'f'";
 
       return std::make_shared<ir::Constant>(bool_type, false);
     } else if (scanner_.string() == "t") {
-      if (expected_type != ir::AtomicTypeKind::kBool) throw "unexpected 't'";
+      if (expected_type != ir::AtomicKind::kBool) throw "unexpected 't'";
 
       return std::make_shared<ir::Constant>(bool_type, true);
     } else {
@@ -707,7 +704,7 @@ std::shared_ptr<ir::Constant> Parser::ParseConstant(
   uint64_t number = scanner_.number();
   scanner_.Next();
 
-  ir::AtomicType* type;
+  ir::Atomic* type;
   if (scanner_.token() == Scanner::kColon) {
     scanner_.Next();
     type = ParseType();
@@ -717,15 +714,14 @@ std::shared_ptr<ir::Constant> Parser::ParseConstant(
   } else {
     if (!expected_type.has_value()) throw "expected ':'";
 
-    type = program_->atomic_type_table().AtomicTypeForKind(expected_type.value());
+    type = program_->type_table().AtomicOfKind(expected_type.value());
   }
 
   return std::make_shared<ir::Constant>(type, sign * number);
 }
 
 // Computed ::= '%' Identifier (':' Type)?
-std::shared_ptr<ir::Computed> Parser::ParseComputed(
-    std::optional<ir::AtomicTypeKind> expected_type) {
+std::shared_ptr<ir::Computed> Parser::ParseComputed(std::optional<ir::AtomicKind> expected_type) {
   if (scanner_.token() != Scanner::kPercentSign) throw "expected '%'";
   scanner_.Next();
 
@@ -733,7 +729,7 @@ std::shared_ptr<ir::Computed> Parser::ParseComputed(
   int64_t number = scanner_.number();
   scanner_.Next();
 
-  ir::AtomicType* type;
+  ir::Atomic* type;
   if (scanner_.token() == Scanner::kColon) {
     scanner_.Next();
     type = ParseType();
@@ -743,7 +739,7 @@ std::shared_ptr<ir::Computed> Parser::ParseComputed(
   } else {
     if (!expected_type.has_value()) throw "expected ':'";
 
-    type = program_->atomic_type_table().AtomicTypeForKind(expected_type.value());
+    type = program_->type_table().AtomicOfKind(expected_type.value());
   }
 
   return std::make_shared<ir::Computed>(type, number);
@@ -768,12 +764,12 @@ ir::block_num_t Parser::ParseBlockValue() {
 }
 
 // Type ::= Identifier
-ir::AtomicType* Parser::ParseType() {
+ir::Atomic* Parser::ParseType() {
   if (scanner_.token() != Scanner::kIdentifier) throw "expected identifier";
   std::string name = scanner_.string();
   scanner_.Next();
 
-  return program_->atomic_type_table().AtomicTypeForKind(ir::ToAtomicTypeKind(name));
+  return program_->type_table().AtomicOfKind(ir::ToAtomicTypeKind(name));
 }
 
 }  // namespace ir_proc

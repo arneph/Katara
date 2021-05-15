@@ -22,21 +22,42 @@ namespace types {
 class Variable;
 class Func;
 
+enum class TypeKind {
+  kBasic,
+
+  kPointer,
+  kArray,
+  kSlice,
+  kWrapperStart = kPointer,
+  kWrapperEnd = kSlice,
+  kContainerStart = kArray,
+  kContainerEnd = kSlice,
+
+  kTypeParameter,
+  kNamedType,
+  kTypeInstance,
+  kTuple,
+  kSignature,
+  kStruct,
+  kInterface,
+};
+
 enum class StringRep {
   kShort,
   kExpanded,
 };
 
-class Type : public ir::Type {
+class Type {
  public:
   virtual ~Type() {}
 
   bool is_wrapper() const;
   bool is_container() const;
 
+  virtual TypeKind type_kind() const = 0;
   virtual std::string ToString(StringRep rep) const = 0;
 
-  std::string ToString() const override { return ToString(StringRep::kShort); }
+  std::string ToString() const { return ToString(StringRep::kShort); }
 };
 
 class Basic final : public Type {
@@ -79,7 +100,7 @@ class Basic final : public Type {
   Kind kind() const { return kind_; }
   Info info() const { return info_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangBasic; }
+  TypeKind type_kind() const override { return TypeKind::kBasic; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -107,7 +128,7 @@ class Pointer final : public Wrapper {
   Kind kind() const { return kind_; }
   Type* element_type() const override { return element_type_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangPointer; }
+  TypeKind type_kind() const override { return TypeKind::kPointer; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -129,7 +150,7 @@ class Array final : public Container {
   Type* element_type() const override { return element_type_; }
   uint64_t length() const { return length_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangArray; }
+  TypeKind type_kind() const override { return TypeKind::kArray; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -145,7 +166,7 @@ class Slice final : public Container {
  public:
   Type* element_type() const override { return element_type_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSlice; }
+  TypeKind type_kind() const override { return TypeKind::kSlice; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -164,7 +185,7 @@ class TypeParameter final : public Type {
   TypeParameter* instantiated_type_parameter() const { return instantiated_type_parameter_; }
   Interface* interface() const { return interface_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangTypeParameter; }
+  TypeKind type_kind() const override { return TypeKind::kTypeParameter; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -188,7 +209,7 @@ class NamedType final : public Type {
 
   Type* InstanceForTypeArgs(const std::vector<Type*>& type_args) const;
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangNamedType; }
+  TypeKind type_kind() const override { return TypeKind::kNamedType; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -212,7 +233,7 @@ class TypeInstance final : public Type {
   NamedType* instantiated_type() const { return instantiated_type_; }
   const std::vector<Type*>& type_args() const { return type_args_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangTypeInstance; }
+  TypeKind type_kind() const override { return TypeKind::kTypeInstance; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -229,7 +250,7 @@ class Tuple final : public Type {
  public:
   const std::vector<Variable*>& variables() const { return variables_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangTuple; }
+  TypeKind type_kind() const override { return TypeKind::kTuple; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -250,7 +271,7 @@ class Signature final : public Type {
   Tuple* parameters() const { return parameters_; }
   Tuple* results() const { return results_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSignature; }
+  TypeKind type_kind() const override { return TypeKind::kSignature; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -292,7 +313,7 @@ class Struct final : public Type {
  public:
   const std::vector<Variable*>& fields() const { return fields_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangStruct; }
+  TypeKind type_kind() const override { return TypeKind::kStruct; }
   std::string ToString(StringRep rep) const override;
 
  private:
@@ -309,7 +330,7 @@ class Interface final : public Type {
   const std::vector<NamedType*>& embedded_interfaces() const { return embedded_interfaces_; }
   const std::vector<Func*>& methods() const { return methods_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangInterface; }
+  TypeKind type_kind() const override { return TypeKind::kInterface; }
   std::string ToString(StringRep rep) const override;
 
  private:

@@ -16,7 +16,7 @@
 #include "ir/processors/scanner.h"
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/num_types.h"
 #include "ir/representation/program.h"
 #include "ir/representation/values.h"
@@ -58,12 +58,12 @@ class Parser {
   std::vector<std::shared_ptr<ir::Computed>> ParseInstrResults();
 
   std::shared_ptr<ir::InheritedValue> ParseInheritedValue(
-      std::optional<ir::AtomicTypeKind> expected_type);
-  std::shared_ptr<ir::Value> ParseValue(std::optional<ir::AtomicTypeKind> expected_type);
-  std::shared_ptr<ir::Constant> ParseConstant(std::optional<ir::AtomicTypeKind> expected_type);
-  std::shared_ptr<ir::Computed> ParseComputed(std::optional<ir::AtomicTypeKind> expected_type);
+      std::optional<ir::AtomicKind> expected_type);
+  std::shared_ptr<ir::Value> ParseValue(std::optional<ir::AtomicKind> expected_type);
+  std::shared_ptr<ir::Constant> ParseConstant(std::optional<ir::AtomicKind> expected_type);
+  std::shared_ptr<ir::Computed> ParseComputed(std::optional<ir::AtomicKind> expected_type);
   ir::block_num_t ParseBlockValue();
-  ir::AtomicType* ParseType();
+  ir::Atomic* ParseType();
 
   Scanner& scanner_;
   std::unique_ptr<ir::Program> program_;

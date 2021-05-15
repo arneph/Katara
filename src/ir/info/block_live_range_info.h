@@ -15,7 +15,7 @@
 
 #include "ir/info/interference_graph.h"
 #include "ir/representation/block.h"
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/num_types.h"
 
 namespace ir_info {

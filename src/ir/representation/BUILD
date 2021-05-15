@@ -54,12 +54,12 @@ cc_library(
 )
 
 cc_library(
-    name = "instr",
+    name = "instrs",
     srcs = [
-        "instr.cc",
+        "instrs.cc",
     ],
     hdrs = [
-        "instr.h",
+        "instrs.h",
     ],
     copts = COPTS,
     visibility = [
@@ -90,7 +90,7 @@ cc_library(
         "//src/x86_64:__pkg__",
     ],
     deps = [
-        ":instr",
+        ":instrs",
         ":num_types",
         "//src/common:graph",
     ],
@@ -147,7 +147,7 @@ cc_library(
     deps = [
         ":block",
         ":func",
-        ":instr",
+        ":instrs",
         ":num_types",
         ":program",
         ":types",

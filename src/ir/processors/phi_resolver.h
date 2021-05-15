@@ -11,7 +11,7 @@
 
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/values.h"
 
 namespace ir_proc {

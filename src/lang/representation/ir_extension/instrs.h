@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 
 namespace lang {
 namespace ir_ext {

@@ -14,13 +14,14 @@
 
 #include "ir/representation/block.h"
 #include "ir/representation/func.h"
-#include "ir/representation/instr.h"
+#include "ir/representation/instrs.h"
 #include "ir/representation/num_types.h"
 #include "ir/representation/program.h"
 #include "ir/representation/types.h"
 #include "ir/representation/values.h"
 #include "lang/processors/packages/packages.h"
 #include "lang/representation/ir_extension/instrs.h"
+#include "lang/representation/ir_extension/types.h"
 #include "lang/representation/ir_extension/values.h"
 #include "lang/representation/positions/positions.h"
 #include "lang/representation/types/info.h"
@@ -56,8 +57,7 @@ class IRBuilder {
     std::unordered_map<types::Variable*, std::shared_ptr<ir::Value>> var_values_;
   };
 
-  IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& prog)
-      : type_info_(type_info), program_(prog) {}
+  IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& prog);
 
   void PrepareDeclsInFile(ast::File* file);
   void PrepareFuncDecl(ast::FuncDecl* func_decl);
@@ -112,13 +112,14 @@ class IRBuilder {
                                            Context& ctx);
 
   std::shared_ptr<ir::Value> DefaultValueForType(types::Type* type);
-  
+
   std::shared_ptr<ir::Value> ConstantToIRValue(types::Basic* basic, constants::Value value) const;
   ir::Type* BasicToIRType(types::Basic* basic) const;
 
   types::Info* type_info_;
 
   std::unique_ptr<ir::Program>& program_;
+  ir_ext::String* ir_string_type_;
   std::unordered_map<types::Func*, ir::Func*> funcs_;
 };
 
