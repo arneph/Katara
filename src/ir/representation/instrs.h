@@ -38,9 +38,10 @@ enum class InstrKind {
   kCall,
   kReturn,
 
-  kLangStringConcat,
   kLangRefCountMalloc,
   kLangRefCountUpdate,
+  kLangStringIndex,
+  kLangStringConcat,
 };
 
 class Instr {

@@ -11,21 +11,6 @@
 namespace lang {
 namespace ir_ext {
 
-std::string StringConcatInstr::ToString() const {
-  std::string str =
-      result()->ToStringWithType() + " = concat:" + operands_.front()->type()->ToString() + " ";
-  bool first = true;
-  for (auto& operand : operands_) {
-    if (first) {
-      first = false;
-    } else {
-      str += ", ";
-    }
-    str + operand->ToString();
-  }
-  return str;
-}
-
 bool IsRefCountUpdateString(std::string op_str) { return op_str == "rcinc" || op_str == "rcdec"; }
 
 RefCountUpdate ToRefCountUpdate(std::string op_str) {
@@ -41,6 +26,26 @@ std::string ToString(RefCountUpdate op) {
     case RefCountUpdate::kDec:
       return "rcdec";
   }
+}
+
+std::string StringIndexInstr::ToString() const {
+  return result()->ToStringWithType() + " = index:" + string_operand_->type()->ToString() + " " +
+         string_operand_->ToString() + ", " + index_operand_->ToString();
+}
+
+std::string StringConcatInstr::ToString() const {
+  std::string str =
+      result()->ToStringWithType() + " = concat:" + operands_.front()->type()->ToString() + " ";
+  bool first = true;
+  for (auto& operand : operands_) {
+    if (first) {
+      first = false;
+    } else {
+      str += ", ";
+    }
+    str + operand->ToString();
+  }
+  return str;
 }
 
 }  // namespace ir_ext

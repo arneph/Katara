@@ -218,7 +218,7 @@ void IRBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, Context& ctx) {
 }
 
 void IRBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx) {
-  if (assign_stmt->tok() ==tokens::kDefine) {
+  if (assign_stmt->tok() == tokens::kDefine) {
     for (ast::Expr* lhs : assign_stmt->lhs()) {
       if (lhs->node_kind() != ast::NodeKind::kIdent) {
         continue;
@@ -231,10 +231,11 @@ void IRBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx) {
       AddVarMalloc(var, ctx);
     }
   }
-  
-  std::vector<std::shared_ptr<ir::Value>> lhs_addresses = BuildAddressesOfExprs(assign_stmt->lhs(), ctx);
+
+  std::vector<std::shared_ptr<ir::Value>> lhs_addresses =
+      BuildAddressesOfExprs(assign_stmt->lhs(), ctx);
   std::vector<std::shared_ptr<ir::Value>> rhs_values = BuildValuesOfExprs(assign_stmt->rhs(), ctx);
-  
+
   switch (assign_stmt->tok()) {
     case tokens::kAssign:
     case tokens::kDefine:
@@ -519,7 +520,8 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
     } else {
       std::shared_ptr<ir::Value> address = BuildAddressOfExpr(x, ctx);
       if (address->type()->type_kind() == ir::TypeKind::kLangRefCountPointer) {
-        ctx.block()->instrs().push_back(std::make_unique<ir_ext::RefCountUpdateInstr>(ir_ext::RefCountUpdate::kInc, address));
+        ctx.block()->instrs().push_back(
+            std::make_unique<ir_ext::RefCountUpdateInstr>(ir_ext::RefCountUpdate::kInc, address));
         // TODO: decrease ref count when variable exceeds scope
       }
       return address;
@@ -773,8 +775,8 @@ std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfStructFieldSelectionExpr(
   return {};
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildValueOfStructFieldSelectionExpr(
-    ast::SelectionExpr* expr, Context& ctx) {
+std::shared_ptr<ir::Value> IRBuilder::BuildValueOfStructFieldSelectionExpr(ast::SelectionExpr* expr,
+                                                                           Context& ctx) {
   // TODO: implement
   return {};
 }
@@ -787,16 +789,38 @@ std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildValuesOfTypeAssertExpr(
 
 std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfIndexExpr(ast::IndexExpr* expr, Context& ctx) {
   // TODO: implement (array, slice)
-  std::shared_ptr<ir::Computed> address = std::make_shared<ir::Computed>(ir_ref_count_ptr_type_, ctx.func()->next_computed_number());
+  std::shared_ptr<ir::Computed> address =
+      std::make_shared<ir::Computed>(ir_ref_count_ptr_type_, ctx.func()->next_computed_number());
   return address;
 }
 
 std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIndexExpr(ast::IndexExpr* expr, Context& ctx) {
-  // TODO: handle strings specially
-  types::Type *type_element_type = type_info_->ExprInfoOf(expr)->type();
-  ir::Type* ir_element_type = ToIRType(type_element_type);
-  std::shared_ptr<ir::Computed> value = std::make_shared<ir::Computed>(ir_element_type, ctx.func()->next_computed_number());
-  return value;
+  ast::Expr* accessed_expr = expr->accessed();
+  ast::Expr* index_expr = expr->index();
+  types::InfoBuilder info_builder = type_info_->builder();
+  types::Type* types_accessed_type = type_info_->ExprInfoOf(accessed_expr)->type();
+  types::Type* types_accessed_underlying_type = types::UnderlyingOf(types_accessed_type, info_builder);
+  if (types_accessed_underlying_type->type_kind() == types::TypeKind::kBasic) {
+    // Note: strings are the only basic type that can be indexed
+    ir::Type* rune_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI32);
+    std::shared_ptr<ir::Value> string = BuildValuesOfExpr(accessed_expr, ctx).front();
+    std::shared_ptr<ir::Value> index = BuildValuesOfExpr(index_expr, ctx).front();
+    std::shared_ptr<ir::Computed> value =
+        std::make_shared<ir::Computed>(rune_type, ctx.func()->next_computed_number());
+    ctx.block()->instrs().push_back(
+        std::make_unique<ir_ext::StringIndexInstr>(value, string, index));
+    return value;
+
+  } else if (types_accessed_underlying_type->is_container()) {
+    types::Type* types_element_type = type_info_->ExprInfoOf(expr)->type();
+    ir::Type* ir_element_type = ToIRType(types_element_type);
+    std::shared_ptr<ir::Computed> value =
+        std::make_shared<ir::Computed>(ir_element_type, ctx.func()->next_computed_number());
+    // TODO: actually add load instr
+    return value;
+  } else {
+    throw "internal error: unexpected accessed value in index expr";
+  }
 }
 
 std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildValuesOfCallExpr(ast::CallExpr* expr,
