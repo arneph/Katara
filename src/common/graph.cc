@@ -116,6 +116,7 @@ std::string Graph::ToDotFormat() const {
     ss << node.title() << "\\l";
     if (!node.text().empty()) {
       WriteEscapedForDot(ss, node.text());
+      ss << "\\l";
     }
     ss << "\", ";
     ss << "fillcolor = \"" << ToDotString(node.color()) << "\" style = \"filled\"";
