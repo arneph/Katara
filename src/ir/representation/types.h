@@ -19,6 +19,8 @@ enum class TypeKind {
   kAtomic,
 
   kLangString,
+  kLangRefCountPointer,
+  kLangStruct,
 };
 
 class Type {

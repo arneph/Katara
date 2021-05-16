@@ -9,7 +9,6 @@
 #ifndef lang_ir_ext_types_h
 #define lang_ir_ext_types_h
 
-
 #include <string>
 
 #include "ir/representation/types.h"
@@ -22,7 +21,25 @@ class String : public ir::Type {
   String() {}
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangString; }
-  std::string ToString() const override { return "s"; }
+  std::string ToString() const override { return "str"; }
+};
+
+class RefCountPointer : public ir::Type {
+ public:
+  RefCountPointer() {}
+
+  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangRefCountPointer; }
+  std::string ToString() const override { return "rcptr"; }
+};
+
+class Struct : public ir::Type {
+ public:
+  Struct() {}
+
+  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangStruct; }
+  std::string ToString() const override { return "struct"; }
+
+ private:
 };
 
 }  // namespace ir_ext

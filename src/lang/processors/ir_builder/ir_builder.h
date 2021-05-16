@@ -19,12 +19,20 @@
 #include "ir/representation/program.h"
 #include "ir/representation/types.h"
 #include "ir/representation/values.h"
+#include "lang/processors/ir_builder/context.h"
 #include "lang/processors/packages/packages.h"
 #include "lang/representation/ir_extension/instrs.h"
 #include "lang/representation/ir_extension/types.h"
 #include "lang/representation/ir_extension/values.h"
-#include "lang/representation/positions/positions.h"
+#include "lang/representation/types/expr_info.h"
 #include "lang/representation/types/info.h"
+#include "lang/representation/types/initializer.h"
+#include "lang/representation/types/objects.h"
+#include "lang/representation/types/package.h"
+#include "lang/representation/types/scope.h"
+#include "lang/representation/types/selection.h"
+#include "lang/representation/types/types.h"
+#include "lang/representation/types/types_util.h"
 
 namespace lang {
 namespace ir_builder {
@@ -35,28 +43,6 @@ class IRBuilder {
                                                        types::Info* type_info);
 
  private:
-  class Context {
-   public:
-    Context(ir::Func* func) : func_(func), block_(func_->entry_block()) {}
-
-    ir::Func* func() const { return func_; }
-    ir::Block* block() const { return block_; }
-    void set_block(ir::Block* block) { block_ = block; }
-
-    std::unordered_map<types::Variable*, std::shared_ptr<ir::Value>>& var_values() {
-      return var_values_;
-    }
-
-    Context SubContextForBlock(ir::Block* block) const { return Context(func_, block); }
-
-   private:
-    Context(ir::Func* func, ir::Block* block) : func_(func), block_(block) {}
-
-    ir::Func* func_;
-    ir::Block* block_;
-    std::unordered_map<types::Variable*, std::shared_ptr<ir::Value>> var_values_;
-  };
-
   IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& prog);
 
   void PrepareDeclsInFile(ast::File* file);
@@ -64,6 +50,9 @@ class IRBuilder {
 
   void BuildDeclsInFile(ast::File* file);
   void BuildFuncDecl(ast::FuncDecl* func_decl);
+
+  void BuildPrologForFunc(types::Func* types_func, Context& ctx);
+  void BuildEpilogForFunc(Context& ctx);
 
   void BuildStmt(ast::Stmt* stmt, Context& ctx);
   void BuildBlockStmt(ast::BlockStmt* block_stmt, Context& ctx);
@@ -78,7 +67,9 @@ class IRBuilder {
   void BuildForStmt(ast::ForStmt* for_stmt, Context& ctx);
   void BuildBranchStmt(ast::BranchStmt* branch_stmt, Context& ctx);
 
-  void BuildPhiInstrsForMerge(std::vector<Context*> input_ctxs, Context& phi_ctx);
+  void AddVarMalloc(types::Variable* var, Context& ctx);
+  void AddVarRetain(types::Variable* var, Context& ctx);
+  void AddVarRelease(types::Variable* var, Context& ctx);
 
   std::vector<std::shared_ptr<ir::Value>> BuildExprs(std::vector<ast::Expr*> exprs, Context& ctx);
   std::vector<std::shared_ptr<ir::Value>> BuildExpr(ast::Expr* expr, Context& ctx);
@@ -97,6 +88,12 @@ class IRBuilder {
   std::shared_ptr<ir::Value> BuildBinaryLogicExpr(ast::BinaryExpr* expr, Context& ctx);
 
   std::shared_ptr<ir::Value> BuildCompareExpr(ast::CompareExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildSingleCompareExpr(ast::CompareExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildMultipleCompareExpr(ast::CompareExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildComparison(tokens::Token op, std::shared_ptr<ir::Value> x,
+                                             types::Type* x_type, std::shared_ptr<ir::Value> y,
+                                             types::Type* y_type, Context& ctx);
+
   std::vector<std::shared_ptr<ir::Value>> BuildSelectionExpr(ast::SelectionExpr* expr,
                                                              Context& ctx);
   std::vector<std::shared_ptr<ir::Value>> BuildTypeAssertExpr(ast::TypeAssertExpr* expr,
@@ -108,18 +105,18 @@ class IRBuilder {
   std::shared_ptr<ir::Value> BuildBasicLit(ast::BasicLit* basic_lit);
   std::shared_ptr<ir::Value> BuildIdent(ast::Ident* ident, Context& ctx);
 
-  std::shared_ptr<ir::Value> ConvertToType(std::shared_ptr<ir::Value> value, ir::Type* desired_type,
-                                           Context& ctx);
+  std::shared_ptr<ir::Value> BuildConversion(std::shared_ptr<ir::Value> value,
+                                             ir::Type* desired_type, Context& ctx);
 
-  std::shared_ptr<ir::Value> DefaultValueForType(types::Type* type);
-
-  std::shared_ptr<ir::Value> ConstantToIRValue(types::Basic* basic, constants::Value value) const;
-  ir::Type* BasicToIRType(types::Basic* basic) const;
+  std::shared_ptr<ir::Value> DefaultIRValueForType(types::Type* type) const;
+  std::shared_ptr<ir::Value> ToIRConstant(types::Basic* basic, constants::Value value) const;
+  ir::Type* ToIRType(types::Type* type) const;
 
   types::Info* type_info_;
 
   std::unique_ptr<ir::Program>& program_;
   ir_ext::String* ir_string_type_;
+  ir_ext::RefCountPointer* ir_ref_count_ptr_type_;
   std::unordered_map<types::Func*, ir::Func*> funcs_;
 };
 

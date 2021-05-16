@@ -4,14 +4,14 @@ load("//src:katara.bzl", "COPTS")
 cc_library(
     name = "ir_extension",
     srcs = [
-        "values.cc",
         "instrs.cc",
         "types.cc",
+        "values.cc",
     ],
     hdrs = [
-        "values.h",
         "instrs.h",
         "types.h",
+        "values.h",
     ],
     copts = COPTS,
     visibility = [
@@ -19,8 +19,8 @@ cc_library(
     ],
     deps = [
         "//src/ir/representation:instrs",
-        "//src/ir/representation:values",
         "//src/ir/representation:types",
+        "//src/ir/representation:values",
         "//src/lang/representation/constants",
     ],
 )

@@ -1129,7 +1129,7 @@ bool ExprHandler::CheckBasicLit(ast::BasicLit* basic_lit) {
   switch (basic_lit->kind()) {
     case tokens::kInt:
       type = info()->basic_type(types::Basic::kUntypedInt);
-      value = constants::Value(std::stoull(basic_lit->value()));
+      value = constants::Value(std::stoll(basic_lit->value()));
       break;
     case tokens::kChar:
       // TODO: support UTF-8 and character literals
