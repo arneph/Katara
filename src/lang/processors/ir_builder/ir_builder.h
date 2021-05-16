@@ -71,42 +71,58 @@ class IRBuilder {
   void AddVarRetain(types::Variable* var, Context& ctx);
   void AddVarRelease(types::Variable* var, Context& ctx);
 
-  std::vector<std::shared_ptr<ir::Value>> BuildExprs(std::vector<ast::Expr*> exprs, Context& ctx);
-  std::vector<std::shared_ptr<ir::Value>> BuildExpr(ast::Expr* expr, Context& ctx);
+  std::vector<std::shared_ptr<ir::Value>> BuildAddressesOfExprs(std::vector<ast::Expr*> exprs,
+                                                                Context& ctx);
+  std::shared_ptr<ir::Value> BuildAddressOfExpr(ast::Expr* expr, Context& ctx);
 
-  std::shared_ptr<ir::Value> BuildUnaryExpr(ast::UnaryExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildUnaryALExpr(ast::UnaryExpr* expr, ir::UnaryALOperation op,
-                                              Context& ctx);
-  std::shared_ptr<ir::Value> BuildUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
-
-  std::shared_ptr<ir::Value> BuildBinaryExpr(ast::BinaryExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildStringConcatExpr(ast::BinaryExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildBinaryALExpr(ast::BinaryExpr* expr, ir::BinaryALOperation op,
-                                               Context& ctx);
-  std::shared_ptr<ir::Value> BuildBinaryShiftExpr(ast::BinaryExpr* expr, ir::ShiftOperation op,
-                                                  Context& ctx);
-  std::shared_ptr<ir::Value> BuildBinaryLogicExpr(ast::BinaryExpr* expr, Context& ctx);
-
-  std::shared_ptr<ir::Value> BuildCompareExpr(ast::CompareExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildSingleCompareExpr(ast::CompareExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildMultipleCompareExpr(ast::CompareExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildComparison(tokens::Token op, std::shared_ptr<ir::Value> x,
-                                             types::Type* x_type, std::shared_ptr<ir::Value> y,
-                                             types::Type* y_type, Context& ctx);
-
-  std::vector<std::shared_ptr<ir::Value>> BuildSelectionExpr(ast::SelectionExpr* expr,
+  std::vector<std::shared_ptr<ir::Value>> BuildValuesOfExprs(std::vector<ast::Expr*> exprs,
                                                              Context& ctx);
-  std::vector<std::shared_ptr<ir::Value>> BuildTypeAssertExpr(ast::TypeAssertExpr* expr,
-                                                              Context& ctx);
-  std::shared_ptr<ir::Value> BuildIndexExpr(ast::IndexExpr* expr, Context& ctx);
-  std::vector<std::shared_ptr<ir::Value>> BuildCallExpr(ast::CallExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Constant> BuildFuncLit(ast::FuncLit* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildCompositeLit(ast::CompositeLit* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildBasicLit(ast::BasicLit* basic_lit);
-  std::shared_ptr<ir::Value> BuildIdent(ast::Ident* ident, Context& ctx);
+  std::vector<std::shared_ptr<ir::Value>> BuildValuesOfExpr(ast::Expr* expr, Context& ctx);
 
-  std::shared_ptr<ir::Value> BuildConversion(std::shared_ptr<ir::Value> value,
-                                             ir::Type* desired_type, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfUnaryExpr(ast::UnaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfUnaryALExpr(ast::UnaryExpr* expr, ir::UnaryALOperation op,
+                                                     Context& ctx);
+  std::shared_ptr<ir::Value> BuildAddressOfUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
+
+  std::shared_ptr<ir::Value> BuildValueOfBinaryExpr(ast::BinaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfStringConcatExpr(ast::BinaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfBinaryALExpr(ast::BinaryExpr* expr,
+                                                      ir::BinaryALOperation op, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfBinaryShiftExpr(ast::BinaryExpr* expr,
+                                                         ir::ShiftOperation op, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfBinaryLogicExpr(ast::BinaryExpr* expr, Context& ctx);
+
+  std::shared_ptr<ir::Value> BuildValueOfCompareExpr(ast::CompareExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfSingleCompareExpr(ast::CompareExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfMultipleCompareExpr(ast::CompareExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfComparison(tokens::Token op, std::shared_ptr<ir::Value> x,
+                                                    types::Type* x_type,
+                                                    std::shared_ptr<ir::Value> y,
+                                                    types::Type* y_type, Context& ctx);
+
+  std::vector<std::shared_ptr<ir::Value>> BuildValuesOfSelectionExpr(ast::SelectionExpr* expr,
+                                                                     Context& ctx);
+  std::shared_ptr<ir::Value> BuildAddressOfStructFieldSelectionExpr(ast::SelectionExpr* expr,
+                                                                    Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfStructFieldSelectionExpr(ast::SelectionExpr* expr,
+                                                                  Context& ctx);
+
+  std::vector<std::shared_ptr<ir::Value>> BuildValuesOfTypeAssertExpr(ast::TypeAssertExpr* expr,
+                                                                      Context& ctx);
+
+  std::shared_ptr<ir::Value> BuildAddressOfIndexExpr(ast::IndexExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfIndexExpr(ast::IndexExpr* expr, Context& ctx);
+  std::vector<std::shared_ptr<ir::Value>> BuildValuesOfCallExpr(ast::CallExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Constant> BuildValueOfFuncLit(ast::FuncLit* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfCompositeLit(ast::CompositeLit* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfBasicLit(ast::BasicLit* basic_lit);
+
+  std::shared_ptr<ir::Value> BuildAddressOfIdent(ast::Ident* ident, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfIdent(ast::Ident* ident, Context& ctx);
+
+  std::shared_ptr<ir::Value> BuildValueOfConversion(std::shared_ptr<ir::Value> value,
+                                                    ir::Type* desired_type, Context& ctx);
 
   std::shared_ptr<ir::Value> DefaultIRValueForType(types::Type* type) const;
   std::shared_ptr<ir::Value> ToIRConstant(types::Basic* basic, constants::Value value) const;
@@ -115,8 +131,10 @@ class IRBuilder {
   types::Info* type_info_;
 
   std::unique_ptr<ir::Program>& program_;
-  ir_ext::String* ir_string_type_;
   ir_ext::RefCountPointer* ir_ref_count_ptr_type_;
+  ir_ext::String* ir_string_type_;
+  ir_ext::Struct* ir_empty_struct_;
+  ir_ext::Interface* ir_empty_interface_;
   std::unordered_map<types::Func*, ir::Func*> funcs_;
 };
 

@@ -311,6 +311,7 @@ class Signature final : public Type {
 
 class Struct final : public Type {
  public:
+  bool is_empty() const { return fields_.empty(); }
   const std::vector<Variable*>& fields() const { return fields_; }
 
   TypeKind type_kind() const override { return TypeKind::kStruct; }
