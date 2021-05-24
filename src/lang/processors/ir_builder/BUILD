@@ -16,6 +16,20 @@ cc_library(
 )
 
 cc_library(
+    name = "types_builder",
+    srcs = ["types_builder.cc"],
+    hdrs = ["types_builder.h"],
+    copts = COPTS,
+    visibility = [
+        "//visibility:private",
+    ],
+    deps = [
+        "//src/ir:ir_lib",
+        "//src/lang/representation",
+    ],
+)
+
+cc_library(
     name = "ir_builder",
     srcs = ["ir_builder.cc"],
     hdrs = ["ir_builder.h"],
@@ -25,6 +39,7 @@ cc_library(
     ],
     deps = [
         ":context",
+        ":types_builder",
         "//src/ir:ir_lib",
         "//src/lang/processors/packages",
         "//src/lang/representation",

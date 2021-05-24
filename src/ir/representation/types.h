@@ -18,11 +18,12 @@ namespace ir {
 enum class TypeKind {
   kAtomic,
 
-  kLangRefCountPointer,
+  kLangPointer,
   kLangString,
   kLangArray,
   kLangStruct,
   kLangInterface,
+  kLangTypeID,
 };
 
 class Type {

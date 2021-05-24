@@ -20,6 +20,7 @@
 #include "ir/representation/types.h"
 #include "ir/representation/values.h"
 #include "lang/processors/ir_builder/context.h"
+#include "lang/processors/ir_builder/types_builder.h"
 #include "lang/processors/packages/packages.h"
 #include "lang/representation/ir_extension/instrs.h"
 #include "lang/representation/ir_extension/types.h"
@@ -124,17 +125,12 @@ class IRBuilder {
   std::shared_ptr<ir::Value> BuildValueOfConversion(std::shared_ptr<ir::Value> value,
                                                     ir::Type* desired_type, Context& ctx);
 
-  std::shared_ptr<ir::Value> DefaultIRValueForType(types::Type* type) const;
+  std::shared_ptr<ir::Value> DefaultIRValueForType(types::Type* type);
   std::shared_ptr<ir::Value> ToIRConstant(types::Basic* basic, constants::Value value) const;
-  ir::Type* ToIRType(types::Type* type) const;
 
   types::Info* type_info_;
-
+  TypesBuilder types_builder_;
   std::unique_ptr<ir::Program>& program_;
-  ir_ext::RefCountPointer* ir_ref_count_ptr_type_;
-  ir_ext::String* ir_string_type_;
-  ir_ext::Struct* ir_empty_struct_;
-  ir_ext::Interface* ir_empty_interface_;
   std::unordered_map<types::Func*, ir::Func*> funcs_;
 };
 

@@ -28,17 +28,8 @@ std::unique_ptr<ir::Program> IRBuilder::TranslateProgram(packages::Package* main
   return prog;
 }
 
-IRBuilder::IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& prog)
-    : type_info_(type_info), program_(prog) {
-  ir_ref_count_ptr_type_ = static_cast<ir_ext::RefCountPointer*>(
-      program_->type_table().AddType(std::make_unique<ir_ext::RefCountPointer>()));
-  ir_string_type_ = static_cast<ir_ext::String*>(
-      program_->type_table().AddType(std::make_unique<ir_ext::String>()));
-  ir_empty_struct_ = static_cast<ir_ext::Struct*>(program_->type_table().AddType(
-      std::make_unique<ir_ext::Struct>(std::vector<std::pair<std::string, ir::Type*>>{})));
-  ir_empty_interface_ = static_cast<ir_ext::Interface*>(program_->type_table().AddType(
-      std::make_unique<ir_ext::Interface>(std::vector<std::string>{})));
-}
+IRBuilder::IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program)
+    : type_info_(type_info), types_builder_(type_info, program), program_(program) {}
 
 void IRBuilder::PrepareDeclsInFile(ast::File* file) {
   for (auto decl : file->decls()) {
@@ -370,10 +361,12 @@ void IRBuilder::BuildBranchStmt(ast::BranchStmt* branch_stmt, Context& ctx) {
 }
 
 void IRBuilder::AddVarMalloc(types::Variable* var, Context& ctx) {
+  ir::Type* element_type = types_builder_.BuildType(var->type());
+  ir_ext::Pointer* pointer_type = types_builder_.BuildStrongPointerToType(var->type());
   std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(ir_ref_count_ptr_type_, ctx.func()->next_computed_number());
-  ir::Type* type = ToIRType(var->type());
-  ctx.block()->instrs().push_back(std::make_unique<ir_ext::RefCountMallocInstr>(result, type));
+      std::make_shared<ir::Computed>(pointer_type, ctx.func()->next_computed_number());
+  ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::RefCountMallocInstr>(result, element_type));
   ctx.AddAddressOfVar(var, result);
 }
 
@@ -483,7 +476,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryALExpr(ast::UnaryExpr* ex
                                                               Context& ctx) {
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
-  ir::Type* ir_type = ToIRType(basic_type);
+  ir::Type* ir_type = types_builder_.BuildType(basic_type);
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   x = BuildValueOfConversion(x, ir_type, ctx);
   std::shared_ptr<ir::Computed> result =
@@ -506,12 +499,15 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
   ast::Expr* x = expr->x();
   if (expr->op() == tokens::kAnd) {
     if (x->node_kind() == ast::NodeKind::kCompositeLit) {
-      types::Type* types_struct_type = type_info_->ExprInfoOf(x)->type();
-      ir::Type* ir_struct_type = ToIRType(types_struct_type);
+      types::Struct* types_struct_type =
+          static_cast<types::Struct*>(type_info_->ExprInfoOf(x)->type());
+      ir_ext::Struct* ir_struct_type = types_builder_.BuildTypeForStruct(types_struct_type);
+      ir_ext::Pointer* ir_struct_pointer_type =
+          types_builder_.BuildStrongPointerToType(types_struct_type);
       std::shared_ptr<ir::Value> struct_value =
           BuildValueOfCompositeLit(static_cast<ast::CompositeLit*>(x), ctx);
       std::shared_ptr<ir::Computed> struct_address = std::make_shared<ir::Computed>(
-          ir_ref_count_ptr_type_, ctx.func()->next_computed_number());
+          ir_struct_pointer_type, ctx.func()->next_computed_number());
       ctx.block()->instrs().push_back(
           std::make_unique<ir_ext::RefCountMallocInstr>(struct_address, ir_struct_type));
       ctx.block()->instrs().push_back(
@@ -519,7 +515,8 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
       return struct_address;
     } else {
       std::shared_ptr<ir::Value> address = BuildAddressOfExpr(x, ctx);
-      if (address->type()->type_kind() == ir::TypeKind::kLangRefCountPointer) {
+      if (address->type()->type_kind() == ir::TypeKind::kLangPointer &&
+          static_cast<ir_ext::Pointer*>(address->type())->is_strong()) {
         ctx.block()->instrs().push_back(
             std::make_unique<ir_ext::RefCountUpdateInstr>(ir_ext::RefCountUpdate::kInc, address));
         // TODO: decrease ref count when variable exceeds scope
@@ -530,7 +527,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
   } else if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
     std::shared_ptr<ir::Value> address = BuildAddressOfExpr(x, ctx);
     types::Type* types_value_type = type_info_->ExprInfoOf(x)->type();
-    ir::Type* ir_value_type = ToIRType(types_value_type);
+    ir::Type* ir_value_type = types_builder_.BuildType(types_value_type);
     std::shared_ptr<ir::Computed> value =
         std::make_shared<ir::Computed>(ir_value_type, ctx.func()->next_computed_number());
     ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(value, address));
@@ -582,8 +579,8 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfStringConcatExpr(ast::BinaryEx
                                                                    Context& ctx) {
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->x(), ctx).front();
-  std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(ir_string_type_, ctx.func()->next_computed_number());
+  std::shared_ptr<ir::Computed> result = std::make_shared<ir::Computed>(
+      types_builder_.ir_string_type(), ctx.func()->next_computed_number());
   ctx.block()->instrs().push_back(std::make_unique<ir_ext::StringConcatInstr>(
       result, std::vector<std::shared_ptr<ir::Value>>{x, y}));
   return result;
@@ -594,7 +591,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryALExpr(ast::BinaryExpr* 
                                                                Context& ctx) {
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
-  ir::Type* ir_type = ToIRType(basic_type);
+  ir::Type* ir_type = types_builder_.BuildTypeForBasic(basic_type);
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   x = BuildValueOfConversion(x, ir_type, ctx);
   std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->x(), ctx).front();
@@ -610,7 +607,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryShiftExpr(ast::BinaryExp
                                                                   Context& ctx) {
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
-  ir::Type* ir_type = ToIRType(basic_type);
+  ir::Type* ir_type = types_builder_.BuildTypeForBasic(basic_type);
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   x = BuildValueOfConversion(x, ir_type, ctx);
   std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->x(), ctx).front();
@@ -788,9 +785,11 @@ std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildValuesOfTypeAssertExpr(
 }
 
 std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfIndexExpr(ast::IndexExpr* expr, Context& ctx) {
+  types::Type* types_element_type = type_info_->ExprInfoOf(expr)->type();
+  ir_ext::Pointer* ir_pointer_type = types_builder_.BuildWeakPointerToType(types_element_type);
   // TODO: implement (array, slice)
   std::shared_ptr<ir::Computed> address =
-      std::make_shared<ir::Computed>(ir_ref_count_ptr_type_, ctx.func()->next_computed_number());
+      std::make_shared<ir::Computed>(ir_pointer_type, ctx.func()->next_computed_number());
   return address;
 }
 
@@ -799,7 +798,8 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIndexExpr(ast::IndexExpr* expr
   ast::Expr* index_expr = expr->index();
   types::InfoBuilder info_builder = type_info_->builder();
   types::Type* types_accessed_type = type_info_->ExprInfoOf(accessed_expr)->type();
-  types::Type* types_accessed_underlying_type = types::UnderlyingOf(types_accessed_type, info_builder);
+  types::Type* types_accessed_underlying_type =
+      types::UnderlyingOf(types_accessed_type, info_builder);
   if (types_accessed_underlying_type->type_kind() == types::TypeKind::kBasic) {
     // Note: strings are the only basic type that can be indexed
     ir::Type* rune_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI32);
@@ -813,7 +813,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIndexExpr(ast::IndexExpr* expr
 
   } else if (types_accessed_underlying_type->is_container()) {
     types::Type* types_element_type = type_info_->ExprInfoOf(expr)->type();
-    ir::Type* ir_element_type = ToIRType(types_element_type);
+    ir::Type* ir_element_type = types_builder_.BuildType(types_element_type);
     std::shared_ptr<ir::Computed> value =
         std::make_shared<ir::Computed>(ir_element_type, ctx.func()->next_computed_number());
     // TODO: actually add load instr
@@ -864,7 +864,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIdent(ast::Ident* ident, Conte
     }
     case types::ObjectKind::kVariable: {
       types::Variable* var = static_cast<types::Variable*>(object);
-      ir::Type* type = ToIRType(var->type());
+      ir::Type* type = types_builder_.BuildType(var->type());
       std::shared_ptr<ir::Value> address = ctx.LookupAddressOfVar(var);
       std::shared_ptr<ir::Computed> value =
           std::make_shared<ir::Computed>(type, ctx.func()->next_computed_number());
@@ -901,21 +901,21 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfConversion(std::shared_ptr<ir:
   }
 }
 
-std::shared_ptr<ir::Value> IRBuilder::DefaultIRValueForType(types::Type* lang_type) const {
-  switch (lang_type->type_kind()) {
+std::shared_ptr<ir::Value> IRBuilder::DefaultIRValueForType(types::Type* types_type) {
+  switch (types_type->type_kind()) {
     case types::TypeKind::kBasic: {
-      ir::Type* ir_type = ToIRType(static_cast<types::Basic*>(lang_type));
+      ir::Type* ir_type = types_builder_.BuildType(types_type);
       switch (ir_type->type_kind()) {
         case ir::TypeKind::kAtomic:
           return std::make_shared<ir::Constant>(static_cast<ir::Atomic*>(ir_type), 0);
         case ir::TypeKind::kLangString:
-          return std::make_shared<ir_ext::StringConstant>(ir_string_type_, "");
+          return std::make_shared<ir_ext::StringConstant>(types_builder_.ir_string_type(), "");
         default:
           throw "internal error: unexpected ir type for basic type";
       }
     }
     default:
-      return std::make_shared<ir_ext::StringConstant>(ir_string_type_, "");
+      return std::make_shared<ir_ext::StringConstant>(types_builder_.ir_string_type(), "");
       // TODO: implement more types
       // throw "internal error: unexpected lang type";
   }
@@ -977,108 +977,10 @@ std::shared_ptr<ir::Value> IRBuilder::ToIRConstant(types::Basic* basic,
     case types::Basic::kString:
     case types::Basic::kUntypedString: {
       std::string value = std::get<std::string>(constant.value());
-      return std::make_shared<ir_ext::StringConstant>(ir_string_type_, value);
+      return std::make_shared<ir_ext::StringConstant>(types_builder_.ir_string_type(), value);
     }
     default:
       throw "internal error: unexpected basic literal type";
-  }
-}
-
-ir::Type* IRBuilder::ToIRType(types::Type* type) const {
-  switch (type->type_kind()) {
-    case types::TypeKind::kBasic:
-      switch (static_cast<types::Basic*>(type)->kind()) {
-        case types::Basic::kBool:
-        case types::Basic::kUntypedBool:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
-        case types::Basic::kInt8:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kI8);
-        case types::Basic::kInt16:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kI16);
-        case types::Basic::kInt32:
-        case types::Basic::kUntypedRune:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kI32);
-        case types::Basic::kInt:
-        case types::Basic::kInt64:
-        case types::Basic::kUntypedInt:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kI64);
-        case types::Basic::kUint8:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kU8);
-        case types::Basic::kUint16:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kU16);
-        case types::Basic::kUint32:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kU32);
-        case types::Basic::kUint:
-        case types::Basic::kUint64:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kU64);
-        case types::Basic::kString:
-        case types::Basic::kUntypedString:
-          return ir_string_type_;
-        case types::Basic::kUntypedNil:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kPtr);
-        default:
-          throw "internal error: unexpected basic type";
-      }
-    case types::TypeKind::kPointer:
-      switch (static_cast<types::Pointer*>(type)->kind()) {
-        case types::Pointer::Kind::kWeak:
-          return program_->type_table().AtomicOfKind(ir::AtomicKind::kPtr);
-        case types::Pointer::Kind::kStrong:
-          return ir_ref_count_ptr_type_;
-        default:
-          throw "internal error: unexpected pointer kind";
-      }
-    case types::TypeKind::kArray:
-    case types::TypeKind::kSlice: {
-      types::Container* types_container = static_cast<types::Container*>(type);
-      types::Type* types_element = types_container->element_type();
-      ir::Type* ir_element = ToIRType(types_element);
-      int64_t size = ir_ext::kDynamicArraySize;
-      if (type->type_kind() == types::TypeKind::kArray) {
-        size = static_cast<types::Array*>(type)->length();
-      }
-      return program_->type_table().AddType(std::make_unique<ir_ext::Array>(ir_element, size));
-    }
-    case types::TypeKind::kNamedType:
-      return ToIRType(static_cast<types::NamedType*>(type)->underlying());
-    case types::TypeKind::kTypeInstance: {
-      types::InfoBuilder type_info_builder = type_info_->builder();
-      types::Type* underlying =
-          types::UnderlyingOf(static_cast<types::TypeInstance*>(type), type_info_builder);
-      return ToIRType(underlying);
-    }
-    case types::TypeKind::kSignature:
-      return program_->type_table().AtomicOfKind(ir::AtomicKind::kFunc);
-    case types::TypeKind::kStruct: {
-      types::Struct* types_struct = static_cast<types::Struct*>(type);
-      if (types_struct->is_empty()) {
-        return ir_empty_struct_;
-      }
-      // TODO: handle embdedded structs
-      std::vector<std::pair<std::string, ir::Type*>> fields;
-      for (types::Variable* types_field : types_struct->fields()) {
-        std::string name = types_field->name();
-        ir::Type* ir_field_type = ToIRType(types_field->type());
-        fields.push_back({name, ir_field_type});
-      }
-      return program_->type_table().AddType(std::make_unique<ir_ext::Struct>(fields));
-    }
-    case types::TypeKind::kInterface: {
-      types::Interface* types_interface = static_cast<types::Interface*>(type);
-      if (types_interface->is_empty()) {
-        return ir_empty_interface_;
-      }
-      // TODO: handle embdedded interfaces
-      std::vector<std::string> methods;
-      for (types::Func* types_method : types_interface->methods()) {
-        methods.push_back(types_method->name());
-      }
-      return program_->type_table().AddType(std::make_unique<ir_ext::Interface>(methods));
-    }
-    case types::TypeKind::kTypeParameter:
-      return ToIRType(static_cast<types::TypeParameter*>(type)->interface());
-    default:
-      throw "internal error: unexpected type";
   }
 }
 
