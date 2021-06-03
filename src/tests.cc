@@ -120,7 +120,7 @@ void run_lang_test(std::filesystem::path test_dir) {
   std::unique_ptr<ir::Program> program =
       lang::ir_builder::IRBuilder::TranslateProgram(test_pkg, pkg_manager.type_info());
   if (program) {
-    to_file(program->ToString(), docs_dir / (test_pkg->name() + ".ir.txt"));
+    to_file(program->ToString(), debug_dir / (test_pkg->name() + ".ir.txt"));
 
     for (auto& func : program->funcs()) {
       std::string file_name =
