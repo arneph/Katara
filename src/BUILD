@@ -21,3 +21,12 @@ cc_binary(
         ":katara_lib",
     ],
 )
+
+cc_binary(
+    name = "katara-tests",
+    srcs = ["tests.cc"],
+    copts = COPTS,
+    deps = [
+        ":katara_lib",
+    ],
+)
