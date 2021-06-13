@@ -19,6 +19,8 @@
 #include "lang/representation/ast/ast_util.h"
 #include "lang/representation/positions/positions.h"
 #include "lang/representation/types/info_util.h"
+#include "ir/representation/program.h"
+#include "ir/interpreter/interpreter.h"
 
 constexpr std::string_view kVersion = "0.1";
 constexpr std::string_view kStdLibPath = "/Users/arne/Documents/Xcode/Katara/stdlib";
@@ -103,11 +105,11 @@ int run(const std::vector<const std::string> args, std::istream& in, std::ostrea
 
   lang::packages::PackageManager pkg_manager(std::string{kStdLibPath});
   lang::packages::Package* main_pkg = pkg_manager.LoadPackage(package_dir);
-  
+
   bool contains_issues = false;
   for (auto pkg : pkg_manager.Packages()) {
     printIssues(pkg_manager.file_set(), pkg->issue_tracker().issues(), err);
-    if (pkg->issue_tracker().issues().empty()) {
+    if (!pkg->issue_tracker().issues().empty()) {
       contains_issues = true;
     }
   }
@@ -141,8 +143,11 @@ int run(const std::vector<const std::string> args, std::istream& in, std::ostrea
       to_file(func_dom.ToDotFormat(), debug_dir / (file_name + ".dom.dot"));
     }
   }
+
+  ir_interpreter::Interpreter interpreter(program.get());
+  interpreter.run();
   
-  return 0;
+  return interpreter.exit_code();
 }
 
 int main(int argc, char* argv[]) {
