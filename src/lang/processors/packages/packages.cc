@@ -44,7 +44,7 @@ Package* PackageManager::LoadPackage(std::string import_dir) {
     package->issue_tracker_.Add(issues::kPackageDirectoryWithoutSourceFiles,
                                 std::vector<pos::pos_t>{},
                                 "package directory does not contain source files");
-    return nullptr;
+    return package.get();
   }
   for (auto& source_file : source_files) {
     std::ifstream in_stream(source_file, std::ios::in);
