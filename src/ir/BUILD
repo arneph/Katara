@@ -9,6 +9,7 @@ cc_library(
     ],
     deps = [
         "//src/ir/info",
+        "//src/ir/interpreter",
         "//src/ir/processors",
         "//src/ir/representation",
     ],
