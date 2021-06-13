@@ -53,6 +53,9 @@ void IRBuilder::PrepareFuncDecl(ast::FuncDecl* func_decl) {
   ir::Func* ir_func = program_->AddFunc();
   ir_func->set_name(func_decl->name()->name());
   funcs_.insert({types_func, ir_func});
+  if (ir_func->name() == "main") {
+    program_->set_entry_func_num(ir_func->number());
+  }
 }
 
 void IRBuilder::BuildDeclsInFile(ast::File* file) {
@@ -74,10 +77,27 @@ void IRBuilder::BuildDeclsInFile(ast::File* file) {
 
 void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
   types::Func* types_func = static_cast<types::Func*>(type_info_->DefinitionOf(func_decl->name()));
+  types::Signature* types_signature = static_cast<types::Signature*>(types_func->type());
   ir::Func* ir_func = funcs_.at(types_func);
   ir::Block* entry_block = ir_func->AddBlock();
   ir_func->set_entry_block_num(entry_block->number());
   Context ctx(ir_func);
+  
+  for (types::Variable* types_arg : types_signature->parameters()->variables()) {
+    types::Type* types_arg_type = types_arg->type();
+    ir::Type* ir_arg_type = types_builder_.BuildType(types_arg_type);
+    std::shared_ptr<ir::Computed> ir_arg =
+        std::make_shared<ir::Computed>(ir_arg_type, ctx.func()->next_computed_number());
+    ir_func->args().push_back(ir_arg);
+  }
+  if (types_signature->results() != nullptr) {
+    for (types::Variable* types_result : types_signature->results()->variables()) {
+      types::Type* types_result_type = types_result->type();
+      ir::Type* ir_result_type = types_builder_.BuildType(types_result_type);
+      ir_func->result_types().push_back(ir_result_type);
+    }
+  }
+  
   BuildPrologForFunc(types_func, ctx);
   BuildBlockStmt(func_decl->body(), ctx);
   if (ctx.block()->instrs().empty() ||
@@ -264,6 +284,8 @@ void IRBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, Context& ctx) {
 
 void IRBuilder::BuildReturnStmt(ast::ReturnStmt* return_stmt, Context& ctx) {
   std::vector<std::shared_ptr<ir::Value>> results = BuildValuesOfExprs(return_stmt->results(), ctx);
+  
+  ctx.block()->instrs().push_back(std::make_unique<ir::ReturnInstr>(results));
 }
 
 void IRBuilder::BuildIfStmt(ast::IfStmt* if_stmt, Context& ctx) {
