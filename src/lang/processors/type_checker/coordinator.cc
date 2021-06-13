@@ -8,8 +8,8 @@
 
 #include "coordinator.h"
 
-#include "lang/representation/ast/ast_util.h"
-#include "lang/representation/tokens/tokens.h"
+#include "src/lang/representation/ast/ast_util.h"
+#include "src/lang/representation/tokens/tokens.h"
 
 namespace lang {
 namespace type_checker {

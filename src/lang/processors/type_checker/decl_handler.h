@@ -9,13 +9,13 @@
 #ifndef lang_type_checker_decl_handler_h
 #define lang_type_checker_decl_handler_h
 
-#include "lang/processors/issues/issues.h"
-#include "lang/processors/type_checker/base_handler.h"
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/types/info.h"
-#include "lang/representation/types/info_builder.h"
-#include "lang/representation/types/objects.h"
-#include "lang/representation/types/types.h"
+#include "src/lang/processors/issues/issues.h"
+#include "src/lang/processors/type_checker/base_handler.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/types/info.h"
+#include "src/lang/representation/types/info_builder.h"
+#include "src/lang/representation/types/objects.h"
+#include "src/lang/representation/types/types.h"
 
 namespace lang {
 namespace type_checker {

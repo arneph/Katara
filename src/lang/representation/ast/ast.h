@@ -12,7 +12,7 @@
 #include <memory>
 #include <vector>
 
-#include "lang/representation/ast/nodes.h"
+#include "src/lang/representation/ast/nodes.h"
 
 namespace lang {
 namespace ast {

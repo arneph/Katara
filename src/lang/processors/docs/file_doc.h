@@ -11,10 +11,10 @@
 
 #include <string>
 
-#include "lang/processors/docs/common.h"
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/types/info.h"
+#include "src/lang/processors/docs/common.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/positions/positions.h"
+#include "src/lang/representation/types/info.h"
 
 namespace lang {
 namespace docs {

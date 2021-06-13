@@ -11,9 +11,9 @@
 
 #include <vector>
 
-#include "lang/processors/issues/issues.h"
-#include "lang/representation/types/info.h"
-#include "lang/representation/types/info_builder.h"
+#include "src/lang/processors/issues/issues.h"
+#include "src/lang/representation/types/info.h"
+#include "src/lang/representation/types/info_builder.h"
 
 namespace lang {
 namespace type_checker {

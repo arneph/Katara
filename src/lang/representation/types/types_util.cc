@@ -8,7 +8,7 @@
 
 #include "types_util.h"
 
-#include "lang/representation/types/objects.h"
+#include "src/lang/representation/types/objects.h"
 
 namespace lang {
 namespace types {

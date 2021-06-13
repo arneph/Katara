@@ -12,7 +12,7 @@
 #include <string>
 #include <unordered_set>
 
-#include "lang/representation/types/scope.h"
+#include "src/lang/representation/types/scope.h"
 
 namespace lang {
 namespace types {

@@ -11,8 +11,8 @@
 
 #include <optional>
 
-#include "lang/representation/constants/constants.h"
-#include "lang/representation/types/types.h"
+#include "src/lang/representation/constants/constants.h"
+#include "src/lang/representation/types/types.h"
 
 namespace lang {
 namespace types {

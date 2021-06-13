@@ -11,8 +11,8 @@
 
 #include <vector>
 
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/types/objects.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/types/objects.h"
 
 namespace lang {
 namespace types {

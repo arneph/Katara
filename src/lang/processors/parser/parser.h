@@ -14,13 +14,13 @@
 #include <string>
 #include <vector>
 
-#include "lang/processors/issues/issues.h"
-#include "lang/processors/scanner/scanner.h"
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/ast/ast_builder.h"
-#include "lang/representation/ast/nodes.h"
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/tokens/tokens.h"
+#include "src/lang/processors/issues/issues.h"
+#include "src/lang/processors/scanner/scanner.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/ast/ast_builder.h"
+#include "src/lang/representation/ast/nodes.h"
+#include "src/lang/representation/positions/positions.h"
+#include "src/lang/representation/tokens/tokens.h"
 
 namespace lang {
 namespace parser {

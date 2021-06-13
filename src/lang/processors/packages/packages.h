@@ -14,11 +14,11 @@
 #include <unordered_map>
 #include <vector>
 
-#include "lang/processors/issues/issues.h"
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/types/info.h"
-#include "lang/representation/types/package.h"
+#include "src/lang/processors/issues/issues.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/positions/positions.h"
+#include "src/lang/representation/types/info.h"
+#include "src/lang/representation/types/package.h"
 
 namespace lang {
 namespace packages {

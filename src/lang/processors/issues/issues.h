@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "lang/representation/positions/positions.h"
+#include "src/lang/representation/positions/positions.h"
 
 namespace lang {
 namespace issues {

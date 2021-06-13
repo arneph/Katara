@@ -12,22 +12,22 @@
 #include <memory>
 #include <unordered_map>
 
-#include "ir/info/block_live_range_info.h"
-#include "ir/info/func_live_range_info.h"
-#include "ir/info/interference_graph.h"
-#include "ir/representation/block.h"
-#include "ir/representation/func.h"
-#include "ir/representation/instrs.h"
-#include "ir/representation/program.h"
-#include "ir/representation/values.h"
-#include "x86_64/block.h"
-#include "x86_64/func.h"
-#include "x86_64/instr.h"
-#include "x86_64/instrs/al_instrs.h"
-#include "x86_64/instrs/cf_instrs.h"
-#include "x86_64/instrs/data_instrs.h"
-#include "x86_64/ops.h"
-#include "x86_64/prog.h"
+#include "src/ir/info/block_live_range_info.h"
+#include "src/ir/info/func_live_range_info.h"
+#include "src/ir/info/interference_graph.h"
+#include "src/ir/representation/block.h"
+#include "src/ir/representation/func.h"
+#include "src/ir/representation/instrs.h"
+#include "src/ir/representation/program.h"
+#include "src/ir/representation/values.h"
+#include "src/x86_64/block.h"
+#include "src/x86_64/func.h"
+#include "src/x86_64/instr.h"
+#include "src/x86_64/instrs/al_instrs.h"
+#include "src/x86_64/instrs/cf_instrs.h"
+#include "src/x86_64/instrs/data_instrs.h"
+#include "src/x86_64/ops.h"
+#include "src/x86_64/prog.h"
 
 namespace x86_64_ir_translator {
 

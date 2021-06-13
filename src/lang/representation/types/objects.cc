@@ -8,8 +8,8 @@
 
 #include "objects.h"
 
-#include "lang/representation/types/package.h"
-#include "lang/representation/types/scope.h"
+#include "src/lang/representation/types/package.h"
+#include "src/lang/representation/types/scope.h"
 
 namespace lang {
 namespace types {

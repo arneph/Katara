@@ -12,9 +12,9 @@
 #include <optional>
 #include <string>
 
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/types/info.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/positions/positions.h"
+#include "src/lang/representation/types/info.h"
 
 namespace lang {
 namespace docs {

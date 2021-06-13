@@ -13,13 +13,13 @@
 #include <memory>
 #include <optional>
 
-#include "ir/processors/scanner.h"
-#include "ir/representation/block.h"
-#include "ir/representation/func.h"
-#include "ir/representation/instrs.h"
-#include "ir/representation/num_types.h"
-#include "ir/representation/program.h"
-#include "ir/representation/values.h"
+#include "src/ir/processors/scanner.h"
+#include "src/ir/representation/block.h"
+#include "src/ir/representation/func.h"
+#include "src/ir/representation/instrs.h"
+#include "src/ir/representation/num_types.h"
+#include "src/ir/representation/program.h"
+#include "src/ir/representation/values.h"
 
 namespace ir_proc {
 

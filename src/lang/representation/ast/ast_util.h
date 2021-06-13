@@ -11,9 +11,9 @@
 
 #include <functional>
 
-#include "common/graph.h"
-#include "lang/representation/ast/nodes.h"
-#include "lang/representation/positions/positions.h"
+#include "src/common/graph.h"
+#include "src/lang/representation/ast/nodes.h"
+#include "src/lang/representation/positions/positions.h"
 
 namespace lang {
 namespace ast {

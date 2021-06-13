@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-#include "ir/representation/types.h"
+#include "src/ir/representation/types.h"
 
 namespace lang {
 namespace ir_ext {

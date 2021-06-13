@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "ir/representation/types.h"
+#include "src/ir/representation/types.h"
 
 namespace lang {
 namespace types {

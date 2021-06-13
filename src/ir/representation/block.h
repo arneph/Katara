@@ -15,9 +15,9 @@
 #include <unordered_set>
 #include <vector>
 
-#include "common/graph.h"
-#include "ir/representation/instrs.h"
-#include "ir/representation/num_types.h"
+#include "src/common/graph.h"
+#include "src/ir/representation/instrs.h"
+#include "src/ir/representation/num_types.h"
 
 namespace ir {
 

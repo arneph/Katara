@@ -11,8 +11,8 @@
 
 #include <string>
 
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/tokens/tokens.h"
+#include "src/lang/representation/positions/positions.h"
+#include "src/lang/representation/tokens/tokens.h"
 
 namespace lang {
 namespace scanner {

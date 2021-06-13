@@ -11,8 +11,8 @@
 
 #include <memory>
 
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/ast/nodes.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/ast/nodes.h"
 
 namespace lang {
 namespace ast {

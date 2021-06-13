@@ -10,8 +10,8 @@
 
 #include <iomanip>
 
-#include "x86_64/coding/instr_decoder.h"
-#include "x86_64/coding/instr_encoder.h"
+#include "src/x86_64/coding/instr_decoder.h"
+#include "src/x86_64/coding/instr_encoder.h"
 
 namespace x86_64 {
 

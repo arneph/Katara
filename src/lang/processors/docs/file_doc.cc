@@ -11,11 +11,11 @@
 #include <iomanip>
 #include <sstream>
 
-#include "lang/processors/scanner/scanner.h"
-#include "lang/representation/ast/ast_util.h"
-#include "lang/representation/types/objects.h"
-#include "lang/representation/types/package.h"
-#include "lang/representation/types/types.h"
+#include "src/lang/processors/scanner/scanner.h"
+#include "src/lang/representation/ast/ast_util.h"
+#include "src/lang/representation/types/objects.h"
+#include "src/lang/representation/types/package.h"
+#include "src/lang/representation/types/types.h"
 
 namespace lang {
 namespace docs {

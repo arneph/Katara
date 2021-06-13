@@ -14,8 +14,8 @@
 #include <unordered_map>
 #include <vector>
 
-#include "common/data.h"
-#include "x86_64/ops.h"
+#include "src/common/data.h"
+#include "src/x86_64/ops.h"
 
 namespace x86_64 {
 

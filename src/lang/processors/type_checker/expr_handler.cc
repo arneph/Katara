@@ -10,9 +10,9 @@
 
 #include <optional>
 
-#include "lang/processors/type_checker/type_resolver.h"
-#include "lang/representation/ast/ast_util.h"
-#include "lang/representation/types/types_util.h"
+#include "src/lang/processors/type_checker/type_resolver.h"
+#include "src/lang/representation/ast/ast_util.h"
+#include "src/lang/representation/types/types_util.h"
 
 namespace lang {
 namespace type_checker {

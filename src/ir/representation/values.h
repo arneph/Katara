@@ -12,8 +12,8 @@
 #include <memory>
 #include <string>
 
-#include "ir/representation/num_types.h"
-#include "ir/representation/types.h"
+#include "src/ir/representation/num_types.h"
+#include "src/ir/representation/types.h"
 
 namespace ir {
 

@@ -11,9 +11,9 @@
 #include <string>
 #include <vector>
 
-#include "lang/processors/issues/issues.h"
-#include "lang/processors/parser/parser.h"
-#include "lang/representation/positions/positions.h"
+#include "src/lang/processors/issues/issues.h"
+#include "src/lang/processors/parser/parser.h"
+#include "src/lang/representation/positions/positions.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   using namespace lang;

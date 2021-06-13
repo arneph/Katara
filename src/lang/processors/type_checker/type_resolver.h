@@ -9,10 +9,10 @@
 #ifndef lang_type_checker_type_resolver_h
 #define lang_type_checker_type_resolver_h
 
-#include "lang/processors/type_checker/decl_handler.h"
-#include "lang/processors/type_checker/expr_handler.h"
-#include "lang/processors/type_checker/stmt_handler.h"
-#include "lang/processors/type_checker/type_handler.h"
+#include "src/lang/processors/type_checker/decl_handler.h"
+#include "src/lang/processors/type_checker/expr_handler.h"
+#include "src/lang/processors/type_checker/stmt_handler.h"
+#include "src/lang/processors/type_checker/type_handler.h"
 
 namespace lang {
 namespace type_checker {

@@ -13,9 +13,9 @@
 #include <string>
 #include <vector>
 
-#include "common/data.h"
-#include "x86_64/func.h"
-#include "x86_64/mc/linker.h"
+#include "src/common/data.h"
+#include "src/x86_64/func.h"
+#include "src/x86_64/mc/linker.h"
 
 namespace x86_64 {
 

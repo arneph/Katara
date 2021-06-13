@@ -13,10 +13,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "ir/info/interference_graph.h"
-#include "ir/representation/block.h"
-#include "ir/representation/instrs.h"
-#include "ir/representation/num_types.h"
+#include "src/ir/info/interference_graph.h"
+#include "src/ir/representation/block.h"
+#include "src/ir/representation/instrs.h"
+#include "src/ir/representation/num_types.h"
 
 namespace ir_info {
 

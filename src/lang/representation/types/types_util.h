@@ -9,11 +9,11 @@
 #ifndef lang_types_util_h
 #define lang_types_util_h
 
-#include "lang/representation/constants/constants.h"
-#include "lang/representation/tokens/tokens.h"
-#include "lang/representation/types/info.h"
-#include "lang/representation/types/info_builder.h"
-#include "lang/representation/types/types.h"
+#include "src/lang/representation/constants/constants.h"
+#include "src/lang/representation/tokens/tokens.h"
+#include "src/lang/representation/types/info.h"
+#include "src/lang/representation/types/info_builder.h"
+#include "src/lang/representation/types/types.h"
 
 namespace lang {
 namespace types {

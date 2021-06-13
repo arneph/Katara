@@ -13,9 +13,9 @@
 #include <string>
 #include <vector>
 
-#include "common/graph.h"
-#include "ir/representation/func.h"
-#include "ir/representation/types.h"
+#include "src/common/graph.h"
+#include "src/ir/representation/func.h"
+#include "src/ir/representation/types.h"
 
 namespace ir {
 

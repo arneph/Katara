@@ -11,10 +11,10 @@
 
 #include <string>
 
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/constants/constants.h"
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/types/types.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/constants/constants.h"
+#include "src/lang/representation/positions/positions.h"
+#include "src/lang/representation/types/types.h"
 
 namespace lang {
 namespace types {

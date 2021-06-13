@@ -9,8 +9,8 @@
 #ifndef lang_types_selection_h
 #define lang_types_selection_h
 
-#include "lang/representation/types/objects.h"
-#include "lang/representation/types/types.h"
+#include "src/lang/representation/types/objects.h"
+#include "src/lang/representation/types/types.h"
 
 namespace lang {
 namespace types {

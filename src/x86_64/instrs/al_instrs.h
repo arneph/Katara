@@ -12,11 +12,11 @@
 #include <memory>
 #include <string>
 
-#include "common/data.h"
-#include "x86_64/instr.h"
-#include "x86_64/mc/linker.h"
-#include "x86_64/mc/unlinker.h"
-#include "x86_64/ops.h"
+#include "src/common/data.h"
+#include "src/x86_64/instr.h"
+#include "src/x86_64/mc/linker.h"
+#include "src/x86_64/mc/unlinker.h"
+#include "src/x86_64/ops.h"
 
 namespace x86_64 {
 

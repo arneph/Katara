@@ -8,9 +8,9 @@
 
 #include "type_checker.h"
 
-#include "lang/processors/type_checker/coordinator.h"
-#include "lang/processors/type_checker/identifier_resolver.h"
-#include "lang/representation/types/info_builder.h"
+#include "src/lang/processors/type_checker/coordinator.h"
+#include "src/lang/processors/type_checker/identifier_resolver.h"
+#include "src/lang/representation/types/info_builder.h"
 
 namespace lang {
 namespace type_checker {

@@ -11,8 +11,8 @@
 
 #include <string>
 
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/types/info.h"
+#include "src/lang/representation/positions/positions.h"
+#include "src/lang/representation/types/info.h"
 
 namespace lang {
 namespace types {

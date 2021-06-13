@@ -13,9 +13,9 @@
 #include <map>
 #include <sstream>
 
-#include "lang/processors/parser/parser.h"
-#include "lang/processors/type_checker/type_checker.h"
-#include "lang/representation/ast/ast_util.h"
+#include "src/lang/processors/parser/parser.h"
+#include "src/lang/processors/type_checker/type_checker.h"
+#include "src/lang/representation/ast/ast_util.h"
 
 namespace lang {
 namespace packages {

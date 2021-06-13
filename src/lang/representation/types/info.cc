@@ -8,7 +8,7 @@
 
 #include "info.h"
 
-#include "lang/representation/types/info_builder.h"
+#include "src/lang/representation/types/info_builder.h"
 
 namespace lang {
 namespace types {

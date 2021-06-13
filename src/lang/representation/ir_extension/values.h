@@ -11,8 +11,8 @@
 
 #include <string>
 
-#include "ir/representation/values.h"
-#include "lang/representation/ir_extension/types.h"
+#include "src/ir/representation/values.h"
+#include "src/lang/representation/ir_extension/types.h"
 
 namespace lang {
 namespace ir_ext {

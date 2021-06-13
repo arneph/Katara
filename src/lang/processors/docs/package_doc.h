@@ -12,11 +12,11 @@
 #include <string>
 #include <vector>
 
-#include "lang/processors/docs/common.h"
-#include "lang/processors/docs/file_doc.h"
-#include "lang/processors/packages/packages.h"
-#include "lang/representation/positions/positions.h"
-#include "lang/representation/types/info.h"
+#include "src/lang/processors/docs/common.h"
+#include "src/lang/processors/docs/file_doc.h"
+#include "src/lang/processors/packages/packages.h"
+#include "src/lang/representation/positions/positions.h"
+#include "src/lang/representation/types/info.h"
 
 namespace lang {
 namespace docs {

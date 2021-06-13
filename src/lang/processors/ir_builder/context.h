@@ -12,10 +12,10 @@
 #include <memory>
 #include <unordered_map>
 
-#include "ir/representation/block.h"
-#include "ir/representation/func.h"
-#include "ir/representation/values.h"
-#include "lang/representation/types/objects.h"
+#include "src/ir/representation/block.h"
+#include "src/ir/representation/func.h"
+#include "src/ir/representation/values.h"
+#include "src/lang/representation/types/objects.h"
 
 namespace lang {
 namespace ir_builder {

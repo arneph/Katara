@@ -15,14 +15,14 @@
 #include <unordered_set>
 #include <vector>
 
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/types/expr_info.h"
-#include "lang/representation/types/initializer.h"
-#include "lang/representation/types/objects.h"
-#include "lang/representation/types/package.h"
-#include "lang/representation/types/scope.h"
-#include "lang/representation/types/selection.h"
-#include "lang/representation/types/types.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/types/expr_info.h"
+#include "src/lang/representation/types/initializer.h"
+#include "src/lang/representation/types/objects.h"
+#include "src/lang/representation/types/package.h"
+#include "src/lang/representation/types/scope.h"
+#include "src/lang/representation/types/selection.h"
+#include "src/lang/representation/types/types.h"
 
 namespace lang {
 namespace types {

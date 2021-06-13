@@ -12,13 +12,13 @@
 #include <iomanip>
 #include <sstream>
 
-#include "lang/representation/ast/ast.h"
-#include "lang/representation/constants/constants.h"
-#include "lang/representation/types/initializer.h"
-#include "lang/representation/types/objects.h"
-#include "lang/representation/types/package.h"
-#include "lang/representation/types/scope.h"
-#include "lang/representation/types/types.h"
+#include "src/lang/representation/ast/ast.h"
+#include "src/lang/representation/constants/constants.h"
+#include "src/lang/representation/types/initializer.h"
+#include "src/lang/representation/types/objects.h"
+#include "src/lang/representation/types/package.h"
+#include "src/lang/representation/types/scope.h"
+#include "src/lang/representation/types/types.h"
 
 namespace lang {
 namespace types {

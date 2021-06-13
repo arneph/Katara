@@ -8,7 +8,7 @@
 
 #include "ast.h"
 
-#include "lang/representation/ast/ast_builder.h"
+#include "src/lang/representation/ast/ast_builder.h"
 
 namespace lang {
 namespace ast {

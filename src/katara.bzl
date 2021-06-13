@@ -1,5 +1,4 @@
 COPTS = [
-    "-Isrc/",
     "-std=c++2a",
     "-Wall",
     "-Wextra",

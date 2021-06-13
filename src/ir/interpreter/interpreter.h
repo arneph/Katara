@@ -6,14 +6,14 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#include "ir/interpreter/values.h"
-#include "ir/representation/block.h"
-#include "ir/representation/func.h"
-#include "ir/representation/instrs.h"
-#include "ir/representation/num_types.h"
-#include "ir/representation/program.h"
-#include "ir/representation/types.h"
-#include "ir/representation/values.h"
+#include "src/ir/interpreter/values.h"
+#include "src/ir/representation/block.h"
+#include "src/ir/representation/func.h"
+#include "src/ir/representation/instrs.h"
+#include "src/ir/representation/num_types.h"
+#include "src/ir/representation/program.h"
+#include "src/ir/representation/types.h"
+#include "src/ir/representation/values.h"
 
 #ifndef ir_interpreter_interpreter_h
 #define ir_interpreter_interpreter_h

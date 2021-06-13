@@ -13,7 +13,7 @@
 #include <string>
 #include <variant>
 
-#include "lang/representation/tokens/tokens.h"
+#include "src/lang/representation/tokens/tokens.h"
 
 namespace lang {
 namespace constants {

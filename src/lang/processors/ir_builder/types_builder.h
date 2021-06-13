@@ -11,18 +11,18 @@
 
 #include <memory>
 
-#include "ir/representation/program.h"
-#include "ir/representation/types.h"
-#include "lang/representation/ir_extension/types.h"
-#include "lang/representation/types/expr_info.h"
-#include "lang/representation/types/info.h"
-#include "lang/representation/types/initializer.h"
-#include "lang/representation/types/objects.h"
-#include "lang/representation/types/package.h"
-#include "lang/representation/types/scope.h"
-#include "lang/representation/types/selection.h"
-#include "lang/representation/types/types.h"
-#include "lang/representation/types/types_util.h"
+#include "src/ir/representation/program.h"
+#include "src/ir/representation/types.h"
+#include "src/lang/representation/ir_extension/types.h"
+#include "src/lang/representation/types/expr_info.h"
+#include "src/lang/representation/types/info.h"
+#include "src/lang/representation/types/initializer.h"
+#include "src/lang/representation/types/objects.h"
+#include "src/lang/representation/types/package.h"
+#include "src/lang/representation/types/scope.h"
+#include "src/lang/representation/types/selection.h"
+#include "src/lang/representation/types/types.h"
+#include "src/lang/representation/types/types_util.h"
 
 namespace lang {
 namespace ir_builder {
