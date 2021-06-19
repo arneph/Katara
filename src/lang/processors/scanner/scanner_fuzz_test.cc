@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "src/lang/processors/issues/issues.h"
-#include "src/lang/processors/parser/parser.h"
+#include "src/lang/processors/scanner/scanner.h"
 #include "src/lang/representation/positions/positions.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {

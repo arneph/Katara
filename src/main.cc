@@ -13,14 +13,14 @@
 #include <string_view>
 #include <vector>
 
+#include "src/ir/interpreter/interpreter.h"
+#include "src/ir/representation/program.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
 #include "src/lang/processors/packages/packages.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/info_util.h"
-#include "src/ir/representation/program.h"
-#include "src/ir/interpreter/interpreter.h"
 
 constexpr std::string_view kVersion = "0.1";
 constexpr std::string_view kStdLibPath = "/Users/arne/Documents/Xcode/Katara/stdlib";
@@ -146,7 +146,7 @@ int run(const std::vector<const std::string> args, std::istream& in, std::ostrea
 
   ir_interpreter::Interpreter interpreter(program.get());
   interpreter.run();
-  
+
   return interpreter.exit_code();
 }
 
