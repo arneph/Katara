@@ -89,7 +89,8 @@ std::string NameFromPath(std::string pkg_path) {
 Package* PackageManager::LoadPackage(std::string pkg_path, Loader* loader,
                                      std::vector<std::string> file_paths) {
   Package* pkg;
-  if (auto [it, insert_ok] = packages_.insert({pkg_path, std::unique_ptr<Package>(new Package())});
+  if (auto [it, insert_ok] =
+          packages_.insert({pkg_path, std::unique_ptr<Package>(new Package(&file_set_))});
       insert_ok) {
     pkg = it->second.get();
   } else {

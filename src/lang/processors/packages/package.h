@@ -33,7 +33,8 @@ class Package {
   const issues::IssueTracker& issue_tracker() const { return issue_tracker_; }
 
  private:
-  Package() : ast_package_(nullptr), types_package_(nullptr) {}
+  Package(const pos::FileSet* file_set)
+      : ast_package_(nullptr), types_package_(nullptr), issue_tracker_(file_set) {}
 
   std::string name_;
   std::string path_;

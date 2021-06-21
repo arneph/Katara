@@ -43,45 +43,6 @@ void printHelp(std::ostream& out) {
 
 void printVersion(std::ostream& out) { out << "Katara version " << kVersion << "\n"; }
 
-void printIssues(const lang::pos::FileSet* file_set, const std::vector<lang::issues::Issue>& issues,
-                 std::ostream& out) {
-  for (auto& issue : issues) {
-    switch (issue.severity()) {
-      case lang::issues::Severity::kWarning:
-        out << "\033[93;1m"
-               "Warning:"
-               "\033[0;0m"
-               " ";
-        break;
-      case lang::issues::Severity::kError:
-      case lang::issues::Severity::kFatal:
-        out << "\033[91;1m"
-               "Error:"
-               "\033[0;0m"
-               " ";
-        break;
-    }
-    out << issue.message() << " [" << issue.kind_id() << "]\n";
-    for (lang::pos::pos_t pos : issue.positions()) {
-      lang::pos::Position position = file_set->PositionFor(pos);
-      std::string line = file_set->FileAt(pos)->LineFor(pos);
-      size_t whitespace = 0;
-      for (; whitespace < line.length(); whitespace++) {
-        if (line.at(whitespace) != ' ' && line.at(whitespace) != '\t') {
-          break;
-        }
-      }
-      std::cout << "  " << position.ToString() << ": ";
-      std::cout << line.substr(whitespace);
-      size_t pointer = 4 + position.ToString().size() + position.column_ - whitespace;
-      for (size_t i = 0; i < pointer; i++) {
-        out << " ";
-      }
-      out << "^\n";
-    }
-  }
-}
-
 void to_file(std::string text, std::filesystem::path out_file) {
   std::ofstream out_stream(out_file, std::ios::out);
 
@@ -110,7 +71,7 @@ int run(const std::vector<const std::string> args, std::istream& in, std::ostrea
 
   bool contains_issues = false;
   for (auto pkg : pkg_manager.Packages()) {
-    printIssues(pkg_manager.file_set(), pkg->issue_tracker().issues(), err);
+    pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal, err);
     if (!pkg->issue_tracker().issues().empty()) {
       contains_issues = true;
     }

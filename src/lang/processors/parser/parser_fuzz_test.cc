@@ -24,7 +24,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   pos::File* pos_file = pos_file_set.AddFile("test_file.kat", contents);
   ast::AST ast;
   ast::ASTBuilder ast_builder = ast.builder();
-  issues::IssueTracker issues;
+  issues::IssueTracker issues(&pos_file_set);
 
   parser::Parser::ParseFile(pos_file, ast_builder, issues);
 

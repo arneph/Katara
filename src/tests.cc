@@ -67,41 +67,7 @@ void run_lang_test(std::filesystem::path test_dir) {
   lang::packages::Package* test_pkg = pkg_manager.LoadMainPackage(test_dir);
 
   for (auto pkg : pkg_manager.Packages()) {
-    for (auto& issue : pkg->issue_tracker().issues()) {
-      switch (issue.severity()) {
-        case lang::issues::Severity::kWarning:
-          std::cout << "\033[93;1m";
-          std::cout << "Warning:";
-          std::cout << "\033[0;0m";
-          std::cout << " ";
-          break;
-        case lang::issues::Severity::kError:
-        case lang::issues::Severity::kFatal:
-          std::cout << "\033[91;1m";
-          std::cout << "Error:";
-          std::cout << "\033[0;0m";
-          std::cout << " ";
-          break;
-      }
-      std::cout << issue.message() << " [" << issue.kind_id() << "]\n";
-      for (lang::pos::pos_t pos : issue.positions()) {
-        lang::pos::Position position = pkg_manager.file_set()->PositionFor(pos);
-        std::string line = pkg_manager.file_set()->FileAt(pos)->LineFor(pos);
-        size_t whitespace = 0;
-        for (; whitespace < line.length(); whitespace++) {
-          if (line.at(whitespace) != ' ' && line.at(whitespace) != '\t') {
-            break;
-          }
-        }
-        std::cout << "  " << position.ToString() << ": ";
-        std::cout << line.substr(whitespace);
-        size_t pointer = 4 + position.ToString().size() + position.column_ - whitespace;
-        for (size_t i = 0; i < pointer; i++) {
-          std::cout << " ";
-        }
-        std::cout << "^\n";
-      }
-    }
+    pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kPlain, std::cout);
   }
   for (auto [name, ast_file] : test_pkg->ast_package()->files()) {
     common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast_file);

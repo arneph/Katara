@@ -9,6 +9,7 @@
 #ifndef lang_issues_h
 #define lang_issues_h
 
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -228,6 +229,13 @@ class Issue {
 
 class IssueTracker {
  public:
+  enum class PrintFormat {
+    kPlain,
+    kTerminal,
+  };
+
+  IssueTracker(const pos::FileSet* file_set) : file_set_(file_set) {}
+
   bool has_warnings() const;
   bool has_errors() const;
   bool has_fatal_errors() const;
@@ -237,7 +245,10 @@ class IssueTracker {
   void Add(IssueKind kind, pos::pos_t position, std::string message);
   void Add(IssueKind kind, std::vector<pos::pos_t> positions, std::string message);
 
+  void PrintIssues(PrintFormat format, std::ostream& out) const;
+
  private:
+  const pos::FileSet* file_set_;
   std::vector<Issue> issues_;
 };
 
