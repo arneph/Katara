@@ -22,6 +22,8 @@ class FilesystemLoader : public Loader {
  public:
   FilesystemLoader(std::filesystem::path dir) : current_dir_(dir) {}
 
+  std::string RelativeToAbsoluteDir(std::string dir_path) const override;
+
   bool CanReadRelativeDir(std::string dir_path) const override;
   std::vector<std::string> SourceFilesInRelativeDir(std::string dir_path) const override;
 

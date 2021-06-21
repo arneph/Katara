@@ -36,13 +36,16 @@ Package* PackageManager::LoadPackage(std::string pkg_path) {
     return pkg;
   }
   if (src_loader_->CanReadRelativeDir(pkg_path)) {
+    std::string pkg_dir = src_loader_->RelativeToAbsoluteDir(pkg_path);
     std::vector<std::string> file_paths = src_loader_->SourceFilesInRelativeDir(pkg_path);
-    return LoadPackage(pkg_path, src_loader_.get(), file_paths);
+    return LoadPackage(pkg_path, pkg_dir, src_loader_.get(), file_paths);
   } else if (stdlib_loader_->CanReadRelativeDir(pkg_path)) {
+    std::string pkg_dir = stdlib_loader_->RelativeToAbsoluteDir(pkg_path);
     std::vector<std::string> file_paths = stdlib_loader_->SourceFilesInRelativeDir(pkg_path);
-    return LoadPackage(pkg_path, stdlib_loader_.get(), file_paths);
+    return LoadPackage(pkg_path, pkg_dir, stdlib_loader_.get(), file_paths);
   } else {
-    // TODO: handle error better
+    issue_tracker_.Add(issues::kPackageDirectoryNotFound, std::vector<pos::pos_t>{},
+                       "package directory not found for: " + pkg_path);
     return nullptr;
   }
 }
@@ -51,26 +54,49 @@ Package* PackageManager::LoadMainPackage(std::string main_dir) {
   if (GetMainPackage() != nullptr) {
     throw "internal error: tried to load main package twice";
   }
-  if (src_loader_->CanReadAbsoluteDir(main_dir)) {
-    std::vector<std::string> file_paths = src_loader_->SourceFilesInAbsoluteDir(main_dir);
-    return LoadPackage("main", src_loader_.get(), file_paths);
-  } else {
-    // TODO: handle error better
+  if (!src_loader_->CanReadAbsoluteDir(main_dir)) {
+    issue_tracker_.Add(issues::kMainPackageDirectoryUnreadable, std::vector<pos::pos_t>{},
+                       "main package directory not readable: " + main_dir);
     return nullptr;
   }
+  std::vector<std::string> file_paths = src_loader_->SourceFilesInAbsoluteDir(main_dir);
+  return LoadPackage("main", main_dir, src_loader_.get(), file_paths);
 }
+
+namespace {
+
+std::string DirFromPath(std::string file_path) {
+  size_t last_slash_index = file_path.find_last_of('/');
+  if (last_slash_index == std::string::npos) {
+    return "/";
+  } else {
+    return file_path.substr(0, last_slash_index);
+  }
+}
+
+}  // namespace
 
 Package* PackageManager::LoadMainPackage(std::vector<std::string> main_file_paths) {
   if (GetMainPackage() != nullptr) {
     throw "internal error: tried to load main package twice";
   }
-  for (std::string file_path : main_file_paths) {
+  std::string main_dir;
+  for (size_t i = 0; i < main_file_paths.size(); i++) {
+    std::string file_path = main_file_paths.at(i);
+    if (i == 0) {
+      main_dir = DirFromPath(file_path);
+    } else if (main_dir != DirFromPath(file_path)) {
+      issue_tracker_.Add(issues::kMainPackageFilesInMultipleDirectories, std::vector<pos::pos_t>{},
+                         "main package files are not in the same directory");
+      return nullptr;
+    }
     if (!src_loader_->CanReadSourceFile(file_path)) {
-      // TODO: handle error better
+      issue_tracker_.Add(issues::kMainPackageFileUnreadable, std::vector<pos::pos_t>{},
+                         "main package file not readable: " + file_path);
       return nullptr;
     }
   }
-  return LoadPackage("main", src_loader_.get(), main_file_paths);
+  return LoadPackage("main", main_dir, src_loader_.get(), main_file_paths);
 }
 
 namespace {
@@ -86,7 +112,7 @@ std::string NameFromPath(std::string pkg_path) {
 
 }  // namespace
 
-Package* PackageManager::LoadPackage(std::string pkg_path, Loader* loader,
+Package* PackageManager::LoadPackage(std::string pkg_path, std::string pkg_dir, Loader* loader,
                                      std::vector<std::string> file_paths) {
   Package* pkg;
   if (auto [it, insert_ok] =
@@ -98,6 +124,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path, Loader* loader,
   }
   pkg->name_ = NameFromPath(pkg_path);
   pkg->path_ = pkg_path;
+  pkg->dir_ = pkg_dir;
   if (file_paths.empty()) {
     pkg->issue_tracker_.Add(issues::kPackageDirectoryWithoutSourceFiles, std::vector<pos::pos_t>{},
                             "package directory does not contain source files");

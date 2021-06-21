@@ -18,6 +18,8 @@ namespace packages {
 
 class MockLoader : public Loader {
  public:
+  std::string RelativeToAbsoluteDir(std::string dir_path) const override;
+
   bool CanReadRelativeDir(std::string dir_path) const override;
   std::vector<std::string> SourceFilesInRelativeDir(std::string dir_path) const override;
 

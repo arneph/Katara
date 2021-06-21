@@ -26,12 +26,16 @@ std::pair<std::string, std::string> DirAndNameFromPath(std::string file_path) {
 namespace lang {
 namespace packages {
 
+std::string MockLoader::RelativeToAbsoluteDir(std::string dir_path) const {
+  return current_dir_ + "/" + dir_path;
+}
+
 bool MockLoader::CanReadRelativeDir(std::string dir_path) const {
-  return CanReadAbsoluteDir(current_dir_ + "/" + dir_path);
+  return CanReadAbsoluteDir(RelativeToAbsoluteDir(dir_path));
 }
 
 std::vector<std::string> MockLoader::SourceFilesInRelativeDir(std::string dir_path) const {
-  return SourceFilesInAbsoluteDir(current_dir_ + "/" + dir_path);
+  return SourceFilesInAbsoluteDir(RelativeToAbsoluteDir(dir_path));
 }
 
 bool MockLoader::CanReadAbsoluteDir(std::string dir_path) const { return dirs_.contains(dir_path); }

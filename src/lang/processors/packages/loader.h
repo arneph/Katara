@@ -19,6 +19,8 @@ class Loader {
  public:
   virtual ~Loader() {}
 
+  virtual std::string RelativeToAbsoluteDir(std::string dir_path) const = 0;
+
   virtual bool CanReadRelativeDir(std::string dir_path) const = 0;
   virtual std::vector<std::string> SourceFilesInRelativeDir(std::string dir_path) const = 0;
 

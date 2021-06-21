@@ -15,17 +15,21 @@
 namespace lang {
 namespace packages {
 
+std::string FilesystemLoader::RelativeToAbsoluteDir(std::string dir_path) const {
+  return current_dir_ / dir_path;
+}
+
 bool FilesystemLoader::CanReadRelativeDir(std::string dir_path) const {
   std::filesystem::path rel_path{dir_path};
   if (!rel_path.is_relative()) {
     return false;
   }
-  return CanReadAbsoluteDir(current_dir_ / rel_path);
+  return CanReadAbsoluteDir(RelativeToAbsoluteDir(rel_path));
 }
 
 std::vector<std::string> FilesystemLoader::SourceFilesInRelativeDir(std::string dir_path) const {
   std::filesystem::path rel_path{dir_path};
-  return SourceFilesInAbsoluteDir(current_dir_ / rel_path);
+  return SourceFilesInAbsoluteDir(RelativeToAbsoluteDir(dir_path));
 }
 
 bool FilesystemLoader::CanReadAbsoluteDir(std::string dir_path) const {

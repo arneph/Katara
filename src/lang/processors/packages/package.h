@@ -23,8 +23,12 @@ namespace packages {
 
 class Package {
  public:
+  // Returns the name of the package, e.g. for images/png, the package name is "png".
   std::string name() const { return name_; }
+  // Returns the path of the package as used to identify the package in import statements.
   std::string path() const { return path_; }
+  // Returns the absolute directory containing the package, e.g. to write debug information to.
+  std::string dir() const { return dir_; }
 
   const std::vector<pos::File*>& pos_files() const { return pos_files_; }
   ast::Package* ast_package() const { return ast_package_; }
@@ -38,6 +42,7 @@ class Package {
 
   std::string name_;
   std::string path_;
+  std::string dir_;
 
   std::vector<pos::File*> pos_files_;
   ast::Package* ast_package_;
