@@ -24,7 +24,6 @@ cc_library(
     ],
     deps = [
         ":common",
-        "//src/lang/processors/packages",
         "//src/lang/processors/scanner",
         "//src/lang/representation",
     ],
@@ -41,7 +40,7 @@ cc_library(
     deps = [
         ":common",
         ":file_doc",
-        "//src/lang/processors/packages",
+        "//src/lang/processors/packages:package",
         "//src/lang/representation",
     ],
 )

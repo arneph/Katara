@@ -82,7 +82,7 @@ void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
   ir::Block* entry_block = ir_func->AddBlock();
   ir_func->set_entry_block_num(entry_block->number());
   Context ctx(ir_func);
-  
+
   for (types::Variable* types_arg : types_signature->parameters()->variables()) {
     types::Type* types_arg_type = types_arg->type();
     ir::Type* ir_arg_type = types_builder_.BuildType(types_arg_type);
@@ -97,7 +97,7 @@ void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
       ir_func->result_types().push_back(ir_result_type);
     }
   }
-  
+
   BuildPrologForFunc(types_func, ctx);
   BuildBlockStmt(func_decl->body(), ctx);
   if (ctx.block()->instrs().empty() ||
@@ -284,7 +284,7 @@ void IRBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, Context& ctx) {
 
 void IRBuilder::BuildReturnStmt(ast::ReturnStmt* return_stmt, Context& ctx) {
   std::vector<std::shared_ptr<ir::Value>> results = BuildValuesOfExprs(return_stmt->results(), ctx);
-  
+
   ctx.block()->instrs().push_back(std::make_unique<ir::ReturnInstr>(results));
 }
 

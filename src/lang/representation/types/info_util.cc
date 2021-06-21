@@ -23,14 +23,14 @@
 namespace lang {
 namespace types {
 
-void TypesToText(pos::FileSet* file_set, Info* info, std::stringstream& ss);
-void ConstantExpressionsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss);
-void ConstantsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss);
-void DefinitionsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss);
-void UsesToText(pos::FileSet* file_set, Info* info, std::stringstream& ss);
-void ImplicitsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss);
+void TypesToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss);
+void ConstantExpressionsToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss);
+void ConstantsToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss);
+void DefinitionsToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss);
+void UsesToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss);
+void ImplicitsToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss);
 
-std::string InfoToText(pos::FileSet* file_set, Info* info) {
+std::string InfoToText(const pos::FileSet* file_set, Info* info) {
   std::stringstream ss;
 
   TypesToText(file_set, info, ss);
@@ -43,7 +43,7 @@ std::string InfoToText(pos::FileSet* file_set, Info* info) {
   return ss.str();
 }
 
-void TypesToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) {
+void TypesToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Types:\n";
   size_t max_pos = 0;
   size_t max_expr = 0;
@@ -69,7 +69,7 @@ void TypesToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "\n";
 }
 
-void ConstantExpressionsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) {
+void ConstantExpressionsToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Constant Expressions:\n";
   size_t max_pos = 0;
   size_t max_expr = 0;
@@ -98,7 +98,7 @@ void ConstantExpressionsToText(pos::FileSet* file_set, Info* info, std::stringst
   ss << "\n";
 }
 
-void ConstantsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) {
+void ConstantsToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Constants:\n";
   size_t max_pos = 0;
   size_t max_ident = 0;
@@ -125,7 +125,7 @@ void ConstantsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) 
   ss << "\n";
 }
 
-void DefinitionsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) {
+void DefinitionsToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Definitions:\n";
   size_t max_pos = 0;
   size_t max_ident = 0;
@@ -146,7 +146,7 @@ void DefinitionsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss
   ss << "\n";
 }
 
-void UsesToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) {
+void UsesToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Uses:\n";
   size_t max_pos = 0;
   size_t max_ident = 0;
@@ -167,7 +167,7 @@ void UsesToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "\n";
 }
 
-void ImplicitsToText(pos::FileSet* file_set, Info* info, std::stringstream& ss) {
+void ImplicitsToText(const pos::FileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Implicits:\n";
   size_t max_pos = 0;
   size_t max_obj = 0;

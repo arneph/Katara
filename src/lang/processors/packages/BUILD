@@ -2,14 +2,66 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
-    name = "packages",
-    srcs = glob(["*.cc"]),
-    hdrs = glob(["*.h"]),
+    name = "loader",
+    hdrs = ["loader.h"],
+    copts = COPTS,
+    visibility = [
+        "//src/lang/processors:__subpackages__",
+    ],
+)
+
+cc_library(
+    name = "filesystem_loader",
+    srcs = ["filesystem_loader.cc"],
+    hdrs = ["filesystem_loader.h"],
     copts = COPTS,
     visibility = [
         "//src/lang/processors:__subpackages__",
     ],
     deps = [
+        ":loader",
+    ],
+)
+
+cc_library(
+    name = "mock_loader",
+    testonly = True,
+    srcs = ["mock_loader.cc"],
+    hdrs = ["mock_loader.h"],
+    copts = COPTS,
+    visibility = [
+        "//src/lang/processors:__subpackages__",
+    ],
+    deps = [
+        ":loader",
+    ],
+)
+
+cc_library(
+    name = "package",
+    hdrs = ["package.h"],
+    copts = COPTS,
+    visibility = [
+        "//src/lang/processors:__subpackages__",
+    ],
+    deps = [
+        "//src/lang/processors/issues",
+        "//src/lang/representation",
+    ],
+)
+
+cc_library(
+    name = "package_manager",
+    srcs = ["package_manager.cc"],
+    hdrs = ["package_manager.h"],
+    copts = COPTS,
+    visibility = [
+        "//src/lang/processors:__subpackages__",
+    ],
+    deps = [
+        ":filesystem_loader",
+        ":loader",
+        ":package",
         "//src/lang/processors/issues",
         "//src/lang/processors/parser",
         "//src/lang/processors/type_checker",

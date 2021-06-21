@@ -16,7 +16,7 @@ namespace docs {
 namespace {
 
 void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package,
-                              pos::FileSet* pos_file_set) {
+                              const pos::FileSet* pos_file_set) {
   ss << "Issues:<br><dl>\n";
   for (issues::Issue issue : package->issue_tracker().issues()) {
     ss << "<dt>";
@@ -57,7 +57,7 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
 }
 
 void GeneratePackageDescription(std::ostringstream& ss, packages::Package* package,
-                                pos::FileSet* pos_file_set) {
+                                const pos::FileSet* pos_file_set) {
   ss << "Path: " << package->path() << "<br>\n"
      << "Package files:<dl>\n";
   for (pos::File* pos_file : package->pos_files()) {
@@ -73,7 +73,8 @@ void GeneratePackageDescription(std::ostringstream& ss, packages::Package* packa
 
 }  // namespace
 
-PackageDoc GenerateDocumentationForPackage(packages::Package* package, pos::FileSet* pos_file_set,
+PackageDoc GenerateDocumentationForPackage(packages::Package* package,
+                                           const pos::FileSet* pos_file_set,
                                            types::Info* type_info) {
   std::ostringstream ss;
   ss << "<!DOCTYPE html>\n"

@@ -21,7 +21,7 @@
 #include "src/ir/representation/values.h"
 #include "src/lang/processors/ir_builder/context.h"
 #include "src/lang/processors/ir_builder/types_builder.h"
-#include "src/lang/processors/packages/packages.h"
+#include "src/lang/processors/packages/package.h"
 #include "src/lang/representation/ir_extension/instrs.h"
 #include "src/lang/representation/ir_extension/types.h"
 #include "src/lang/representation/ir_extension/values.h"

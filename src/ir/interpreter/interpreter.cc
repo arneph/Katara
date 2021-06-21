@@ -49,7 +49,7 @@ std::vector<Value> Interpreter::CallFunc(ir::Func* func, std::vector<Value> args
   }
 }
 
-void Interpreter::ExecuteBinaryALInstr(ir::BinaryALInstr *instr, FuncContext &ctx) {
+void Interpreter::ExecuteBinaryALInstr(ir::BinaryALInstr* instr, FuncContext& ctx) {
   Value a = Evaluate(instr->operand_a(), ctx);
   Value b = Evaluate(instr->operand_b(), ctx);
   Value result = ComputBinaryOp(a, instr->operation(), b);

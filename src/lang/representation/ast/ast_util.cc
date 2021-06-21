@@ -14,7 +14,7 @@
 namespace lang {
 namespace ast {
 
-common::Graph NodeToTree(pos::FileSet* file_set, Node* node) {
+common::Graph NodeToTree(const pos::FileSet* file_set, Node* node) {
   common::Graph graph(/*is_directed=*/true);
   std::vector<int64_t> stack;
   int64_t count = 0;

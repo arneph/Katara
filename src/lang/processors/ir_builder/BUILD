@@ -41,7 +41,8 @@ cc_library(
         ":context",
         ":types_builder",
         "//src/ir:ir_lib",
-        "//src/lang/processors/packages",
+        "//src/lang/processors/packages:package",
+        "//src/lang/processors/packages:package_manager",
         "//src/lang/representation",
     ],
 )

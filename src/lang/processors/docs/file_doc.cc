@@ -39,7 +39,7 @@ std::string InsertLineNumbers(std::string text, int64_t& line_number) {
 };  // namespace
 
 FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
-                                     pos::FileSet* pos_file_set, types::Info* type_info) {
+                                     const pos::FileSet* pos_file_set, types::Info* type_info) {
   pos::File* pos_file = pos_file_set->FileAt(ast_file->start());
   scanner::Scanner scanner(pos_file);
   pos::pos_t last_pos = pos_file->start() - 1;

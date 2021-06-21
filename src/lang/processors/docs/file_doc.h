@@ -25,7 +25,7 @@ struct FileDoc {
 };
 
 FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
-                                     pos::FileSet* pos_file_set, types::Info* type_info);
+                                     const pos::FileSet* pos_file_set, types::Info* type_info);
 
 }  // namespace docs
 }  // namespace lang

@@ -14,7 +14,7 @@
 
 #include "src/lang/processors/docs/common.h"
 #include "src/lang/processors/docs/file_doc.h"
-#include "src/lang/processors/packages/packages.h"
+#include "src/lang/processors/packages/package.h"
 #include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/info.h"
 
@@ -28,7 +28,8 @@ struct PackageDoc {
   std::vector<FileDoc> docs;
 };
 
-PackageDoc GenerateDocumentationForPackage(packages::Package* package, pos::FileSet* pos_file_set,
+PackageDoc GenerateDocumentationForPackage(packages::Package* package,
+                                           const pos::FileSet* pos_file_set,
                                            types::Info* type_info);
 
 }  // namespace docs

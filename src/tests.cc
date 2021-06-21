@@ -31,7 +31,8 @@
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/docs/package_doc.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
-#include "src/lang/processors/packages/packages.h"
+#include "src/lang/processors/packages/package.h"
+#include "src/lang/processors/packages/package_manager.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/positions/positions.h"
@@ -61,8 +62,9 @@ void run_lang_test(std::filesystem::path test_dir) {
   std::filesystem::create_directory(docs_dir);
   std::filesystem::create_directory(debug_dir);
 
-  lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib");
-  lang::packages::Package* test_pkg = pkg_manager.LoadPackage(test_dir);
+  lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib",
+                                             std::filesystem::current_path());
+  lang::packages::Package* test_pkg = pkg_manager.LoadMainPackage(test_dir);
 
   for (auto pkg : pkg_manager.Packages()) {
     for (auto& issue : pkg->issue_tracker().issues()) {

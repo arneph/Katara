@@ -18,7 +18,7 @@
 namespace lang {
 namespace ast {
 
-common::Graph NodeToTree(pos::FileSet* file_set, Node* node);
+common::Graph NodeToTree(const pos::FileSet* file_set, Node* node);
 
 class WalkFunction {
  public:

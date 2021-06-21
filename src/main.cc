@@ -16,7 +16,8 @@
 #include "src/ir/interpreter/interpreter.h"
 #include "src/ir/representation/program.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
-#include "src/lang/processors/packages/packages.h"
+#include "src/lang/processors/packages/package.h"
+#include "src/lang/processors/packages/package_manager.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/positions/positions.h"
@@ -42,7 +43,7 @@ void printHelp(std::ostream& out) {
 
 void printVersion(std::ostream& out) { out << "Katara version " << kVersion << "\n"; }
 
-void printIssues(lang::pos::FileSet* file_set, const std::vector<lang::issues::Issue>& issues,
+void printIssues(const lang::pos::FileSet* file_set, const std::vector<lang::issues::Issue>& issues,
                  std::ostream& out) {
   for (auto& issue : issues) {
     switch (issue.severity()) {
@@ -103,7 +104,8 @@ int run(const std::vector<const std::string> args, std::istream& in, std::ostrea
     std::filesystem::create_directory(debug_dir);
   }
 
-  lang::packages::PackageManager pkg_manager(std::string{kStdLibPath});
+  lang::packages::PackageManager pkg_manager(std::string{kStdLibPath},
+                                             std::filesystem::current_path());
   lang::packages::Package* main_pkg = pkg_manager.LoadPackage(package_dir);
 
   bool contains_issues = false;

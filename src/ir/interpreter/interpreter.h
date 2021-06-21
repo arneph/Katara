@@ -34,7 +34,7 @@ class Interpreter {
   ExecutionState state() const { return state_; }
   void run();
   void pause();
-  
+
   int exit_code() const { return exit_code_; }
 
  private:
@@ -46,7 +46,7 @@ class Interpreter {
 
   void ExecuteBinaryALInstr(ir::BinaryALInstr* instr, FuncContext& ctx);
   Value ComputBinaryOp(Value a, ir::BinaryALOperation op, Value b);
-  
+
   std::vector<Value> Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,
                               FuncContext& ctx);
   Value Evaluate(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
