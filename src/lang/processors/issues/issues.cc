@@ -40,6 +40,9 @@ Severity SeverityOf(IssueKind issue_kind) {
   } else if (IssueKind::kPackageManagerWarningStart < issue_kind &&
              issue_kind < IssueKind::kPackageManagerWarningEnd) {
     return Severity::kWarning;
+  } else if (IssueKind::kPackageManagerErrorStart < issue_kind &&
+             issue_kind < IssueKind::kPackageManagerErrorEnd) {
+    return Severity::kError;
   } else {
     throw "internal error: unexpected issue kind";
   }

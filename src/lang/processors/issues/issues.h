@@ -203,6 +203,13 @@ enum IssueKind {
   kPackageDirectoryWithoutSourceFiles,
   kPackageManagerWarningEnd,
 
+  kPackageManagerErrorStart,
+  kPackageDirectoryNotFound,
+  kMainPackageDirectoryUnreadable,
+  kMainPackageFilesInMultipleDirectories,
+  kMainPackageFileUnreadable,
+  kPackageManagerErrorEnd,
+
   kPackageManagerEnd,
 };
 
