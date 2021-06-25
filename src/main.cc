@@ -142,7 +142,8 @@ LoadResult load(const std::vector<const std::string> args, std::ostream& err) {
   }
 
   bool contains_issues = !pkg_manager->issue_tracker()->issues().empty();
-  pkg_manager->issue_tracker()->PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal, err);
+  pkg_manager->issue_tracker()->PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal,
+                                            err);
   for (auto pkg : pkg_manager->Packages()) {
     pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal, err);
     if (!pkg->issue_tracker().issues().empty()) {
