@@ -141,8 +141,8 @@ LoadResult load(const std::vector<const std::string> args, std::ostream& err) {
     arg_pkgs.push_back(main_pkg);
   }
 
-  bool contains_issues = !pkg_manager->issue_tacker()->issues().empty();
-  pkg_manager->issue_tacker()->PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal, err);
+  bool contains_issues = !pkg_manager->issue_tracker()->issues().empty();
+  pkg_manager->issue_tracker()->PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal, err);
   for (auto pkg : pkg_manager->Packages()) {
     pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal, err);
     if (!pkg->issue_tracker().issues().empty()) {
