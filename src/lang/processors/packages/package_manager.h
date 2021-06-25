@@ -36,7 +36,7 @@ class PackageManager {
         issue_tracker_(&file_set_) {}
 
   const pos::FileSet* file_set() const { return &file_set_; }
-  const issues::IssueTracker* issue_tacker() const { return &issue_tracker_; }
+  const issues::IssueTracker* issue_tracker() const { return &issue_tracker_; }
   const ast::AST* ast() const { return &ast_; }
   const types::Info* type_info() const { return &type_info_; }
   types::Info* type_info() { return &type_info_; }
