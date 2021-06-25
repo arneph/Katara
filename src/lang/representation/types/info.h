@@ -81,7 +81,7 @@ class Info {
 
   std::vector<Initializer> init_order_;
 
-  Scope* universe_;
+  Scope* universe_ = nullptr;
   std::unordered_map<Basic::Kind, Basic*> basic_types_;
 
   friend InfoBuilder;
