@@ -54,73 +54,6 @@ void to_file(std::string text, std::filesystem::path out_file) {
   out_stream << text;
 }
 
-void run_lang_test(std::filesystem::path test_dir) {
-  std::string test_name = test_dir.filename();
-  std::cout << "testing " + test_name << "\n";
-  std::filesystem::path docs_dir = test_dir / "docs";
-  std::filesystem::path debug_dir = test_dir / "debug";
-  std::filesystem::create_directory(docs_dir);
-  std::filesystem::create_directory(debug_dir);
-
-  lang::packages::PackageManager pkg_manager("/Users/arne/Documents/Xcode/Katara/stdlib",
-                                             std::filesystem::current_path());
-  lang::packages::Package* test_pkg = pkg_manager.LoadMainPackage(test_dir);
-
-  for (auto pkg : pkg_manager.Packages()) {
-    pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kPlain, std::cout);
-  }
-  for (auto [name, ast_file] : test_pkg->ast_package()->files()) {
-    common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager.file_set(), ast_file);
-
-    to_file(ast_graph.ToDotFormat(), debug_dir / (test_pkg->name() + ".ast.dot"));
-  }
-
-  std::string type_info = lang::types::InfoToText(pkg_manager.file_set(), pkg_manager.type_info());
-  to_file(type_info, debug_dir / (test_pkg->name() + ".types.txt"));
-
-  lang::docs::PackageDoc pkg_doc = lang::docs::GenerateDocumentationForPackage(
-      test_pkg, pkg_manager.file_set(), pkg_manager.type_info());
-  to_file(pkg_doc.html, docs_dir / (pkg_doc.name + ".html"));
-  for (auto file_doc : pkg_doc.docs) {
-    to_file(file_doc.html, docs_dir / (file_doc.name + ".html"));
-  }
-
-  std::unique_ptr<ir::Program> program =
-      lang::ir_builder::IRBuilder::TranslateProgram(test_pkg, pkg_manager.type_info());
-  if (program) {
-    to_file(program->ToString(), debug_dir / (test_pkg->name() + ".ir.txt"));
-
-    for (auto& func : program->funcs()) {
-      std::string file_name =
-          test_pkg->name() + "_@" + std::to_string(func->number()) + "_" + func->name();
-      common::Graph func_cfg = func->ToControlFlowGraph();
-      common::Graph func_dom = func->ToDominatorTree();
-
-      to_file(func_cfg.ToDotFormat(), debug_dir / (file_name + ".cfg.dot"));
-      to_file(func_dom.ToDotFormat(), debug_dir / (file_name + ".dom.dot"));
-    }
-  }
-}
-
-void test_lang() {
-  std::filesystem::path lang_tests = "/Users/arne/Documents/Xcode/Katara/tests/lang";
-
-  std::cout << "running lang-tests\n";
-  std::vector<std::filesystem::directory_entry> entries;
-  for (auto entry : std::filesystem::directory_iterator(lang_tests)) {
-    entries.push_back(entry);
-  }
-  std::sort(entries.begin(), entries.end());
-  for (auto entry : entries) {
-    if (!entry.is_directory()) {
-      continue;
-    }
-    run_lang_test(entry.path());
-  }
-
-  std::cout << "completed lang-tests\n";
-}
-
 void run_ir_test(std::filesystem::path test_dir) {
   std::string test_name = test_dir.filename();
   std::cout << "testing " + test_name << "\n";
@@ -325,9 +258,8 @@ void test_x86_64() {
 }
 
 int main() {
-  test_lang();
-  // test_ir();
-  // test_x86_64();
+  test_x86_64();
+  test_ir();
 
   return 0;
 }
