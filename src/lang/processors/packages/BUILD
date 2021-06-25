@@ -30,7 +30,7 @@ cc_library(
     hdrs = ["mock_loader.h"],
     copts = COPTS,
     visibility = [
-        "//src/lang/processors:__subpackages__",
+        "//visibility:public",
     ],
     deps = [
         ":loader",
