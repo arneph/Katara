@@ -17,6 +17,9 @@ std::pair<std::string, std::string> DirAndNameFromPath(std::string file_path) {
   } else {
     std::string dir = file_path.substr(0, last_slash_index);
     std::string name = file_path.substr(last_slash_index + 1);
+    if (dir.empty()) {
+      dir = "/";
+    }
     return {dir, name};
   }
 }
@@ -43,7 +46,11 @@ bool MockLoader::CanReadAbsoluteDir(std::string dir_path) const { return dirs_.c
 std::vector<std::string> MockLoader::SourceFilesInAbsoluteDir(std::string dir_path) const {
   std::vector<std::string> file_paths;
   for (auto [file_name, file_contents] : dirs_.at(dir_path).file_contents_) {
-    file_paths.push_back(dir_path + "/" + file_name);
+    if (dir_path != "/") {
+      file_paths.push_back(dir_path + "/" + file_name);
+    } else {
+      file_paths.push_back("/" + file_name);
+    }
   }
   return file_paths;
 }
@@ -63,7 +70,7 @@ std::string MockLoader::ReadSourceFile(std::string file_path) const {
 }
 
 MockLoaderBuilder& MockLoaderBuilder::SetCurrentDir(std::string dir) {
-  while (dir.ends_with('/')) {
+  while (dir.length() > 1 && dir.ends_with('/')) {
     dir = dir.substr(0, dir.length() - 1);
   }
   loader_->current_dir_ = dir;
@@ -72,7 +79,7 @@ MockLoaderBuilder& MockLoaderBuilder::SetCurrentDir(std::string dir) {
 
 MockLoaderBuilder& MockLoaderBuilder::AddSourceFile(std::string dir, std::string name,
                                                     std::string contents) {
-  while (dir.ends_with('/')) {
+  while (dir.length() > 1 && dir.ends_with('/')) {
     dir = dir.substr(0, dir.length() - 1);
   }
   loader_->dirs_[dir].file_contents_.insert({name, contents});
