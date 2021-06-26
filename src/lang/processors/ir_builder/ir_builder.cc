@@ -632,7 +632,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryShiftExpr(ast::BinaryExp
   ir::Type* ir_type = types_builder_.BuildTypeForBasic(basic_type);
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   x = BuildValueOfConversion(x, ir_type, ctx);
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->x(), ctx).front();
+  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ctx).front();
   y = BuildValueOfConversion(y, program_->type_table().AtomicOfKind(ir::AtomicKind::kU64), ctx);
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(ir_type, ctx.func()->next_computed_number());
