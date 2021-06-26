@@ -145,6 +145,8 @@ enum IssueKind {
   kMismatchedBinaryExprTypes,
   kUnexpectedBinaryArithmeticOrBitExprOperandType,
   kUnexpectedBinaryShiftExprOperandType,
+  kUnexpectedBinaryShiftExprOffsetType,
+  kConstantBinaryShiftExprOffsetIsNegative,
   kUnexpectedBinaryLogicExprOperandType,
   kCompareExprOperandTypesNotComparable,
   kCompareExprOperandTypesNotOrderable,

@@ -125,12 +125,12 @@ types::Container* TypeHandler::EvaluateArrayType(ast::ArrayType* array_expr) {
       return nullptr;
     }
     constants::Value length_value = info()->ExprInfoOf(array_expr->len()).value().constant_value();
-    if (!length_value.CanConvertToArraySize()) {
+    if (!length_value.CanConvertToUnsigned()) {
       issues().Add(issues::kConstantCanNotBeUsedAsArraySize, array_expr->len()->start(),
                    "can not use constant as array size");
       return nullptr;
     }
-    length = length_value.ConvertToArraySize();
+    length = length_value.ConvertToUnsigned();
   }
   types::Type* element_type = EvaluateTypeExpr(array_expr->element_type());
   if (element_type == nullptr) {

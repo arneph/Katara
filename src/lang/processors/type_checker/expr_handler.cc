@@ -352,6 +352,12 @@ bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr, Context ctx
       !check_op_type(binary_expr->y(), y->underlying)) {
     return false;
   }
+  if ((y->underlying->info() & types::Basic::Info::kIsUntyped) == 0 &&
+      (y->underlying->info() & types::Basic::Info::kIsUnsigned) == 0) {
+    issues().Add(issues::kUnexpectedBinaryShiftExprOffsetType, binary_expr->y()->start(),
+                 "invalid operation: expected untyped or unsigned numeric type");
+    return false;
+  }
 
   types::Type* expr_type = x->type;
   if (x->type == x->underlying && x->underlying->info() & types::Basic::Info::kIsUntyped) {
@@ -362,6 +368,13 @@ bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr, Context ctx
   if (x->value.has_value() && y->value.has_value()) {
     constants::Value x_value = x->value.value();
     constants::Value y_value = y->value.value();
+    if (!y_value.CanConvertToUnsigned()) {
+      issues().Add(issues::kConstantBinaryShiftExprOffsetIsNegative, binary_expr->y()->start(),
+                   "invalid operation: expected non-negative shift offset operand value");
+      return false;
+    } else {
+      y_value = constants::Value(y_value.ConvertToUnsigned());
+    }
     expr_value = constants::ShiftOp(x_value, binary_expr->op(), y_value);
     expr_kind = types::ExprInfo::Kind::kConstant;
   }

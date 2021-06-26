@@ -28,8 +28,8 @@ class Value {
 
   value_t value() const { return value_; }
 
-  bool CanConvertToArraySize() const;
-  uint64_t ConvertToArraySize() const;
+  bool CanConvertToUnsigned() const;
+  uint64_t ConvertToUnsigned() const;
 
   std::string ToString() const;
 

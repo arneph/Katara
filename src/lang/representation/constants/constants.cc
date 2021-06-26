@@ -11,7 +11,7 @@
 namespace lang {
 namespace constants {
 
-bool Value::CanConvertToArraySize() const {
+bool Value::CanConvertToUnsigned() const {
   switch (value_.index()) {
     case 0:
       return false;
@@ -38,7 +38,7 @@ bool Value::CanConvertToArraySize() const {
   }
 }
 
-uint64_t Value::ConvertToArraySize() const {
+uint64_t Value::ConvertToUnsigned() const {
   switch (value_.index()) {
     case 1:
       return std::get<int8_t>(value_);
