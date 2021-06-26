@@ -616,7 +616,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryALExpr(ast::BinaryExpr* 
   ir::Type* ir_type = types_builder_.BuildTypeForBasic(basic_type);
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   x = BuildValueOfConversion(x, ir_type, ctx);
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->x(), ctx).front();
+  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ctx).front();
   y = BuildValueOfConversion(y, ir_type, ctx);
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(ir_type, ctx.func()->next_computed_number());
