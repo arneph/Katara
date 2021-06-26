@@ -225,8 +225,9 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
   std::unique_ptr<ir::Program> program =
       lang::ir_builder::IRBuilder::TranslateProgram(main_pkg, pkg_manager->type_info());
   if (generate_debug_info && program) {
-    std::filesystem::path debug_dir = (main_pkg != nullptr) ? std::filesystem::path(main_pkg->dir())
-                                                            : std::filesystem::current_path();
+    std::filesystem::path debug_dir = (main_pkg != nullptr)
+                                          ? std::filesystem::path(main_pkg->dir()) / "debug"
+                                          : std::filesystem::current_path();
     to_file(program->ToString(), debug_dir / "ir.txt");
 
     for (auto& func : program->funcs()) {
