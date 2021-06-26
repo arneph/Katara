@@ -44,8 +44,14 @@ class Interpreter {
 
   std::vector<Value> CallFunc(ir::Func* func, std::vector<Value> args);
 
+  void ExecuteConversion(ir::Conversion* instr, FuncContext& ctx);
+  Value ComputeConversion(ir::Type* result_type, Value operand);
+
   void ExecuteBinaryALInstr(ir::BinaryALInstr* instr, FuncContext& ctx);
   Value ComputBinaryOp(Value a, ir::BinaryALOperation op, Value b);
+
+  void ExecuteShiftInstr(ir::ShiftInstr* instr, FuncContext& ctx);
+  Value ComputShiftOp(Value shifted, ir::ShiftOperation op, Value offset);
 
   std::vector<Value> Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,
                               FuncContext& ctx);
