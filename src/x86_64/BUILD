@@ -14,7 +14,6 @@ cc_library(
         "instrs/cf_instrs.cc",
         "instrs/data_instrs.cc",
         "instrs/instr_cond.cc",
-        "ir_translator/ir_translator.cc",
         "mc/linker.cc",
         "mc/unlinker.cc",
         "ops.cc",
@@ -30,7 +29,6 @@ cc_library(
         "instrs/cf_instrs.h",
         "instrs/data_instrs.h",
         "instrs/instr_cond.h",
-        "ir_translator/ir_translator.h",
         "mc/linker.h",
         "mc/unlinker.h",
         "ops.h",
@@ -38,7 +36,7 @@ cc_library(
     ],
     copts = COPTS,
     visibility = [
-        "//src:__pkg__",
+        "//visibility:public",
     ],
     deps = [
         "//src/common:data",
