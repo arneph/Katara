@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "src/common/atomics.h"
 #include "src/ir/representation/values.h"
 
 namespace ir {
@@ -21,14 +22,16 @@ enum class InstrKind {
   kMov,
   kPhi,
   kConversion,
-  kUnaryAL,
-  kBinaryAL,
-  kShift,
-  kCompare,
+  kBoolNot,
+  kBoolBinary,
+  kIntUnary,
+  kIntCompare,
+  kIntBinary,
+  kIntShift,
   kMalloc,
   kLoad,
   kComputationStart = kMov,
-  kComputationEnd = kCompare,
+  kComputationEnd = kIntShift,
 
   kStore,
   kFree,
@@ -108,121 +111,40 @@ class PhiInstr : public Computation {
 
 class Conversion : public Computation {
  public:
-  Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
-      : Computation(result), operand_(operand) {}
+  Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand);
 
   std::shared_ptr<Value> operand() const { return operand_; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kConversion; }
-  std::string ToString() const override {
-    return result()->ToStringWithType() + " = conv " + operand_->ToStringWithType();
-  }
+  std::string ToString() const override;
 
  private:
   std::shared_ptr<Value> operand_;
 };
 
-enum class UnaryALOperation : uint8_t { kNot, kNeg };
-
-extern bool IsUnaryALOperationString(std::string op_str);
-extern UnaryALOperation ToUnaryALOperation(std::string op_str);
-extern std::string ToString(UnaryALOperation op);
-
-class UnaryALInstr : public Computation {
+class BoolNotInstr : public Computation {
  public:
-  UnaryALInstr(UnaryALOperation operation, std::shared_ptr<Computed> result,
-               std::shared_ptr<Value> operand);
+  BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand);
 
-  UnaryALOperation operation() const { return operation_; }
   std::shared_ptr<Value> operand() const { return operand_; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
-  InstrKind instr_kind() const override { return InstrKind::kUnaryAL; }
+  InstrKind instr_kind() const override { return InstrKind::kBoolNot; }
   std::string ToString() const override;
 
  private:
-  UnaryALOperation operation_;
   std::shared_ptr<Value> operand_;
 };
 
-enum class BinaryALOperation : uint8_t { kAnd, kAndNot, kOr, kXor, kAdd, kSub, kMul, kDiv, kRem };
-
-extern bool IsBinaryALOperationString(std::string op_str);
-extern BinaryALOperation ToBinaryALOperation(std::string op_str);
-extern std::string ToString(BinaryALOperation op);
-
-class BinaryALInstr : public Computation {
+class BoolBinaryInstr : public Computation {
  public:
-  BinaryALInstr(BinaryALOperation operation, std::shared_ptr<Computed> result,
-                std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
+  BoolBinaryInstr(std::shared_ptr<Computed> result, common::Bool::BinaryOp operation,
+                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
 
-  BinaryALOperation operation() const { return operation_; }
-  std::shared_ptr<Value> operand_a() const { return operand_a_; }
-  std::shared_ptr<Value> operand_b() const { return operand_b_; }
-
-  std::vector<std::shared_ptr<Value>> UsedValues() const override {
-    return {operand_a_, operand_a_};
-  }
-
-  InstrKind instr_kind() const override { return InstrKind::kBinaryAL; }
-  std::string ToString() const override;
-
- private:
-  BinaryALOperation operation_;
-  std::shared_ptr<Value> operand_a_;
-  std::shared_ptr<Value> operand_b_;
-};
-
-enum class ShiftOperation : uint8_t { kShl, kShr };
-
-extern bool IsShiftOperationString(std::string op_str);
-extern ShiftOperation ToShiftOperation(std::string op_str);
-extern std::string ToString(ShiftOperation op);
-
-class ShiftInstr : public Computation {
- public:
-  ShiftInstr(ShiftOperation operation, std::shared_ptr<Computed> result,
-             std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset);
-
-  ShiftOperation operation() const { return operation_; }
-  std::shared_ptr<Value> shifted() const { return shifted_; }
-  std::shared_ptr<Value> offset() const { return offset_; }
-
-  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {shifted_, offset_}; }
-
-  InstrKind instr_kind() const override { return InstrKind::kShift; }
-  std::string ToString() const override;
-
- private:
-  ShiftOperation operation_;
-  std::shared_ptr<Value> shifted_;
-  std::shared_ptr<Value> offset_;
-};
-
-enum class CompareOperation : uint8_t {
-  kEqual,
-  kNotEqual,
-  kGreater,
-  kGreaterOrEqual,
-  kLessOrEqual,
-  kLess
-};
-
-extern CompareOperation Comuted(CompareOperation op);
-extern CompareOperation Negated(CompareOperation op);
-extern bool IsCompareOperationString(std::string op_str);
-extern CompareOperation ToCompareOperation(std::string op_str);
-extern std::string ToString(CompareOperation op);
-
-class CompareInstr : public Computation {
- public:
-  CompareInstr(CompareOperation operation, std::shared_ptr<Computed> result,
-               std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
-
-  CompareOperation operation() const { return operation_; }
+  common::Bool::BinaryOp operation() const { return operation_; }
   std::shared_ptr<Value> operand_a() const { return operand_a_; }
   std::shared_ptr<Value> operand_b() const { return operand_b_; }
 
@@ -230,13 +152,95 @@ class CompareInstr : public Computation {
     return {operand_a_, operand_b_};
   }
 
-  InstrKind instr_kind() const override { return InstrKind::kCompare; }
+  InstrKind instr_kind() const override { return InstrKind::kBoolBinary; }
   std::string ToString() const override;
 
  private:
-  CompareOperation operation_;
+  common::Bool::BinaryOp operation_;
   std::shared_ptr<Value> operand_a_;
   std::shared_ptr<Value> operand_b_;
+};
+
+class IntUnaryInstr : public Computation {
+ public:
+  IntUnaryInstr(std::shared_ptr<Computed> result, common::Int::UnaryOp operation,
+                std::shared_ptr<Value> operand);
+
+  common::Int::UnaryOp operation() const { return operation_; }
+  std::shared_ptr<Value> operand() const { return operand_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kIntUnary; }
+  std::string ToString() const override;
+
+ private:
+  common::Int::UnaryOp operation_;
+  std::shared_ptr<Value> operand_;
+};
+
+class IntCompareInstr : public Computation {
+ public:
+  IntCompareInstr(std::shared_ptr<Computed> result, common::Int::CompareOp operation,
+                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
+
+  common::Int::CompareOp operation() const { return operation_; }
+  std::shared_ptr<Value> operand_a() const { return operand_a_; }
+  std::shared_ptr<Value> operand_b() const { return operand_b_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override {
+    return {operand_a_, operand_b_};
+  }
+
+  InstrKind instr_kind() const override { return InstrKind::kIntCompare; }
+  std::string ToString() const override;
+
+ private:
+  common::Int::CompareOp operation_;
+  std::shared_ptr<Value> operand_a_;
+  std::shared_ptr<Value> operand_b_;
+};
+
+class IntBinaryInstr : public Computation {
+ public:
+  IntBinaryInstr(std::shared_ptr<Computed> result, common::Int::BinaryOp operation,
+                 std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
+
+  common::Int::BinaryOp operation() const { return operation_; }
+  std::shared_ptr<Value> operand_a() const { return operand_a_; }
+  std::shared_ptr<Value> operand_b() const { return operand_b_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override {
+    return {operand_a_, operand_b_};
+  }
+
+  InstrKind instr_kind() const override { return InstrKind::kIntBinary; }
+  std::string ToString() const override;
+
+ private:
+  common::Int::BinaryOp operation_;
+  std::shared_ptr<Value> operand_a_;
+  std::shared_ptr<Value> operand_b_;
+};
+
+class IntShiftInstr : public Computation {
+ public:
+  IntShiftInstr(std::shared_ptr<Computed> result, common::Int::ShiftOp operation,
+                std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset);
+
+  common::Int::ShiftOp operation() const { return operation_; }
+  std::shared_ptr<Value> shifted() const { return shifted_; }
+  std::shared_ptr<Value> offset() const { return offset_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {shifted_, offset_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kIntShift; }
+  std::string ToString() const override;
+
+ private:
+  common::Int::ShiftOp operation_;
+  std::shared_ptr<Value> shifted_;
+  std::shared_ptr<Value> offset_;
 };
 
 class MallocInstr : public Computation {

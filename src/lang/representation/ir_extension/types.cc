@@ -15,7 +15,7 @@ ArrayBuilder::ArrayBuilder() { array_ = std::unique_ptr<Array>(new Array()); }
 
 StructBuilder::StructBuilder() { struct_ = std::unique_ptr<Struct>(new Struct()); }
 
-void StructBuilder::AddField(std::string name, ir::Type* field_type) {
+void StructBuilder::AddField(std::string name, const ir::Type* field_type) {
   struct_->fields_.push_back({name, field_type});
 }
 

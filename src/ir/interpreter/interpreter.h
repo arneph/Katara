@@ -6,7 +6,10 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#include "src/ir/interpreter/values.h"
+#include <memory>
+#include <vector>
+
+#include "src/common/atomics.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -35,30 +38,37 @@ class Interpreter {
   void run();
   void pause();
 
-  int exit_code() const { return exit_code_; }
+  int64_t exit_code() const { return exit_code_; }
 
  private:
   struct FuncContext {
-    std::unordered_map<ir::value_num_t, Value> computed_values_;
+    std::unordered_map<ir::value_num_t, std::unique_ptr<ir::Constant>> computed_values_;
   };
 
-  std::vector<Value> CallFunc(ir::Func* func, std::vector<Value> args);
+  std::vector<std::unique_ptr<ir::Constant>> CallFunc(ir::Func* func,
+                                                      std::vector<ir::Constant*> args);
 
   void ExecuteConversion(ir::Conversion* instr, FuncContext& ctx);
-  Value ComputeConversion(ir::Type* result_type, Value operand);
+  std::unique_ptr<ir::Constant> ComputeConversion(const ir::Type* result_type,
+                                                  ir::Constant* operand);
 
-  void ExecuteBinaryALInstr(ir::BinaryALInstr* instr, FuncContext& ctx);
-  Value ComputBinaryOp(Value a, ir::BinaryALOperation op, Value b);
+  void ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& ctx);
+  void ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx);
 
-  void ExecuteShiftInstr(ir::ShiftInstr* instr, FuncContext& ctx);
-  Value ComputShiftOp(Value shifted, ir::ShiftOperation op, Value offset);
+  std::vector<std::unique_ptr<ir::Constant>> EvaluateFuncResults(
+      const std::vector<std::shared_ptr<ir::Value>>& ir_values, FuncContext& ctx);
 
-  std::vector<Value> Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,
-                              FuncContext& ctx);
-  Value Evaluate(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
+  std::vector<ir::Constant*> Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,
+                                      FuncContext& ctx);
+
+  bool EvaluateBool(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
+  common::Int EvaluateInt(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
+  int64_t EvaluatePointer(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
+  ir::func_num_t EvaluateFunc(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
+  ir::Constant* Evaluate(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
 
   ExecutionState state_;
-  int exit_code_;
+  int64_t exit_code_;
 
   ir::Program* program_;
 };

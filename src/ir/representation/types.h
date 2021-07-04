@@ -13,10 +13,15 @@
 #include <string>
 #include <vector>
 
+#include "src/common/atomics.h"
+
 namespace ir {
 
 enum class TypeKind {
-  kAtomic,
+  kBool,
+  kInt,
+  kPointer,
+  kFunc,
 
   kLangPointer,
   kLangString,
@@ -26,59 +31,98 @@ enum class TypeKind {
   kLangTypeID,
 };
 
+bool IsAtomicType(TypeKind type_kind);
+
 class Type {
  public:
-  virtual ~Type() {}
+  constexpr virtual ~Type() {}
 
-  virtual TypeKind type_kind() const = 0;
+  constexpr virtual TypeKind type_kind() const = 0;
   virtual std::string ToString() const = 0;
 };
 
-enum class AtomicKind : int8_t {
-  kBool,
-  kI8,
-  kI16,
-  kI32,
-  kI64,
-  kU8,
-  kU16,
-  kU32,
-  kU64,
-  kPtr,
-  kFunc,
+class AtomicType : public Type {
+ public:
+  constexpr virtual ~AtomicType() {}
+
+  constexpr virtual int8_t bit_size() const = 0;
 };
 
-extern bool IsIntegral(AtomicKind type);
-extern bool IsUnsigned(AtomicKind type);
-extern int8_t SizeOf(AtomicKind type);
-extern AtomicKind ToAtomicTypeKind(std::string type_str);
-extern std::string ToString(AtomicKind type);
-
-class Atomic : public Type {
+class BoolType : public AtomicType {
  public:
-  Atomic(AtomicKind kind) : kind_(kind) {}
+  constexpr int8_t bit_size() const override { return 8; }
+  constexpr TypeKind type_kind() const override { return TypeKind::kBool; }
+  std::string ToString() const override { return "b"; }
+};
 
-  AtomicKind kind() const { return kind_; }
+constexpr BoolType kBool;
 
-  TypeKind type_kind() const override { return TypeKind::kAtomic; }
-  std::string ToString() const override { return ir::ToString(kind_); }
+class IntType : public AtomicType {
+ public:
+  constexpr IntType(common::IntType type) : type_(type) {}
+
+  constexpr int8_t bit_size() const override { return common::BitSizeOf(type_); }
+  constexpr common::IntType int_type() const { return type_; }
+  constexpr TypeKind type_kind() const override { return TypeKind::kInt; }
+  std::string ToString() const override { return common::ToString(type_); }
 
  private:
-  AtomicKind kind_;
+  const common::IntType type_;
 };
+
+static constexpr IntType kI8{common::IntType::kI8};
+static constexpr IntType kI16{common::IntType::kI16};
+static constexpr IntType kI32{common::IntType::kI32};
+static constexpr IntType kI64{common::IntType::kI64};
+static constexpr IntType kU8{common::IntType::kU8};
+static constexpr IntType kU16{common::IntType::kU16};
+static constexpr IntType kU32{common::IntType::kU32};
+static constexpr IntType kU64{common::IntType::kU64};
+
+constexpr const IntType* IntTypeFor(common::IntType type) {
+  switch (type) {
+    case common::IntType::kI8:
+      return &kI8;
+    case common::IntType::kI16:
+      return &kI16;
+    case common::IntType::kI32:
+      return &kI32;
+    case common::IntType::kI64:
+      return &kI64;
+    case common::IntType::kU8:
+      return &kU8;
+    case common::IntType::kU16:
+      return &kU16;
+    case common::IntType::kU32:
+      return &kU32;
+    case common::IntType::kU64:
+      return &kU64;
+  }
+}
+
+class PointerType : public AtomicType {
+ public:
+  constexpr int8_t bit_size() const override { return 64; }
+  constexpr TypeKind type_kind() const override { return TypeKind::kPointer; }
+  std::string ToString() const override { return "ptr"; }
+};
+
+constexpr PointerType kPointer;
+
+class FuncType : public AtomicType {
+ public:
+  constexpr int8_t bit_size() const override { return 64; }
+  constexpr TypeKind type_kind() const override { return TypeKind::kFunc; }
+  std::string ToString() const override { return "func"; }
+};
+
+constexpr FuncType kFunc;
 
 class TypeTable {
  public:
-  TypeTable();
-
-  Atomic* AtomicOfKind(AtomicKind kind) const {
-    return atomic_types_.at(static_cast<int8_t>(kind)).get();
-  }
-
   Type* AddType(std::unique_ptr<Type> type);
 
  private:
-  std::vector<std::unique_ptr<Atomic>> atomic_types_;
   std::vector<std::unique_ptr<Type>> types_;
 };
 

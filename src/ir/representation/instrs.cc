@@ -53,204 +53,129 @@ std::string PhiInstr::ToString() const {
   return str;
 }
 
-bool IsUnaryALOperationString(std::string op_str) { return op_str == "not" || op_str == "neg"; }
-
-UnaryALOperation ToUnaryALOperation(std::string op_str) {
-  if (op_str == "not") return UnaryALOperation::kNot;
-  if (op_str == "neg") return UnaryALOperation::kNeg;
-  throw "unknown unary al operation string";
-}
-
-std::string ToString(UnaryALOperation op) {
-  switch (op) {
-    case UnaryALOperation::kNot:
-      return "not";
-    case UnaryALOperation::kNeg:
-      return "neg";
+Conversion::Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
+    : Computation(result), operand_(operand) {
+  switch (result->type()->type_kind()) {
+    case TypeKind::kBool:
+    case TypeKind::kInt:
+    case TypeKind::kPointer:
+    case TypeKind::kFunc:
+      break;
+    default:
+      throw "internal error: result of conversion instr does not have expected type";
+  }
+  switch (operand->type()->type_kind()) {
+    case TypeKind::kBool:
+    case TypeKind::kInt:
+    case TypeKind::kPointer:
+    case TypeKind::kFunc:
+      break;
+    default:
+      throw "internal error: operand of conversion instr does not have expected type";
   }
 }
 
-UnaryALInstr::UnaryALInstr(UnaryALOperation operation, std::shared_ptr<Computed> result,
-                           std::shared_ptr<Value> operand)
+std::string Conversion::ToString() const {
+  return result()->ToStringWithType() + " = conv " + operand_->ToStringWithType();
+}
+
+BoolNotInstr::BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
+    : Computation(result), operand_(operand) {
+  if (result->type() != &kBool) {
+    throw "internal error: result of bool not instr is not of type bool";
+  } else if (operand->type() != &kBool) {
+    throw "internal error: operand of bool not instr is not of type bool";
+  }
+}
+
+std::string BoolNotInstr::ToString() const {
+  return result()->ToStringWithType() + " = not " + operand_->ToString();
+}
+
+BoolBinaryInstr::BoolBinaryInstr(std::shared_ptr<Computed> result, common::Bool::BinaryOp operation,
+                                 std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
+    : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
+  if (result->type() != &kBool) {
+    throw "internal error: result of bool binary instr is not of type bool";
+  } else if (operand_a->type() != &kBool || operand_b->type() != &kBool) {
+    throw "internal error: operand of bool binary instr is not of type bool";
+  }
+}
+
+std::string BoolBinaryInstr::ToString() const {
+  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
+         operand_a_->ToString() + ", " + operand_b_->ToString();
+}
+
+IntUnaryInstr::IntUnaryInstr(std::shared_ptr<Computed> result, common::Int::UnaryOp operation,
+                             std::shared_ptr<Value> operand)
     : Computation(result), operation_(operation), operand_(operand) {
-  if (result->type() != operand->type())
-    throw "attempted to create unary al instr with mismatched operand type";
-}
-
-std::string UnaryALInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + ir::ToString(operation_) + ":" +
-         operand_->type()->ToString() + " " + operand_->ToString();
-}
-
-bool IsBinaryALOperationString(std::string op_str) {
-  return op_str == "and" || op_str == "andn" || op_str == "or" || op_str == "xor" ||
-         op_str == "add" || op_str == "sub" || op_str == "mul" || op_str == "div" ||
-         op_str == "rem";
-}
-
-BinaryALOperation ToBinaryALOperation(std::string op_str) {
-  if (op_str == "and") return BinaryALOperation::kAnd;
-  if (op_str == "andn") return BinaryALOperation::kAndNot;
-  if (op_str == "or") return BinaryALOperation::kOr;
-  if (op_str == "xor") return BinaryALOperation::kXor;
-  if (op_str == "add") return BinaryALOperation::kAdd;
-  if (op_str == "sub") return BinaryALOperation::kSub;
-  if (op_str == "mul") return BinaryALOperation::kMul;
-  if (op_str == "div") return BinaryALOperation::kDiv;
-  if (op_str == "rem") return BinaryALOperation::kRem;
-  throw "unknown binary al operation string";
-}
-
-std::string ToString(BinaryALOperation op) {
-  switch (op) {
-    case BinaryALOperation::kAnd:
-      return "and";
-    case BinaryALOperation::kAndNot:
-      return "andn";
-    case BinaryALOperation::kOr:
-      return "or";
-    case BinaryALOperation::kXor:
-      return "xor";
-    case BinaryALOperation::kAdd:
-      return "add";
-    case BinaryALOperation::kSub:
-      return "sub";
-    case BinaryALOperation::kMul:
-      return "mul";
-    case BinaryALOperation::kDiv:
-      return "div";
-    case BinaryALOperation::kRem:
-      return "rem";
+  if (result->type()->type_kind() != TypeKind::kInt) {
+    throw "internal error: result of int unary instr is not of type int";
+  } else if (operand->type()->type_kind() != TypeKind::kInt) {
+    throw "internal error: operand of int unary instr is not of type int";
+  } else if (result->type() != operand->type()) {
+    throw "internal error: result and operand of int unary instr have different types";
   }
 }
 
-BinaryALInstr::BinaryALInstr(BinaryALOperation operation, std::shared_ptr<Computed> result,
-                             std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
+std::string IntUnaryInstr::ToString() const {
+  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
+         operand_->ToString();
+}
+
+IntCompareInstr::IntCompareInstr(std::shared_ptr<Computed> result, common::Int::CompareOp operation,
+                                 std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
     : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
-  if (result->type() != operand_a->type() || result->type() != operand_b->type())
-    throw "attempted to create binary al instr with mismatched operand type";
-}
-
-std::string BinaryALInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + ir::ToString(operation_) + ":" +
-         operand_a_->type()->ToString() + " " + operand_a_->ToString() + ", " +
-         operand_b_->ToString();
-}
-
-bool IsShiftOperationString(std::string op_str) { return op_str == "shl" || op_str == "shr"; }
-
-ShiftOperation ToShiftOperation(std::string op_str) {
-  if (op_str == "shl") return ShiftOperation::kShl;
-  if (op_str == "shr") return ShiftOperation::kShr;
-  throw "unknown shift operation string";
-}
-
-std::string ToString(ShiftOperation op) {
-  switch (op) {
-    case ShiftOperation::kShl:
-      return "shl";
-    case ShiftOperation::kShr:
-      return "shr";
+  if (result->type() != &kBool) {
+    throw "internal error: result of int compare instr is not of type bool";
+  } else if (operand_a->type()->type_kind() != TypeKind::kInt ||
+             operand_b->type()->type_kind() != TypeKind::kInt) {
+    throw "internal error: operand of int compare instr is not of type int";
+  } else if (operand_a->type() != operand_b->type()) {
+    throw "internal error: operands of int compare instr have different types";
   }
 }
 
-ShiftInstr::ShiftInstr(ShiftOperation operation, std::shared_ptr<Computed> result,
-                       std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset)
+std::string IntCompareInstr::ToString() const {
+  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
+         operand_a_->ToString() + ", " + operand_b_->ToString();
+}
+
+IntBinaryInstr::IntBinaryInstr(std::shared_ptr<Computed> result, common::Int::BinaryOp operation,
+                               std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
+    : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
+  if (result->type()->type_kind() != TypeKind::kInt) {
+    throw "internal error: result of int binary instr is not of type int";
+  } else if (operand_a->type()->type_kind() != TypeKind::kInt ||
+             operand_b->type()->type_kind() != TypeKind::kInt) {
+    throw "internal error: operand of int binary instr is not of type int";
+  } else if (result->type() != operand_a->type() || result->type() != operand_b->type()) {
+    throw "internal error: result and operands of int binary instr have different types";
+  }
+}
+
+std::string IntBinaryInstr::ToString() const {
+  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
+         operand_a_->ToString() + ", " + operand_b_->ToString();
+}
+
+IntShiftInstr::IntShiftInstr(std::shared_ptr<Computed> result, common::Int::ShiftOp operation,
+                             std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset)
     : Computation(result), operation_(operation), shifted_(shifted), offset_(offset) {
-  if (result->type() != shifted->type())
-    throw "attempted to create shift instr with mismatched operand type";
-}
-
-std::string ShiftInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + ir::ToString(operation_) + ":" +
-         shifted_->type()->ToString() + " " + shifted_->ToString() + ", " + offset_->ToString();
-}
-
-CompareOperation Comuted(CompareOperation op) {
-  switch (op) {
-    case CompareOperation::kEqual:
-    case CompareOperation::kNotEqual:
-      return op;
-
-    case CompareOperation::kGreater:
-      return CompareOperation::kLess;
-
-    case CompareOperation::kGreaterOrEqual:
-      return CompareOperation::kLessOrEqual;
-
-    case CompareOperation::kLessOrEqual:
-      return CompareOperation::kGreaterOrEqual;
-
-    case CompareOperation::kLess:
-      return CompareOperation::kGreater;
+  if (result->type()->type_kind() != TypeKind::kInt) {
+    throw "internal error: result of int shift instr is not of type int";
+  } else if (shifted->type()->type_kind() != TypeKind::kInt ||
+             offset->type()->type_kind() != TypeKind::kInt) {
+    throw "internal error: operand of int shift instr is not of type int";
+  } else if (result->type() != shifted->type()) {
+    throw "internal error: result and shifted operand of int binary instr have different types";
   }
 }
 
-CompareOperation Negated(CompareOperation op) {
-  switch (op) {
-    case CompareOperation::kEqual:
-      return CompareOperation::kNotEqual;
-
-    case CompareOperation::kNotEqual:
-      return CompareOperation::kEqual;
-
-    case CompareOperation::kGreater:
-      return CompareOperation::kLessOrEqual;
-
-    case CompareOperation::kGreaterOrEqual:
-      return CompareOperation::kLess;
-
-    case CompareOperation::kLessOrEqual:
-      return CompareOperation::kGreater;
-
-    case CompareOperation::kLess:
-      return CompareOperation::kGreaterOrEqual;
-  }
-}
-
-bool IsCompareOperationString(std::string op_str) {
-  return op_str == "eq" || op_str == "ne" || op_str == "gt" || op_str == "gte" || op_str == "lte" ||
-         op_str == "lt";
-}
-
-CompareOperation ToCompareOperation(std::string op_str) {
-  if (op_str == "eq") return CompareOperation::kEqual;
-  if (op_str == "ne") return CompareOperation::kNotEqual;
-  if (op_str == "gt") return CompareOperation::kGreater;
-  if (op_str == "gte") return CompareOperation::kGreaterOrEqual;
-  if (op_str == "lte") return CompareOperation::kLessOrEqual;
-  if (op_str == "lt") return CompareOperation::kLess;
-  throw "unknown compare operation string";
-}
-
-std::string ToString(CompareOperation op) {
-  switch (op) {
-    case CompareOperation::kEqual:
-      return "eq";
-    case CompareOperation::kNotEqual:
-      return "ne";
-    case CompareOperation::kGreater:
-      return "gt";
-    case CompareOperation::kGreaterOrEqual:
-      return "gte";
-    case CompareOperation::kLessOrEqual:
-      return "lte";
-    case CompareOperation::kLess:
-      return "lt";
-  }
-}
-
-CompareInstr::CompareInstr(CompareOperation operation, std::shared_ptr<Computed> result,
-                           std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
-    : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
-  if (operand_a->type() != operand_b->type())
-    throw "attempted to create compare instr with mismatched operand type";
-}
-
-std::string CompareInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + ir::ToString(operation_) + ":" +
-         operand_a_->type()->ToString() + " " + operand_a_->ToString() + ", " +
-         operand_b_->ToString();
+std::string IntShiftInstr::ToString() const {
+  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
+         shifted_->ToString() + ", " + offset_->ToString();
 }
 
 std::string JumpCondInstr::ToString() const {

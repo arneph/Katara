@@ -20,12 +20,14 @@ void Interpreter::run() {
   }
 
   state_ = ExecutionState::kRunning;
-  Value result = CallFunc(entry_func, {}).front();
-  exit_code_ = int(result.value());
+  std::vector<std::unique_ptr<ir::Constant>> results = CallFunc(entry_func, {});
+  ir::IntConstant* result = static_cast<ir::IntConstant*>(results.front().get());
+  exit_code_ = result->value().AsInt64();
   state_ = ExecutionState::kTerminated;
 }
 
-std::vector<Value> Interpreter::CallFunc(ir::Func* func, std::vector<Value> args) {
+std::vector<std::unique_ptr<ir::Constant>> Interpreter::CallFunc(ir::Func* func,
+                                                                 std::vector<ir::Constant*> args) {
   ir::Block* current_block = func->entry_block();
   ir::Block* previous_block = nullptr;
 
@@ -38,15 +40,15 @@ std::vector<Value> Interpreter::CallFunc(ir::Func* func, std::vector<Value> args
         case ir::InstrKind::kConversion:
           ExecuteConversion(static_cast<ir::Conversion*>(instr), ctx);
           break;
-        case ir::InstrKind::kBinaryAL:
-          ExecuteBinaryALInstr(static_cast<ir::BinaryALInstr*>(instr), ctx);
+        case ir::InstrKind::kIntBinary:
+          ExecuteIntBinaryInstr(static_cast<ir::IntBinaryInstr*>(instr), ctx);
           break;
-        case ir::InstrKind::kShift:
-          ExecuteShiftInstr(static_cast<ir::ShiftInstr*>(instr), ctx);
+        case ir::InstrKind::kIntShift:
+          ExecuteIntShiftInstr(static_cast<ir::IntShiftInstr*>(instr), ctx);
           break;
         case ir::InstrKind::kReturn: {
           ir::ReturnInstr* return_instr = static_cast<ir::ReturnInstr*>(instr);
-          return Evaluate(return_instr->args(), ctx);
+          return EvaluateFuncResults(return_instr->args(), ctx);
         }
         default:
           throw "internal error: interpreter does not support instruction";
@@ -56,88 +58,103 @@ std::vector<Value> Interpreter::CallFunc(ir::Func* func, std::vector<Value> args
 }
 
 void Interpreter::ExecuteConversion(ir::Conversion* instr, FuncContext& ctx) {
-  Value operand = Evaluate(instr->operand(), ctx);
-  Value result = ComputeConversion(instr->result()->type(), operand);
-  ctx.computed_values_.insert({instr->result()->number(), result});
+  ir::Constant* operand = Evaluate(instr->operand(), ctx);
+  ctx.computed_values_.insert(
+      {instr->result()->number(), ComputeConversion(instr->result()->type(), operand)});
 }
 
-Value Interpreter::ComputeConversion(ir::Type* result_type, Value operand) {
-  if (result_type->type_kind() != ir::TypeKind::kAtomic) {
+std::unique_ptr<ir::Constant> Interpreter::ComputeConversion(const ir::Type* result_type,
+                                                             ir::Constant* operand) {
+  if (result_type->type_kind() == ir::TypeKind::kBool &&
+      operand->type()->type_kind() == ir::TypeKind::kInt) {
+    common::Int value = static_cast<ir::IntConstant*>(operand)->value();
+    return std::make_unique<ir::BoolConstant>(value.ConvertToBool());
+
+  } else if (result_type->type_kind() == ir::TypeKind::kInt &&
+             operand->type()->type_kind() == ir::TypeKind::kBool) {
+    common::IntType int_type = static_cast<const ir::IntType*>(result_type)->int_type();
+    bool value = static_cast<ir::BoolConstant*>(operand)->value();
+    return std::make_unique<ir::IntConstant>(common::Bool::ConvertTo(int_type, value));
+
+  } else if (result_type->type_kind() == ir::TypeKind::kInt &&
+             operand->type()->type_kind() == ir::TypeKind::kInt) {
+    common::IntType int_type = static_cast<const ir::IntType*>(result_type)->int_type();
+    common::Int value = static_cast<ir::IntConstant*>(operand)->value();
+    if (!value.CanConvertTo(int_type)) {
+      throw "can not handle conversion instr";
+    }
+    return std::make_unique<ir::IntConstant>(value.ConvertTo(int_type));
+  } else {
     throw "internal error: interpreter does not support conversion";
   }
-  switch (static_cast<ir::Atomic*>(result_type)->kind()) {
-    case ir::AtomicKind::kBool:
-      return Value{static_cast<bool>(operand.value())};
-    case ir::AtomicKind::kI8:
-      return Value{static_cast<int8_t>(operand.value())};
-    case ir::AtomicKind::kI16:
-      return Value{static_cast<int16_t>(operand.value())};
-    case ir::AtomicKind::kI32:
-      return Value{static_cast<int32_t>(operand.value())};
-    case ir::AtomicKind::kI64:
-      return Value{static_cast<int64_t>(operand.value())};
-    case ir::AtomicKind::kU8:
-      return Value{static_cast<uint8_t>(operand.value())};
-    case ir::AtomicKind::kU16:
-      return Value{static_cast<uint16_t>(operand.value())};
-    case ir::AtomicKind::kU32:
-      return Value{static_cast<uint32_t>(operand.value())};
-    case ir::AtomicKind::kU64:
-      return Value{static_cast<int64_t>(uint64_t(operand.value()))};
-    default:
-      throw "internal error: interpreter does not support conversion";
+}
+
+void Interpreter::ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& ctx) {
+  common::Int a = EvaluateInt(instr->operand_a(), ctx);
+  common::Int b = EvaluateInt(instr->operand_b(), ctx);
+  if (!common::Int::CanCompute(a, b)) {
+    throw "can not compute binary instr";
   }
+  common::Int result = common::Int::Compute(a, instr->operation(), b);
+  ctx.computed_values_.insert(
+      {instr->result()->number(), std::make_unique<ir::IntConstant>(result)});
 }
 
-void Interpreter::ExecuteBinaryALInstr(ir::BinaryALInstr* instr, FuncContext& ctx) {
-  Value a = Evaluate(instr->operand_a(), ctx);
-  Value b = Evaluate(instr->operand_b(), ctx);
-  Value result = ComputBinaryOp(a, instr->operation(), b);
-  ctx.computed_values_.insert({instr->result()->number(), result});
+void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx) {
+  common::Int shifted = EvaluateInt(instr->shifted(), ctx);
+  common::Int offset = EvaluateInt(instr->offset(), ctx);
+  common::Int result = common::Int::Shift(shifted, instr->operation(), offset);
+  ctx.computed_values_.insert(
+      {instr->result()->number(), std::make_unique<ir::IntConstant>(result)});
 }
 
-Value Interpreter::ComputBinaryOp(Value a, ir::BinaryALOperation op, Value b) {
-  switch (op) {
-    case ir::BinaryALOperation::kAdd:
-      return Value{a.value() + b.value()};
-    case ir::BinaryALOperation::kSub:
-      return Value{a.value() - b.value()};
-    case ir::BinaryALOperation::kMul:
-      return Value{a.value() * b.value()};
-    case ir::BinaryALOperation::kDiv:
-      return Value{a.value() / b.value()};
-    case ir::BinaryALOperation::kRem:
-      return Value{a.value() % b.value()};
-    case ir::BinaryALOperation::kOr:
-      return Value{a.value() | b.value()};
-    case ir::BinaryALOperation::kAnd:
-      return Value{a.value() & b.value()};
-    case ir::BinaryALOperation::kXor:
-      return Value{a.value() ^ b.value()};
-    case ir::BinaryALOperation::kAndNot:
-      return Value{a.value() & ~b.value()};
+std::vector<std::unique_ptr<ir::Constant>> Interpreter::EvaluateFuncResults(
+    const std::vector<std::shared_ptr<ir::Value>>& ir_values, FuncContext& ctx) {
+  std::vector<std::unique_ptr<ir::Constant>> results;
+  results.reserve(ir_values.size());
+  for (auto ir_value : ir_values) {
+    switch (ir_value->kind()) {
+      case ir::Value::Kind::kConstant:
+        switch (ir_value->type()->type_kind()) {
+          case ir::TypeKind::kBool: {
+            auto constant = static_cast<ir::BoolConstant*>(ir_value.get());
+            results.push_back(std::make_unique<ir::BoolConstant>(constant->value()));
+            break;
+          }
+          case ir::TypeKind::kInt: {
+            auto constant = static_cast<ir::IntConstant*>(ir_value.get());
+            results.push_back(std::make_unique<ir::IntConstant>(constant->value()));
+            break;
+          }
+          case ir::TypeKind::kPointer: {
+            auto constant = static_cast<ir::PointerConstant*>(ir_value.get());
+            results.push_back(std::make_unique<ir::PointerConstant>(constant->value()));
+            break;
+          }
+          case ir::TypeKind::kFunc: {
+            auto constant = static_cast<ir::FuncConstant*>(ir_value.get());
+            results.push_back(std::make_unique<ir::FuncConstant>(constant->value()));
+            break;
+          }
+          default:
+            throw "internal error: interpreter does not support constant";
+        }
+        break;
+      case ir::Value::Kind::kComputed: {
+        auto computed = static_cast<ir::Computed*>(ir_value.get());
+        results.push_back(std::move(ctx.computed_values_.at(computed->number())));
+        break;
+      }
+      case ir::Value::Kind::kInherited:
+        throw "internal error: tried to evaluate inherited value";
+    }
   }
+  return results;
 }
 
-void Interpreter::ExecuteShiftInstr(ir::ShiftInstr* instr, FuncContext& ctx) {
-  Value shifted = Evaluate(instr->shifted(), ctx);
-  Value offset = Evaluate(instr->offset(), ctx);
-  Value result = ComputShiftOp(shifted, instr->operation(), offset);
-  ctx.computed_values_.insert({instr->result()->number(), result});
-}
-
-Value Interpreter::ComputShiftOp(Value a, ir::ShiftOperation op, Value b) {
-  switch (op) {
-    case ir::ShiftOperation::kShl:
-      return Value{a.value() << b.value()};
-    case ir::ShiftOperation::kShr:
-      return Value{a.value() >> b.value()};
-  }
-}
-
-std::vector<Value> Interpreter::Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,
-                                         FuncContext& ctx) {
-  std::vector<Value> values;
+std::vector<ir::Constant*> Interpreter::Evaluate(
+    const std::vector<std::shared_ptr<ir::Value>>& ir_values, FuncContext& ctx) {
+  std::vector<ir::Constant*> values;
   values.reserve(ir_values.size());
   for (auto ir_value : ir_values) {
     values.push_back(Evaluate(ir_value, ctx));
@@ -145,16 +162,32 @@ std::vector<Value> Interpreter::Evaluate(const std::vector<std::shared_ptr<ir::V
   return values;
 }
 
-Value Interpreter::Evaluate(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
-  switch (ir_value->value_kind()) {
-    case ir::ValueKind::kConstant:
-      return Value(static_cast<ir::Constant*>(ir_value.get())->value());
-    case ir::ValueKind::kComputed:
-      return ctx.computed_values_.at(static_cast<ir::Computed*>(ir_value.get())->number());
-    case ir::ValueKind::kInherited:
+bool Interpreter::EvaluateBool(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
+  return static_cast<ir::BoolConstant*>(Evaluate(ir_value, ctx))->value();
+}
+
+common::Int Interpreter::EvaluateInt(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
+  return static_cast<ir::IntConstant*>(Evaluate(ir_value, ctx))->value();
+}
+
+int64_t Interpreter::EvaluatePointer(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
+  return static_cast<ir::PointerConstant*>(Evaluate(ir_value, ctx))->value();
+}
+
+ir::func_num_t Interpreter::EvaluateFunc(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
+  return static_cast<ir::FuncConstant*>(Evaluate(ir_value, ctx))->value();
+}
+
+ir::Constant* Interpreter::Evaluate(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
+  switch (ir_value->kind()) {
+    case ir::Value::Kind::kConstant:
+      return static_cast<ir::Constant*>(ir_value.get());
+    case ir::Value::Kind::kComputed: {
+      auto computed = static_cast<ir::Computed*>(ir_value.get());
+      return ctx.computed_values_.at(computed->number()).get();
+    }
+    case ir::Value::Kind::kInherited:
       throw "internal error: tried to evaluate inherited value";
-    default:
-      throw "internal error: tried to evaluate value of unknown kind";
   }
 }
 

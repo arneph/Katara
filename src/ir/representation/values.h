@@ -12,71 +12,119 @@
 #include <memory>
 #include <string>
 
+#include "src/common/atomics.h"
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/types.h"
 
 namespace ir {
 
-enum class ValueKind {
-  kConstant,
-  kComputed,
-  kInherited,
-
-  kLangStringConstant,
-};
-
 class Value {
  public:
-  Value(Type* type) : type_(type) {}
-  virtual ~Value() {}
+  enum class Kind {
+    kConstant,
+    kComputed,
+    kInherited,
+  };
 
-  Type* type() const { return type_; }
+  constexpr virtual ~Value() {}
 
-  virtual ValueKind value_kind() const = 0;
+  constexpr virtual const Type* type() const = 0;
+  constexpr virtual Kind kind() const = 0;
+
   virtual std::string ToString() const = 0;
-  virtual std::string ToStringWithType() const { return ToString() + ":" + type_->ToString(); }
-
- private:
-  Type* type_;
+  virtual std::string ToStringWithType() const { return ToString() + ":" + type()->ToString(); }
 };
 
 class Constant : public Value {
  public:
-  Constant(Atomic* type, int64_t value) : Value(type), value_(value) {}
+  constexpr virtual ~Constant() {}
 
-  Atomic* atomic_type() const { return static_cast<Atomic*>(type()); }
-  int64_t value() const { return value_; }
+  constexpr Value::Kind kind() const final { return Value::Kind::kConstant; };
+};
 
-  ValueKind value_kind() const override { return ValueKind::kConstant; }
+class BoolConstant : public Constant {
+ public:
+  constexpr BoolConstant(bool value) : value_(value) {}
+
+  constexpr bool value() const { return value_; }
+  constexpr const Type* type() const override { return &kBool; }
+
+  std::string ToString() const override { return value_ ? "#t" : "#f"; }
+  std::string ToStringWithType() const override { return ToString(); }
+
+ private:
+  bool value_;
+};
+
+class IntConstant : public Constant {
+ public:
+  IntConstant(common::Int value) : value_(value) {}
+
+  constexpr common::Int value() const { return value_; }
+  constexpr common::IntType int_type() const { return value_.type(); }
+  constexpr const Type* type() const override { return IntTypeFor(value_.type()); }
+
+  std::string ToString() const override { return "#" + value().ToString(); }
+
+ private:
+  common::Int value_;
+};
+
+class PointerConstant : public Constant {
+ public:
+  PointerConstant(int64_t value) : value_(value) {}
+
+  constexpr int64_t value() const { return value_; }
+  constexpr const Type* type() const override { return &kPointer; }
+
   std::string ToString() const override;
-  std::string ToStringWithType() const override;
+  std::string ToStringWithType() const override { return ToString(); }
 
  private:
   int64_t value_;
 };
 
+class FuncConstant : public Constant {
+ public:
+  FuncConstant(func_num_t value) : value_(value) {}
+
+  constexpr func_num_t value() const { return value_; }
+  constexpr const Type* type() const override { return &kFunc; }
+
+  std::string ToString() const override { return "@" + std::to_string(value()); }
+  std::string ToStringWithType() const override { return ToString(); }
+
+ private:
+  func_num_t value_;
+};
+
 class Computed : public Value {
  public:
-  Computed(Type* type, value_num_t vnum) : Value(type), number_(vnum) {}
+  constexpr Computed(const Type* type, value_num_t vnum) : type_(type), number_(vnum) {}
 
-  value_num_t number() const { return number_; }
+  constexpr const Type* type() const override { return type_; }
+  constexpr value_num_t number() const { return number_; }
 
-  ValueKind value_kind() const override { return ValueKind::kComputed; }
+  constexpr Value::Kind kind() const final { return Value::Kind::kComputed; }
+
   std::string ToString() const override { return "%" + std::to_string(number_); }
 
  private:
+  const Type* type_;
   value_num_t number_;
 };
 
 class InheritedValue : public Value {
  public:
   InheritedValue(std::shared_ptr<Value> value, block_num_t origin)
-      : Value(value->type()), value_(value), origin_(origin) {}
+      : value_(value), origin_(origin) {}
 
+  const Type* type() const override { return value_->type(); }
   std::shared_ptr<Value> value() const { return value_; }
   block_num_t origin() const { return origin_; }
 
-  ValueKind value_kind() const override { return ValueKind::kInherited; }
+  constexpr Value::Kind kind() const final { return Value::Kind::kInherited; }
+
   std::string ToString() const override {
     return value_->ToString() + "{" + std::to_string(origin_) + "}";
   }

@@ -85,7 +85,7 @@ void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
 
   for (types::Variable* types_arg : types_signature->parameters()->variables()) {
     types::Type* types_arg_type = types_arg->type();
-    ir::Type* ir_arg_type = types_builder_.BuildType(types_arg_type);
+    const ir::Type* ir_arg_type = types_builder_.BuildType(types_arg_type);
     std::shared_ptr<ir::Computed> ir_arg =
         std::make_shared<ir::Computed>(ir_arg_type, ctx.func()->next_computed_number());
     ir_func->args().push_back(ir_arg);
@@ -93,7 +93,7 @@ void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
   if (types_signature->results() != nullptr) {
     for (types::Variable* types_result : types_signature->results()->variables()) {
       types::Type* types_result_type = types_result->type();
-      ir::Type* ir_result_type = types_builder_.BuildType(types_result_type);
+      const ir::Type* ir_result_type = types_builder_.BuildType(types_result_type);
       ir_func->result_types().push_back(ir_result_type);
     }
   }
@@ -383,8 +383,8 @@ void IRBuilder::BuildBranchStmt(ast::BranchStmt* branch_stmt, Context& ctx) {
 }
 
 void IRBuilder::AddVarMalloc(types::Variable* var, Context& ctx) {
-  ir::Type* element_type = types_builder_.BuildType(var->type());
-  ir_ext::Pointer* pointer_type = types_builder_.BuildStrongPointerToType(var->type());
+  const ir::Type* element_type = types_builder_.BuildType(var->type());
+  const ir_ext::Pointer* pointer_type = types_builder_.BuildStrongPointerToType(var->type());
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(pointer_type, ctx.func()->next_computed_number());
   ctx.block()->instrs().push_back(
@@ -484,26 +484,35 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryExpr(ast::UnaryExpr* expr
     case tokens::kAdd:
       return BuildValuesOfExpr(expr->x(), ctx).front();
     case tokens::kSub:
-      return BuildValueOfUnaryALExpr(expr, ir::UnaryALOperation::kNeg, ctx);
+      return BuildValueOfIntUnaryExpr(expr, common::Int::UnaryOp::kNeg, ctx);
     case tokens::kXor:
+      return BuildValueOfIntUnaryExpr(expr, common::Int::UnaryOp::kNot, ctx);
     case tokens::kNot:
-      return BuildValueOfUnaryALExpr(expr, ir::UnaryALOperation::kNot, ctx);
+      return BuildValueOfBoolNotExpr(expr, ctx);
     default:
       throw "internal error: unexpected unary op";
   }
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryALExpr(ast::UnaryExpr* expr,
-                                                              ir::UnaryALOperation op,
-                                                              Context& ctx) {
+std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBoolNotExpr(ast::UnaryExpr* expr, Context& ctx) {
+  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
+  std::shared_ptr<ir::Computed> result =
+      std::make_shared<ir::Computed>(&ir::kBool, ctx.func()->next_computed_number());
+  ctx.block()->instrs().push_back(std::make_unique<ir::BoolNotInstr>(result, x));
+  return result;
+}
+
+std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIntUnaryExpr(ast::UnaryExpr* expr,
+                                                               common::Int::UnaryOp op,
+                                                               Context& ctx) {
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
-  ir::Type* ir_type = types_builder_.BuildType(basic_type);
+  const ir::Type* ir_type = types_builder_.BuildType(basic_type);
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   x = BuildValueOfConversion(x, ir_type, ctx);
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(ir_type, ctx.func()->next_computed_number());
-  ctx.block()->instrs().push_back(std::make_unique<ir::UnaryALInstr>(op, result, x));
+  ctx.block()->instrs().push_back(std::make_unique<ir::IntUnaryInstr>(result, op, x));
   return result;
 }
 
@@ -523,8 +532,8 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
     if (x->node_kind() == ast::NodeKind::kCompositeLit) {
       types::Struct* types_struct_type =
           static_cast<types::Struct*>(type_info_->ExprInfoOf(x)->type());
-      ir_ext::Struct* ir_struct_type = types_builder_.BuildTypeForStruct(types_struct_type);
-      ir_ext::Pointer* ir_struct_pointer_type =
+      const ir_ext::Struct* ir_struct_type = types_builder_.BuildTypeForStruct(types_struct_type);
+      const ir_ext::Pointer* ir_struct_pointer_type =
           types_builder_.BuildStrongPointerToType(types_struct_type);
       std::shared_ptr<ir::Value> struct_value =
           BuildValueOfCompositeLit(static_cast<ast::CompositeLit*>(x), ctx);
@@ -538,7 +547,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
     } else {
       std::shared_ptr<ir::Value> address = BuildAddressOfExpr(x, ctx);
       if (address->type()->type_kind() == ir::TypeKind::kLangPointer &&
-          static_cast<ir_ext::Pointer*>(address->type())->is_strong()) {
+          static_cast<const ir_ext::Pointer*>(address->type())->is_strong()) {
         ctx.block()->instrs().push_back(
             std::make_unique<ir_ext::RefCountUpdateInstr>(ir_ext::RefCountUpdate::kInc, address));
         // TODO: decrease ref count when variable exceeds scope
@@ -549,7 +558,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
   } else if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
     std::shared_ptr<ir::Value> address = BuildAddressOfExpr(x, ctx);
     types::Type* types_value_type = type_info_->ExprInfoOf(x)->type();
-    ir::Type* ir_value_type = types_builder_.BuildType(types_value_type);
+    const ir::Type* ir_value_type = types_builder_.BuildType(types_value_type);
     std::shared_ptr<ir::Computed> value =
         std::make_shared<ir::Computed>(ir_value_type, ctx.func()->next_computed_number());
     ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(value, address));
@@ -560,35 +569,34 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
 }
 
 std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryExpr(ast::BinaryExpr* expr, Context& ctx) {
+  types::Basic* basic_type = static_cast<types::Basic*>(type_info_->ExprInfoOf(expr)->type());
   switch (expr->op()) {
-    case tokens::kAdd: {
-      types::Basic* basic_type = static_cast<types::Basic*>(type_info_->ExprInfoOf(expr)->type());
+    case tokens::kAdd:
       if (basic_type->kind() == types::Basic::kUntypedString ||
           basic_type->kind() == types::Basic::kString) {
         return BuildValueOfStringConcatExpr(expr, ctx);
       }
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kAdd, ctx);
-    }
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kAdd, ctx);
     case tokens::kSub:
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kSub, ctx);
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kSub, ctx);
     case tokens::kMul:
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kMul, ctx);
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kMul, ctx);
     case tokens::kQuo:
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kDiv, ctx);
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kDiv, ctx);
     case tokens::kRem:
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kRem, ctx);
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kRem, ctx);
     case tokens::kAnd:
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kAnd, ctx);
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kAnd, ctx);
     case tokens::kOr:
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kOr, ctx);
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kOr, ctx);
     case tokens::kXor:
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kXor, ctx);
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kXor, ctx);
     case tokens::kAndNot:
-      return BuildValueOfBinaryALExpr(expr, ir::BinaryALOperation::kAndNot, ctx);
+      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kAndNot, ctx);
     case tokens::kShl:
-      return BuildValueOfBinaryShiftExpr(expr, ir::ShiftOperation::kShl, ctx);
+      return BuildValueOfIntShiftExpr(expr, common::Int::ShiftOp::kLeft, ctx);
     case tokens::kShr:
-      return BuildValueOfBinaryShiftExpr(expr, ir::ShiftOperation::kShr, ctx);
+      return BuildValueOfIntShiftExpr(expr, common::Int::ShiftOp::kRight, ctx);
     case tokens::kLAnd:
     case tokens::kLOr:
       return BuildValueOfBinaryLogicExpr(expr, ctx);
@@ -601,42 +609,42 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfStringConcatExpr(ast::BinaryEx
                                                                    Context& ctx) {
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->x(), ctx).front();
-  std::shared_ptr<ir::Computed> result = std::make_shared<ir::Computed>(
-      types_builder_.ir_string_type(), ctx.func()->next_computed_number());
+  std::shared_ptr<ir::Computed> result =
+      std::make_shared<ir::Computed>(&ir_ext::kString, ctx.func()->next_computed_number());
   ctx.block()->instrs().push_back(std::make_unique<ir_ext::StringConcatInstr>(
       result, std::vector<std::shared_ptr<ir::Value>>{x, y}));
   return result;
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryALExpr(ast::BinaryExpr* expr,
-                                                               ir::BinaryALOperation op,
-                                                               Context& ctx) {
+std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIntBinaryExpr(ast::BinaryExpr* expr,
+                                                                common::Int::BinaryOp op,
+                                                                Context& ctx) {
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
-  ir::Type* ir_type = types_builder_.BuildTypeForBasic(basic_type);
+  const ir::Type* ir_type = types_builder_.BuildTypeForBasic(basic_type);
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   x = BuildValueOfConversion(x, ir_type, ctx);
   std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ctx).front();
   y = BuildValueOfConversion(y, ir_type, ctx);
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(ir_type, ctx.func()->next_computed_number());
-  ctx.block()->instrs().push_back(std::make_unique<ir::BinaryALInstr>(op, result, x, y));
+  ctx.block()->instrs().push_back(std::make_unique<ir::IntBinaryInstr>(result, op, x, y));
   return result;
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryShiftExpr(ast::BinaryExpr* expr,
-                                                                  ir::ShiftOperation op,
-                                                                  Context& ctx) {
+std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIntShiftExpr(ast::BinaryExpr* expr,
+                                                               common::Int::ShiftOp op,
+                                                               Context& ctx) {
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
-  ir::Type* ir_type = types_builder_.BuildTypeForBasic(basic_type);
+  const ir::Type* ir_type = types_builder_.BuildTypeForBasic(basic_type);
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ctx).front();
   x = BuildValueOfConversion(x, ir_type, ctx);
   std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ctx).front();
-  y = BuildValueOfConversion(y, program_->type_table().AtomicOfKind(ir::AtomicKind::kU64), ctx);
+  y = BuildValueOfConversion(y, &ir::kU64, ctx);
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(ir_type, ctx.func()->next_computed_number());
-  ctx.block()->instrs().push_back(std::make_unique<ir::ShiftInstr>(op, result, x, y));
+  ctx.block()->instrs().push_back(std::make_unique<ir::IntShiftInstr>(result, op, x, y));
   return result;
 }
 
@@ -654,18 +662,17 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryExp
   ctx.set_block(merge_block);
 
   ir::block_num_t destination_true, destination_false;
-  ir::Atomic* atomic_bool = program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
   std::shared_ptr<ir::Constant> short_circuit_value;
   switch (expr->op()) {
     case tokens::kLAnd:
       destination_true = y_entry_block->number();
       destination_false = merge_block->number();
-      short_circuit_value = std::make_shared<ir::Constant>(atomic_bool, 0);
+      short_circuit_value = std::make_shared<ir::BoolConstant>(false);
       break;
     case tokens::kLOr:
       destination_true = merge_block->number();
       destination_false = y_entry_block->number();
-      short_circuit_value = std::make_shared<ir::Constant>(atomic_bool, 1);
+      short_circuit_value = std::make_shared<ir::BoolConstant>(true);
       break;
     default:
       throw "internal error: unexpected logic op";
@@ -675,7 +682,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryExp
       std::make_unique<ir::JumpCondInstr>(x, destination_true, destination_false));
   y_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
 
-  auto result = std::make_shared<ir::Computed>(atomic_bool, ctx.func()->next_computed_number());
+  auto result = std::make_shared<ir::Computed>(&ir::kBool, ctx.func()->next_computed_number());
   auto inherited_short_circuit_value =
       std::make_shared<ir::InheritedValue>(short_circuit_value, x_exit_block->number());
   auto inherited_y = std::make_shared<ir::InheritedValue>(y, y_exit_block->number());
@@ -728,8 +735,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfMultipleCompareExpr(ast::Compa
   ir::Block* prior_block = ctx.block();
   ir::Block* merge_block = ctx.func()->AddBlock();
 
-  ir::Atomic* atomic_bool = program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
-  std::shared_ptr<ir::Constant> false_value = std::make_shared<ir::Constant>(atomic_bool, 0);
+  std::shared_ptr<ir::BoolConstant> false_value = std::make_shared<ir::BoolConstant>(false);
   std::vector<std::shared_ptr<ir::InheritedValue>> merge_values;
 
   for (size_t i = 1; i < expr->compare_ops().size(); i++) {
@@ -766,7 +772,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfMultipleCompareExpr(ast::Compa
   ctx.set_block(merge_block);
 
   std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(atomic_bool, ctx.func()->next_computed_number());
+      std::make_shared<ir::Computed>(&ir::kBool, ctx.func()->next_computed_number());
   merge_block->instrs().push_back(std::make_unique<ir::PhiInstr>(result, merge_values));
 
   return result;
@@ -778,8 +784,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfComparison(tokens::Token op,
                                                              std::shared_ptr<ir::Value> y,
                                                              types::Type* y_type, Context& ctx) {
   // TODO: implement
-  return {std::make_shared<ir::Constant>(program_->type_table().AtomicOfKind(ir::AtomicKind::kBool),
-                                         1)};
+  return {std::make_shared<ir::BoolConstant>(true)};
 }
 
 std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildValuesOfSelectionExpr(
@@ -808,7 +813,8 @@ std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildValuesOfTypeAssertExpr(
 
 std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfIndexExpr(ast::IndexExpr* expr, Context& ctx) {
   types::Type* types_element_type = type_info_->ExprInfoOf(expr)->type();
-  ir_ext::Pointer* ir_pointer_type = types_builder_.BuildWeakPointerToType(types_element_type);
+  const ir_ext::Pointer* ir_pointer_type =
+      types_builder_.BuildWeakPointerToType(types_element_type);
   // TODO: implement (array, slice)
   std::shared_ptr<ir::Computed> address =
       std::make_shared<ir::Computed>(ir_pointer_type, ctx.func()->next_computed_number());
@@ -824,7 +830,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIndexExpr(ast::IndexExpr* expr
       types::UnderlyingOf(types_accessed_type, info_builder);
   if (types_accessed_underlying_type->type_kind() == types::TypeKind::kBasic) {
     // Note: strings are the only basic type that can be indexed
-    ir::Type* rune_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI32);
+    const ir::Type* rune_type = &ir::kI32;
     std::shared_ptr<ir::Value> string = BuildValuesOfExpr(accessed_expr, ctx).front();
     std::shared_ptr<ir::Value> index = BuildValuesOfExpr(index_expr, ctx).front();
     std::shared_ptr<ir::Computed> value =
@@ -835,7 +841,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIndexExpr(ast::IndexExpr* expr
 
   } else if (types_accessed_underlying_type->is_container()) {
     types::Type* types_element_type = type_info_->ExprInfoOf(expr)->type();
-    ir::Type* ir_element_type = types_builder_.BuildType(types_element_type);
+    const ir::Type* ir_element_type = types_builder_.BuildType(types_element_type);
     std::shared_ptr<ir::Computed> value =
         std::make_shared<ir::Computed>(ir_element_type, ctx.func()->next_computed_number());
     // TODO: actually add load instr
@@ -886,7 +892,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIdent(ast::Ident* ident, Conte
     }
     case types::ObjectKind::kVariable: {
       types::Variable* var = static_cast<types::Variable*>(object);
-      ir::Type* type = types_builder_.BuildType(var->type());
+      const ir::Type* type = types_builder_.BuildType(var->type());
       std::shared_ptr<ir::Value> address = ctx.LookupAddressOfVar(var);
       std::shared_ptr<ir::Computed> value =
           std::make_shared<ir::Computed>(type, ctx.func()->next_computed_number());
@@ -896,12 +902,10 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIdent(ast::Ident* ident, Conte
     case types::ObjectKind::kFunc: {
       types::Func* types_func = static_cast<types::Func*>(object);
       ir::Func* ir_func = funcs_.at(types_func);
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kFunc);
-      return std::make_shared<ir::Constant>(atomic_type, ir_func->number());
+      return std::make_shared<ir::FuncConstant>(ir_func->number());
     }
     case types::ObjectKind::kNil: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kPtr);
-      return std::make_shared<ir::Constant>(atomic_type, 0);
+      return std::make_shared<ir::PointerConstant>(0);
     }
     default:
       throw "internal error: unexpected object kind";
@@ -909,11 +913,12 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIdent(ast::Ident* ident, Conte
 }
 
 std::shared_ptr<ir::Value> IRBuilder::BuildValueOfConversion(std::shared_ptr<ir::Value> value,
-                                                             ir::Type* desired_type, Context& ctx) {
+                                                             const ir::Type* desired_type,
+                                                             Context& ctx) {
   if (value->type() == desired_type) {
     return value;
-  } else if (value->type()->type_kind() == ir::TypeKind::kAtomic &&
-             desired_type->type_kind() == ir::TypeKind::kAtomic) {
+  } else if (ir::IsAtomicType(value->type()->type_kind()) &&
+             ir::IsAtomicType(desired_type->type_kind())) {
     std::shared_ptr<ir::Computed> result =
         std::make_shared<ir::Computed>(desired_type, ctx.func()->next_computed_number());
     ctx.block()->instrs().push_back(std::make_unique<ir::Conversion>(result, value));
@@ -926,18 +931,41 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfConversion(std::shared_ptr<ir:
 std::shared_ptr<ir::Value> IRBuilder::DefaultIRValueForType(types::Type* types_type) {
   switch (types_type->type_kind()) {
     case types::TypeKind::kBasic: {
-      ir::Type* ir_type = types_builder_.BuildType(types_type);
+      const ir::Type* ir_type = types_builder_.BuildType(types_type);
       switch (ir_type->type_kind()) {
-        case ir::TypeKind::kAtomic:
-          return std::make_shared<ir::Constant>(static_cast<ir::Atomic*>(ir_type), 0);
+        case ir::TypeKind::kBool:
+          return std::make_shared<ir::BoolConstant>(false);
+        case ir::TypeKind::kInt:
+          switch (static_cast<const ir::IntType*>(ir_type)->int_type()) {
+            case common::IntType::kI8:
+              return std::make_shared<ir::IntConstant>(common::Int(int8_t{0}));
+            case common::IntType::kI16:
+              return std::make_shared<ir::IntConstant>(common::Int(int16_t{0}));
+            case common::IntType::kI32:
+              return std::make_shared<ir::IntConstant>(common::Int(int32_t{0}));
+            case common::IntType::kI64:
+              return std::make_shared<ir::IntConstant>(common::Int(int64_t{0}));
+            case common::IntType::kU8:
+              return std::make_shared<ir::IntConstant>(common::Int(uint8_t{0}));
+            case common::IntType::kU16:
+              return std::make_shared<ir::IntConstant>(common::Int(uint16_t{0}));
+            case common::IntType::kU32:
+              return std::make_shared<ir::IntConstant>(common::Int(uint32_t{0}));
+            case common::IntType::kU64:
+              return std::make_shared<ir::IntConstant>(common::Int(uint64_t{0}));
+          }
+        case ir::TypeKind::kPointer:
+          return std::make_shared<ir::PointerConstant>(0);
+        case ir::TypeKind::kFunc:
+          return std::make_shared<ir::FuncConstant>(0);
         case ir::TypeKind::kLangString:
-          return std::make_shared<ir_ext::StringConstant>(types_builder_.ir_string_type(), "");
+          return std::make_shared<ir_ext::StringConstant>("");
         default:
           throw "internal error: unexpected ir type for basic type";
       }
     }
     default:
-      return std::make_shared<ir_ext::StringConstant>(types_builder_.ir_string_type(), "");
+      return std::make_shared<ir_ext::StringConstant>("");
       // TODO: implement more types
       // throw "internal error: unexpected lang type";
   }
@@ -948,58 +976,49 @@ std::shared_ptr<ir::Value> IRBuilder::ToIRConstant(types::Basic* basic,
   switch (basic->kind()) {
     case types::Basic::kBool:
     case types::Basic::kUntypedBool: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
       int64_t value = std::get<bool>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::BoolConstant>(value);
     }
     case types::Basic::kInt8: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI8);
       int64_t value = std::get<int8_t>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::IntConstant>(common::Int(value));
     }
     case types::Basic::kInt16: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI16);
       int64_t value = std::get<int16_t>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::IntConstant>(common::Int(value));
     }
     case types::Basic::kInt32:
     case types::Basic::kUntypedRune: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI32);
       int64_t value = std::get<int32_t>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::IntConstant>(common::Int(value));
     }
     case types::Basic::kInt:
     case types::Basic::kInt64:
     case types::Basic::kUntypedInt: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kI64);
       int64_t value = std::get<int64_t>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::IntConstant>(common::Int(value));
     }
     case types::Basic::kUint8: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kU8);
       int64_t value = std::get<uint8_t>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::IntConstant>(common::Int(value));
     }
     case types::Basic::kUint16: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kU16);
       int64_t value = std::get<uint16_t>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::IntConstant>(common::Int(value));
     }
     case types::Basic::kUint32: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kU32);
       int64_t value = std::get<uint32_t>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::IntConstant>(common::Int(value));
     }
     case types::Basic::kUint:
     case types::Basic::kUint64: {
-      ir::Atomic* atomic_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kU64);
       int64_t value = std::get<uint64_t>(constant.value());
-      return std::make_shared<ir::Constant>(atomic_type, value);
+      return std::make_shared<ir::IntConstant>(common::Int(value));
     }
     case types::Basic::kString:
     case types::Basic::kUntypedString: {
       std::string value = std::get<std::string>(constant.value());
-      return std::make_shared<ir_ext::StringConstant>(types_builder_.ir_string_type(), value);
+      return std::make_shared<ir_ext::StringConstant>(value);
     }
     default:
       throw "internal error: unexpected basic literal type";

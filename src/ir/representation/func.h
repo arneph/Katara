@@ -38,8 +38,8 @@ class Func {
 
   std::vector<std::shared_ptr<Computed>>& args() { return args_; }
   const std::vector<std::shared_ptr<Computed>>& args() const { return args_; }
-  std::vector<Type*>& result_types() { return result_types_; }
-  const std::vector<Type*>& result_types() const { return result_types_; }
+  std::vector<const Type*>& result_types() { return result_types_; }
+  const std::vector<const Type*>& result_types() const { return result_types_; }
 
   const std::vector<std::unique_ptr<Block>>& blocks() const { return blocks_; }
 
@@ -91,7 +91,7 @@ class Func {
   std::string name_;
 
   std::vector<std::shared_ptr<Computed>> args_;
-  std::vector<Type*> result_types_;
+  std::vector<const Type*> result_types_;
 
   int64_t block_count_;
   std::vector<std::unique_ptr<Block>> blocks_;

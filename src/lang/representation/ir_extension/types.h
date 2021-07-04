@@ -19,32 +19,32 @@ namespace ir_ext {
 
 class Pointer : public ir::Type {
  public:
-  Pointer(bool is_strong, ir::Type* element) : is_strong_(is_strong), element_(element) {}
+  Pointer(bool is_strong, const ir::Type* element) : is_strong_(is_strong), element_(element) {}
 
   bool is_strong() const { return is_strong_; }
-  ir::Type* element() const { return element_; }
+  const ir::Type* element() const { return element_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangPointer; }
   std::string ToString() const override { return "lptr"; }
 
  private:
   bool is_strong_;
-  ir::Type* element_;
+  const ir::Type* element_;
 };
 
-class String : public ir::Type {
+class StringType : public ir::Type {
  public:
-  String() {}
-
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangString; }
+  constexpr ir::TypeKind type_kind() const override { return ir::TypeKind::kLangString; }
   std::string ToString() const override { return "lstr"; }
 };
+
+constexpr StringType kString;
 
 constexpr int64_t kDynamicArraySize = -1;
 
 class Array : public ir::Type {
  public:
-  ir::Type* element() const { return element_; }
+  const ir::Type* element() const { return element_; }
   bool is_dynamic() const { return size_ == kDynamicArraySize; }
   int64_t size() const { return size_; }
 
@@ -54,7 +54,7 @@ class Array : public ir::Type {
  private:
   Array() : element_(nullptr), size_(kDynamicArraySize) {}
 
-  ir::Type* element_;
+  const ir::Type* element_;
   int64_t size_;
 
   friend class ArrayBuilder;
@@ -64,7 +64,7 @@ class ArrayBuilder {
  public:
   ArrayBuilder();
 
-  void SetElement(ir::Type* element) { array_->element_ = element; }
+  void SetElement(const ir::Type* element) { array_->element_ = element; }
   void SetFixedSize(int64_t size) { array_->size_ = size; }
 
   Array* Get() { return array_.get(); }
@@ -76,7 +76,7 @@ class ArrayBuilder {
 
 class Struct : public ir::Type {
  public:
-  const std::vector<std::pair<std::string, ir::Type*>>& fields() const { return fields_; }
+  const std::vector<std::pair<std::string, const ir::Type*>>& fields() const { return fields_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangStruct; }
   std::string ToString() const override { return "lstruct"; }
@@ -84,7 +84,7 @@ class Struct : public ir::Type {
  private:
   Struct() {}
 
-  std::vector<std::pair<std::string, ir::Type*>> fields_;
+  std::vector<std::pair<std::string, const ir::Type*>> fields_;
 
   friend class StructBuilder;
 };
@@ -93,7 +93,7 @@ class StructBuilder {
  public:
   StructBuilder();
 
-  void AddField(std::string name, ir::Type* field_type);
+  void AddField(std::string name, const ir::Type* field_type);
 
   Struct* Get() { return struct_.get(); }
   std::unique_ptr<Struct> Build() { return std::move(struct_); }

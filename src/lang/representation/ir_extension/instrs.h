@@ -21,10 +21,10 @@ namespace ir_ext {
 
 class RefCountMallocInstr : public ir::Computation {
  public:
-  RefCountMallocInstr(std::shared_ptr<ir::Computed> result, ir::Type* type)
+  RefCountMallocInstr(std::shared_ptr<ir::Computed> result, const ir::Type* type)
       : ir::Computation(result), type_(type) {}
 
-  ir::Type* type() const { return type_; }
+  const ir::Type* type() const { return type_; }
 
   std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {}; }
 
@@ -34,7 +34,7 @@ class RefCountMallocInstr : public ir::Computation {
   }
 
  private:
-  ir::Type* type_;
+  const ir::Type* type_;
 };
 
 enum class RefCountUpdate {

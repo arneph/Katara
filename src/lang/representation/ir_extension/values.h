@@ -17,16 +17,17 @@
 namespace lang {
 namespace ir_ext {
 
-class StringConstant : public ir::Value {
+class StringConstant : public ir::Constant {
  public:
-  StringConstant(String* type, std::string value) : ir::Value(type), value_(value) {}
+  StringConstant(std::string value) : value_(value) {}
 
   std::string value() const { return value_; }
+  constexpr const ir::Type* type() const override { return &kString; }
 
-  ir::ValueKind value_kind() const override { return ir::ValueKind::kLangStringConstant; }
   std::string ToString() const override {
     return (value_.length() > 3) ? "\"...\"" : "\"" + value_ + "\"";
   }
+  std::string ToStringWithType() const override { return ToString(); }
 
  private:
   std::string value_;

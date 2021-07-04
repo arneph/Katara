@@ -12,6 +12,7 @@
 #include <memory>
 #include <unordered_map>
 
+#include "src/common/atomics.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -81,17 +82,18 @@ class IRBuilder {
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfExpr(ast::Expr* expr, Context& ctx);
 
   std::shared_ptr<ir::Value> BuildValueOfUnaryExpr(ast::UnaryExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildValueOfUnaryALExpr(ast::UnaryExpr* expr, ir::UnaryALOperation op,
-                                                     Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfBoolNotExpr(ast::UnaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfIntUnaryExpr(ast::UnaryExpr* expr, common::Int::UnaryOp op,
+                                                      Context& ctx);
   std::shared_ptr<ir::Value> BuildAddressOfUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
 
   std::shared_ptr<ir::Value> BuildValueOfBinaryExpr(ast::BinaryExpr* expr, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfStringConcatExpr(ast::BinaryExpr* expr, Context& ctx);
-  std::shared_ptr<ir::Value> BuildValueOfBinaryALExpr(ast::BinaryExpr* expr,
-                                                      ir::BinaryALOperation op, Context& ctx);
-  std::shared_ptr<ir::Value> BuildValueOfBinaryShiftExpr(ast::BinaryExpr* expr,
-                                                         ir::ShiftOperation op, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfIntBinaryExpr(ast::BinaryExpr* expr,
+                                                       common::Int::BinaryOp op, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfIntShiftExpr(ast::BinaryExpr* expr,
+                                                      common::Int::ShiftOp op, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfBinaryLogicExpr(ast::BinaryExpr* expr, Context& ctx);
 
   std::shared_ptr<ir::Value> BuildValueOfCompareExpr(ast::CompareExpr* expr, Context& ctx);
@@ -123,7 +125,7 @@ class IRBuilder {
   std::shared_ptr<ir::Value> BuildValueOfIdent(ast::Ident* ident, Context& ctx);
 
   std::shared_ptr<ir::Value> BuildValueOfConversion(std::shared_ptr<ir::Value> value,
-                                                    ir::Type* desired_type, Context& ctx);
+                                                    const ir::Type* desired_type, Context& ctx);
 
   std::shared_ptr<ir::Value> DefaultIRValueForType(types::Type* type);
   std::shared_ptr<ir::Value> ToIRConstant(types::Basic* basic, constants::Value value) const;
