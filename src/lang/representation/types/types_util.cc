@@ -42,31 +42,44 @@ Basic::Kind ConvertIfUntyped(Basic::Kind basic_kind) {
 }
 
 constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_basic_kind) {
-  switch (typed_basic_kind) {
-    case Basic::kBool:
-      return constants::Convert<bool>(value);
-    case Basic::kInt8:
-      return constants::Convert<int8_t>(value);
-    case Basic::kInt16:
-      return constants::Convert<int16_t>(value);
-    case Basic::kInt32:
-      return constants::Convert<int32_t>(value);
-    case Basic::kInt64:
-    case Basic::kInt:
-      return constants::Convert<int64_t>(value);
-    case Basic::kUint8:
-      return constants::Convert<uint8_t>(value);
-    case Basic::kUint16:
-      return constants::Convert<uint16_t>(value);
-    case Basic::kUint32:
-      return constants::Convert<uint32_t>(value);
-    case Basic::kUint64:
-    case Basic::kUint:
-      return constants::Convert<uint16_t>(value);
-    case Basic::kString:
-      return constants::Convert<std::string>(value);
-    default:
-      throw "internal error: unexpected typed basic kind";
+  switch (value.kind()) {
+    case constants::Value::Kind::kBool:
+      if (typed_basic_kind != Basic::kBool) {
+        throw "internal erorr: attempted to convert bool constant to non-bool";
+      }
+      return value;
+    case constants::Value::Kind::kInt: {
+      common::IntType int_type = [typed_basic_kind]() {
+        switch (typed_basic_kind) {
+          case Basic::kInt8:
+            return common::IntType::kI8;
+          case Basic::kInt16:
+            return common::IntType::kI16;
+          case Basic::kInt32:
+            return common::IntType::kI32;
+          case Basic::kInt64:
+          case Basic::kInt:
+            return common::IntType::kI64;
+          case Basic::kUint8:
+            return common::IntType::kU8;
+          case Basic::kUint16:
+            return common::IntType::kU16;
+          case Basic::kUint32:
+            return common::IntType::kU32;
+          case Basic::kUint64:
+          case Basic::kUint:
+            return common::IntType::kU64;
+          default:
+            throw "internal erorr: attempted to convert int constant to non-int";
+        }
+      }();
+      return constants::Value(value.AsInt().ConvertTo(int_type));
+    }
+    case constants::Value::Kind::kString:
+      if (typed_basic_kind != Basic::kString) {
+        throw "internal erorr: attempted to convert string constant to non-string";
+      }
+      return value;
   }
 }
 

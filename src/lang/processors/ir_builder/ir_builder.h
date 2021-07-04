@@ -128,7 +128,7 @@ class IRBuilder {
                                                     const ir::Type* desired_type, Context& ctx);
 
   std::shared_ptr<ir::Value> DefaultIRValueForType(types::Type* type);
-  std::shared_ptr<ir::Value> ToIRConstant(types::Basic* basic, constants::Value value) const;
+  std::shared_ptr<ir::Value> ToIRConstant(constants::Value value) const;
 
   types::Info* type_info_;
   TypesBuilder types_builder_;

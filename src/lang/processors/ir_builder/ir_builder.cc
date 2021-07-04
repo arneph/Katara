@@ -869,9 +869,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfCompositeLit(ast::CompositeLit
 }
 
 std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBasicLit(ast::BasicLit* basic_lit) {
-  types::ExprInfo lit_info = type_info_->ExprInfoOf(basic_lit).value();
-  types::Basic* basic_type = static_cast<types::Basic*>(lit_info.type());
-  return ToIRConstant(basic_type, lit_info.constant_value());
+  return ToIRConstant(type_info_->ExprInfoOf(basic_lit).value().constant_value());
 }
 
 std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfIdent(ast::Ident* ident, Context& ctx) {
@@ -887,8 +885,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIdent(ast::Ident* ident, Conte
   switch (object->object_kind()) {
     case types::ObjectKind::kConstant: {
       types::Constant* constant = static_cast<types::Constant*>(object);
-      types::Basic* type = static_cast<types::Basic*>(constant->type());
-      return ToIRConstant(type, ident_info.constant_value());
+      return ToIRConstant(constant->value());
     }
     case types::ObjectKind::kVariable: {
       types::Variable* var = static_cast<types::Variable*>(object);
@@ -971,57 +968,14 @@ std::shared_ptr<ir::Value> IRBuilder::DefaultIRValueForType(types::Type* types_t
   }
 }
 
-std::shared_ptr<ir::Value> IRBuilder::ToIRConstant(types::Basic* basic,
-                                                   constants::Value constant) const {
-  switch (basic->kind()) {
-    case types::Basic::kBool:
-    case types::Basic::kUntypedBool: {
-      int64_t value = std::get<bool>(constant.value());
-      return std::make_shared<ir::BoolConstant>(value);
-    }
-    case types::Basic::kInt8: {
-      int64_t value = std::get<int8_t>(constant.value());
-      return std::make_shared<ir::IntConstant>(common::Int(value));
-    }
-    case types::Basic::kInt16: {
-      int64_t value = std::get<int16_t>(constant.value());
-      return std::make_shared<ir::IntConstant>(common::Int(value));
-    }
-    case types::Basic::kInt32:
-    case types::Basic::kUntypedRune: {
-      int64_t value = std::get<int32_t>(constant.value());
-      return std::make_shared<ir::IntConstant>(common::Int(value));
-    }
-    case types::Basic::kInt:
-    case types::Basic::kInt64:
-    case types::Basic::kUntypedInt: {
-      int64_t value = std::get<int64_t>(constant.value());
-      return std::make_shared<ir::IntConstant>(common::Int(value));
-    }
-    case types::Basic::kUint8: {
-      int64_t value = std::get<uint8_t>(constant.value());
-      return std::make_shared<ir::IntConstant>(common::Int(value));
-    }
-    case types::Basic::kUint16: {
-      int64_t value = std::get<uint16_t>(constant.value());
-      return std::make_shared<ir::IntConstant>(common::Int(value));
-    }
-    case types::Basic::kUint32: {
-      int64_t value = std::get<uint32_t>(constant.value());
-      return std::make_shared<ir::IntConstant>(common::Int(value));
-    }
-    case types::Basic::kUint:
-    case types::Basic::kUint64: {
-      int64_t value = std::get<uint64_t>(constant.value());
-      return std::make_shared<ir::IntConstant>(common::Int(value));
-    }
-    case types::Basic::kString:
-    case types::Basic::kUntypedString: {
-      std::string value = std::get<std::string>(constant.value());
-      return std::make_shared<ir_ext::StringConstant>(value);
-    }
-    default:
-      throw "internal error: unexpected basic literal type";
+std::shared_ptr<ir::Value> IRBuilder::ToIRConstant(constants::Value constant) const {
+  switch (constant.kind()) {
+    case constants::Value::Kind::kBool:
+      return std::make_shared<ir::BoolConstant>(constant.AsBool());
+    case constants::Value::Kind::kInt:
+      return std::make_shared<ir::IntConstant>(constant.AsInt());
+    case constants::Value::Kind::kString:
+      return std::make_shared<ir_ext::StringConstant>(constant.AsString());
   }
 }
 

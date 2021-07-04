@@ -57,6 +57,7 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
+        "//src/common:atomics",
         "//src/lang/processors/issues",
         "//src/lang/representation",
     ],

@@ -8,6 +8,8 @@
 
 #include "info_builder.h"
 
+#include "src/common/atomics.h"
+
 namespace lang {
 namespace types {
 
@@ -102,7 +104,7 @@ void InfoBuilder::CreatePredeclaredConstants() {
   auto predeclared_consts = std::vector<predeclared_const_t>({
       {types::Basic::kUntypedBool, constants::Value(false), "false"},
       {types::Basic::kUntypedBool, constants::Value(true), "true"},
-      {types::Basic::kUntypedInt, constants::Value(int64_t{0}), "iota"},
+      {types::Basic::kUntypedInt, constants::Value(common::Int(int64_t{0})), "iota"},
   });
   for (auto predeclared_const : predeclared_consts) {
     std::unique_ptr<types::Constant> constant(

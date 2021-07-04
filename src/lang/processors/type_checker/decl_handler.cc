@@ -63,7 +63,7 @@ bool DeclHandler::ProcessConstant(types::Constant* constant, ast::Expr* type_exp
   }
 
   types::Basic* basic_type = nullptr;
-  constants::Value value(int64_t{0});
+  constants::Value value(false);
 
   if (type != nullptr) {
     types::Type* underlying = types::UnderlyingOf(type, info_builder());
@@ -76,7 +76,45 @@ bool DeclHandler::ProcessConstant(types::Constant* constant, ast::Expr* type_exp
   }
 
   if (value_expr == nullptr) {
-    value = types::ConvertUntypedValue(value, basic_type->kind());
+    switch (basic_type->kind()) {
+      case types::Basic::kBool:
+      case types::Basic::kUntypedBool:
+        value = constants::Value(false);
+        break;
+      case types::Basic::kInt8:
+        value = constants::Value(common::Int(int8_t{0}));
+        break;
+      case types::Basic::kInt16:
+        value = constants::Value(common::Int(int16_t{0}));
+        break;
+      case types::Basic::kInt32:
+      case types::Basic::kUntypedRune:
+        value = constants::Value(common::Int(int32_t{0}));
+        break;
+      case types::Basic::kInt64:
+      case types::Basic::kInt:
+      case types::Basic::kUntypedInt:
+        value = constants::Value(common::Int(int64_t{0}));
+        break;
+      case types::Basic::kUint8:
+        value = constants::Value(common::Int(uint8_t{0}));
+        break;
+      case types::Basic::kUint16:
+        value = constants::Value(common::Int(uint16_t{0}));
+        break;
+      case types::Basic::kUint32:
+        value = constants::Value(common::Int(uint32_t{0}));
+        break;
+      case types::Basic::kUint64:
+      case types::Basic::kUint:
+        value = constants::Value(common::Int(uint64_t{0}));
+        break;
+      case types::Basic::kString:
+      case types::Basic::kUntypedString:
+        value = constants::Value("");
+      default:
+        throw "internal error: unexpected basic type";
+    }
 
   } else {
     if (!type_resolver().expr_handler().CheckExpr(

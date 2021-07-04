@@ -10,6 +10,7 @@
 
 #include <optional>
 
+#include "src/common/atomics.h"
 #include "src/lang/processors/type_checker/type_resolver.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/types/types_util.h"
@@ -368,12 +369,13 @@ bool ExprHandler::CheckBinaryShiftExpr(ast::BinaryExpr* binary_expr, Context ctx
   if (x->value.has_value() && y->value.has_value()) {
     constants::Value x_value = x->value.value();
     constants::Value y_value = y->value.value();
-    if (!y_value.CanConvertToUnsigned()) {
+    if (y_value.kind() != constants::Value::Kind::kInt ||
+        !y_value.AsInt().IsRepresentableAsUint64()) {
       issues().Add(issues::kConstantBinaryShiftExprOffsetIsNegative, binary_expr->y()->start(),
                    "invalid operation: expected non-negative shift offset operand value");
       return false;
     } else {
-      y_value = constants::Value(y_value.ConvertToUnsigned());
+      y_value = constants::Value(common::Int(y_value.AsInt().AsUint64()));
     }
     expr_value = constants::ShiftOp(x_value, binary_expr->op(), y_value);
     expr_kind = types::ExprInfo::Kind::kConstant;
@@ -1142,12 +1144,12 @@ bool ExprHandler::CheckBasicLit(ast::BasicLit* basic_lit) {
   switch (basic_lit->kind()) {
     case tokens::kInt:
       type = info()->basic_type(types::Basic::kUntypedInt);
-      value = constants::Value(std::stoll(basic_lit->value()));
+      value = constants::Value(common::Int(std::stoll(basic_lit->value())));
       break;
     case tokens::kChar:
       // TODO: support UTF-8 and character literals
       type = info()->basic_type(types::Basic::kUntypedRune);
-      value = constants::Value(int32_t(basic_lit->value().at(1)));
+      value = constants::Value(common::Int(int32_t(basic_lit->value().at(1))));
       break;
     case tokens::kString:
       type = info()->basic_type(types::Basic::kUntypedString);
@@ -1180,7 +1182,7 @@ bool ExprHandler::CheckIdent(ast::Ident* ident, Context ctx) {
       expr_kind = types::ExprInfo::Kind::kConstant;
       type = static_cast<types::Constant*>(object)->type();
       if (object->parent() == info()->universe() && object->name() == "iota") {
-        value = constants::Value(ctx.iota_);
+        value = constants::Value(common::Int(ctx.iota_));
       } else {
         value = static_cast<types::Constant*>(object)->value();
       }

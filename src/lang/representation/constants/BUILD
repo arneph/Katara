@@ -10,6 +10,7 @@ cc_library(
         "//src/lang/representation:__subpackages__",
     ],
     deps = [
+        "//src/common:atomics",
         "//src/lang/representation/tokens",
     ],
 )
