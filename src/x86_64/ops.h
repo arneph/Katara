@@ -25,8 +25,8 @@ class Reg {
  public:
   Reg(Size size, uint8_t reg);
 
-  Size size() const;
-  int8_t reg() const;
+  Size size() const { return size_; }
+  int8_t reg() const { return reg_; }
 
   bool RequiresREX() const;
 
@@ -34,8 +34,8 @@ class Reg {
   void EncodeInOpcode(uint8_t* rex, uint8_t* opcode, uint8_t lshift) const;
 
   // ModRM encoding:
-  bool RequiresSIB() const;
-  uint8_t RequiredDispSize() const;
+  bool RequiresSIB() const { return false; }
+  uint8_t RequiredDispSize() const { return 0; }
   void EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint8_t* disp) const;
 
   // ModRM reg encoding:
@@ -60,11 +60,11 @@ class Mem {
   Mem(Size size, uint8_t index_reg, Scale scale, int32_t disp = 0);
   Mem(Size size, uint8_t base_reg, uint8_t index_reg, Scale scale, int32_t disp = 0);
 
-  Size size() const;
-  uint8_t base_reg() const;
-  uint8_t index_reg() const;
-  Scale scale() const;
-  int32_t disp() const;
+  Size size() const { return size_; }
+  uint8_t base_reg() const { return base_reg_; }
+  uint8_t index_reg() const { return index_reg_; }
+  Scale scale() const { return scale_; }
+  int32_t disp() const { return disp_; }
 
   bool RequiresREX() const;
 
@@ -88,13 +88,13 @@ bool operator!=(const Mem& lhs, const Mem& rhs);
 
 class Imm {
  public:
-  Imm(int8_t value);
-  Imm(int16_t value);
-  Imm(int32_t value);
-  Imm(int64_t value);
+  Imm(int8_t value) : size_(Size::k8), value_(value) {}
+  Imm(int16_t value) : size_(Size::k16), value_(value) {}
+  Imm(int32_t value) : size_(Size::k32), value_(value) {}
+  Imm(int64_t value) : size_(Size::k64), value_(value) {}
 
-  Size size() const;
-  int64_t value() const;
+  Size size() const { return size_; }
+  int64_t value() const { return value_; }
 
   bool RequiresREX() const;
   uint8_t RequiredImmSize() const;
@@ -112,11 +112,11 @@ bool operator!=(const Imm& lhs, const Imm& rhs);
 
 class FuncRef {
  public:
-  FuncRef(int64_t func_id);
+  FuncRef(int64_t func_id) : func_id_(func_id) {}
 
-  int64_t func_id() const;
+  int64_t func_id() const { return func_id_; }
 
-  std::string ToString() const;
+  std::string ToString() const { return "<" + std::to_string(func_id_) + ">"; }
 
  private:
   int64_t func_id_;
@@ -127,11 +127,11 @@ bool operator!=(const FuncRef& lhs, const FuncRef& rhs);
 
 class BlockRef {
  public:
-  BlockRef(int64_t block_id);
+  BlockRef(int64_t block_id) : block_id_(block_id) {}
 
-  int64_t block_id() const;
+  int64_t block_id() const { return block_id_; }
 
-  std::string ToString() const;
+  std::string ToString() const { return "BB" + std::to_string(block_id_); }
 
  private:
   int64_t block_id_;
@@ -152,31 +152,31 @@ class Operand {
     kBlockRef,
   };
 
-  Operand(Reg reg);
-  Operand(Mem mem);
-  Operand(Imm imm);
-  Operand(FuncRef func_ref);
-  Operand(BlockRef block_ref);
+  Operand(Reg reg) : kind_(Kind::kReg), data_(reg) {}
+  Operand(Mem mem) : kind_(Kind::kMem), data_(mem) {}
+  Operand(Imm imm) : kind_(Kind::kImm), data_(imm) {}
+  Operand(FuncRef func_ref) : kind_(Kind::kFuncRef), data_(func_ref) {}
+  Operand(BlockRef block_ref) : kind_(Kind::kBlockRef), data_(block_ref) {}
 
-  Kind kind() const;
+  Kind kind() const { return kind_; }
   Size size() const;
 
-  bool is_reg() const;
+  bool is_reg() const { return kind_ == Kind::kReg; }
   Reg reg() const;
 
-  bool is_mem() const;
+  bool is_mem() const { return kind_ == Kind::kMem; }
   Mem mem() const;
 
-  bool is_rm() const;
+  bool is_rm() const { return kind_ == Kind::kReg || kind_ == Kind::kMem; }
   RM rm() const;
 
-  bool is_imm() const;
+  bool is_imm() const { return kind_ == Kind::kImm; }
   Imm imm() const;
 
-  bool is_func_ref() const;
+  bool is_func_ref() const { return kind_ == Kind::kFuncRef; }
   FuncRef func_ref() const;
 
-  bool is_block_ref() const;
+  bool is_block_ref() const { return kind_ == Kind::kBlockRef; }
   BlockRef block_ref() const;
 
   bool RequiresREX() const;
@@ -207,8 +207,8 @@ bool operator!=(const Operand& lhs, const Operand& rhs);
 
 class RM : public Operand {
  public:
-  RM(Reg reg);
-  RM(Mem mem);
+  RM(Reg reg) : Operand(reg) {}
+  RM(Mem mem) : Operand(mem) {}
 
   bool RequiresSIB() const;
   uint8_t RequiredDispSize() const;

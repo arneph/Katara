@@ -17,10 +17,6 @@ Reg::Reg(Size size, uint8_t reg) : size_(size), reg_(reg) {
   if (reg > 15) throw "register out of bounds: " + std::to_string(reg);
 }
 
-Size Reg::size() const { return size_; }
-
-int8_t Reg::reg() const { return reg_; }
-
 bool Reg::RequiresREX() const {
   switch (size_) {
     case Size::k8:
@@ -44,10 +40,6 @@ void Reg::EncodeInOpcode(uint8_t* rex, uint8_t* opcode, uint8_t ls) const {
   *opcode &= ~0x7 << ls;          // Reset Reg
   *opcode |= (reg_ & 0x7) << ls;  // Reg = reg
 }
-
-bool Reg::RequiresSIB() const { return false; }
-
-uint8_t Reg::RequiredDispSize() const { return 0; }
 
 void Reg::EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t*, uint8_t*) const {
   if (reg_ >= 8) {
@@ -247,16 +239,6 @@ Mem::Mem(Size size, uint8_t base_reg, uint8_t index_reg, Scale scale, int32_t di
   }
 }
 
-Size Mem::size() const { return size_; }
-
-uint8_t Mem::base_reg() const { return base_reg_; }
-
-uint8_t Mem::index_reg() const { return index_reg_; }
-
-Scale Mem::scale() const { return scale_; }
-
-int32_t Mem::disp() const { return disp_; }
-
 bool Mem::RequiresREX() const {
   if (base_reg_ != 0xff && base_reg_ >= 8) {
     return true;
@@ -382,15 +364,6 @@ bool operator==(const Mem& lhs, const Mem& rhs) {
 
 bool operator!=(const Mem& lhs, const Mem& rhs) { return !(lhs == rhs); }
 
-Imm::Imm(int8_t value) : size_(Size::k8), value_(value) {}
-Imm::Imm(int16_t value) : size_(Size::k16), value_(value) {}
-Imm::Imm(int32_t value) : size_(Size::k32), value_(value) {}
-Imm::Imm(int64_t value) : size_(Size::k64), value_(value) {}
-
-Size Imm::size() const { return size_; }
-
-int64_t Imm::value() const { return value_; }
-
 bool Imm::RequiresREX() const {
   switch (size_) {
     case Size::k8:
@@ -477,35 +450,15 @@ bool operator==(const Imm& lhs, const Imm& rhs) {
 
 bool operator!=(const Imm& lhs, const Imm& rhs) { return !(lhs == rhs); }
 
-FuncRef::FuncRef(int64_t func_id) : func_id_(func_id) {}
-
-int64_t FuncRef::func_id() const { return func_id_; }
-
-std::string FuncRef::ToString() const { return "<" + std::to_string(func_id_) + ">"; }
-
 bool operator==(const FuncRef& lhs, const FuncRef& rhs) { return lhs.func_id() == rhs.func_id(); }
 
 bool operator!=(const FuncRef& lhs, const FuncRef& rhs) { return !(lhs == rhs); }
-
-BlockRef::BlockRef(int64_t block_id) : block_id_(block_id) {}
-
-int64_t BlockRef::block_id() const { return block_id_; }
-
-std::string BlockRef::ToString() const { return "BB" + std::to_string(block_id_); }
 
 bool operator==(const BlockRef& lhs, const BlockRef& rhs) {
   return lhs.block_id() == rhs.block_id();
 }
 
 bool operator!=(const BlockRef& lhs, const BlockRef& rhs) { return !(lhs == rhs); }
-
-Operand::Operand(Reg reg) : kind_(Kind::kReg), data_(reg) {}
-Operand::Operand(Mem mem) : kind_(Kind::kMem), data_(mem) {}
-Operand::Operand(Imm imm) : kind_(Kind::kImm), data_(imm) {}
-Operand::Operand(FuncRef func_ref) : kind_(Kind::kFuncRef), data_(func_ref) {}
-Operand::Operand(BlockRef block_ref) : kind_(Kind::kBlockRef), data_(block_ref) {}
-
-Operand::Kind Operand::kind() const { return kind_; }
 
 Size Operand::size() const {
   switch (kind_) {
@@ -520,21 +473,15 @@ Size Operand::size() const {
   }
 }
 
-bool Operand::is_reg() const { return kind_ == Kind::kReg; }
-
 Reg Operand::reg() const {
   if (kind_ != Kind::kReg) throw "attempted to obtain reg from non-reg operand";
   return data_.reg;
 }
 
-bool Operand::is_mem() const { return kind_ == Kind::kMem; }
-
 Mem Operand::mem() const {
   if (kind_ != Kind::kMem) throw "attempted to obtain mem from non-mem operand";
   return data_.mem;
 }
-
-bool Operand::is_rm() const { return kind_ == Kind::kReg || kind_ == Kind::kMem; }
 
 RM Operand::rm() const {
   if (kind_ == Kind::kReg) {
@@ -546,21 +493,15 @@ RM Operand::rm() const {
   }
 }
 
-bool Operand::is_imm() const { return kind_ == Kind::kImm; }
-
 Imm Operand::imm() const {
   if (kind_ != Kind::kImm) throw "attempted to obtain imm from non-imm operand";
   return data_.imm;
 }
 
-bool Operand::is_func_ref() const { return kind_ == Kind::kFuncRef; }
-
 FuncRef Operand::func_ref() const {
   if (kind_ != Kind::kFuncRef) throw "attempted to obtain func-ref from non-func-ref operand";
   return data_.func_ref;
 }
-
-bool Operand::is_block_ref() const { return kind_ == Kind::kBlockRef; }
 
 BlockRef Operand::block_ref() const {
   if (kind_ != Kind::kBlockRef) throw "attempted to obtain block-ref from non-block-ref operand";
@@ -619,9 +560,6 @@ bool operator==(const Operand& lhs, const Operand& rhs) {
 }
 
 bool operator!=(const Operand& lhs, const Operand& rhs) { return !(lhs == rhs); }
-
-RM::RM(Reg reg) : Operand(reg) {}
-RM::RM(Mem mem) : Operand(mem) {}
 
 bool RM::RequiresSIB() const {
   switch (kind_) {
