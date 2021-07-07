@@ -8,7 +8,7 @@
 
 #include "data_instrs.h"
 
-#include "src/x86_64/coding/instr_encoder.h"
+#include "src/x86_64/instrs/instr_encoder.h"
 
 namespace x86_64 {
 
@@ -54,14 +54,8 @@ Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
   }
 }
 
-Mov::~Mov() {}
-
-RM Mov::dst() const { return dst_; }
-
-Operand Mov::src() const { return src_; }
-
-int8_t Mov::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Mov::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(src_.size());
   if (dst_.RequiresREX() || src_.RequiresREX()) {
@@ -108,12 +102,6 @@ Xchg::Xchg(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
   if (rm.size() != reg.size()) throw "incompatible rm size, reg size combination";
 }
 
-Xchg::~Xchg() {}
-
-RM Xchg::op_a() const { return op_a_; }
-
-Reg Xchg::op_b() const { return op_b_; }
-
 bool Xchg::CanUseRegAShortcut() const {
   if (op_a_.size() == Size::k8) return false;
   if (!op_a_.is_reg()) return false;
@@ -121,8 +109,8 @@ bool Xchg::CanUseRegAShortcut() const {
   return op_a_.reg().reg() == 0;
 }
 
-int8_t Xchg::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Xchg::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());
   if (op_a_.RequiresREX() || op_b_.RequiresREX()) {
@@ -152,12 +140,8 @@ Push::Push(Imm imm) : op_(imm) {
   if (imm.size() == Size::k64) throw "unsupported imm size";
 }
 
-Push::~Push() {}
-
-Operand Push::op() const { return op_; }
-
-int8_t Push::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Push::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   if (op_.size() != Size::k64) {
     encoder.EncodeOperandSize(op_.size());
@@ -188,12 +172,8 @@ Pop::Pop(RM rm) : op_(rm) {
   if (rm.size() != Size::k16 && rm.size() != Size::k64) throw "unsupported rm size";
 }
 
-Pop::~Pop() {}
-
-RM Pop::op() const { return op_; }
-
-int8_t Pop::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Pop::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   if (op_.size() != Size::k64) {
     encoder.EncodeOperandSize(op_.size());
@@ -220,14 +200,8 @@ Setcc::Setcc(InstrCond cond, RM op) : cond_(cond), op_(op) {
   if (op.size() != k8) throw "unsupported rm size";
 }
 
-Setcc::~Setcc() {}
-
-InstrCond Setcc::cond() const { return cond_; }
-
-RM Setcc::op() const { return op_; }
-
-int8_t Setcc::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Setcc::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   if (op_.RequiresREX()) {
     encoder.EncodeREX();

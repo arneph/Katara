@@ -8,16 +8,12 @@
 
 #include "al_instrs.h"
 
-#include "src/x86_64/coding/instr_encoder.h"
+#include "src/x86_64/instrs/instr_encoder.h"
 
 namespace x86_64 {
 
-UnaryALInstr::UnaryALInstr(RM op) : op_(op) {}
-
-RM UnaryALInstr::op() const { return op_; }
-
-int8_t UnaryALInstr::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t UnaryALInstr::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_.size());
   if (op_.RequiresREX()) {
@@ -67,12 +63,6 @@ BinaryALInstr::BinaryALInstr(RM op_a, Operand op_b) : op_a_(op_a), op_b_(op_b) {
   }
 }
 
-BinaryALInstr::OpEncoding BinaryALInstr::op_encoding() const { return op_encoding_; }
-
-RM BinaryALInstr::op_a() const { return op_a_; }
-
-Operand BinaryALInstr::op_b() const { return op_b_; }
-
 bool BinaryALInstr::CanUseRegAShortcut() const {
   if (op_encoding_ != OpEncoding::kRM_IMM) return false;
   if (!op_a_.is_reg()) return false;
@@ -80,8 +70,8 @@ bool BinaryALInstr::CanUseRegAShortcut() const {
   return op_a_.reg().reg() == 0;
 }
 
-int8_t BinaryALInstr::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t BinaryALInstr::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());
   if (op_a_.RequiresREX() || op_b_.RequiresREX()) {
@@ -116,15 +106,11 @@ int8_t BinaryALInstr::Encode(Linker*, common::data code) const {
   return encoder.size();
 }
 
-Not::~Not() {}
-
 uint8_t Not::Opcode() const { return (op().size() == Size::k8) ? 0xf6 : 0xf7; }
 
 uint8_t Not::OpcodeExt() const { return 2; }
 
 std::string Not::ToString() const { return "not " + op().ToString(); }
-
-And::~And() {}
 
 uint8_t And::Opcode() const {
   if (CanUseRegAShortcut()) {
@@ -146,7 +132,6 @@ uint8_t And::OpcodeExt() const { return 4; }
 
 std::string And::ToString() const { return "and " + op_a().ToString() + "," + op_b().ToString(); }
 
-Or::~Or() {}
 uint8_t Or::Opcode() const {
   if (CanUseRegAShortcut()) {
     return (op_a().size() == Size::k8) ? 0x0c : 0x0d;
@@ -166,8 +151,6 @@ uint8_t Or::Opcode() const {
 uint8_t Or::OpcodeExt() const { return 1; }
 
 std::string Or::ToString() const { return "or " + op_a().ToString() + "," + op_b().ToString(); }
-
-Xor::~Xor() {}
 
 uint8_t Xor::Opcode() const {
   if (CanUseRegAShortcut()) {
@@ -189,15 +172,11 @@ uint8_t Xor::OpcodeExt() const { return 6; }
 
 std::string Xor::ToString() const { return "xor " + op_a().ToString() + "," + op_b().ToString(); }
 
-Neg::~Neg() {}
-
 uint8_t Neg::Opcode() const { return (op().size() == Size::k8) ? 0xf6 : 0xf7; }
 
 uint8_t Neg::OpcodeExt() const { return 3; }
 
 std::string Neg::ToString() const { return "neg " + op().ToString(); }
-
-Add::~Add() {}
 
 uint8_t Add::Opcode() const {
   if (CanUseRegAShortcut()) {
@@ -219,8 +198,6 @@ uint8_t Add::OpcodeExt() const { return 0; }
 
 std::string Add::ToString() const { return "add " + op_a().ToString() + "," + op_b().ToString(); }
 
-Adc::~Adc() {}
-
 uint8_t Adc::Opcode() const {
   if (CanUseRegAShortcut()) {
     return (op_a().size() == Size::k8) ? 0x14 : 0x15;
@@ -240,8 +217,6 @@ uint8_t Adc::Opcode() const {
 uint8_t Adc::OpcodeExt() const { return 2; }
 
 std::string Adc::ToString() const { return "adc " + op_a().ToString() + "," + op_b().ToString(); }
-
-Sub::~Sub() {}
 
 uint8_t Sub::Opcode() const {
   if (CanUseRegAShortcut()) {
@@ -263,8 +238,6 @@ uint8_t Sub::OpcodeExt() const { return 5; }
 
 std::string Sub::ToString() const { return "sub " + op_a().ToString() + "," + op_b().ToString(); }
 
-Sbb::~Sbb() {}
-
 uint8_t Sbb::Opcode() const {
   if (CanUseRegAShortcut()) {
     return (op_a().size() == Size::k8) ? 0x1c : 0x1d;
@@ -284,8 +257,6 @@ uint8_t Sbb::Opcode() const {
 uint8_t Sbb::OpcodeExt() const { return 3; }
 
 std::string Sbb::ToString() const { return "sbb " + op_a().ToString() + "," + op_b().ToString(); }
-
-Cmp::~Cmp() {}
 
 uint8_t Cmp::Opcode() const {
   if (CanUseRegAShortcut()) {
@@ -307,13 +278,8 @@ uint8_t Cmp::OpcodeExt() const { return 7; }
 
 std::string Cmp::ToString() const { return "cmp " + op_a().ToString() + "," + op_b().ToString(); }
 
-Mul::Mul(RM rm) : factor_(rm) {}
-Mul::~Mul() {}
-
-RM Mul::factor() const { return factor_; }
-
-int8_t Mul::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Mul::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(factor_.size());
   if (factor_.RequiresREX()) {
@@ -352,14 +318,6 @@ Imul::Imul(Reg reg, RM rm, Imm imm) : factor_a_(reg), factor_b_(rm), factor_c_(i
   }
 }
 
-Imul::~Imul() {}
-
-Reg Imul::factor_a() const { return factor_a_; }
-
-RM Imul::factor_b() const { return factor_b_; }
-
-Imm Imul::factor_c() const { return factor_c_; }
-
 bool Imul::CanSkipImm() const {
   if (imul_type_ != ImulType::kReg_RM_IMM && imul_type_ != ImulType::kReg_RM_IMM8) {
     return true;
@@ -367,8 +325,8 @@ bool Imul::CanSkipImm() const {
   return factor_c_.value() == 1;
 }
 
-int8_t Imul::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Imul::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(factor_b_.size());
   if ((imul_type_ != ImulType::kRegAD_RM && factor_a_.RequiresREX()) || factor_b_.RequiresREX() ||
@@ -409,13 +367,8 @@ std::string Imul::ToString() const {
   }
 }
 
-Div::Div(RM rm) : divisor_(rm) {}
-Div::~Div() {}
-
-RM Div::divisor() const { return divisor_; }
-
-int8_t Div::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Div::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(divisor_.size());
   if (divisor_.RequiresREX()) {
@@ -430,13 +383,8 @@ int8_t Div::Encode(Linker*, common::data code) const {
 
 std::string Div::ToString() const { return "div " + divisor_.ToString(); }
 
-Idiv::Idiv(RM rm) : divisor_(rm) {}
-Idiv::~Idiv() {}
-
-RM Idiv::divisor() const { return divisor_; }
-
-int8_t Idiv::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Idiv::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(divisor_.size());
   if (divisor_.RequiresREX()) {
@@ -457,10 +405,8 @@ SignExtendRegA::SignExtendRegA(Size op_size) : op_size_(op_size) {
   }
 }
 
-SignExtendRegA::~SignExtendRegA() {}
-
-int8_t SignExtendRegA::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t SignExtendRegA::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_size_);
   encoder.EncodeOpcode(0x98);
@@ -483,10 +429,8 @@ SignExtendRegAD::SignExtendRegAD(Size op_size) : op_size_(op_size) {
   }
 }
 
-SignExtendRegAD::~SignExtendRegAD() {}
-
-int8_t SignExtendRegAD::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t SignExtendRegAD::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_size_);
   encoder.EncodeOpcode(0x99);
@@ -519,20 +463,14 @@ Test::Test(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
   test_type_ = TestType::kRM_REG;
 }
 
-Test::~Test() {}
-
-RM Test::op_a() const { return op_a_; }
-
-Operand Test::op_b() const { return op_b_; }
-
 bool Test::CanUseRegAShortcut() const {
   if (test_type_ != TestType::kRM_IMM) return false;
   if (!op_a_.is_reg()) return false;
   return op_a_.reg().reg() == 0;
 }
 
-int8_t Test::Encode(Linker*, common::data code) const {
-  coding::InstrEncoder encoder(code);
+int8_t Test::Encode(Linker&, common::data code) const {
+  InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());
   if (op_a_.RequiresREX() || op_b_.RequiresREX()) {

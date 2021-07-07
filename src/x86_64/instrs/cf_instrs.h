@@ -13,23 +13,21 @@
 #include <string>
 
 #include "src/common/data.h"
-#include "src/x86_64/instr.h"
+#include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/instrs/instr_cond.h"
-#include "src/x86_64/mc/linker.h"
-#include "src/x86_64/mc/unlinker.h"
+#include "src/x86_64/machine_code/linker.h"
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {
 
 class Jcc final : public Instr {
  public:
-  Jcc(InstrCond cond, BlockRef block_ref);
-  ~Jcc() override;
+  Jcc(InstrCond cond, BlockRef block_ref) : cond_(cond), dst_(block_ref) {}
 
-  InstrCond cond() const;
-  BlockRef dst() const;
+  InstrCond cond() const { return cond_; }
+  BlockRef dst() const { return dst_; }
 
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 
  private:
@@ -40,10 +38,9 @@ class Jcc final : public Instr {
 class Jmp final : public Instr {
  public:
   Jmp(RM rm);
-  Jmp(BlockRef block_ref);
-  ~Jmp() override;
+  Jmp(BlockRef block_ref) : dst_(block_ref) {}
 
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 
  private:
@@ -53,10 +50,9 @@ class Jmp final : public Instr {
 class Call final : public Instr {
  public:
   Call(RM rm);
-  Call(FuncRef func_ref);
-  ~Call() override;
+  Call(FuncRef func_ref) : callee_(func_ref) {}
 
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 
  private:
@@ -65,19 +61,13 @@ class Call final : public Instr {
 
 class Syscall final : public Instr {
  public:
-  Syscall();
-  ~Syscall() override;
-
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 };
 
 class Ret final : public Instr {
  public:
-  Ret();
-  ~Ret() override;
-
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 };
 

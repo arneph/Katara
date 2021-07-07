@@ -13,8 +13,7 @@
 #include <string>
 
 #include "src/common/data.h"
-#include "src/x86_64/mc/linker.h"
-#include "src/x86_64/ops.h"
+#include "src/x86_64/machine_code/linker.h"
 
 namespace x86_64 {
 
@@ -26,7 +25,7 @@ class Instr {
  public:
   virtual ~Instr() {}
 
-  virtual int8_t Encode(Linker* linker, common::data code) const = 0;
+  virtual int8_t Encode(Linker& linker, common::data code) const = 0;
   virtual std::string ToString() const = 0;
 };
 

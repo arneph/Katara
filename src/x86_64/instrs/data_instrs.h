@@ -13,10 +13,9 @@
 #include <string>
 
 #include "src/common/data.h"
-#include "src/x86_64/instr.h"
 #include "src/x86_64/instrs/cf_instrs.h"
-#include "src/x86_64/mc/linker.h"
-#include "src/x86_64/mc/unlinker.h"
+#include "src/x86_64/instrs/instr.h"
+#include "src/x86_64/machine_code/linker.h"
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {
@@ -24,12 +23,11 @@ namespace x86_64 {
 class Mov final : public Instr {
  public:
   Mov(RM dst, Operand src);
-  ~Mov() override;
 
-  RM dst() const;
-  Operand src() const;
+  RM dst() const { return dst_; }
+  Operand src() const { return src_; }
 
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 
  private:
@@ -42,12 +40,11 @@ class Mov final : public Instr {
 
 class Xchg final : public Instr {
   Xchg(RM rm, Reg reg);
-  ~Xchg() override;
 
-  RM op_a() const;
-  Reg op_b() const;
+  RM op_a() const { return op_a_; }
+  Reg op_b() const { return op_b_; }
 
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 
  private:
@@ -61,11 +58,10 @@ class Push final : public Instr {
  public:
   Push(RM rm);
   Push(Imm imm);
-  ~Push() override;
 
-  Operand op() const;
+  Operand op() const { return op_; }
 
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 
  private:
@@ -75,11 +71,10 @@ class Push final : public Instr {
 class Pop final : public Instr {
  public:
   Pop(RM rm);
-  ~Pop() override;
 
-  RM op() const;
+  RM op() const { return op_; }
 
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 
  private:
@@ -89,12 +84,11 @@ class Pop final : public Instr {
 class Setcc final : public Instr {
  public:
   Setcc(InstrCond cond, RM op);
-  ~Setcc() override;
 
-  InstrCond cond() const;
-  RM op() const;
+  InstrCond cond() const { return cond_; }
+  RM op() const { return op_; }
 
-  int8_t Encode(Linker* linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::data code) const override;
   std::string ToString() const override;
 
  private:

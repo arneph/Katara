@@ -15,14 +15,12 @@
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {
-namespace coding {
 
 struct InstrEncoder final {
  public:
-  InstrEncoder(common::data code);
-  ~InstrEncoder();
+  InstrEncoder(common::data code) : code_(code) {}
 
-  uint8_t size() const;
+  uint8_t size() const { return size_; }
 
   void EncodeOperandSize(Size op_size);
 
@@ -51,7 +49,6 @@ struct InstrEncoder final {
   uint8_t* imm_ = nullptr;
 };
 
-}  // namespace coding
 }  // namespace x86_64
 
 #endif /* instr_encoder_h */

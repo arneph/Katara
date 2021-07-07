@@ -9,7 +9,6 @@
 #include "instr_decoder.h"
 
 namespace x86_64 {
-namespace coding {
 
 InstrDecoder::InstrDecoder(const common::data code) : code_(code) {
   if (code[size_] == 0x66) {
@@ -25,9 +24,6 @@ InstrDecoder::InstrDecoder(const common::data code) : code_(code) {
     }
   }
 }
-InstrDecoder::~InstrDecoder() {}
-
-uint8_t InstrDecoder::size() const { return size_; }
 
 void InstrDecoder::DecodeModRM() {
   if (modrm_ != nullptr) return;
@@ -214,5 +210,4 @@ Imm InstrDecoder::DecodeImm(uint8_t imm_size) {
   }
 }
 
-}  // namespace coding
 }  // namespace x86_64

@@ -15,14 +15,12 @@
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {
-namespace coding {
 
 class InstrDecoder final {
  public:
   InstrDecoder(const common::data code);
-  ~InstrDecoder();
 
-  uint8_t size() const;
+  uint8_t size() const { return size_; }
 
   Size GetOperandSize() const;
   void SetOperandSize(Size op_size);
@@ -53,7 +51,6 @@ class InstrDecoder final {
   const uint8_t* imm_ = nullptr;
 };
 
-}  // namespace coding
 }  // namespace x86_64
 
 #endif /* x86_64_instr_decoder_h */

@@ -9,12 +9,6 @@
 #include "instr_encoder.h"
 
 namespace x86_64 {
-namespace coding {
-
-InstrEncoder::InstrEncoder(common::data code) : code_(code) {}
-InstrEncoder::~InstrEncoder() {}
-
-uint8_t InstrEncoder::size() const { return size_; }
 
 void InstrEncoder::EncodeOperandSize(Size op_size) {
   if (opcode_ != nullptr) throw "attempted to encode operand mode after opcode";
@@ -123,5 +117,4 @@ void InstrEncoder::EncodeImm(const Imm& imm) {
   imm.EncodeInImm(imm_);
 }
 
-}  // namespace coding
 }  // namespace x86_64
