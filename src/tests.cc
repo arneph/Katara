@@ -129,7 +129,7 @@ void run_ir_test(std::filesystem::path test_dir) {
 
   translator.TranslateProgram();
 
-  x86_64::Prog* x86_64_program = translator.x86_64_program();
+  x86_64::Program* x86_64_program = translator.x86_64_program();
 
   to_file(x86_64_program->ToString(), out_file_base.string() + ".x86_64.txt");
 }
@@ -166,7 +166,7 @@ void test_x86_64() {
   const char* str = "Hello world!\n";
   x86_64::Imm str_c((int64_t(str)));
 
-  x86_64::ProgBuilder prog_builder;
+  x86_64::ProgramBuilder prog_builder;
   x86_64::FuncBuilder main_func_builder = prog_builder.AddFunc("main");
 
   // Prolog:
@@ -235,7 +235,7 @@ void test_x86_64() {
     epilog_block_builder.AddInstr(new x86_64::Ret());
   }
 
-  x86_64::Prog* prog = prog_builder.prog();
+  x86_64::Program* prog = prog_builder.prog();
 
   std::cout << prog->ToString() << std::endl << std::endl;
 

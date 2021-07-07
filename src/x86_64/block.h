@@ -14,47 +14,46 @@
 #include <vector>
 
 #include "src/common/data.h"
-#include "src/x86_64/instr.h"
-#include "src/x86_64/mc/linker.h"
+#include "src/x86_64/instrs/instr.h"
+#include "src/x86_64/machine_code/linker.h"
 
 namespace x86_64 {
 
 class Func;
-class FuncBuilder;
 
 class Block {
  public:
-  ~Block();
+  Func* func() const { return func_; }
+  int64_t block_id() const { return block_id_; }
+  const std::vector<std::unique_ptr<Instr>>& instrs() const { return instrs_; }
 
-  Func* func() const;
-  int64_t block_id() const;
-  const std::vector<Instr*>& instrs() const;
+  BlockRef GetBlockRef() const { return BlockRef(block_id_); }
 
-  BlockRef GetBlockRef() const;
-
-  int64_t Encode(Linker* linker, common::data code) const;
+  int64_t Encode(Linker& linker, common::data code) const;
   std::string ToString() const;
 
  private:
-  Block();
+  Block(Func* func, int64_t block_id) : func_(func), block_id_(block_id) {}
 
   Func* func_;
   int64_t block_id_;
-  std::vector<Instr*> instrs_;
+  std::vector<std::unique_ptr<Instr>> instrs_;
 
+  friend class FuncBuilder;
   friend class BlockBuilder;
 };
 
 class BlockBuilder {
  public:
-  ~BlockBuilder();
+  template <class T, class... Args>
+  void AddInstr(Args&&... args) {
+    block_->instrs_.push_back(std::make_unique<T>(args...));
+  }
 
-  void AddInstr(Instr* instr);
-
-  Block* block() const;
+  Block* block() const { return block_; }
 
  private:
-  BlockBuilder(Func* func, int64_t block_id);
+  BlockBuilder(Block* block) : block_(block) {}
 
   Block* block_;
 

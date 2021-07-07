@@ -14,19 +14,8 @@
 
 namespace x86_64 {
 
-Block::Block() {}
-Block::~Block() {}
-
-Func* Block::func() const { return func_; }
-
-int64_t Block::block_id() const { return block_id_; }
-
-const std::vector<Instr*>& Block::instrs() const { return instrs_; }
-
-BlockRef Block::GetBlockRef() const { return BlockRef(block_id_); }
-
-int64_t Block::Encode(Linker* linker, common::data code) const {
-  linker->AddBlockAddr(block_id_, code.base());
+int64_t Block::Encode(Linker& linker, common::data code) const {
+  linker.AddBlockAddr(block_id_, code.base());
 
   int64_t c = 0;
   for (auto& instr : instrs_) {
@@ -46,17 +35,5 @@ std::string Block::ToString() const {
   }
   return ss.str();
 }
-
-BlockBuilder::BlockBuilder(Func* func, int64_t block_id) {
-  block_ = new Block();
-  block_->func_ = func;
-  block_->block_id_ = block_id;
-}
-
-BlockBuilder::~BlockBuilder() {}
-
-void BlockBuilder::AddInstr(Instr* instr) { block_->instrs_.push_back(instr); }
-
-Block* BlockBuilder::block() const { return block_; }
 
 }  // namespace x86_64

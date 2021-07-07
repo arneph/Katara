@@ -15,53 +15,50 @@
 
 #include "src/common/data.h"
 #include "src/x86_64/block.h"
-#include "src/x86_64/mc/linker.h"
+#include "src/x86_64/machine_code/linker.h"
 
 namespace x86_64 {
 
-class Prog;
-class ProgBuilder;
+class Program;
 
 class Func {
  public:
-  ~Func();
+  Program* program() const { return program_; }
+  int64_t func_id() const { return func_id_; }
+  std::string name() const { return name_; }
+  const std::vector<std::unique_ptr<Block>>& blocks() const { return blocks_; }
 
-  Prog* prog() const;
-  int64_t func_id() const;
-  std::string name() const;
-  const std::vector<Block*> blocks() const;
+  FuncRef GetFuncRef() const { return FuncRef(func_id_); }
 
-  FuncRef GetFuncRef() const;
-
-  int64_t Encode(Linker* linker, common::data code) const;
+  int64_t Encode(Linker& linker, common::data code) const;
   std::string ToString() const;
 
  private:
-  Func();
+  Func(Program* program, int64_t func_id, std::string name)
+      : program_(program), func_id_(func_id), name_(name) {}
 
-  Prog* prog_;
+  Program* program_;
   int64_t func_id_;
   std::string name_;
-  std::vector<Block*> blocks_;
+  std::vector<std::unique_ptr<Block>> blocks_;
 
+  friend class ProgramBuilder;
   friend class FuncBuilder;
 };
 
 class FuncBuilder {
  public:
-  ~FuncBuilder();
-
   BlockBuilder AddBlock();
 
-  Func* func() const;
+  Func* func() const { return func_; }
 
  private:
-  FuncBuilder(Prog* prog, int64_t func_id, std::string func_name, int64_t& block_count);
+  FuncBuilder(Func* func, int64_t& block_count) : func_(func), block_count_(block_count) {}
 
   Func* func_;
   int64_t& block_count_;
 
-  friend class ProgBuilder;
+  friend class ProgramBuilder;
 };
 
 }  // namespace x86_64
