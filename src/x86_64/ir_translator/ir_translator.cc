@@ -686,13 +686,14 @@ void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr,
   }
 }
 
-void IRTranslator::TranslateCallInstr(ir::CallInstr* /*ir_call_instr*/, ir::Func* /*ir_func*/,
-                                      x86_64::BlockBuilder& /*x86_64_block_builder*/) {
+void IRTranslator::TranslateCallInstr(ir::CallInstr* ir_call_instr, ir::Func* ir_func,
+                                      x86_64::BlockBuilder& x86_64_block_builder) {
   // TODO: implement
 }
 
-void IRTranslator::TranslateReturnInstr(ir::ReturnInstr* /*ir_return_instr*/, ir::Func* ir_func,
+void IRTranslator::TranslateReturnInstr(ir::ReturnInstr* ir_return_instr, ir::Func* ir_func,
                                         x86_64::BlockBuilder& x86_64_block_builder) {
+  // TODO: implement
   GenerateFuncEpilogue(ir_func, x86_64_block_builder);
 }
 
