@@ -10,9 +10,6 @@
 
 namespace x86_64 {
 
-Unlinker::Unlinker() {}
-Unlinker::~Unlinker() {}
-
 const std::unordered_map<uint8_t*, FuncRef> Unlinker::func_refs() const { return func_refs_; }
 
 const std::unordered_map<uint8_t*, BlockRef> Unlinker::block_refs() const { return block_refs_; }

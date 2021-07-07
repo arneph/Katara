@@ -20,9 +20,6 @@
 namespace x86_64 {
 
 class Unlinker {
-  Unlinker();
-  ~Unlinker();
-
   const std::unordered_map<uint8_t*, FuncRef> func_refs() const;
   const std::unordered_map<uint8_t*, BlockRef> block_refs() const;
 

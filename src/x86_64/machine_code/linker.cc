@@ -10,9 +10,6 @@
 
 namespace x86_64 {
 
-Linker::Linker() {}
-Linker::~Linker() {}
-
 void Linker::AddFuncAddr(int64_t func_id, uint8_t* func_addr) { func_addrs_[func_id] = func_addr; }
 
 void Linker::AddBlockAddr(int64_t block_id, uint8_t* block_addr) {

@@ -21,9 +21,6 @@ namespace x86_64 {
 
 class Linker {
  public:
-  Linker();
-  ~Linker();
-
   void AddFuncAddr(int64_t func_id, uint8_t* func_addr);
   void AddBlockAddr(int64_t block_id, uint8_t* block_addr);
 
