@@ -19,8 +19,6 @@ namespace ir_info {
 
 class InterferenceGraph {
  public:
-  InterferenceGraph() {}
-
   const std::unordered_set<ir::value_num_t>& values() const { return values_; }
   const std::unordered_set<ir::value_num_t>& GetNeighbors(ir::value_num_t value) const {
     return graph_.at(value);
