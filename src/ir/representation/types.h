@@ -55,7 +55,7 @@ class BoolType : public AtomicType {
   std::string ToString() const override { return "b"; }
 };
 
-constexpr BoolType kBool;
+extern const BoolType kBool;
 
 class IntType : public AtomicType {
  public:
@@ -70,14 +70,14 @@ class IntType : public AtomicType {
   const common::IntType type_;
 };
 
-static constexpr IntType kI8{common::IntType::kI8};
-static constexpr IntType kI16{common::IntType::kI16};
-static constexpr IntType kI32{common::IntType::kI32};
-static constexpr IntType kI64{common::IntType::kI64};
-static constexpr IntType kU8{common::IntType::kU8};
-static constexpr IntType kU16{common::IntType::kU16};
-static constexpr IntType kU32{common::IntType::kU32};
-static constexpr IntType kU64{common::IntType::kU64};
+extern const IntType kI8;
+extern const IntType kI16;
+extern const IntType kI32;
+extern const IntType kI64;
+extern const IntType kU8;
+extern const IntType kU16;
+extern const IntType kU32;
+extern const IntType kU64;
 
 constexpr const IntType* IntTypeFor(common::IntType type) {
   switch (type) {
@@ -107,7 +107,7 @@ class PointerType : public AtomicType {
   std::string ToString() const override { return "ptr"; }
 };
 
-constexpr PointerType kPointer;
+extern const PointerType kPointer;
 
 class FuncType : public AtomicType {
  public:
@@ -116,7 +116,7 @@ class FuncType : public AtomicType {
   std::string ToString() const override { return "func"; }
 };
 
-constexpr FuncType kFunc;
+extern const FuncType kFunc;
 
 class TypeTable {
  public:

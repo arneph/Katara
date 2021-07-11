@@ -11,6 +11,8 @@
 namespace lang {
 namespace ir_ext {
 
+const StringType kString;
+
 ArrayBuilder::ArrayBuilder() { array_ = std::unique_ptr<Array>(new Array()); }
 
 StructBuilder::StructBuilder() { struct_ = std::unique_ptr<Struct>(new Struct()); }

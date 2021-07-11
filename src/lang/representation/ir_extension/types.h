@@ -38,7 +38,7 @@ class StringType : public ir::Type {
   std::string ToString() const override { return "lstr"; }
 };
 
-constexpr StringType kString;
+extern const StringType kString;
 
 constexpr int64_t kDynamicArraySize = -1;
 
