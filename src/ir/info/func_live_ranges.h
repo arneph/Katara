@@ -23,6 +23,7 @@ class FuncLiveRanges {
  public:
   FuncLiveRanges(const ir::Func* func);
 
+  const BlockLiveRanges& GetBlockLiveRanges(ir::block_num_t bnum) const;
   BlockLiveRanges& GetBlockLiveRanges(ir::block_num_t bnum);
 
   std::string ToString() const;

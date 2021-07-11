@@ -18,6 +18,10 @@ FuncLiveRanges::FuncLiveRanges(const ir::Func* func) : func_(func) {
   }
 }
 
+const BlockLiveRanges& FuncLiveRanges::GetBlockLiveRanges(ir::block_num_t bnum) const {
+  return block_live_ranges_.at(bnum);
+}
+
 BlockLiveRanges& FuncLiveRanges::GetBlockLiveRanges(ir::block_num_t bnum) {
   return block_live_ranges_.at(bnum);
 }
