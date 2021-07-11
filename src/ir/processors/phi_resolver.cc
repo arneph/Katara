@@ -9,38 +9,36 @@
 #include "phi_resolver.h"
 
 namespace ir_proc {
+namespace {
 
-PhiResolver::PhiResolver(ir::Func* func) : func_(func) {}
-PhiResolver::~PhiResolver() {}
-
-void PhiResolver::ResolvePhis() {
-  for (auto& block : func_->blocks()) {
-    ResolvePhisInBlock(block.get());
-  }
-}
-
-void PhiResolver::ResolvePhisInBlock(ir::Block* block) {
-  for (;;) {
-    ir::Instr* instr = block->instrs().front().get();
-    ir::PhiInstr* phi_instr = dynamic_cast<ir::PhiInstr*>(instr);
-    if (phi_instr == nullptr) {
+void ResolvePhisInBlock(ir::Func* func, ir::Block* block) {
+  int phi_count = 0;
+  for (const auto& instr : block->instrs()) {
+    if (instr->instr_kind() != ir::InstrKind::kPhi) {
       break;
     }
+    phi_count++;
+    const ir::PhiInstr* phi_instr = static_cast<ir::PhiInstr*>(instr.get());
+    std::shared_ptr<ir::Computed> destination = phi_instr->result();
 
-    const auto& destination = phi_instr->result();
-
-    for (auto& inherited_value : phi_instr->args()) {
-      const auto& source = inherited_value->value();
-
-      auto mov_instr = std::make_unique<ir::MovInstr>(destination, source);
-
+    for (const auto& inherited_value : phi_instr->args()) {
+      std::shared_ptr<ir::Value> source = inherited_value->value();
       ir::block_num_t origin = inherited_value->origin();
-      ir::Block* parent = func_->GetBlock(origin);
+      ir::Block* parent = func->GetBlock(origin);
 
-      parent->instrs().insert(parent->instrs().end() - 1, std::move(mov_instr));
+      // Insert Mov before last (control flow) instruction:
+      parent->instrs().insert(parent->instrs().end() - 1,
+                              std::make_unique<ir::MovInstr>(destination, source));
     }
+  }
+  block->instrs().erase(block->instrs().begin(), block->instrs().begin() + phi_count);
+}
 
-    block->instrs().erase(block->instrs().begin());
+}  // namespace
+
+void ResolvePhisInFunc(ir::Func* func) {
+  for (auto& block : func->blocks()) {
+    ResolvePhisInBlock(func, block.get());
   }
 }
 

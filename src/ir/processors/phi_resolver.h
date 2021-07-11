@@ -16,18 +16,7 @@
 
 namespace ir_proc {
 
-class PhiResolver {
- public:
-  PhiResolver(ir::Func* func);
-  ~PhiResolver();
-
-  void ResolvePhis();
-
- private:
-  void ResolvePhisInBlock(ir::Block* block);
-
-  ir::Func* func_;
-};
+void ResolvePhisInFunc(ir::Func* func);
 
 }  // namespace ir_proc
 
