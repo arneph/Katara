@@ -1,13 +1,13 @@
 //
-//  value_info.h
+//  values.h
 //  Katara
 //
 //  Created by Arne Philipeit on 1/25/20.
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_info_value_info_h
-#define ir_info_value_info_h
+#ifndef ir_info_values_h
+#define ir_info_values_h
 
 #include <unordered_map>
 #include <unordered_set>
@@ -17,10 +17,8 @@
 
 namespace ir_info {
 
-class ValueInfo {
+class Values {
  public:
-  ValueInfo() {}
-
   ir::Instr* GetDefiningInstr(ir::value_num_t value) const { return defining_instrs_.at(value); }
   void SetDefiningInstr(ir::value_num_t value, ir::Instr* instr) {
     defining_instrs_.insert({value, instr});
@@ -40,4 +38,4 @@ class ValueInfo {
 
 }  // namespace ir_info
 
-#endif /* ir_info_value_info_h */
+#endif /* ir_info_values_h */

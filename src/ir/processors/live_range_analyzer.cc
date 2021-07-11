@@ -8,11 +8,9 @@
 
 #include "live_range_analyzer.h"
 
-#include "src/ir/info/block_live_range_info.h"
-
 namespace ir_proc {
 
-ir_info::FuncLiveRangeInfo& LiveRangeAnalyzer::func_info() {
+ir_info::FuncLiveRanges& LiveRangeAnalyzer::func_info() {
   FindLiveRanges();
 
   return func_info_;
@@ -32,7 +30,7 @@ void LiveRangeAnalyzer::FindLiveRanges() {
   std::unordered_set<ir::block_num_t> queue;
 
   for (auto& block : func_->blocks()) {
-    ir_info::BlockLiveRangeInfo& block_info = func_info_.GetBlockLiveRangeInfo(block->number());
+    ir_info::BlockLiveRanges& block_info = func_info_.GetBlockLiveRanges(block->number());
 
     BacktraceBlock(block.get(), block_info);
 
@@ -46,10 +44,10 @@ void LiveRangeAnalyzer::FindLiveRanges() {
     ir::block_num_t bnum = *it;
     queue.erase(it);
 
-    ir_info::BlockLiveRangeInfo& block_info = func_info_.GetBlockLiveRangeInfo(bnum);
+    ir_info::BlockLiveRanges& block_info = func_info_.GetBlockLiveRanges(bnum);
 
     for (ir::block_num_t parent_num : func_->GetBlock(bnum)->parents()) {
-      ir_info::BlockLiveRangeInfo& parent_info = func_info_.GetBlockLiveRangeInfo(parent_num);
+      ir_info::BlockLiveRanges& parent_info = func_info_.GetBlockLiveRanges(parent_num);
 
       size_t old_entry_set_size = parent_info.GetEntrySet().size();
 
@@ -66,7 +64,7 @@ void LiveRangeAnalyzer::FindLiveRanges() {
   }
 }
 
-void LiveRangeAnalyzer::BacktraceBlock(ir::Block* block, ir_info::BlockLiveRangeInfo& info) {
+void LiveRangeAnalyzer::BacktraceBlock(ir::Block* block, ir_info::BlockLiveRanges& info) {
   const size_t n = block->instrs().size();
 
   // Backtrace through instructions in block
@@ -109,14 +107,13 @@ void LiveRangeAnalyzer::BuildInterferenceGraph() {
   FindLiveRanges();
 
   for (auto& block : func_->blocks()) {
-    ir_info::BlockLiveRangeInfo& block_info = func_info_.GetBlockLiveRangeInfo(block->number());
+    ir_info::BlockLiveRanges& block_info = func_info_.GetBlockLiveRanges(block->number());
 
     BuildInterferenceGraph(block.get(), block_info);
   }
 }
 
-void LiveRangeAnalyzer::BuildInterferenceGraph(ir::Block* block,
-                                               ir_info::BlockLiveRangeInfo& info) {
+void LiveRangeAnalyzer::BuildInterferenceGraph(ir::Block* block, ir_info::BlockLiveRanges& info) {
   const size_t n = block->instrs().size();
   std::unordered_set<ir::value_num_t> live_set = info.GetExitSet();
 

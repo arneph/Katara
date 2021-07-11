@@ -12,8 +12,6 @@
 #include <memory>
 #include <unordered_map>
 
-#include "src/ir/info/block_live_range_info.h"
-#include "src/ir/info/func_live_range_info.h"
 #include "src/ir/info/interference_graph.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"

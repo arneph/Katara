@@ -9,7 +9,8 @@
 #ifndef ir_proc_live_range_analyzer_h
 #define ir_proc_live_range_analyzer_h
 
-#include "src/ir/info/func_live_range_info.h"
+#include "src/ir/info/block_live_ranges.h"
+#include "src/ir/info/func_live_ranges.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 
@@ -19,23 +20,23 @@ class LiveRangeAnalyzer {
  public:
   LiveRangeAnalyzer(ir::Func* func) : func_(func), func_info_(func) {}
 
-  ir_info::FuncLiveRangeInfo& func_info();
+  ir_info::FuncLiveRanges& func_info();
   ir_info::InterferenceGraph& interference_graph();
 
  private:
   ir::Func* func_;
 
   bool func_info_ok_ = false;
-  ir_info::FuncLiveRangeInfo func_info_;
+  ir_info::FuncLiveRanges func_info_;
 
   bool interference_graph_ok_ = false;
   ir_info::InterferenceGraph interference_graph_;
 
   void FindLiveRanges();
-  void BacktraceBlock(ir::Block* block, ir_info::BlockLiveRangeInfo& info);
+  void BacktraceBlock(ir::Block* block, ir_info::BlockLiveRanges& info);
 
   void BuildInterferenceGraph();
-  void BuildInterferenceGraph(ir::Block* block, ir_info::BlockLiveRangeInfo& info);
+  void BuildInterferenceGraph(ir::Block* block, ir_info::BlockLiveRanges& info);
 };
 
 }  // namespace ir_proc

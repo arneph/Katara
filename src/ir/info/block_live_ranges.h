@@ -1,13 +1,13 @@
 //
-//  block_live_range_info.h
+//  block_live_ranges.h
 //  Katara
 //
 //  Created by Arne Philipeit on 1/25/20.
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_info_block_live_range_info_h
-#define ir_info_block_live_range_info_h
+#ifndef ir_info_block_live_ranges_h
+#define ir_info_block_live_ranges_h
 
 #include <string>
 #include <unordered_map>
@@ -20,9 +20,9 @@
 
 namespace ir_info {
 
-class BlockLiveRangeInfo {
+class BlockLiveRanges {
  public:
-  BlockLiveRangeInfo(ir::Block* block) : block_(block) {}
+  BlockLiveRanges(const ir::Block* block) : block_(block) {}
 
   bool HasValue(ir::value_num_t value) const;
   bool HasValueDefinition(ir::value_num_t value) const;
@@ -49,4 +49,4 @@ class BlockLiveRangeInfo {
 
 }  // namespace ir_info
 
-#endif /* ir_info_block_live_range_info_h */
+#endif /* ir_info_block_live_ranges_h */
