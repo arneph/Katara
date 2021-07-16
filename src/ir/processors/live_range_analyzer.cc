@@ -8,33 +8,63 @@
 
 #include "live_range_analyzer.h"
 
+#include "src/ir/representation/instrs.h"
+#include "src/ir/representation/values.h"
+
 namespace ir_proc {
+namespace {
 
-ir_info::FuncLiveRanges& LiveRangeAnalyzer::func_info() {
-  FindLiveRanges();
+void BacktraceBlock(const ir::Func* func, const ir::Block* block,
+                    ir_info::BlockLiveRanges& live_ranges) {
+  const size_t n = block->instrs().size();
 
-  return func_info_;
+  // Backtrace through instructions in block
+  // Add value defintions and uses (outside phi instructions)
+  for (int64_t index = n - 1; index >= 0; index--) {
+    ir::Instr* instr = block->instrs().at(index).get();
+
+    for (auto& defined_value : instr->DefinedValues()) {
+      live_ranges.AddValueDefinition(defined_value->number(), index);
+    }
+
+    if (instr->instr_kind() == ir::InstrKind::kPhi) {
+      continue;
+    }
+    for (auto& used_value : instr->UsedValues()) {
+      if (used_value->kind() != ir::Value::Kind::kComputed) {
+        continue;
+      }
+      auto used_computed = static_cast<ir::Computed*>(used_value.get());
+      live_ranges.AddValueUse(used_computed->number(), index);
+    }
+  }
+
+  // Include values used in phi instructions of child
+  for (ir::block_num_t child_num : block->children()) {
+    func->GetBlock(child_num)->for_each_phi_instr([&](ir::PhiInstr* instr) {
+      ir::Value* value = instr->ValueInheritedFromBlock(block->number()).get();
+      if (value->kind() != ir::Value::Kind::kComputed) {
+        return;
+      }
+      auto computed = static_cast<ir::Computed*>(value);
+      live_ranges.PropagateBackwardsFromExitSet(computed->number());
+    });
+  }
 }
 
-ir_info::InterferenceGraph& LiveRangeAnalyzer::interference_graph() {
-  FindLiveRanges();
-  BuildInterferenceGraph();
+}  // namespace
 
-  return interference_graph_;
-}
-
-void LiveRangeAnalyzer::FindLiveRanges() {
-  if (func_info_ok_) return;
-  func_info_ok_ = true;
-
+const ir_info::FuncLiveRanges FindLiveRangesForFunc(const ir::Func* func) {
+  ir_info::FuncLiveRanges func_live_ranges(func);
   std::unordered_set<ir::block_num_t> queue;
 
-  for (auto& block : func_->blocks()) {
-    ir_info::BlockLiveRanges& block_info = func_info_.GetBlockLiveRanges(block->number());
+  for (auto& block : func->blocks()) {
+    ir_info::BlockLiveRanges& block_live_ranges =
+        func_live_ranges.GetBlockLiveRanges(block->number());
 
-    BacktraceBlock(block.get(), block_info);
+    BacktraceBlock(func, block.get(), block_live_ranges);
 
-    if (!block_info.GetEntrySet().empty()) {
+    if (!block_live_ranges.GetEntrySet().empty()) {
       queue.insert(block->number());
     }
   }
@@ -44,110 +74,27 @@ void LiveRangeAnalyzer::FindLiveRanges() {
     ir::block_num_t bnum = *it;
     queue.erase(it);
 
-    ir_info::BlockLiveRanges& block_info = func_info_.GetBlockLiveRanges(bnum);
+    ir_info::BlockLiveRanges& block_live_ranges = func_live_ranges.GetBlockLiveRanges(bnum);
 
-    for (ir::block_num_t parent_num : func_->GetBlock(bnum)->parents()) {
-      ir_info::BlockLiveRanges& parent_info = func_info_.GetBlockLiveRanges(parent_num);
+    for (ir::block_num_t parent_num : func->GetBlock(bnum)->parents()) {
+      ir_info::BlockLiveRanges& parent_live_ranges =
+          func_live_ranges.GetBlockLiveRanges(parent_num);
 
-      size_t old_entry_set_size = parent_info.GetEntrySet().size();
+      size_t old_entry_set_size = parent_live_ranges.GetEntrySet().size();
 
-      for (ir::value_num_t value : block_info.GetEntrySet()) {
-        parent_info.PropagateBackwardsFromExitSet(value);
+      for (ir::value_num_t value : block_live_ranges.GetEntrySet()) {
+        parent_live_ranges.PropagateBackwardsFromExitSet(value);
       }
 
-      size_t new_entry_set_size = parent_info.GetEntrySet().size();
+      size_t new_entry_set_size = parent_live_ranges.GetEntrySet().size();
 
       if (old_entry_set_size < new_entry_set_size) {
         queue.insert(parent_num);
       }
     }
   }
-}
 
-void LiveRangeAnalyzer::BacktraceBlock(ir::Block* block, ir_info::BlockLiveRanges& info) {
-  const size_t n = block->instrs().size();
-
-  // Backtrace through instructions in block
-  // Add value defintions and uses (outside phi instructions)
-  for (int64_t index = n - 1; index >= 0; index--) {
-    ir::Instr* instr = block->instrs().at(index).get();
-
-    for (auto& defined_value : instr->DefinedValues()) {
-      info.AddValueDefinition(defined_value->number(), index);
-    }
-
-    if (dynamic_cast<ir::PhiInstr*>(instr) != nullptr) {
-      continue;
-    }
-    for (auto& used_value : instr->UsedValues()) {
-      auto used_computed_value = std::dynamic_pointer_cast<ir::Computed>(used_value);
-      if (used_computed_value == nullptr) {
-        continue;
-      }
-      info.AddValueUse(used_computed_value->number(), index);
-    }
-  }
-
-  // Include values used in phi instructions of child
-  for (ir::block_num_t child_num : block->children()) {
-    func_->GetBlock(child_num)->for_each_phi_instr([&](ir::PhiInstr* instr) {
-      std::shared_ptr<ir::Value> value = instr->ValueInheritedFromBlock(block->number());
-      auto computed = std::dynamic_pointer_cast<ir::Computed>(value);
-      if (computed == nullptr) return;
-
-      info.PropagateBackwardsFromExitSet(computed->number());
-    });
-  }
-}
-
-void LiveRangeAnalyzer::BuildInterferenceGraph() {
-  if (interference_graph_ok_) return;
-  interference_graph_ok_ = true;
-
-  FindLiveRanges();
-
-  for (auto& block : func_->blocks()) {
-    ir_info::BlockLiveRanges& block_info = func_info_.GetBlockLiveRanges(block->number());
-
-    BuildInterferenceGraph(block.get(), block_info);
-  }
-}
-
-void LiveRangeAnalyzer::BuildInterferenceGraph(ir::Block* block, ir_info::BlockLiveRanges& info) {
-  const size_t n = block->instrs().size();
-  std::unordered_set<ir::value_num_t> live_set = info.GetExitSet();
-
-  interference_graph_.AddEdgesIn(live_set);
-
-  for (int64_t i = n - 1; i >= 0; i--) {
-    ir::Instr* instr = block->instrs().at(i).get();
-    bool is_phi = (dynamic_cast<ir::PhiInstr*>(instr) != nullptr);
-
-    for (auto& defined_value : instr->DefinedValues()) {
-      auto it = live_set.find(defined_value->number());
-      if (it == live_set.end()) {
-        interference_graph_.AddEdgesBetween(live_set, defined_value->number());
-
-      } else {
-        live_set.erase(it);
-      }
-    }
-
-    for (auto& used_value : instr->UsedValues()) {
-      auto used_computed_value = std::dynamic_pointer_cast<ir::Computed>(used_value);
-      if (used_computed_value == nullptr) {
-        continue;
-      }
-      auto it = live_set.find(used_computed_value->number());
-      if (it == live_set.end()) {
-        interference_graph_.AddEdgesBetween(live_set, used_computed_value->number());
-
-        if (!is_phi) {
-          live_set.insert(used_computed_value->number());
-        }
-      }
-    }
-  }
+  return func_live_ranges;
 }
 
 }  // namespace ir_proc

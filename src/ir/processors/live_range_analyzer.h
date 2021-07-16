@@ -16,28 +16,7 @@
 
 namespace ir_proc {
 
-class LiveRangeAnalyzer {
- public:
-  LiveRangeAnalyzer(ir::Func* func) : func_(func), func_info_(func) {}
-
-  ir_info::FuncLiveRanges& func_info();
-  ir_info::InterferenceGraph& interference_graph();
-
- private:
-  ir::Func* func_;
-
-  bool func_info_ok_ = false;
-  ir_info::FuncLiveRanges func_info_;
-
-  bool interference_graph_ok_ = false;
-  ir_info::InterferenceGraph interference_graph_;
-
-  void FindLiveRanges();
-  void BacktraceBlock(ir::Block* block, ir_info::BlockLiveRanges& info);
-
-  void BuildInterferenceGraph();
-  void BuildInterferenceGraph(ir::Block* block, ir_info::BlockLiveRanges& info);
-};
+const ir_info::FuncLiveRanges FindLiveRangesForFunc(const ir::Func* func);
 
 }  // namespace ir_proc
 

@@ -29,17 +29,26 @@ class InterferenceGraph {
   void AddEdgesIn(std::unordered_set<ir::value_num_t> group);
   void AddEdgesBetween(std::unordered_set<ir::value_num_t> group, ir::value_num_t individual);
 
-  int64_t GetRegister(ir::value_num_t value) const;
-  void SetRegister(ir::value_num_t value, int64_t reg);
-  void ResetRegisters();
-
   std::string ToString() const;
-  common::Graph ToGraph() const;
+  common::Graph ToGraph(const class InterferenceGraphColors* colors = nullptr) const;
 
  private:
   std::unordered_set<ir::value_num_t> values_;
   std::unordered_map<ir::value_num_t, std::unordered_set<ir::value_num_t>> graph_;
-  std::unordered_map<ir::value_num_t, int64_t> regs_;
+};
+
+typedef int64_t color_t;
+constexpr color_t kNoColor = -1;
+
+class InterferenceGraphColors {
+ public:
+  color_t GetColor(ir::value_num_t value) const;
+  void SetColor(ir::value_num_t value, color_t color) { colors_.insert({value, color}); }
+
+  std::string ToString() const;
+
+ private:
+  std::unordered_map<ir::value_num_t, color_t> colors_;
 };
 
 }  // namespace ir_info

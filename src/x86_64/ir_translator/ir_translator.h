@@ -24,6 +24,7 @@
 #include "src/x86_64/instrs/cf_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/instrs/instr.h"
+#include "src/x86_64/ir_translator/register_allocator.h"
 #include "src/x86_64/ops.h"
 #include "src/x86_64/program.h"
 
@@ -40,9 +41,7 @@ class IRTranslator {
                std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& inteference_graphs)
       : ir_program_(program), interference_graphs_(inteference_graphs) {}
 
-  void PrepareInterferenceGraphs();
-  void PrepareInterferenceGraph(ir::Func* ir_func);
-
+  void AllocateRegisters();
   void TranslateProgram();
 
   x86_64::Func* TranslateFunc(ir::Func* ir_func, x86_64::FuncBuilder x86_64_func_builder);
@@ -105,6 +104,7 @@ class IRTranslator {
 
   ir::Program* ir_program_;
   std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& interference_graphs_;
+  std::unordered_map<ir::Func*, ir_info::InterferenceGraphColors> interference_graph_colors_;
 
   x86_64::ProgramBuilder x86_64_program_builder_;
   x86_64::Func* x86_64_main_func_;

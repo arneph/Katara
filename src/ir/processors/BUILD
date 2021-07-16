@@ -20,12 +20,30 @@ cc_library(
 )
 
 cc_library(
-    name = "register_allocator",
+    name = "interference_graph_builder",
     srcs = [
-        "register_allocator.cc",
+        "interference_graph_builder.cc",
     ],
     hdrs = [
-        "register_allocator.h",
+        "interference_graph_builder.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//src/ir:__subpackages__",
+    ],
+    deps = [
+        "//src/ir/info",
+        "//src/ir/representation",
+    ],
+)
+
+cc_library(
+    name = "interference_graph_colorer",
+    srcs = [
+        "interference_graph_colorer.cc",
+    ],
+    hdrs = [
+        "interference_graph_colorer.h",
     ],
     copts = COPTS,
     visibility = [
@@ -73,8 +91,9 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":interference_graph_builder",
+        ":interference_graph_colorer",
         ":live_range_analyzer",
         ":phi_resolver",
-        ":register_allocator",
     ],
 )

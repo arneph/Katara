@@ -22,7 +22,6 @@ void InterferenceGraph::AddValue(ir::value_num_t value) {
 
   values_.insert(value);
   graph_.insert({value, std::unordered_set<ir::value_num_t>()});
-  regs_.insert({value, -1});
 }
 
 void InterferenceGraph::AddEdge(ir::value_num_t value_a, ir::value_num_t value_b) {
@@ -32,7 +31,6 @@ void InterferenceGraph::AddEdge(ir::value_num_t value_a, ir::value_num_t value_b
   } else {
     values_.insert(value_a);
     graph_.insert({value_a, std::unordered_set<ir::value_num_t>{value_b}});
-    regs_.insert({value_a, -1});
   }
 
   auto it_b = graph_.find(value_b);
@@ -41,7 +39,6 @@ void InterferenceGraph::AddEdge(ir::value_num_t value_a, ir::value_num_t value_b
   } else {
     values_.insert(value_b);
     graph_.insert({value_b, std::unordered_set<ir::value_num_t>{value_a}});
-    regs_.insert({value_b, -1});
   }
 }
 
@@ -57,7 +54,6 @@ void InterferenceGraph::AddEdgesIn(std::unordered_set<ir::value_num_t> group) {
     if (it == graph_.end()) {
       values_.insert(group_member);
       auto result = graph_.insert({group_member, std::unordered_set<ir::value_num_t>()});
-      regs_.insert({group_member, -1});
 
       it = result.first;
     }
@@ -81,7 +77,6 @@ void InterferenceGraph::AddEdgesBetween(std::unordered_set<ir::value_num_t> grou
     } else {
       values_.insert(group_member);
       graph_.insert({group_member, std::unordered_set<ir::value_num_t>{individual}});
-      regs_.insert({group_member, -1});
     }
   }
 
@@ -91,24 +86,12 @@ void InterferenceGraph::AddEdgesBetween(std::unordered_set<ir::value_num_t> grou
   } else {
     values_.insert(individual);
     graph_.insert({individual, group});
-    regs_.insert({individual, -1});
-  }
-}
-
-int64_t InterferenceGraph::GetRegister(ir::value_num_t value) const { return regs_.at(value); }
-
-void InterferenceGraph::SetRegister(ir::value_num_t value, int64_t reg) { regs_[value] = reg; }
-
-void InterferenceGraph::ResetRegisters() {
-  for (auto& [value, reg] : regs_) {
-    reg = -1;
   }
 }
 
 std::string InterferenceGraph::ToString() const {
   std::stringstream ss;
-
-  ss << "interference graph edges:";
+  ss << "interference graph:";
   for (ir::value_num_t value : values_) {
     ss << "\n";
     ss << std::setw(4) << std::setfill(' ') << "%" << value << ": ";
@@ -123,18 +106,10 @@ std::string InterferenceGraph::ToString() const {
       ss << "%" << neighbor;
     }
   }
-  ss << "\n\n";
-  ss << "interference graph registers:";
-  for (ir::value_num_t value : values_) {
-    ss << "\n";
-    ss << std::setw(4) << std::setfill(' ') << "%" << value << ": ";
-    ss << std::setw(2) << std::setfill(' ') << regs_.at(value);
-  }
-
   return ss.str();
 }
 
-common::Graph InterferenceGraph::ToGraph() const {
+common::Graph InterferenceGraph::ToGraph(const InterferenceGraphColors* colors) const {
   common::Graph vcg_graph(/*is_directed=*/false);
 
   std::unordered_map<ir::value_num_t, int64_t> value_numbers;
@@ -142,7 +117,7 @@ common::Graph InterferenceGraph::ToGraph() const {
 
   for (auto& [node, neighbors] : graph_) {
     int64_t node_number = value_numbers.size();
-    int64_t node_reg = regs_.at(node);
+    int64_t node_reg = (colors != nullptr) ? colors->GetColor(node) : 0;
 
     value_numbers.insert({node, node_number});
 
@@ -160,6 +135,25 @@ common::Graph InterferenceGraph::ToGraph() const {
   }
 
   return vcg_graph;
+}
+
+color_t InterferenceGraphColors::GetColor(ir::value_num_t value) const {
+  if (auto it = colors_.find(value); it != colors_.end()) {
+    return it->second;
+  } else {
+    return kNoColor;
+  }
+}
+
+std::string InterferenceGraphColors::ToString() const {
+  std::stringstream ss;
+  ss << "interference graph colors:";
+  for (auto [value, color] : colors_) {
+    ss << "\n";
+    ss << std::setw(4) << std::setfill(' ') << "%" << value << ": ";
+    ss << std::setw(2) << std::setfill(' ') << color;
+  }
+  return ss.str();
 }
 
 }  // namespace ir_info

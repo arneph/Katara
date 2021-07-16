@@ -15,71 +15,18 @@ std::unique_ptr<x86_64::Program> IRTranslator::Translate(
     std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& inteference_graphs) {
   IRTranslator translator(program, inteference_graphs);
 
-  translator.PrepareInterferenceGraphs();
+  translator.AllocateRegisters();
   translator.TranslateProgram();
 
   return translator.x86_64_program_builder_.Build();
 }
 
-void IRTranslator::PrepareInterferenceGraphs() {
+void IRTranslator::AllocateRegisters() {
+  interference_graph_colors_.reserve(interference_graphs_.size());
   for (auto& ir_func : ir_program_->funcs()) {
-    PrepareInterferenceGraph(ir_func.get());
-  }
-}
-
-void IRTranslator::PrepareInterferenceGraph(ir::Func* ir_func) {
-  ir_info::InterferenceGraph& interference_graph = interference_graphs_.at(ir_func);
-
-  for (size_t i = 0; i < ir_func->args().size(); i++) {
-    const auto& arg = ir_func->args().at(i);
-    int64_t arg_reg;
-    switch (i) {
-      case 0:
-        arg_reg = 7 - 2 /* rdi */;
-        break;
-      case 1:
-        arg_reg = 6 - 2 /* rsi */;
-        break;
-      case 2:
-        arg_reg = 2 /* rdx */;
-        break;
-      case 3:
-        arg_reg = 1 /* rcx */;
-        break;
-      case 4:
-        arg_reg = 8 - 2 /* r8 */;
-        break;
-      case 5:
-        arg_reg = 9 - 2 /* r9 */;
-        break;
-      default:
-        // TODO: use stack for additional args.
-        throw "can not handle functions with more than six arguments";
-    }
-
-    interference_graph.SetRegister(arg->number(), arg_reg);
-  }
-
-  for (auto& ir_block : ir_func->blocks()) {
-    for (auto& ir_instr : ir_block->instrs()) {
-      ir::ReturnInstr* ir_return_instr = dynamic_cast<ir::ReturnInstr*>(ir_instr.get());
-      if (ir_return_instr == nullptr) {
-        continue;
-      }
-
-      for (size_t i = 0; i < ir_return_instr->args().size(); i++) {
-        if (i > 0) {
-          throw "can not handle functions with more than one return value";
-        }
-        const auto& result = ir_return_instr->args().at(i);
-        auto computed_result = std::dynamic_pointer_cast<ir::Computed>(result);
-        if (computed_result == nullptr) {
-          continue;
-        }
-
-        interference_graph.SetRegister(computed_result->number(), 0);
-      }
-    }
+    ir_info::InterferenceGraphColors colors =
+        AllocateRegistersInFunc(ir_func.get(), interference_graphs_.at(ir_func.get()));
+    interference_graph_colors_.insert({ir_func.get(), colors});
   }
 }
 
@@ -787,22 +734,11 @@ x86_64::Imm IRTranslator::TranslateFuncConstant(ir::FuncConstant* constant) {
 }
 
 x86_64::RM IRTranslator::TranslateComputed(ir::Computed* computed, ir::Func* ir_func) {
-  ir_info::InterferenceGraph& graph = interference_graphs_.at(ir_func);
-
-  int64_t ir_reg = graph.GetRegister(computed->number());
+  ir_info::InterferenceGraphColors& colors = interference_graph_colors_.at(ir_func);
+  ir_info::color_t color = colors.GetColor(computed->number());
   int8_t ir_size = static_cast<const ir::AtomicType*>(computed->type())->bit_size();
-
   x86_64::Size x86_64_size = x86_64::Size(ir_size);
-
-  if (0 <= ir_reg && ir_reg <= 3) {
-    return x86_64::Reg(x86_64_size, ir_reg);
-  } else if (4 <= ir_reg && ir_reg <= 13) {
-    return x86_64::Reg(x86_64_size, ir_reg + 2);
-  } else {
-    return x86_64::Mem(x86_64_size,
-                       /* base_reg= */ 5 /* (base pointer) */,
-                       /* disp= */ int32_t(-8 * (ir_reg - 14)));
-  }
+  return ColorAndSizeToOperand(color, x86_64_size);
 }
 
 x86_64::BlockRef IRTranslator::TranslateBlockValue(ir::block_num_t block_value) {
