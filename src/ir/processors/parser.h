@@ -13,6 +13,7 @@
 #include <memory>
 #include <optional>
 
+#include "src/common/atomics.h"
 #include "src/ir/processors/scanner.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
@@ -31,7 +32,7 @@ class Parser {
  private:
   Parser(Scanner& scanner);
 
-  void ParseProg();
+  void ParseProgram();
 
   void ParseFunc();
   void ParseFuncArgs(ir::Func* func);
@@ -44,12 +45,18 @@ class Parser {
   std::unique_ptr<ir::Instr> ParseInstr();
   std::unique_ptr<ir::MovInstr> ParseMovInstr(std::shared_ptr<ir::Computed> result);
   std::unique_ptr<ir::PhiInstr> ParsePhiInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::UnaryALInstr> ParseUnaryALInstr(std::shared_ptr<ir::Computed> result,
-                                                      ir::UnaryALOperation op);
-  std::unique_ptr<ir::BinaryALInstr> ParseBinaryALInstr(std::shared_ptr<ir::Computed> result,
-                                                        ir::BinaryALOperation op);
-  std::unique_ptr<ir::CompareInstr> ParseCompareInstr(std::shared_ptr<ir::Computed> result,
-                                                      ir::CompareOperation op);
+  std::unique_ptr<ir::Conversion> ParseConversionInstr(std::shared_ptr<ir::Computed> result);
+  std::unique_ptr<ir::BoolNotInstr> ParseBoolNotInstr(std::shared_ptr<ir::Computed> result);
+  std::unique_ptr<ir::BoolBinaryInstr> ParseBoolBinaryInstr(std::shared_ptr<ir::Computed> result,
+                                                            common::Bool::BinaryOp op);
+  std::unique_ptr<ir::IntUnaryInstr> ParseIntUnaryInstr(std::shared_ptr<ir::Computed> result,
+                                                        common::Int::UnaryOp op);
+  std::unique_ptr<ir::IntCompareInstr> ParseIntCompareInstr(std::shared_ptr<ir::Computed> result,
+                                                            common::Int::CompareOp op);
+  std::unique_ptr<ir::IntBinaryInstr> ParseIntBinaryInstr(std::shared_ptr<ir::Computed> result,
+                                                          common::Int::BinaryOp op);
+  std::unique_ptr<ir::IntShiftInstr> ParseIntShiftInstr(std::shared_ptr<ir::Computed> result,
+                                                        common::Int::ShiftOp op);
   std::unique_ptr<ir::JumpInstr> ParseJumpInstr();
   std::unique_ptr<ir::JumpCondInstr> ParseJumpCondInstr();
   std::unique_ptr<ir::CallInstr> ParseCallInstr(std::vector<std::shared_ptr<ir::Computed>> results);
@@ -57,13 +64,12 @@ class Parser {
 
   std::vector<std::shared_ptr<ir::Computed>> ParseInstrResults();
 
-  std::shared_ptr<ir::InheritedValue> ParseInheritedValue(
-      std::optional<ir::AtomicKind> expected_type);
-  std::shared_ptr<ir::Value> ParseValue(std::optional<ir::AtomicKind> expected_type);
-  std::shared_ptr<ir::Constant> ParseConstant(std::optional<ir::AtomicKind> expected_type);
-  std::shared_ptr<ir::Computed> ParseComputed(std::optional<ir::AtomicKind> expected_type);
+  std::shared_ptr<ir::InheritedValue> ParseInheritedValue(const ir::Type* expected_type);
+  std::shared_ptr<ir::Value> ParseValue(const ir::Type* expected_type);
+  std::shared_ptr<ir::Constant> ParseConstant(const ir::Type* expected_type);
+  std::shared_ptr<ir::Computed> ParseComputed(const ir::Type* expected_type);
   ir::block_num_t ParseBlockValue();
-  ir::Atomic* ParseType();
+  const ir::AtomicType* ParseType();
 
   Scanner& scanner_;
   std::unique_ptr<ir::Program> program_;

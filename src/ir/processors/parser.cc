@@ -18,7 +18,7 @@ std::unique_ptr<ir::Program> Parser::Parse(std::istream& in_stream) {
 std::unique_ptr<ir::Program> Parser::Parse(Scanner& scanner) {
   Parser parser(scanner);
 
-  parser.ParseProg();
+  parser.ParseProgram();
 
   return std::move(parser.program_);
 }
@@ -28,8 +28,8 @@ Parser::Parser(Scanner& scanner) : scanner_(scanner) {
   program_ = std::make_unique<ir::Program>();
 }
 
-// Prog ::= (Func | NL)*
-void Parser::ParseProg() {
+// Program ::= (Func | NL)*
+void Parser::ParseProgram() {
   for (;;) {
     if (scanner_.token() == Scanner::kNewLine) {
       scanner_.Next();
@@ -78,7 +78,7 @@ void Parser::ParseFuncArgs(ir::Func* func) {
     scanner_.Next();
   } else {
     for (;;) {
-      std::shared_ptr<ir::Computed> arg = ParseComputed(/*expected_type=*/std::nullopt);
+      std::shared_ptr<ir::Computed> arg = ParseComputed(/*expected_type=*/nullptr);
 
       func->args().push_back(arg);
 
@@ -103,7 +103,7 @@ void Parser::ParseFuncResultTypes(ir::Func* func) {
     scanner_.Next();
   } else {
     for (;;) {
-      ir::Atomic* type = ParseType();
+      const ir::AtomicType* type = ParseType();
 
       func->result_types().push_back(type);
 
@@ -203,40 +203,65 @@ void Parser::ParseBlock(ir::Func* func) {
 std::unique_ptr<ir::Instr> Parser::ParseInstr() {
   std::vector<std::shared_ptr<ir::Computed>> results = ParseInstrResults();
 
-  if (scanner_.token() != Scanner::kIdentifier) throw "expected '%' or identifier";
+  if (scanner_.token() != Scanner::kIdentifier) {
+    throw "expected '%' or identifier";
+  }
   std::string instr_name = scanner_.string();
   scanner_.Next();
 
   if (instr_name == "mov") {
-    if (results.size() != 1) throw "expected one result for mov instruction";
-
-    return ParseMovInstr(results.at(0));
+    if (results.size() != 1) {
+      throw "expected one result for mov instruction";
+    }
+    return ParseMovInstr(results.front());
 
   } else if (instr_name == "phi") {
-    if (results.size() != 1) throw "expected one result for phi instruction";
+    if (results.size() != 1) {
+      throw "expected one result for phi instruction";
+    }
+    return ParsePhiInstr(results.front());
 
-    return ParsePhiInstr(results.at(0));
+  } else if (instr_name == "conv") {
+    if (results.size() != 1) {
+      throw "expected one result for conv instruction";
+    }
+    return ParseConversionInstr(results.front());
 
-  } else if (ir::IsUnaryALOperationString(instr_name)) {
-    ir::UnaryALOperation op = ir::ToUnaryALOperation(instr_name);
+  } else if (instr_name == "bnot") {
+    if (results.size() != 1) {
+      throw "expected one result for bool not instruction";
+    }
+    return ParseBoolNotInstr(results.front());
 
-    if (results.size() != 1) throw "expected one result for unary al instruction";
+  } else if (auto bool_binary_op = common::ToBoolBinaryOp(instr_name); bool_binary_op) {
+    if (results.size() != 1) {
+      throw "expected one result for bool binary instruction";
+    }
+    return ParseBoolBinaryInstr(results.front(), bool_binary_op.value());
 
-    return ParseUnaryALInstr(results.at(0), op);
+  } else if (auto int_unary_op = common::ToIntUnaryOp(instr_name); int_unary_op) {
+    if (results.size() != 1) {
+      throw "expected one result for int unary instruction";
+    }
+    return ParseIntUnaryInstr(results.front(), int_unary_op.value());
 
-  } else if (ir::IsBinaryALOperationString(instr_name)) {
-    ir::BinaryALOperation op = ir::ToBinaryALOperation(instr_name);
+  } else if (auto int_compare_op = common::ToIntCompareOp(instr_name); int_compare_op) {
+    if (results.size() != 1) {
+      throw "expected one result for int compare instruction";
+    }
+    return ParseIntCompareInstr(results.front(), int_compare_op.value());
 
-    if (results.size() != 1) throw "expected one result for binary al instruction";
+  } else if (auto int_binary_op = common::ToIntBinaryOp(instr_name); int_binary_op) {
+    if (results.size() != 1) {
+      throw "expected one result for int binary instruction";
+    }
+    return ParseIntBinaryInstr(results.front(), int_binary_op.value());
 
-    return ParseBinaryALInstr(results.at(0), op);
-
-  } else if (ir::IsCompareOperationString(instr_name)) {
-    ir::CompareOperation op = ir::ToCompareOperation(instr_name);
-
-    if (results.size() != 1) throw "expected one result for compare instruction";
-
-    return ParseCompareInstr(results.at(0), op);
+  } else if (auto int_shift_op = common::ToIntShiftOp(instr_name); int_shift_op) {
+    if (results.size() != 1) {
+      throw "expected one result for int shift instruction";
+    }
+    return ParseIntShiftInstr(results.front(), int_shift_op.value());
 
   } else if (instr_name == "jmp") {
     if (results.size() != 0) throw "did not expect results for jump instruction";
@@ -259,191 +284,11 @@ std::unique_ptr<ir::Instr> Parser::ParseInstr() {
   } else {
     throw "unknown operation: " + instr_name;
   }
-
-  /*
-  bool has_instr_type = false;
-  ir::Type instr_type = ir::Type::kUndefined;
-
-  if (scanner_.token() == Scanner::kColon) {
-      scanner_.Next();
-
-      has_instr_type = true;
-      instr_type = ParseType();
-  }
-
-  std::vector<ir::Value> args = ParseInstrArgs(instr_type);
-
-  if (instr_name == "mov") {
-      if (!has_instr_type)
-          throw "expected type for mov instruction";
-      if (results.size() != 1)
-          throw "expected one result for mov instruction";
-      if (args.size() != 1)
-          throw "expected one argument for mov instruction";
-
-      ir::Computed result(instr_type, results.at(0).number());
-
-      return new ir::MovInstr(, args.at(0));
-
-  } else if (instr_name == "phi") {
-      if (!has_instr_type)
-          throw "expected type for phi instruction";
-      if (results.size() != 1)
-          throw "expected one result for phi instruction";
-      if (args.size() < 2)
-          throw "expected at least two args for phi instruction";
-
-      ir::Computed result(instr_type, results.at(0).number());
-
-      std::vector<ir::InheritedValue> inherited_args;
-      inherited_args.reserve(args.size());
-
-      for (ir::Value arg : args) {
-          ir::InheritedValue *inherited_arg =
-              dynamic_cast<ir::InheritedValue *>(arg);
-          if (inherited_arg == nullptr)
-              throw "expected only inherited value args for phi instruction";
-
-          inherited_args.push_back(inherited_arg);
-      }
-
-      return new ir::PhiInstr(result, inherited_args);
-
-  } else if (instr_name == "not" ||
-             instr_name == "neg") {
-      if (!has_instr_type)
-          throw "expected type for unary al instruction";
-      if (results.size() != 1)
-          throw "expected one result for unary al instruction";
-      if (args.size() != 1)
-          throw "expected one operand for unary al instruction";
-
-      ir::UnaryALOperation op = ir::to_unary_al_operation(instr_name);
-
-      ir::Computed *result = ReplaceComputed(instr_type,
-                                             results.at(0)->name());
-
-      return new ir::UnaryALInstr(op, result, args.at(0));
-
-  } else if (instr_name == "and" ||
-             instr_name == "or" ||
-             instr_name == "xor" ||
-             instr_name == "add" ||
-             instr_name == "sub" ||
-             instr_name == "mul" ||
-             instr_name == "div" ||
-             instr_name == "rem") {
-      if (!has_instr_type)
-          throw "expected type for binary al instruction";
-      if (results.size() != 1)
-          throw "expected one result for binary al instruction";
-      if (args.size() != 2)
-          throw "expected two operands for binary al instruction";
-
-      ir::BinaryALOperation op = ir::to_binary_al_operation(instr_name);
-
-      ir::Computed *result = ReplaceComputed(instr_type,
-                                             results.at(0)->name());
-
-      return new ir::BinaryALInstr(op, result,
-                                   args.at(0),
-                                   args.at(1));
-
-  } else if (instr_name == "eq" ||
-             instr_name == "ne" ||
-             instr_name == "gt" ||
-             instr_name == "gte" ||
-             instr_name == "lte" ||
-             instr_name == "lt") {
-      if (!has_instr_type)
-          throw "expected type for compare instruction";
-      if (results.size() != 1)
-         throw "expected one result for compare instruction";
-      if (args.size() != 2)
-         throw "expected two operands for compare instruction";
-
-      ir::CompareOperation op = ir::to_compare_operation(instr_name);
-
-      ir::Computed *result = ReplaceComputed(ir::kBool,
-                                             results.at(0)->name());
-
-      return new ir::CompareInstr(op, result,
-                                  args.at(0),
-                                  args.at(1));
-
-  } else if (instr_name == "jmp") {
-      if (has_instr_type)
-          throw "did not expected type for jump instruction";
-      if (results.size() != 0)
-          throw "did not expect results for jump instruction";
-      if (args.size() != 1)
-          throw "expected one operand for jump instruction";
-
-      ir::BlockValue *destination
-          = dynamic_cast<ir::BlockValue *>(args.at(0));
-      if (destination == nullptr)
-          throw "expected block value arg for jump instruction";
-
-      return new ir::JumpInstr(destination);
-
-  } else if (instr_name == "jcc") {
-      if (has_instr_type)
-          throw "did not expected type for jump conditional instruction";
-      if (results.size() != 0)
-          throw "did not expect results for jump conditional instruction";
-      if (args.size() != 3)
-          throw "expected three operands for jump conditional instruction";
-
-      ir::Value *decision_value = args.at(0);
-      ir::Computed *computed =
-          dynamic_cast<ir::Computed *>(decision_value);
-      if (computed != nullptr) {
-          decision_value = ReplaceComputed(ir::kBool,
-                                           computed->name());
-      }
-
-      ir::BlockValue *destination_true
-          = dynamic_cast<ir::BlockValue *>(args.at(1));
-      if (destination_true == nullptr)
-          throw "expected block value as second arg for jump conditional instruction";
-
-      ir::BlockValue *destination_false
-          = dynamic_cast<ir::BlockValue *>(args.at(2));
-      if (destination_false == nullptr)
-          throw "expected block value as third arg for jump conditional instruction";
-
-      return new ir::JumpCondInstr(decision_value,
-                                   destination_true,
-                                   destination_false);
-
-  } else if (instr_name == "call") {
-      if (has_instr_type)
-          throw "did not expected type for call instruction";
-      if (args.size() < 1)
-          throw "expected at least one operand for call instruction";
-
-      ir::Value *func = args.at(0);
-
-      args = std::vector<ir::Value *>(args.begin() + 1,
-                                      args.end());
-
-      return new ir::CallInstr(func, results, args);
-
-  } else if (instr_name == "ret") {
-      if (has_instr_type)
-          throw "did not expected type for return instruction";
-
-
-      return new ir::ReturnInstr(args);
-
-  } else {
-      throw "unknown operation: " + instr_name;
-  }*/
 }
 
 // MovInstr ::= Computed 'mov' Value NL
 std::unique_ptr<ir::MovInstr> Parser::ParseMovInstr(std::shared_ptr<ir::Computed> result) {
-  std::shared_ptr<ir::Value> arg = ParseValue(static_cast<ir::Atomic*>(result->type())->kind());
+  std::shared_ptr<ir::Value> arg = ParseValue(result->type());
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
@@ -455,7 +300,7 @@ std::unique_ptr<ir::MovInstr> Parser::ParseMovInstr(std::shared_ptr<ir::Computed
 std::unique_ptr<ir::PhiInstr> Parser::ParsePhiInstr(std::shared_ptr<ir::Computed> result) {
   std::vector<std::shared_ptr<ir::InheritedValue>> args;
 
-  args.push_back(ParseInheritedValue(static_cast<ir::Atomic*>(result->type())->kind()));
+  args.push_back(ParseInheritedValue(result->type()));
 
   for (;;) {
     if (scanner_.token() == Scanner::kNewLine) {
@@ -464,7 +309,7 @@ std::unique_ptr<ir::PhiInstr> Parser::ParsePhiInstr(std::shared_ptr<ir::Computed
     } else if (scanner_.token() == Scanner::kComma) {
       scanner_.Next();
 
-      args.push_back(ParseInheritedValue(static_cast<ir::Atomic*>(result->type())->kind()));
+      args.push_back(ParseInheritedValue(result->type()));
 
     } else {
       throw "expected ',' or new line";
@@ -476,64 +321,99 @@ std::unique_ptr<ir::PhiInstr> Parser::ParsePhiInstr(std::shared_ptr<ir::Computed
   return std::make_unique<ir::PhiInstr>(result, args);
 }
 
-// UnaryALInstr ::= Computed UnaryALOp ':' Type Value NL
-std::unique_ptr<ir::UnaryALInstr> Parser::ParseUnaryALInstr(std::shared_ptr<ir::Computed> result,
-                                                            ir::UnaryALOperation op) {
-  if (scanner_.token() != Scanner::kColon) throw "expected ':'";
-  scanner_.Next();
-
-  ir::Atomic* instr_type = ParseType();
-  if (instr_type != result->type()) throw "result type does not match type of unary AL instruction";
-
-  std::shared_ptr<ir::Value> operand = ParseValue(instr_type->kind());
+// MovInstr ::= Computed 'conv' Value NL
+std::unique_ptr<ir::Conversion> Parser::ParseConversionInstr(std::shared_ptr<ir::Computed> result) {
+  std::shared_ptr<ir::Value> arg = ParseValue(/*expected_type=*/nullptr);
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return std::make_unique<ir::UnaryALInstr>(op, result, operand);
+  return std::make_unique<ir::Conversion>(result, arg);
 }
 
-// BinaryALInstr ::= Computed BinaryALOp ':' Type Value ',' Value NL
-std::unique_ptr<ir::BinaryALInstr> Parser::ParseBinaryALInstr(std::shared_ptr<ir::Computed> result,
-                                                              ir::BinaryALOperation op) {
-  if (scanner_.token() != Scanner::kColon) throw "expected ':'";
+// BoolNotInstr ::= Computed 'bnot' Value NL
+std::unique_ptr<ir::BoolNotInstr> Parser::ParseBoolNotInstr(std::shared_ptr<ir::Computed> result) {
+  std::shared_ptr<ir::Value> operand = ParseValue(&ir::kBool);
+
+  if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  ir::Atomic* instr_type = ParseType();
-  if (instr_type != result->type())
-    throw "result type does not match type of binary AL instruction";
+  return std::make_unique<ir::BoolNotInstr>(result, operand);
+}
 
-  std::shared_ptr<ir::Value> operand_a = ParseValue(instr_type->kind());
+// BoolBinaryInstr ::= Computed BinaryOp Value NL
+std::unique_ptr<ir::BoolBinaryInstr> Parser::ParseBoolBinaryInstr(
+    std::shared_ptr<ir::Computed> result, common::Bool::BinaryOp op) {
+  std::shared_ptr<ir::Value> operand_a = ParseValue(result->type());
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
   scanner_.Next();
 
-  std::shared_ptr<ir::Value> operand_b = ParseValue(instr_type->kind());
+  std::shared_ptr<ir::Value> operand_b = ParseValue(result->type());
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return std::make_unique<ir::BinaryALInstr>(op, result, operand_a, operand_b);
+  return std::make_unique<ir::BoolBinaryInstr>(result, op, operand_a, operand_b);
 }
 
-// CompareInstr ::= Computed CompareOp ':' Type Value ',' Value NL
-std::unique_ptr<ir::CompareInstr> Parser::ParseCompareInstr(std::shared_ptr<ir::Computed> result,
-                                                            ir::CompareOperation op) {
-  if (scanner_.token() != Scanner::kColon) throw "expected ':'";
+// IntUnaryInstr ::= Computed UnaryOp Value NL
+std::unique_ptr<ir::IntUnaryInstr> Parser::ParseIntUnaryInstr(std::shared_ptr<ir::Computed> result,
+                                                              common::Int::UnaryOp op) {
+  std::shared_ptr<ir::Value> operand = ParseValue(result->type());
+
+  if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  ir::Atomic* instr_type = ParseType();
-  std::shared_ptr<ir::Value> operand_a = ParseValue(instr_type->kind());
+  return std::make_unique<ir::IntUnaryInstr>(result, op, operand);
+}
+
+// IntCompareInstr ::= Computed CompareOp Value NL
+std::unique_ptr<ir::IntCompareInstr> Parser::ParseIntCompareInstr(
+    std::shared_ptr<ir::Computed> result, common::Int::CompareOp op) {
+  std::shared_ptr<ir::Value> operand_a = ParseValue(/*expected_type=*/nullptr);
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
   scanner_.Next();
 
-  std::shared_ptr<ir::Value> operand_b = ParseValue(instr_type->kind());
+  std::shared_ptr<ir::Value> operand_b = ParseValue(operand_a->type());
 
   if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
   scanner_.Next();
 
-  return std::make_unique<ir::CompareInstr>(op, result, operand_a, operand_b);
+  return std::make_unique<ir::IntCompareInstr>(result, op, operand_a, operand_b);
+}
+
+// IntBinaryInstr ::= Computed BinaryOp Value NL
+std::unique_ptr<ir::IntBinaryInstr> Parser::ParseIntBinaryInstr(
+    std::shared_ptr<ir::Computed> result, common::Int::BinaryOp op) {
+  std::shared_ptr<ir::Value> operand_a = ParseValue(result->type());
+
+  if (scanner_.token() != Scanner::kComma) throw "expected ','";
+  scanner_.Next();
+
+  std::shared_ptr<ir::Value> operand_b = ParseValue(result->type());
+
+  if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
+  scanner_.Next();
+
+  return std::make_unique<ir::IntBinaryInstr>(result, op, operand_a, operand_b);
+}
+
+// IntShiftInstr ::= Computed ShiftOp Value NL
+std::unique_ptr<ir::IntShiftInstr> Parser::ParseIntShiftInstr(std::shared_ptr<ir::Computed> result,
+                                                              common::Int::ShiftOp op) {
+  std::shared_ptr<ir::Value> operand_a = ParseValue(/*expected_type=*/nullptr);
+
+  if (scanner_.token() != Scanner::kComma) throw "expected ','";
+  scanner_.Next();
+
+  std::shared_ptr<ir::Value> operand_b = ParseValue(/*expected_type=*/nullptr);
+
+  if (scanner_.token() != Scanner::kNewLine) throw "expected new line";
+  scanner_.Next();
+
+  return std::make_unique<ir::IntShiftInstr>(result, op, operand_a, operand_b);
 }
 
 // JumpInstr ::= 'jmp' BlockValue NL
@@ -548,7 +428,7 @@ std::unique_ptr<ir::JumpInstr> Parser::ParseJumpInstr() {
 
 // JumpCondInstr ::= 'jcc' Value ',' BlockValue ',' BlockValue NL
 std::unique_ptr<ir::JumpCondInstr> Parser::ParseJumpCondInstr() {
-  std::shared_ptr<ir::Value> condition = ParseValue(ir::AtomicKind::kBool);
+  std::shared_ptr<ir::Value> condition = ParseValue(&ir::kBool);
 
   if (scanner_.token() != Scanner::kComma) throw "expected ','";
   scanner_.Next();
@@ -570,7 +450,7 @@ std::unique_ptr<ir::JumpCondInstr> Parser::ParseJumpCondInstr() {
 //               'call' Value (',' Value)* NL
 std::unique_ptr<ir::CallInstr> Parser::ParseCallInstr(
     std::vector<std::shared_ptr<ir::Computed>> results) {
-  std::shared_ptr<ir::Value> func = ParseValue(ir::AtomicKind::kFunc);
+  std::shared_ptr<ir::Value> func = ParseValue(&ir::kFunc);
 
   std::vector<std::shared_ptr<ir::Value>> args;
 
@@ -581,7 +461,7 @@ std::unique_ptr<ir::CallInstr> Parser::ParseCallInstr(
     } else if (scanner_.token() == Scanner::kComma) {
       scanner_.Next();
 
-      args.push_back(ParseValue(/*expected_type=*/std::nullopt));
+      args.push_back(ParseValue(/*expected_type=*/nullptr));
 
     } else {
       throw "expected ',' or NL";
@@ -600,7 +480,7 @@ std::unique_ptr<ir::ReturnInstr> Parser::ParseReturnInstr() {
     return std::make_unique<ir::ReturnInstr>(args);
   }
 
-  args.push_back(ParseValue(/*expected_type=*/std::nullopt));
+  args.push_back(ParseValue(/*expected_type=*/nullptr));
 
   for (;;) {
     if (scanner_.token() == Scanner::kNewLine) {
@@ -610,7 +490,7 @@ std::unique_ptr<ir::ReturnInstr> Parser::ParseReturnInstr() {
     } else if (scanner_.token() == Scanner::kComma) {
       scanner_.Next();
 
-      args.push_back(ParseValue(/*expected_type=*/std::nullopt));
+      args.push_back(ParseValue(/*expected_type=*/nullptr));
 
     } else {
       throw "expected ',' or new line";
@@ -626,7 +506,7 @@ std::vector<std::shared_ptr<ir::Computed>> Parser::ParseInstrResults() {
 
   if (scanner_.token() == Scanner::kPercentSign) {
     for (;;) {
-      results.push_back(ParseComputed(/*expected_type=*/std::nullopt));
+      results.push_back(ParseComputed(/*expected_type=*/nullptr));
 
       if (scanner_.token() == Scanner::kEqualSign) {
         scanner_.Next();
@@ -643,8 +523,7 @@ std::vector<std::shared_ptr<ir::Computed>> Parser::ParseInstrResults() {
 }
 
 // InheritedValue ::= (Constant | Computed) BlockValue
-std::shared_ptr<ir::InheritedValue> Parser::ParseInheritedValue(
-    std::optional<ir::AtomicKind> expected_type) {
+std::shared_ptr<ir::InheritedValue> Parser::ParseInheritedValue(const ir::Type* expected_type) {
   std::shared_ptr<ir::Value> value = ParseValue(expected_type);
   ir::block_num_t origin = ParseBlockValue();
 
@@ -652,7 +531,7 @@ std::shared_ptr<ir::InheritedValue> Parser::ParseInheritedValue(
 }
 
 // Value ::= (Constant | Computed | BlockValue)
-std::shared_ptr<ir::Value> Parser::ParseValue(std::optional<ir::AtomicKind> expected_type) {
+std::shared_ptr<ir::Value> Parser::ParseValue(const ir::Type* expected_type) {
   switch (scanner_.token()) {
     case Scanner::kAtSign:
     case Scanner::kHashSign:
@@ -668,32 +547,30 @@ std::shared_ptr<ir::Value> Parser::ParseValue(std::optional<ir::AtomicKind> expe
 // Constant ::= '@' Number
 //              | '#t' | '#f'
 //              | '#' Number (':' Type)?
-std::shared_ptr<ir::Constant> Parser::ParseConstant(std::optional<ir::AtomicKind> expected_type) {
+std::shared_ptr<ir::Constant> Parser::ParseConstant(const ir::Type* expected_type) {
   if (scanner_.token() == Scanner::kAtSign) {
-    if (expected_type != ir::AtomicKind::kFunc) throw "unexpected '@'";
+    if (expected_type != &ir::kFunc) throw "unexpected '@'";
     scanner_.Next();
 
     if (scanner_.token() != Scanner::kNumber) throw "expected number";
     ir::func_num_t number = scanner_.number();
     scanner_.Next();
 
-    ir::Atomic* func_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kFunc);
-    return std::make_shared<ir::Constant>(func_type, number);
+    return std::make_shared<ir::FuncConstant>(number);
   }
 
   if (scanner_.token() != Scanner::kHashSign) throw "expected '@' or '#'";
   scanner_.Next();
 
   if (scanner_.token() == Scanner::kIdentifier) {
-    ir::Atomic* bool_type = program_->type_table().AtomicOfKind(ir::AtomicKind::kBool);
     if (scanner_.string() == "f") {
-      if (expected_type != ir::AtomicKind::kBool) throw "unexpected 'f'";
+      if (expected_type != &ir::kBool) throw "unexpected 'f'";
 
-      return std::make_shared<ir::Constant>(bool_type, false);
+      return std::make_shared<ir::BoolConstant>(false);
     } else if (scanner_.string() == "t") {
-      if (expected_type != ir::AtomicKind::kBool) throw "unexpected 't'";
+      if (expected_type != &ir::kBool) throw "unexpected 't'";
 
-      return std::make_shared<ir::Constant>(bool_type, true);
+      return std::make_shared<ir::BoolConstant>(true);
     } else {
       throw "expected number, 't' or 'f'";
     }
@@ -704,24 +581,37 @@ std::shared_ptr<ir::Constant> Parser::ParseConstant(std::optional<ir::AtomicKind
   uint64_t number = scanner_.number();
   scanner_.Next();
 
-  ir::Atomic* type;
+  common::IntType int_type;
   if (scanner_.token() == Scanner::kColon) {
     scanner_.Next();
-    type = ParseType();
+    auto type = ParseType();
+    if (type->type_kind() != ir::TypeKind::kInt) {
+      throw "expected int type";
+    } else if (expected_type != nullptr && expected_type != type) {
+      throw "expected: " + expected_type->ToString() + " got: " + type->ToString();
+    }
+    int_type = static_cast<const ir::IntType*>(type)->int_type();
 
-    if (expected_type.has_value() && expected_type != type->kind())
-      throw "expected: " + ir::ToString(expected_type.value()) + " got: " + type->ToString();
   } else {
-    if (!expected_type.has_value()) throw "expected ':'";
+    if (expected_type == nullptr) {
+      throw "expected ':'";
+    } else if (expected_type->type_kind() != ir::TypeKind::kInt) {
+      throw "expected: " + expected_type->ToString();
+    }
 
-    type = program_->type_table().AtomicOfKind(expected_type.value());
+    int_type = static_cast<const ir::IntType*>(expected_type)->int_type();
+  }
+  common::Int value(number);
+  value = value.ConvertTo(int_type);
+  if (sign == -1) {
+    value = common::Int::Compute(common::Int::UnaryOp::kNeg, value);
   }
 
-  return std::make_shared<ir::Constant>(type, sign * number);
+  return std::make_shared<ir::IntConstant>(value);
 }
 
 // Computed ::= '%' Identifier (':' Type)?
-std::shared_ptr<ir::Computed> Parser::ParseComputed(std::optional<ir::AtomicKind> expected_type) {
+std::shared_ptr<ir::Computed> Parser::ParseComputed(const ir::Type* expected_type) {
   if (scanner_.token() != Scanner::kPercentSign) throw "expected '%'";
   scanner_.Next();
 
@@ -729,17 +619,17 @@ std::shared_ptr<ir::Computed> Parser::ParseComputed(std::optional<ir::AtomicKind
   int64_t number = scanner_.number();
   scanner_.Next();
 
-  ir::Atomic* type;
+  const ir::Type* type;
   if (scanner_.token() == Scanner::kColon) {
     scanner_.Next();
     type = ParseType();
 
-    if (expected_type.has_value() && expected_type != type->kind())
-      throw "expected: " + ir::ToString(expected_type.value()) + " got: " + type->ToString();
+    if (expected_type != nullptr && expected_type != type)
+      throw "expected: " + expected_type->ToString() + " got: " + type->ToString();
   } else {
-    if (!expected_type.has_value()) throw "expected ':'";
+    if (expected_type == nullptr) throw "expected ':'";
 
-    type = program_->type_table().AtomicOfKind(expected_type.value());
+    type = expected_type;
   }
 
   return std::make_shared<ir::Computed>(type, number);
@@ -764,12 +654,22 @@ ir::block_num_t Parser::ParseBlockValue() {
 }
 
 // Type ::= Identifier
-ir::Atomic* Parser::ParseType() {
+const ir::AtomicType* Parser::ParseType() {
   if (scanner_.token() != Scanner::kIdentifier) throw "expected identifier";
   std::string name = scanner_.string();
   scanner_.Next();
 
-  return program_->type_table().AtomicOfKind(ir::ToAtomicTypeKind(name));
+  if (name == "b") {
+    return &ir::kBool;
+  } else if (auto int_type = common::ToIntType(name); int_type) {
+    return ir::IntTypeFor(int_type.value());
+  } else if (name == "ptr") {
+    return &ir::kPointer;
+  } else if (name == "func") {
+    return &ir::kFunc;
+  } else {
+    throw "unexpected type";
+  }
 }
 
 }  // namespace ir_proc
