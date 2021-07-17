@@ -10,6 +10,7 @@ cc_library(
         "//src/ir:ir_lib",
         "//src/lang:lang_lib",
         "//src/x86_64:x86_64_lib",
+        "//src/x86_64/ir_translator",
     ],
 )
 
