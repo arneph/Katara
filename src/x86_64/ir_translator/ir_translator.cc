@@ -557,8 +557,8 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
     }
   }();
   x86_64::Reg x86_64_tmp_reg(x86_64_size, 0);
-  while ((x86_64_operand_a.is_reg() && x86_64_operand_a.reg().reg() == 0) ||
-         (x86_64_operand_b.is_reg() && x86_64_operand_b.reg().reg() == 0)) {
+  while ((x86_64_operand_a.is_reg() && x86_64_operand_a.reg().reg() == x86_64_tmp_reg.reg()) ||
+         (x86_64_operand_b.is_reg() && x86_64_operand_b.reg().reg() == x86_64_tmp_reg.reg())) {
     x86_64_tmp_reg = x86_64::Reg(x86_64_size, x86_64_tmp_reg.reg() + 1);
   }
 
