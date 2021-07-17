@@ -11,27 +11,17 @@
 #include <iostream>
 #include <memory>
 
+#include "src/ir/info/func_live_ranges.h"
+#include "src/ir/info/interference_graph.h"
+#include "src/ir/processors/interference_graph_builder.h"
 #include "src/ir/processors/live_range_analyzer.h"
 #include "src/ir/processors/parser.h"
 #include "src/ir/processors/phi_resolver.h"
-#include "src/ir/processors/register_allocator.h"
 #include "src/ir/processors/scanner.h"
-#include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
-#include "src/ir/representation/instrs.h"
-#include "src/ir/representation/num_types.h"
 #include "src/ir/representation/program.h"
-#include "src/ir/representation/types.h"
-#include "src/ir/representation/values.h"
-#include "src/lang/processors/docs/file_doc.h"
-#include "src/lang/processors/docs/package_doc.h"
-#include "src/lang/processors/ir_builder/ir_builder.h"
-#include "src/lang/processors/packages/package.h"
-#include "src/lang/processors/packages/package_manager.h"
-#include "src/lang/representation/ast/ast.h"
-#include "src/lang/representation/ast/ast_util.h"
-#include "src/lang/representation/positions/positions.h"
-#include "src/lang/representation/types/info_util.h"
+#include "src/x86_64/ir_translator/ir_translator.h"
+#include "src/x86_64/program.h"
 
 void to_file(std::string text, std::filesystem::path out_file) {
   std::ofstream out_stream(out_file, std::ios::out);
@@ -53,11 +43,11 @@ void run_ir_test(std::filesystem::path test_dir) {
 
   std::ifstream in_stream(in_file, std::ios::in);
   ir_proc::Scanner scanner(in_stream);
-  std::unique_ptr<ir::Program> prog = ir_proc::Parser::Parse(scanner);
+  std::unique_ptr<ir::Program> ir_program = ir_proc::Parser::Parse(scanner);
 
-  std::cout << prog->ToString() << "\n";
+  std::cout << ir_program->ToString() << "\n";
 
-  for (auto& func : prog->funcs()) {
+  for (auto& func : ir_program->funcs()) {
     common::Graph cfg = func->ToControlFlowGraph();
     common::Graph dom_tree = func->ToDominatorTree();
 
@@ -67,42 +57,30 @@ void run_ir_test(std::filesystem::path test_dir) {
             out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".dom.dot");
   }
 
-  std::unordered_map<ir::Func*, ir_info::FuncLiveRangeInfo> live_range_infos;
+  std::unordered_map<ir::Func*, ir_info::FuncLiveRanges> live_ranges;
   std::unordered_map<ir::Func*, ir_info::InterferenceGraph> interference_graphs;
 
-  for (auto& func : prog->funcs()) {
-    ir_proc::LiveRangeAnalyzer live_range_analyzer(func.get());
+  for (auto& func : ir_program->funcs()) {
+    ir_info::FuncLiveRanges func_live_ranges = ir_proc::FindLiveRangesForFunc(func.get());
+    ir_info::InterferenceGraph func_interference_graph =
+        ir_proc::BuildInterferenceGraphForFunc(func.get(), func_live_ranges);
 
-    ir_info::FuncLiveRangeInfo& func_live_range_info = live_range_analyzer.func_info();
-    ir_info::InterferenceGraph& interference_graph = live_range_analyzer.interference_graph();
-
-    live_range_infos.insert({func.get(), func_live_range_info});
-    interference_graphs.insert({func.get(), interference_graph});
+    live_ranges.insert({func.get(), func_live_ranges});
+    interference_graphs.insert({func.get(), func_interference_graph});
 
     to_file(
-        func_live_range_info.ToString(),
+        func_live_ranges.ToString(),
         out_file_base.string() + ".@" + std::to_string(func->number()) + ".live_range_info.txt");
-  }
-
-  x86_64_ir_translator::IRTranslator translator(prog.get(), interference_graphs);
-  translator.PrepareInterferenceGraphs();
-
-  for (auto& func : prog->funcs()) {
-    ir_info::InterferenceGraph& interference_graph = interference_graphs.at(func.get());
-
-    ir_proc::RegisterAllocator register_allocator(func.get(), interference_graph);
-    register_allocator.AllocateRegisters();
-
     to_file(
-        interference_graph.ToString(),
+        func_interference_graph.ToString(),
         out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.txt");
     to_file(
-        interference_graph.ToGraph().ToDotFormat(),
+        func_interference_graph.ToGraph().ToDotFormat(),
         out_file_base.string() + ".@" + std::to_string(func->number()) + ".interference_graph.dot");
+  }
 
-    ir_proc::PhiResolver phi_resolver(func.get());
-    phi_resolver.ResolvePhis();
-
+  for (auto& func : ir_program->funcs()) {
+    ir_proc::ResolvePhisInFunc(func.get());
     common::Graph cfg = func->ToControlFlowGraph();
     common::Graph dom_tree = func->ToDominatorTree();
 
@@ -112,9 +90,8 @@ void run_ir_test(std::filesystem::path test_dir) {
             out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".dom.dot");
   }
 
-  translator.TranslateProgram();
-
-  x86_64::Program* x86_64_program = translator.x86_64_program();
+  auto x86_64_program =
+      x86_64_ir_translator::IRTranslator::Translate(ir_program.get(), interference_graphs);
 
   to_file(x86_64_program->ToString(), out_file_base.string() + ".x86_64.txt");
 }
