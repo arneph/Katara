@@ -89,7 +89,7 @@ BoolNotInstr::BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Val
 }
 
 std::string BoolNotInstr::ToString() const {
-  return result()->ToStringWithType() + " = not " + operand_->ToString();
+  return result()->ToStringWithType() + " = bnot " + operand_->ToString();
 }
 
 BoolBinaryInstr::BoolBinaryInstr(std::shared_ptr<Computed> result, common::Bool::BinaryOp operation,
