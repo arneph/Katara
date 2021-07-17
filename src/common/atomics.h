@@ -11,7 +11,9 @@
 
 #include <limits>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <variant>
 
 namespace common {
@@ -35,6 +37,7 @@ constexpr bool IsUnsigned(IntType type) { return !IsSigned(type); }
 constexpr IntType ToSigned(IntType type);
 constexpr IntType ToUnsigned(IntType type);
 
+std::optional<IntType> ToIntType(std::string_view str);
 std::string ToString(IntType type);
 
 class Bool {
@@ -53,6 +56,7 @@ class Bool {
   static std::string ToString(bool a);
 };
 
+std::optional<Bool::BinaryOp> ToBoolBinaryOp(std::string_view str);
 std::string ToString(Bool::BinaryOp op);
 
 class Int {
@@ -146,9 +150,16 @@ class Int {
 
 constexpr Int::CompareOp Flipped(Int::CompareOp op);
 
+std::optional<Int::UnaryOp> ToIntUnaryOp(std::string_view str);
 std::string ToString(Int::UnaryOp op);
+
+std::optional<Int::CompareOp> ToIntCompareOp(std::string_view str);
 std::string ToString(Int::CompareOp op);
+
+std::optional<Int::BinaryOp> ToIntBinaryOp(std::string_view str);
 std::string ToString(Int::BinaryOp op);
+
+std::optional<Int::ShiftOp> ToIntShiftOp(std::string_view str);
 std::string ToString(Int::ShiftOp op);
 
 constexpr int8_t BitSizeOf(IntType type) {
