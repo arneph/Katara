@@ -23,7 +23,7 @@ enum class TypeKind {
   kPointer,
   kFunc,
 
-  kLangPointer,
+  kLangSharedPointer,
   kLangString,
   kLangArray,
   kLangStruct,

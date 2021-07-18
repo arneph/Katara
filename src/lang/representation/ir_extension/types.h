@@ -17,14 +17,15 @@
 namespace lang {
 namespace ir_ext {
 
-class Pointer : public ir::Type {
+class SharedPointer : public ir::Type {
  public:
-  Pointer(bool is_strong, const ir::Type* element) : is_strong_(is_strong), element_(element) {}
+  SharedPointer(bool is_strong, const ir::Type* element)
+      : is_strong_(is_strong), element_(element) {}
 
   bool is_strong() const { return is_strong_; }
   const ir::Type* element() const { return element_; }
 
-  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangPointer; }
+  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSharedPointer; }
   std::string ToString() const override { return "lptr"; }
 
  private:

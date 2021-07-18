@@ -86,12 +86,12 @@ const ir::Type* TypesBuilder::BuildTypeForBasic(types::Basic* types_basic) {
   }
 }
 
-const ir_ext::Pointer* TypesBuilder::BuildTypeForPointer(types::Pointer* types_pointer) {
+const ir_ext::SharedPointer* TypesBuilder::BuildTypeForPointer(types::Pointer* types_pointer) {
   if (auto it = types_pointer_to_ir_pointer_lookup_.find(types_pointer);
       it != types_pointer_to_ir_pointer_lookup_.end()) {
     return it->second;
   }
-  const ir_ext::Pointer* ir_pointer;
+  const ir_ext::SharedPointer* ir_pointer;
   switch (types_pointer->kind()) {
     case types::Pointer::Kind::kStrong:
       ir_pointer = BuildStrongPointerToType(types_pointer->element_type());
@@ -104,26 +104,29 @@ const ir_ext::Pointer* TypesBuilder::BuildTypeForPointer(types::Pointer* types_p
   return ir_pointer;
 }
 
-const ir_ext::Pointer* TypesBuilder::BuildStrongPointerToType(types::Type* types_element_type) {
+const ir_ext::SharedPointer* TypesBuilder::BuildStrongPointerToType(
+    types::Type* types_element_type) {
   const ir::Type* ir_element_type = BuildType(types_element_type);
   if (auto it = ir_element_type_to_ir_strong_pointer_lookup_.find(ir_element_type);
       it != ir_element_type_to_ir_strong_pointer_lookup_.end()) {
     return it->second;
   }
-  ir_ext::Pointer* ir_pointer = static_cast<ir_ext::Pointer*>(program_->type_table().AddType(
-      std::make_unique<ir_ext::Pointer>(/*is_strong=*/true, ir_element_type)));
+  ir_ext::SharedPointer* ir_pointer =
+      static_cast<ir_ext::SharedPointer*>(program_->type_table().AddType(
+          std::make_unique<ir_ext::SharedPointer>(/*is_strong=*/true, ir_element_type)));
   ir_element_type_to_ir_strong_pointer_lookup_.insert({ir_element_type, ir_pointer});
   return ir_pointer;
 }
 
-const ir_ext::Pointer* TypesBuilder::BuildWeakPointerToType(types::Type* types_element_type) {
+const ir_ext::SharedPointer* TypesBuilder::BuildWeakPointerToType(types::Type* types_element_type) {
   const ir::Type* ir_element_type = BuildType(types_element_type);
   if (auto it = ir_element_type_to_ir_weak_pointer_lookup_.find(ir_element_type);
       it != ir_element_type_to_ir_weak_pointer_lookup_.end()) {
     return it->second;
   }
-  ir_ext::Pointer* ir_pointer = static_cast<ir_ext::Pointer*>(program_->type_table().AddType(
-      std::make_unique<ir_ext::Pointer>(/*is_strong=*/false, ir_element_type)));
+  ir_ext::SharedPointer* ir_pointer =
+      static_cast<ir_ext::SharedPointer*>(program_->type_table().AddType(
+          std::make_unique<ir_ext::SharedPointer>(/*is_strong=*/false, ir_element_type)));
   ir_element_type_to_ir_weak_pointer_lookup_.insert({ir_element_type, ir_pointer});
   return ir_pointer;
 }

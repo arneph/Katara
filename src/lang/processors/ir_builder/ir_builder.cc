@@ -384,7 +384,7 @@ void IRBuilder::BuildBranchStmt(ast::BranchStmt* branch_stmt, Context& ctx) {
 
 void IRBuilder::AddVarMalloc(types::Variable* var, Context& ctx) {
   const ir::Type* element_type = types_builder_.BuildType(var->type());
-  const ir_ext::Pointer* pointer_type = types_builder_.BuildStrongPointerToType(var->type());
+  const ir_ext::SharedPointer* pointer_type = types_builder_.BuildStrongPointerToType(var->type());
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(pointer_type, ctx.func()->next_computed_number());
   ctx.block()->instrs().push_back(
@@ -533,7 +533,7 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
       types::Struct* types_struct_type =
           static_cast<types::Struct*>(type_info_->ExprInfoOf(x)->type());
       const ir_ext::Struct* ir_struct_type = types_builder_.BuildTypeForStruct(types_struct_type);
-      const ir_ext::Pointer* ir_struct_pointer_type =
+      const ir_ext::SharedPointer* ir_struct_pointer_type =
           types_builder_.BuildStrongPointerToType(types_struct_type);
       std::shared_ptr<ir::Value> struct_value =
           BuildValueOfCompositeLit(static_cast<ast::CompositeLit*>(x), ctx);
@@ -546,8 +546,8 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
       return struct_address;
     } else {
       std::shared_ptr<ir::Value> address = BuildAddressOfExpr(x, ctx);
-      if (address->type()->type_kind() == ir::TypeKind::kLangPointer &&
-          static_cast<const ir_ext::Pointer*>(address->type())->is_strong()) {
+      if (address->type()->type_kind() == ir::TypeKind::kLangSharedPointer &&
+          static_cast<const ir_ext::SharedPointer*>(address->type())->is_strong()) {
         ctx.block()->instrs().push_back(
             std::make_unique<ir_ext::RefCountUpdateInstr>(ir_ext::RefCountUpdate::kInc, address));
         // TODO: decrease ref count when variable exceeds scope
@@ -813,7 +813,7 @@ std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildValuesOfTypeAssertExpr(
 
 std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfIndexExpr(ast::IndexExpr* expr, Context& ctx) {
   types::Type* types_element_type = type_info_->ExprInfoOf(expr)->type();
-  const ir_ext::Pointer* ir_pointer_type =
+  const ir_ext::SharedPointer* ir_pointer_type =
       types_builder_.BuildWeakPointerToType(types_element_type);
   // TODO: implement (array, slice)
   std::shared_ptr<ir::Computed> address =
