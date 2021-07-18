@@ -1,17 +1,17 @@
 //
-//  types_builder.cc
+//  type_builder.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 5/23/21.
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#include "types_builder.h"
+#include "type_builder.h"
 
 namespace lang {
 namespace ir_builder {
 
-TypesBuilder::TypesBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program)
+TypeBuilder::TypeBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program)
     : type_info_(type_info), program_(program) {
   ir_empty_struct_ =
       static_cast<ir_ext::Struct*>(program_->type_table().AddType(ir_ext::StructBuilder().Build()));
@@ -21,7 +21,7 @@ TypesBuilder::TypesBuilder(types::Info* type_info, std::unique_ptr<ir::Program>&
       program_->type_table().AddType(std::make_unique<ir_ext::TypeID>()));
 }
 
-const ir::Type* TypesBuilder::BuildType(types::Type* types_type) {
+const ir::Type* TypeBuilder::BuildType(types::Type* types_type) {
   switch (types_type->type_kind()) {
     case types::TypeKind::kBasic:
       return BuildTypeForBasic(static_cast<types::Basic*>(types_type));
@@ -51,7 +51,7 @@ const ir::Type* TypesBuilder::BuildType(types::Type* types_type) {
   }
 }
 
-const ir::Type* TypesBuilder::BuildTypeForBasic(types::Basic* types_basic) {
+const ir::Type* TypeBuilder::BuildTypeForBasic(types::Basic* types_basic) {
   switch (types_basic->kind()) {
     case types::Basic::kBool:
     case types::Basic::kUntypedBool:
@@ -86,7 +86,7 @@ const ir::Type* TypesBuilder::BuildTypeForBasic(types::Basic* types_basic) {
   }
 }
 
-const ir_ext::SharedPointer* TypesBuilder::BuildTypeForPointer(types::Pointer* types_pointer) {
+const ir_ext::SharedPointer* TypeBuilder::BuildTypeForPointer(types::Pointer* types_pointer) {
   if (auto it = types_pointer_to_ir_pointer_lookup_.find(types_pointer);
       it != types_pointer_to_ir_pointer_lookup_.end()) {
     return it->second;
@@ -104,7 +104,7 @@ const ir_ext::SharedPointer* TypesBuilder::BuildTypeForPointer(types::Pointer* t
   return ir_pointer;
 }
 
-const ir_ext::SharedPointer* TypesBuilder::BuildStrongPointerToType(
+const ir_ext::SharedPointer* TypeBuilder::BuildStrongPointerToType(
     types::Type* types_element_type) {
   const ir::Type* ir_element_type = BuildType(types_element_type);
   if (auto it = ir_element_type_to_ir_strong_pointer_lookup_.find(ir_element_type);
@@ -118,7 +118,7 @@ const ir_ext::SharedPointer* TypesBuilder::BuildStrongPointerToType(
   return ir_pointer;
 }
 
-const ir_ext::SharedPointer* TypesBuilder::BuildWeakPointerToType(types::Type* types_element_type) {
+const ir_ext::SharedPointer* TypeBuilder::BuildWeakPointerToType(types::Type* types_element_type) {
   const ir::Type* ir_element_type = BuildType(types_element_type);
   if (auto it = ir_element_type_to_ir_weak_pointer_lookup_.find(ir_element_type);
       it != ir_element_type_to_ir_weak_pointer_lookup_.end()) {
@@ -131,7 +131,7 @@ const ir_ext::SharedPointer* TypesBuilder::BuildWeakPointerToType(types::Type* t
   return ir_pointer;
 }
 
-const ir_ext::Array* TypesBuilder::BuildTypeForContainer(types::Container* types_container) {
+const ir_ext::Array* TypeBuilder::BuildTypeForContainer(types::Container* types_container) {
   if (auto it = types_container_to_ir_array_lookup_.find(types_container);
       it != types_container_to_ir_array_lookup_.end()) {
     return it->second;
@@ -152,7 +152,7 @@ const ir_ext::Array* TypesBuilder::BuildTypeForContainer(types::Container* types
   return ir_array;
 }
 
-const ir_ext::Struct* TypesBuilder::BuildTypeForStruct(types::Struct* types_struct) {
+const ir_ext::Struct* TypeBuilder::BuildTypeForStruct(types::Struct* types_struct) {
   if (types_struct->is_empty()) {
     return ir_empty_struct_;
   }
@@ -174,7 +174,7 @@ const ir_ext::Struct* TypesBuilder::BuildTypeForStruct(types::Struct* types_stru
   return ir_struct;
 }
 
-const ir_ext::Interface* TypesBuilder::BuildTypeForInterface(types::Interface* types_interface) {
+const ir_ext::Interface* TypeBuilder::BuildTypeForInterface(types::Interface* types_interface) {
   if (types_interface->is_empty()) {
     return ir_empty_interface_;
   }

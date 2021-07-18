@@ -1,13 +1,13 @@
 //
-//  types_builder.h
+//  type_builder.h
 //  Katara
 //
 //  Created by Arne Philipeit on 5/23/21.
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef lang_ir_builder_types_builder_h
-#define lang_ir_builder_types_builder_h
+#ifndef lang_ir_builder_type_builder_h
+#define lang_ir_builder_type_builder_h
 
 #include <memory>
 
@@ -27,9 +27,9 @@
 namespace lang {
 namespace ir_builder {
 
-class TypesBuilder {
+class TypeBuilder {
  public:
-  TypesBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program);
+  TypeBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program);
 
   const ir_ext::Struct* ir_empty_struct() const { return ir_empty_struct_; }
   const ir_ext::Interface* ir_empty_interface() const { return ir_empty_interface_; }
@@ -67,4 +67,4 @@ class TypesBuilder {
 }  // namespace ir_builder
 }  // namespace lang
 
-#endif /* lang_ir_builder_types_builder_h */
+#endif /* lang_ir_builder_type_builder_h */
