@@ -41,8 +41,9 @@ enum class InstrKind {
   kCall,
   kReturn,
 
-  kLangRefCountMalloc,
-  kLangRefCountUpdate,
+  kLangMakeSharedPointer,
+  kLangCopySharedPointer,
+  kLangDeleteSharedPointer,
   kLangStringIndex,
   kLangStringConcat,
 };

@@ -30,12 +30,12 @@ class Context {
   ir::Block* block() const { return block_; }
   void set_block(ir::Block* block) { block_ = block; }
 
-  const std::unordered_map<types::Variable*, std::shared_ptr<ir::Value>>& var_addresses() const {
+  const std::unordered_map<types::Variable*, std::shared_ptr<ir::Computed>>& var_addresses() const {
     return var_addresses_;
   }
 
-  std::shared_ptr<ir::Value> LookupAddressOfVar(types::Variable* var) const;
-  void AddAddressOfVar(types::Variable* var, std::shared_ptr<ir::Value> address);
+  std::shared_ptr<ir::Computed> LookupAddressOfVar(types::Variable* var) const;
+  void AddAddressOfVar(types::Variable* var, std::shared_ptr<ir::Computed> address);
 
   Context SubContextForBlock(ir::Block* block) const { return Context(func_, block, this); }
 
@@ -46,7 +46,7 @@ class Context {
   const Context* parent_ctx_;
   ir::Func* func_;
   ir::Block* block_;
-  std::unordered_map<types::Variable*, std::shared_ptr<ir::Value>> var_addresses_;
+  std::unordered_map<types::Variable*, std::shared_ptr<ir::Computed>> var_addresses_;
 };
 
 }  // namespace ir_builder

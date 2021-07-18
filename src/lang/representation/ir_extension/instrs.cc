@@ -11,21 +11,65 @@
 namespace lang {
 namespace ir_ext {
 
-bool IsRefCountUpdateString(std::string op_str) { return op_str == "rcinc" || op_str == "rcdec"; }
-
-RefCountUpdate ToRefCountUpdate(std::string op_str) {
-  if (op_str == "rcinc") return RefCountUpdate::kInc;
-  if (op_str == "rcdec") return RefCountUpdate::kDec;
-  throw "unexpected ref count update";
+MakeSharedPointerInstr::MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result)
+    : ir::Computation(result) {
+  if (result->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+    throw "internal error: attempted to create make shared pointer instr with non-shared pointer "
+          "result";
+  } else if (!pointer_type()->is_strong()) {
+    throw "internal error: attempted to create make shared pointer instr with weak shared pointer "
+          "result";
+  }
 }
 
-std::string ToString(RefCountUpdate op) {
-  switch (op) {
-    case RefCountUpdate::kInc:
-      return "rcinc";
-    case RefCountUpdate::kDec:
-      return "rcdec";
+const ir_ext::SharedPointer* MakeSharedPointerInstr::pointer_type() const {
+  return static_cast<const ir_ext::SharedPointer*>(result()->type());
+}
+
+CopySharedPointerInstr::CopySharedPointerInstr(std::shared_ptr<ir::Computed> result,
+                                               std::shared_ptr<ir::Computed> copied_shared_pointer,
+                                               std::shared_ptr<ir::Value> pointer_offset)
+    : ir::Computation(result),
+      copied_shared_pointer_(copied_shared_pointer),
+      pointer_offset_(pointer_offset) {
+  if (result->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+    throw "internal error: attempted to create copy shared pointer instr with non-shared pointer "
+                "result";
   }
+  if (copied_shared_pointer->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+    throw "internal error: attempted to create copy shared pointer instr with non-shared pointer "
+                "argument";
+  }
+}
+
+const ir_ext::SharedPointer* CopySharedPointerInstr::copied_pointer_type() const {
+  return static_cast<const ir_ext::SharedPointer*>(copied_shared_pointer_->type());
+}
+
+const ir_ext::SharedPointer* CopySharedPointerInstr::copy_pointer_type() const {
+  return static_cast<const ir_ext::SharedPointer*>(result()->type());
+}
+
+std::string CopySharedPointerInstr::ToString() const {
+  return result()->ToStringWithType() + " = copy_shared " + copied_shared_pointer_->ToString() +
+         ", " + pointer_offset_->ToString();
+}
+
+DeleteSharedPointerInstr::DeleteSharedPointerInstr(
+    std::shared_ptr<ir::Computed> deleted_shared_pointer)
+    : deleted_shared_pointer_(deleted_shared_pointer) {
+  if (deleted_shared_pointer->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+    throw "internal error: attempted to create delete shared pointer instr with non-shared pointer "
+          "argument";
+  }
+}
+
+const ir_ext::SharedPointer* DeleteSharedPointerInstr::pointer_type() const {
+  return static_cast<const ir_ext::SharedPointer*>(deleted_shared_pointer_->type());
+}
+
+std::string DeleteSharedPointerInstr::ToString() const {
+  return "delete_shared " + deleted_shared_pointer_->ToString();
 }
 
 std::string StringIndexInstr::ToString() const {

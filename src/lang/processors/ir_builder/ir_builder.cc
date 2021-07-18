@@ -109,14 +109,14 @@ void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
 void IRBuilder::BuildPrologForFunc(types::Func* types_func, Context& ctx) {
   types::Signature* signature = static_cast<types::Signature*>(types_func->type());
   for (types::Variable* param : signature->parameters()->variables()) {
-    AddVarMalloc(param, ctx);
+    BuildVarDecl(param, ctx);
   }
   if (signature->results() != nullptr) {
     for (types::Variable* result : signature->results()->variables()) {
       if (result->name().empty()) {
         continue;
       }
-      AddVarMalloc(result, ctx);
+      BuildVarDecl(result, ctx);
     }
   }
   // TODO: handle args and results
@@ -125,7 +125,7 @@ void IRBuilder::BuildPrologForFunc(types::Func* types_func, Context& ctx) {
 void IRBuilder::BuildEpilogForFunc(Context& ctx) {
   for (const Context* c = &ctx; c != nullptr; c = c->parent_ctx()) {
     for (auto [var, address] : c->var_addresses()) {
-      AddVarRelease(var, ctx);
+      BuildVarDeletion(var, ctx);
     }
   }
 }
@@ -198,7 +198,7 @@ void IRBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, Context& ctx) {
       if (var == nullptr) {
         continue;
       }
-      AddVarMalloc(var, ctx);
+      BuildVarDecl(var, ctx);
     }
 
     if (value_spec->values().empty()) {
@@ -239,11 +239,11 @@ void IRBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx) {
       if (var == nullptr) {
         continue;
       }
-      AddVarMalloc(var, ctx);
+      BuildVarDecl(var, ctx);
     }
   }
 
-  std::vector<std::shared_ptr<ir::Value>> lhs_addresses =
+  std::vector<std::shared_ptr<ir::Computed>> lhs_addresses =
       BuildAddressesOfExprs(assign_stmt->lhs(), ctx);
   std::vector<std::shared_ptr<ir::Value>> rhs_values = BuildValuesOfExprs(assign_stmt->rhs(), ctx);
 
@@ -382,38 +382,29 @@ void IRBuilder::BuildBranchStmt(ast::BranchStmt* branch_stmt, Context& ctx) {
   // TODO: implement
 }
 
-void IRBuilder::AddVarMalloc(types::Variable* var, Context& ctx) {
-  const ir::Type* element_type = types_builder_.BuildType(var->type());
+void IRBuilder::BuildVarDecl(types::Variable* var, Context& ctx) {
   const ir_ext::SharedPointer* pointer_type = types_builder_.BuildStrongPointerToType(var->type());
   std::shared_ptr<ir::Computed> result =
       std::make_shared<ir::Computed>(pointer_type, ctx.func()->next_computed_number());
-  ctx.block()->instrs().push_back(
-      std::make_unique<ir_ext::RefCountMallocInstr>(result, element_type));
+  ctx.block()->instrs().push_back(std::make_unique<ir_ext::MakeSharedPointerInstr>(result));
   ctx.AddAddressOfVar(var, result);
 }
 
-void IRBuilder::AddVarRetain(types::Variable* var, Context& ctx) {
-  std::shared_ptr<ir::Value> address = ctx.LookupAddressOfVar(var);
-  ctx.block()->instrs().push_back(
-      std::make_unique<ir_ext::RefCountUpdateInstr>(ir_ext::RefCountUpdate::kInc, address));
+void IRBuilder::BuildVarDeletion(types::Variable* var, Context& ctx) {
+  std::shared_ptr<ir::Computed> address = ctx.LookupAddressOfVar(var);
+  ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
 }
 
-void IRBuilder::AddVarRelease(types::Variable* var, Context& ctx) {
-  std::shared_ptr<ir::Value> address = ctx.LookupAddressOfVar(var);
-  ctx.block()->instrs().push_back(
-      std::make_unique<ir_ext::RefCountUpdateInstr>(ir_ext::RefCountUpdate::kDec, address));
-}
-
-std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildAddressesOfExprs(
+std::vector<std::shared_ptr<ir::Computed>> IRBuilder::BuildAddressesOfExprs(
     std::vector<ast::Expr*> exprs, Context& ctx) {
-  std::vector<std::shared_ptr<ir::Value>> addresses;
+  std::vector<std::shared_ptr<ir::Computed>> addresses;
   for (auto expr : exprs) {
     addresses.push_back(BuildAddressOfExpr(expr, ctx));
   }
   return addresses;
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfExpr(ast::Expr* expr, Context& ctx) {
+std::shared_ptr<ir::Computed> IRBuilder::BuildAddressOfExpr(ast::Expr* expr, Context& ctx) {
   switch (expr->node_kind()) {
     case ast::NodeKind::kUnaryExpr:
       return BuildAddressOfUnaryMemoryExpr(static_cast<ast::UnaryExpr*>(expr), ctx);
@@ -516,10 +507,10 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIntUnaryExpr(ast::UnaryExpr* e
   return result;
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfUnaryMemoryExpr(ast::UnaryExpr* expr,
-                                                                    Context& ctx) {
+std::shared_ptr<ir::Computed> IRBuilder::BuildAddressOfUnaryMemoryExpr(ast::UnaryExpr* expr,
+                                                                       Context& ctx) {
   if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
-    return BuildValuesOfExpr(expr->x(), ctx).front();
+    return std::static_pointer_cast<ir::Computed>(BuildValuesOfExpr(expr->x(), ctx).front());
   } else {
     throw "internal error: unexpected unary memory expr";
   }
@@ -530,29 +521,19 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr
   ast::Expr* x = expr->x();
   if (expr->op() == tokens::kAnd) {
     if (x->node_kind() == ast::NodeKind::kCompositeLit) {
-      types::Struct* types_struct_type =
-          static_cast<types::Struct*>(type_info_->ExprInfoOf(x)->type());
-      const ir_ext::Struct* ir_struct_type = types_builder_.BuildTypeForStruct(types_struct_type);
       const ir_ext::SharedPointer* ir_struct_pointer_type =
-          types_builder_.BuildStrongPointerToType(types_struct_type);
+          types_builder_.BuildStrongPointerToType(type_info_->ExprInfoOf(x)->type());
       std::shared_ptr<ir::Value> struct_value =
           BuildValueOfCompositeLit(static_cast<ast::CompositeLit*>(x), ctx);
       std::shared_ptr<ir::Computed> struct_address = std::make_shared<ir::Computed>(
           ir_struct_pointer_type, ctx.func()->next_computed_number());
       ctx.block()->instrs().push_back(
-          std::make_unique<ir_ext::RefCountMallocInstr>(struct_address, ir_struct_type));
+          std::make_unique<ir_ext::MakeSharedPointerInstr>(struct_address));
       ctx.block()->instrs().push_back(
           std::make_unique<ir::StoreInstr>(struct_address, struct_value));
       return struct_address;
     } else {
-      std::shared_ptr<ir::Value> address = BuildAddressOfExpr(x, ctx);
-      if (address->type()->type_kind() == ir::TypeKind::kLangSharedPointer &&
-          static_cast<const ir_ext::SharedPointer*>(address->type())->is_strong()) {
-        ctx.block()->instrs().push_back(
-            std::make_unique<ir_ext::RefCountUpdateInstr>(ir_ext::RefCountUpdate::kInc, address));
-        // TODO: decrease ref count when variable exceeds scope
-      }
-      return address;
+      return BuildAddressOfExpr(x, ctx);
     }
 
   } else if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
@@ -793,7 +774,7 @@ std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildValuesOfSelectionExpr(
   return {};
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfStructFieldSelectionExpr(
+std::shared_ptr<ir::Computed> IRBuilder::BuildAddressOfStructFieldSelectionExpr(
     ast::SelectionExpr* expr, Context& ctx) {
   // TODO: implement
   return {};
@@ -811,7 +792,8 @@ std::vector<std::shared_ptr<ir::Value>> IRBuilder::BuildValuesOfTypeAssertExpr(
   return {};
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfIndexExpr(ast::IndexExpr* expr, Context& ctx) {
+std::shared_ptr<ir::Computed> IRBuilder::BuildAddressOfIndexExpr(ast::IndexExpr* expr,
+                                                                 Context& ctx) {
   types::Type* types_element_type = type_info_->ExprInfoOf(expr)->type();
   const ir_ext::SharedPointer* ir_pointer_type =
       types_builder_.BuildWeakPointerToType(types_element_type);
@@ -872,11 +854,10 @@ std::shared_ptr<ir::Value> IRBuilder::BuildValueOfBasicLit(ast::BasicLit* basic_
   return ToIRConstant(type_info_->ExprInfoOf(basic_lit).value().constant_value());
 }
 
-std::shared_ptr<ir::Value> IRBuilder::BuildAddressOfIdent(ast::Ident* ident, Context& ctx) {
+std::shared_ptr<ir::Computed> IRBuilder::BuildAddressOfIdent(ast::Ident* ident, Context& ctx) {
   types::Object* object = type_info_->ObjectOf(ident);
   types::Variable* var = static_cast<types::Variable*>(object);
-  std::shared_ptr<ir::Value> address = ctx.LookupAddressOfVar(var);
-  return address;
+  return ctx.LookupAddressOfVar(var);
 }
 
 std::shared_ptr<ir::Value> IRBuilder::BuildValueOfIdent(ast::Ident* ident, Context& ctx) {

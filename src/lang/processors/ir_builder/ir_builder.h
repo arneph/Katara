@@ -69,13 +69,12 @@ class IRBuilder {
   void BuildForStmt(ast::ForStmt* for_stmt, Context& ctx);
   void BuildBranchStmt(ast::BranchStmt* branch_stmt, Context& ctx);
 
-  void AddVarMalloc(types::Variable* var, Context& ctx);
-  void AddVarRetain(types::Variable* var, Context& ctx);
-  void AddVarRelease(types::Variable* var, Context& ctx);
+  void BuildVarDecl(types::Variable* var, Context& ctx);
+  void BuildVarDeletion(types::Variable* var, Context& ctx);
 
-  std::vector<std::shared_ptr<ir::Value>> BuildAddressesOfExprs(std::vector<ast::Expr*> exprs,
-                                                                Context& ctx);
-  std::shared_ptr<ir::Value> BuildAddressOfExpr(ast::Expr* expr, Context& ctx);
+  std::vector<std::shared_ptr<ir::Computed>> BuildAddressesOfExprs(std::vector<ast::Expr*> exprs,
+                                                                   Context& ctx);
+  std::shared_ptr<ir::Computed> BuildAddressOfExpr(ast::Expr* expr, Context& ctx);
 
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfExprs(std::vector<ast::Expr*> exprs,
                                                              Context& ctx);
@@ -85,7 +84,7 @@ class IRBuilder {
   std::shared_ptr<ir::Value> BuildValueOfBoolNotExpr(ast::UnaryExpr* expr, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfIntUnaryExpr(ast::UnaryExpr* expr, common::Int::UnaryOp op,
                                                       Context& ctx);
-  std::shared_ptr<ir::Value> BuildAddressOfUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Computed> BuildAddressOfUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfUnaryMemoryExpr(ast::UnaryExpr* expr, Context& ctx);
 
   std::shared_ptr<ir::Value> BuildValueOfBinaryExpr(ast::BinaryExpr* expr, Context& ctx);
@@ -106,22 +105,22 @@ class IRBuilder {
 
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfSelectionExpr(ast::SelectionExpr* expr,
                                                                      Context& ctx);
-  std::shared_ptr<ir::Value> BuildAddressOfStructFieldSelectionExpr(ast::SelectionExpr* expr,
-                                                                    Context& ctx);
+  std::shared_ptr<ir::Computed> BuildAddressOfStructFieldSelectionExpr(ast::SelectionExpr* expr,
+                                                                       Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfStructFieldSelectionExpr(ast::SelectionExpr* expr,
                                                                   Context& ctx);
 
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfTypeAssertExpr(ast::TypeAssertExpr* expr,
                                                                       Context& ctx);
 
-  std::shared_ptr<ir::Value> BuildAddressOfIndexExpr(ast::IndexExpr* expr, Context& ctx);
+  std::shared_ptr<ir::Computed> BuildAddressOfIndexExpr(ast::IndexExpr* expr, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfIndexExpr(ast::IndexExpr* expr, Context& ctx);
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfCallExpr(ast::CallExpr* expr, Context& ctx);
   std::shared_ptr<ir::Constant> BuildValueOfFuncLit(ast::FuncLit* expr, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfCompositeLit(ast::CompositeLit* expr, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfBasicLit(ast::BasicLit* basic_lit);
 
-  std::shared_ptr<ir::Value> BuildAddressOfIdent(ast::Ident* ident, Context& ctx);
+  std::shared_ptr<ir::Computed> BuildAddressOfIdent(ast::Ident* ident, Context& ctx);
   std::shared_ptr<ir::Value> BuildValueOfIdent(ast::Ident* ident, Context& ctx);
 
   std::shared_ptr<ir::Value> BuildValueOfConversion(std::shared_ptr<ir::Value> value,

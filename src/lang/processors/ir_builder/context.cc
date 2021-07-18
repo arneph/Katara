@@ -11,7 +11,7 @@
 namespace lang {
 namespace ir_builder {
 
-std::shared_ptr<ir::Value> Context::LookupAddressOfVar(types::Variable* var) const {
+std::shared_ptr<ir::Computed> Context::LookupAddressOfVar(types::Variable* var) const {
   if (var_addresses_.contains(var)) {
     return var_addresses_.at(var);
   } else if (parent_ctx_ != nullptr) {
@@ -21,7 +21,7 @@ std::shared_ptr<ir::Value> Context::LookupAddressOfVar(types::Variable* var) con
   }
 }
 
-void Context::AddAddressOfVar(types::Variable* var, std::shared_ptr<ir::Value> address) {
+void Context::AddAddressOfVar(types::Variable* var, std::shared_ptr<ir::Computed> address) {
   if (LookupAddressOfVar(var) != nullptr) {
     throw "attempted to a dd var address twice";
   }

@@ -19,52 +19,63 @@
 namespace lang {
 namespace ir_ext {
 
-class RefCountMallocInstr : public ir::Computation {
+class MakeSharedPointerInstr : public ir::Computation {
  public:
-  RefCountMallocInstr(std::shared_ptr<ir::Computed> result, const ir::Type* type)
-      : ir::Computation(result), type_(type) {}
+  MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result);
 
-  const ir::Type* type() const { return type_; }
+  const ir::Type* element_type() const { return pointer_type()->element(); }
+  const ir_ext::SharedPointer* pointer_type() const;
 
   std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {}; }
 
-  ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangRefCountMalloc; }
-  std::string ToString() const override {
-    return result()->ToStringWithType() + " = rcmalloc:" + type_->ToString();
+  ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangMakeSharedPointer; }
+  std::string ToString() const override { return result()->ToStringWithType() + " = make_shared"; }
+};
+
+class CopySharedPointerInstr : public ir::Computation {
+ public:
+  CopySharedPointerInstr(std::shared_ptr<ir::Computed> result,
+                         std::shared_ptr<ir::Computed> copied_shared_pointer,
+                         std::shared_ptr<ir::Value> pointer_offset);
+
+  const ir::Type* element_type() const { return copied_pointer_type()->element(); }
+  const ir_ext::SharedPointer* copied_pointer_type() const;
+  const ir_ext::SharedPointer* copy_pointer_type() const;
+
+  std::shared_ptr<ir::Computed> copied_shared_pointer() const { return copied_shared_pointer_; }
+  std::shared_ptr<ir::Value> underlying_pointer_offset() const { return pointer_offset_; }
+
+  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override {
+    return {copied_shared_pointer_, pointer_offset_};
   }
 
+  ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangCopySharedPointer; }
+  std::string ToString() const override;
+
  private:
-  const ir::Type* type_;
+  std::shared_ptr<ir::Computed> copied_shared_pointer_;
+  std::shared_ptr<ir::Value> pointer_offset_;
 };
 
-enum class RefCountUpdate {
-  kInc,
-  kDec,
-};
-
-extern bool IsRefCountUpdateString(std::string op_str);
-extern RefCountUpdate ToRefCountUpdate(std::string op_str);
-extern std::string ToString(RefCountUpdate op);
-
-class RefCountUpdateInstr : public ir::Instr {
+class DeleteSharedPointerInstr : public ir::Instr {
  public:
-  RefCountUpdateInstr(RefCountUpdate op, std::shared_ptr<ir::Value> pointer)
-      : op_(op), pointer_(pointer) {}
+  DeleteSharedPointerInstr(std::shared_ptr<ir::Computed> deleted_shared_pointer);
 
-  RefCountUpdate operation() const { return op_; }
-  std::shared_ptr<ir::Value> pointer() const { return pointer_; }
+  const ir::Type* element_type() const { return pointer_type()->element(); }
+  const ir_ext::SharedPointer* pointer_type() const;
+
+  std::shared_ptr<ir::Computed> deleted_shared_pointer() const { return deleted_shared_pointer_; }
 
   std::vector<std::shared_ptr<ir::Computed>> DefinedValues() const override { return {}; }
-  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {pointer_}; }
-
-  ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangRefCountUpdate; }
-  std::string ToString() const override {
-    return ir_ext::ToString(op_) + " " + pointer_->ToString();
+  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override {
+    return {deleted_shared_pointer_};
   }
 
+  ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangDeleteSharedPointer; }
+  std::string ToString() const override;
+
  private:
-  RefCountUpdate op_;
-  std::shared_ptr<ir::Value> pointer_;
+  std::shared_ptr<ir::Computed> deleted_shared_pointer_;
 };
 
 class StringIndexInstr : public ir::Computation {
