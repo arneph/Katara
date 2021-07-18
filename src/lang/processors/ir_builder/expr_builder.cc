@@ -382,6 +382,85 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfComparison(tokens::Token op,
                                                                types::Type* x_type,
                                                                std::shared_ptr<ir::Value> y,
                                                                types::Type* y_type, Context& ctx) {
+  types::InfoBuilder info_builder = type_info_->builder();
+  types::Type* x_underlying_type = types::UnderlyingOf(x_type, info_builder);
+  types::Type* y_underlying_type = types::UnderlyingOf(y_type, info_builder);
+  if (x_underlying_type->type_kind() == types::TypeKind::kBasic &&
+      y_underlying_type->type_kind() == types::TypeKind::kBasic) {
+    types::Basic* x_basic_type = static_cast<types::Basic*>(x_underlying_type);
+    if (x_basic_type->info() & types::Basic::kIsBoolean) {
+      return BuildValueOfBoolComparison(op, x, y, ctx);
+    } else if (x_basic_type->info() & types::Basic::kIsInteger) {
+      return BuildValueOfIntComparison(op, x, y, ctx);
+    } else if (x_basic_type->info() & types::Basic::kIsString) {
+      return BuildValueOfStringComparison(op, x, y, ctx);
+    }
+  }
+
+  // TODO: implement
+  return {std::make_shared<ir::BoolConstant>(true)};
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBoolComparison(tokens::Token tok,
+                                                                   std::shared_ptr<ir::Value> x,
+                                                                   std::shared_ptr<ir::Value> y,
+                                                                   Context& ctx) {
+  common::Bool::BinaryOp op = [tok]() {
+    switch (tok) {
+      case tokens::kEql:
+        return common::Bool::BinaryOp::kEq;
+      case tokens::kNeq:
+        return common::Bool::BinaryOp::kNeq;
+      default:
+        throw "internal error: unexpected bool comparison op";
+    }
+  }();
+  std::shared_ptr<ir::Computed> result =
+      std::make_shared<ir::Computed>(&ir::kBool, ctx.func()->next_computed_number());
+  ctx.block()->instrs().push_back(std::make_unique<ir::BoolBinaryInstr>(result, op, x, y));
+  return result;
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntComparison(tokens::Token tok,
+                                                                  std::shared_ptr<ir::Value> x,
+                                                                  std::shared_ptr<ir::Value> y,
+                                                                  Context& ctx) {
+  common::Int::CompareOp op = [tok]() {
+    switch (tok) {
+      case tokens::kEql:
+        return common::Int::CompareOp::kEq;
+      case tokens::kNeq:
+        return common::Int::CompareOp::kNeq;
+      case tokens::kLss:
+        return common::Int::CompareOp::kLss;
+      case tokens::kLeq:
+        return common::Int::CompareOp::kLeq;
+      case tokens::kGeq:
+        return common::Int::CompareOp::kGeq;
+      case tokens::kGtr:
+        return common::Int::CompareOp::kGtr;
+      default:
+        throw "internal error: unexpected int comparison op";
+    }
+  }();
+  common::IntType x_type = static_cast<const ir::IntType*>(x->type())->int_type();
+  common::IntType y_type = static_cast<const ir::IntType*>(y->type())->int_type();
+  if (common::BitSizeOf(x_type) > common::BitSizeOf(y_type) || common::IsUnsigned(x_type)) {
+    y = BuildValueOfConversion(y, ir::IntTypeFor(x_type), ctx);
+  } else {
+    x = BuildValueOfConversion(x, ir::IntTypeFor(y_type), ctx);
+  }
+
+  std::shared_ptr<ir::Computed> result =
+      std::make_shared<ir::Computed>(&ir::kBool, ctx.func()->next_computed_number());
+  ctx.block()->instrs().push_back(std::make_unique<ir::IntCompareInstr>(result, op, x, y));
+  return result;
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfStringComparison(tokens::Token op,
+                                                                     std::shared_ptr<ir::Value> x,
+                                                                     std::shared_ptr<ir::Value> y,
+                                                                     Context& ctx) {
   // TODO: implement
   return {std::make_shared<ir::BoolConstant>(true)};
 }

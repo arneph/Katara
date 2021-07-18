@@ -65,6 +65,16 @@ class ExprBuilder {
                                                     types::Type* x_type,
                                                     std::shared_ptr<ir::Value> y,
                                                     types::Type* y_type, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfBoolComparison(tokens::Token op,
+                                                        std::shared_ptr<ir::Value> x,
+                                                        std::shared_ptr<ir::Value> y, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfIntComparison(tokens::Token op,
+                                                       std::shared_ptr<ir::Value> x,
+                                                       std::shared_ptr<ir::Value> y, Context& ctx);
+  std::shared_ptr<ir::Value> BuildValueOfStringComparison(tokens::Token op,
+                                                          std::shared_ptr<ir::Value> x,
+                                                          std::shared_ptr<ir::Value> y,
+                                                          Context& ctx);
 
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfSelectionExpr(ast::SelectionExpr* expr,
                                                                      Context& ctx);
