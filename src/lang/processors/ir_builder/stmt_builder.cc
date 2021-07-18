@@ -161,7 +161,26 @@ void StmtBuilder::BuildExprStmt(ast::ExprStmt* expr_stmt, Context& ctx) {
 }
 
 void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, Context& ctx) {
-  // TODO: implement
+  const ir::IntType* type = static_cast<const ir::IntType*>(
+      type_builder_.BuildType(type_info_->TypeOf(inc_dec_stmt->x())));
+  std::shared_ptr<ir::Computed> address = expr_builder_.BuildAddressOfExpr(inc_dec_stmt->x(), ctx);
+  auto old_value = std::make_shared<ir::Computed>(type, ctx.func()->next_computed_number());
+  auto new_value = std::make_shared<ir::Computed>(type, ctx.func()->next_computed_number());
+  auto one = std::make_shared<ir::IntConstant>(common::Int(1).ConvertTo(type->int_type()));
+  common::Int::BinaryOp op = [inc_dec_stmt]() {
+    switch (inc_dec_stmt->tok()) {
+      case tokens::kInc:
+        return common::Int::BinaryOp::kAdd;
+      case tokens::kDec:
+        return common::Int::BinaryOp::kSub;
+      default:
+        throw "internal error: unexpected inc dec stmt token";
+    }
+  }();
+  ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(old_value, address));
+  ctx.block()->instrs().push_back(
+      std::make_unique<ir::IntBinaryInstr>(new_value, op, old_value, one));
+  ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, new_value));
 }
 
 void StmtBuilder::BuildReturnStmt(ast::ReturnStmt* return_stmt, Context& ctx) {
