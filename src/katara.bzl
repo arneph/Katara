@@ -1,5 +1,5 @@
 COPTS = [
-    "-std=c++2a",
+    "-std=c++20",
     "-Wall",
     "-Wextra",
     "-Wshadow",
