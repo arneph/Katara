@@ -10,6 +10,8 @@
 
 #include <sstream>
 
+#include "src/common/logging.h"
+
 namespace ir {
 
 Func* Program::GetFunc(func_num_t fnum) const {
@@ -22,7 +24,7 @@ Func* Program::AddFunc(func_num_t fnum) {
   if (fnum == kNoFuncNum) {
     fnum = func_count_++;
   } else if (fnum < func_count_ && HasFunc(fnum)) {
-    throw "tried to add function with used function number";
+    common::fail("tried to add function with used function number");
   } else {
     func_count_ = std::max(func_count_, fnum + 1);
   }
@@ -35,7 +37,7 @@ Func* Program::AddFunc(func_num_t fnum) {
 void Program::RemoveFunc(func_num_t fnum) {
   auto it = std::find_if(funcs_.begin(), funcs_.end(),
                          [=](auto& func) { return func->number() == fnum; });
-  if (it == funcs_.end()) throw "tried to remove func not owned by program";
+  if (it == funcs_.end()) common::fail("tried to remove func not owned by program");
   if (entry_func_num_ == fnum) entry_func_num_ = kNoFuncNum;
   funcs_.erase(it);
 }

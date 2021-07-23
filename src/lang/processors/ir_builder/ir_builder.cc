@@ -10,6 +10,8 @@
 
 #include <optional>
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace ir_builder {
 
@@ -47,7 +49,7 @@ void IRBuilder::PrepareDeclsInFile(ast::File* file) {
     } else if (decl->node_kind() == ast::NodeKind::kFuncDecl) {
       PrepareFuncDecl(static_cast<ast::FuncDecl*>(decl));
     } else {
-      throw "not implemented";
+      common::fail("not implemented");
     }
   }
 }
@@ -74,7 +76,7 @@ void IRBuilder::BuildDeclsInFile(ast::File* file) {
     } else if (decl->node_kind() == ast::NodeKind::kFuncDecl) {
       BuildFuncDecl(static_cast<ast::FuncDecl*>(decl));
     } else {
-      throw "internal error: unexpected decl";
+      common::fail("unexpected decl");
     }
   }
 }

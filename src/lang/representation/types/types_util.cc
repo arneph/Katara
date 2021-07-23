@@ -8,6 +8,7 @@
 
 #include "types_util.h"
 
+#include "src/common/logging.h"
 #include "src/lang/representation/types/objects.h"
 
 namespace lang {
@@ -37,7 +38,7 @@ Basic::Kind ConvertIfUntyped(Basic::Kind basic_kind) {
     case Basic::kUntypedString:
       return Basic::kString;
     default:
-      throw "internal error: unexpected basic kind";
+      common::fail("unexpected basic kind");
   }
 }
 
@@ -45,7 +46,7 @@ constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_b
   switch (value.kind()) {
     case constants::Value::Kind::kBool:
       if (typed_basic_kind != Basic::kBool) {
-        throw "internal erorr: attempted to convert bool constant to non-bool";
+        common::fail("internal erorr: attempted to convert bool constant to non-bool");
       }
       return value;
     case constants::Value::Kind::kInt: {
@@ -70,14 +71,14 @@ constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_b
           case Basic::kUint:
             return common::IntType::kU64;
           default:
-            throw "internal erorr: attempted to convert int constant to non-int";
+            common::fail("internal erorr: attempted to convert int constant to non-int");
         }
       }();
       return constants::Value(value.AsInt().ConvertTo(int_type));
     }
     case constants::Value::Kind::kString:
       if (typed_basic_kind != Basic::kString) {
-        throw "internal erorr: attempted to convert string constant to non-string";
+        common::fail("internal erorr: attempted to convert string constant to non-string");
       }
       return value;
   }
@@ -121,7 +122,7 @@ Type* UnderlyingOf(Type* type, InfoBuilder& info_builder) {
       return underlying;
     }
     default:
-      throw "unexpected lang type";
+      common::fail("unexpected lang type");
   }
 }
 
@@ -138,7 +139,7 @@ Type* ResolveAlias(Type* type) {
 
 bool IsIdentical(Type* a, Type* b) {
   if (a == nullptr || b == nullptr) {
-    throw "internal error: attempted to determine identity with nullptr types";
+    common::fail("attempted to determine identity with nullptr types");
   }
   a = ResolveAlias(a);
   b = ResolveAlias(b);
@@ -177,7 +178,7 @@ bool IsIdentical(Type* a, Type* b) {
     case TypeKind::kInterface:
       return IsIdentical(static_cast<Interface*>(a), static_cast<Interface*>(b));
     default:
-      throw "unexpected lang type";
+      common::fail("unexpected lang type");
   }
 }
 
@@ -201,14 +202,14 @@ bool IsIdentical(Slice* a, Slice* b) { return IsIdentical(a->element_type(), b->
 
 bool IsIdentical(TypeParameter* a, TypeParameter* b) {
   if (a == nullptr || b == nullptr) {
-    throw "internal error: attempted to determine identity with nullptr type parameters";
+    common::fail("attempted to determine identity with nullptr type parameters");
   }
   return a == b;
 }
 
 bool IsIdentical(NamedType* a, NamedType* b) {
   if (a == nullptr || b == nullptr) {
-    throw "internal error: attempted to determine identity with nullptr named types";
+    common::fail("attempted to determine identity with nullptr named types");
   }
   return a == b;
 }
@@ -350,7 +351,7 @@ bool IsAssignableTo(Type* src, Type* dst, InfoBuilder& info_builder) {
       case Basic::kUntypedString:
         return basic_dst->info() & Basic::kIsString;
       default:
-        throw "internal error: unexpected untyped basic kind";
+        common::fail("unexpected untyped basic kind");
     }
   }
   return false;

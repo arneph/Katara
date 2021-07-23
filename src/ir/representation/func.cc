@@ -10,6 +10,8 @@
 
 #include <sstream>
 
+#include "src/common/logging.h"
+
 namespace ir {
 
 std::string Func::ReferenceString() const {
@@ -28,7 +30,7 @@ Block* Func::AddBlock(block_num_t bnum) {
   if (bnum == kNoBlockNum) {
     bnum = block_count_++;
   } else if (bnum < block_count_ && HasBlock(bnum)) {
-    throw "tried to add block with used block number";
+    common::fail("tried to add block with used block number");
   } else {
     block_count_ = std::max(block_count_, bnum + 1);
   }
@@ -40,7 +42,7 @@ Block* Func::AddBlock(block_num_t bnum) {
 void Func::RemoveBlock(block_num_t bnum) {
   auto it = std::find_if(blocks_.begin(), blocks_.end(),
                          [=](auto& block) { return block->number() == bnum; });
-  if (it == blocks_.end()) throw "tried to remove block not owned by function";
+  if (it == blocks_.end()) common::fail("tried to remove block not owned by function");
   if (entry_block_num_ == bnum) entry_block_num_ = kNoBlockNum;
   Block* block = it->get();
   for (block_num_t parent_num : block->parents()) {
@@ -58,8 +60,8 @@ void Func::RemoveBlock(block_num_t bnum) {
 void Func::AddControlFlow(block_num_t parent_num, block_num_t child_num) {
   Block* parent = GetBlock(parent_num);
   Block* child = GetBlock(child_num);
-  if (parent == nullptr) throw "tried to add control flow to unknown block";
-  if (child == nullptr) throw "tried to add control flow to unknown block";
+  if (parent == nullptr) common::fail("tried to add control flow to unknown block");
+  if (child == nullptr) common::fail("tried to add control flow to unknown block");
   parent->children_.insert(child_num);
   child->parents_.insert(parent_num);
   dominator_tree_ok_ = false;
@@ -68,8 +70,8 @@ void Func::AddControlFlow(block_num_t parent_num, block_num_t child_num) {
 void Func::RemoveControlFlow(block_num_t parent_num, block_num_t child_num) {
   Block* parent = GetBlock(parent_num);
   Block* child = GetBlock(child_num);
-  if (parent == nullptr) throw "tried to remove control flow from nullptr block";
-  if (child == nullptr) throw "tried to remove control flow from nullptr block";
+  if (parent == nullptr) common::fail("tried to remove control flow from nullptr block");
+  if (child == nullptr) common::fail("tried to remove control flow from nullptr block");
   parent->children_.erase(child_num);
   child->parents_.erase(parent_num);
   dominator_tree_ok_ = false;
@@ -159,7 +161,7 @@ Func::DomTreeContext::DomTreeContext(int64_t block_count) {
 void Func::UpdateDominatorTree() const {
   if (dominator_tree_ok_) return;
   if (entry_block_num_ == kNoBlockNum) {
-    throw "can not determine dominator tree without entry block";
+    common::fail("can not determine dominator tree without entry block");
   }
 
   DomTreeContext ctx(block_count_);

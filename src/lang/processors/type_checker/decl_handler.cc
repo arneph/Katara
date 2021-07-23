@@ -8,6 +8,7 @@
 
 #include "decl_handler.h"
 
+#include "src/common/logging.h"
 #include "src/lang/processors/type_checker/type_resolver.h"
 #include "src/lang/representation/types/types_util.h"
 
@@ -113,7 +114,7 @@ bool DeclHandler::ProcessConstant(types::Constant* constant, ast::Expr* type_exp
       case types::Basic::kUntypedString:
         value = constants::Value("");
       default:
-        throw "internal error: unexpected basic type";
+        common::fail("unexpected basic type");
     }
 
   } else {
@@ -301,7 +302,7 @@ types::Variable* DeclHandler::EvaluateExprReceiver(ast::ExprReceiver* expr_recei
       case tokens::kRem:
         kind = types::Pointer::Kind::kWeak;
       default:
-        throw "unexpected pointer type";
+        common::fail("unexpected pointer type");
     }
 
     types::Pointer* pointer_type = info_builder().CreatePointer(kind, type);

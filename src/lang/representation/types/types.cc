@@ -8,6 +8,7 @@
 
 #include "types.h"
 
+#include "src/common/logging.h"
 #include "src/lang/representation/types/objects.h"
 
 namespace lang {
@@ -62,7 +63,7 @@ std::string Basic::ToString(StringRep) const {
       return "nil (untyped)";
 
     default:
-      throw "unexpected Basic::Kind";
+      common::fail("unexpected Basic::Kind");
   }
 }
 
@@ -92,10 +93,10 @@ std::string TypeParameter::ToString(StringRep rep) const {
 
 Type* NamedType::InstanceForTypeArgs(const std::vector<Type*>& type_args) const {
   if (type_parameters_.empty()) {
-    throw "internal error: attempted to access instance of named type without type parameters";
+    common::fail("attempted to access instance of named type without type parameters");
   }
   if (type_args.size() != type_parameters_.size()) {
-    throw "internal error: unexpected number of type arguments for instance";
+    common::fail("unexpected number of type arguments for instance");
   }
   for (auto& [instance_type_args, instance] : instances_) {
     bool match = true;
@@ -116,7 +117,7 @@ Type* NamedType::InstanceForTypeArgs(const std::vector<Type*>& type_args) const 
 
 void NamedType::SetInstanceForTypeArgs(const std::vector<Type*>& type_args, Type* instance) {
   if (InstanceForTypeArgs(type_args) != nullptr) {
-    throw "internal error: attempted to set named type instance for type arguments twice";
+    common::fail("attempted to set named type instance for type arguments twice");
   }
   instances_.push_back({type_args, instance});
 }

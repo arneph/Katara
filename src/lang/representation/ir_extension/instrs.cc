@@ -8,17 +8,21 @@
 
 #include "instrs.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace ir_ext {
 
 MakeSharedPointerInstr::MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result)
     : ir::Computation(result) {
   if (result->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
-    throw "internal error: attempted to create make shared pointer instr with non-shared pointer "
-          "result";
+    common::fail(
+        "attempted to create make shared pointer instr with non-shared pointer "
+        "result");
   } else if (!pointer_type()->is_strong()) {
-    throw "internal error: attempted to create make shared pointer instr with weak shared pointer "
-          "result";
+    common::fail(
+        "attempted to create make shared pointer instr with weak shared pointer "
+        "result");
   }
 }
 
@@ -33,12 +37,14 @@ CopySharedPointerInstr::CopySharedPointerInstr(std::shared_ptr<ir::Computed> res
       copied_shared_pointer_(copied_shared_pointer),
       pointer_offset_(pointer_offset) {
   if (result->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
-    throw "internal error: attempted to create copy shared pointer instr with non-shared pointer "
-                "result";
+    common::fail(
+        "attempted to create copy shared pointer instr with non-shared pointer "
+        "result");
   }
   if (copied_shared_pointer->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
-    throw "internal error: attempted to create copy shared pointer instr with non-shared pointer "
-                "argument";
+    common::fail(
+        "attempted to create copy shared pointer instr with non-shared pointer "
+        "argument");
   }
 }
 
@@ -59,8 +65,9 @@ DeleteSharedPointerInstr::DeleteSharedPointerInstr(
     std::shared_ptr<ir::Computed> deleted_shared_pointer)
     : deleted_shared_pointer_(deleted_shared_pointer) {
   if (deleted_shared_pointer->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
-    throw "internal error: attempted to create delete shared pointer instr with non-shared pointer "
-          "argument";
+    common::fail(
+        "attempted to create delete shared pointer instr with non-shared pointer "
+        "argument");
   }
 }
 

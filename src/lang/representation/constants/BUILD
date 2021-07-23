@@ -11,6 +11,7 @@ cc_library(
     ],
     deps = [
         "//src/common:atomics",
+        "//src/common:logging",
         "//src/lang/representation/tokens",
     ],
 )

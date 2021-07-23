@@ -8,6 +8,8 @@
 
 #include "ir_translator.h"
 
+#include "src/common/logging.h"
+
 namespace x86_64_ir_translator {
 
 std::unique_ptr<x86_64::Program> IRTranslator::Translate(
@@ -130,7 +132,7 @@ void IRTranslator::TranslateInstr(ir::Instr* ir_instr, ir::Func* ir_func,
       TranslateReturnInstr(static_cast<ir::ReturnInstr*>(ir_instr), ir_func, x86_64_block_builder);
       break;
     default:
-      throw "unexpected instr";
+      common::fail("unexpected instr");
   }
 }
 
@@ -197,7 +199,7 @@ void IRTranslator::TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compar
       case common::Bool::BinaryOp::kNeq:
         return x86_64::InstrCond::kNotEqual;
       default:
-        throw "internal error: unexpected bool compare op";
+        common::fail("unexpected bool compare op");
     }
   }(ir_bool_compare_instr->operation());
 
@@ -248,7 +250,7 @@ void IRTranslator::TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_in
       x86_64_block_builder.AddInstr<x86_64::Or>(x86_64_operand_a, x86_64_operand_b);
       break;
     default:
-      throw "unexpexted bool logic op";
+      common::fail("unexpexted bool logic op");
   }
 
   if (requires_tmp_reg) {
@@ -275,7 +277,7 @@ void IRTranslator::TranslateIntUnaryInstr(ir::IntUnaryInstr* ir_int_unary_instr,
       x86_64_block_builder.AddInstr<x86_64::Neg>(x86_64_operand);
       break;
     default:
-      throw "unexpected unary int op";
+      common::fail("unexpected unary int op");
   }
 }
 
@@ -375,7 +377,7 @@ void IRTranslator::TranslateIntBinaryInstr(ir::IntBinaryInstr* ir_int_binary_ins
       TranslateIntSimpleALInstr(ir_int_binary_instr, ir_func, x86_64_block_builder);
       break;
     case common::Int::BinaryOp::kAndNot:
-      throw "internal error: int andnot operation was not decomposed into separate instrs";
+      common::fail("int andnot operation was not decomposed into separate instrs");
     case common::Int::BinaryOp::kMul:
       TranslateIntMulInstr(ir_int_binary_instr, ir_func, x86_64_block_builder);
       break;
@@ -455,7 +457,7 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
       case ir::TypeKind::kFunc:
         return x86_64::Size::k64;
       default:
-        throw "internal error: unexpected int binary operand type";
+        common::fail("unexpected int binary operand type");
     }
   }();
   x86_64::Reg x86_64_tmp_reg(x86_64_size, 0);
@@ -488,7 +490,7 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
       break;
 
     default:
-      throw "internal error: unexpexted simple int binary operation";
+      common::fail("unexpexted simple int binary operation");
   }
 
   if (requires_tmp_reg) {
@@ -553,7 +555,7 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
       case ir::TypeKind::kFunc:
         return x86_64::Size::k64;
       default:
-        throw "internal error: unexpected int binary operand type";
+        common::fail("unexpected int binary operand type");
     }
   }();
   x86_64::Reg x86_64_tmp_reg(x86_64_size, 0);
@@ -629,7 +631,7 @@ void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr,
       return;
     }
     case ir::Value::Kind::kInherited:
-      throw "unexpected condition value kind";
+      common::fail("unexpected condition value kind");
   }
 }
 
@@ -695,12 +697,12 @@ x86_64::Operand IRTranslator::TranslateValue(ir::Value* value, ir::Func* ir_func
         case ir::TypeKind::kFunc:
           return TranslateFuncConstant(static_cast<ir::FuncConstant*>(value));
         default:
-          throw "unsupported constant kind";
+          common::fail("unsupported constant kind");
       }
     case ir::Value::Kind::kComputed:
       return TranslateComputed(static_cast<ir::Computed*>(value), ir_func);
     default:
-      throw "unsupported value kind";
+      common::fail("unsupported value kind");
   }
 }
 

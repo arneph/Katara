@@ -8,6 +8,7 @@
 
 #include "stmt_handler.h"
 
+#include "src/common/logging.h"
 #include "src/lang/processors/type_checker/type_resolver.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/types/types_util.h"
@@ -75,7 +76,7 @@ void StmtHandler::CheckStmt(ast::Stmt* stmt, Context ctx) {
       CheckBranchStmt(static_cast<ast::BranchStmt*>(stmt), ctx);
       break;
     default:
-      throw "internal error: unexpected stmt type";
+      common::fail("unexpected stmt type");
   }
 }
 
@@ -138,7 +139,7 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt* stmt) {
       }
       break;
     default:
-      throw "internal error: unexpected lang::ast::GenDecl";
+      common::fail("unexpected lang::ast::GenDecl");
   }
 }
 
@@ -474,7 +475,7 @@ void StmtHandler::CheckBranchStmt(ast::BranchStmt* branch_stmt, Context ctx) {
       }
       return;
     default:
-      throw "internal error: unexpected branch statement";
+      common::fail("unexpected branch statement");
   }
 }
 

@@ -11,10 +11,12 @@
 #include <iomanip>
 #include <sstream>
 
+#include "src/common/logging.h"
+
 namespace x86_64 {
 
 Reg::Reg(Size size, uint8_t reg) : size_(size), reg_(reg) {
-  if (reg > 15) throw "register out of bounds: " + std::to_string(reg);
+  if (reg > 15) common::fail("register out of bounds: " + std::to_string(reg));
 }
 
 bool Reg::RequiresREX() const {
@@ -28,7 +30,7 @@ bool Reg::RequiresREX() const {
     case Size::k64:
       return reg_ >= 8;
     default:
-      throw "unexpected reg size";
+      common::fail("unexpected reg size");
   }
   return reg_ >= 8;
 }
@@ -95,7 +97,7 @@ std::string Reg::ToString() const {
         case 0xF:
           return "r15b";
         default:
-          throw "unknown register index";
+          common::fail("unknown register index");
       }
     case Size::k16:
       switch (reg_) {
@@ -132,7 +134,7 @@ std::string Reg::ToString() const {
         case 0xF:
           return "r15w";
         default:
-          throw "unknown register index";
+          common::fail("unknown register index");
       }
     case Size::k32:
       switch (reg_) {
@@ -169,7 +171,7 @@ std::string Reg::ToString() const {
         case 0xF:
           return "r15d";
         default:
-          throw "unknown register index";
+          common::fail("unknown register index");
       }
     case Size::k64:
       switch (reg_) {
@@ -206,10 +208,10 @@ std::string Reg::ToString() const {
         case 0xF:
           return "r15";
         default:
-          throw "unknown register index";
+          common::fail("unknown register index");
       }
     default:
-      throw "unknown register size";
+      common::fail("unknown register size");
   }
 }
 
@@ -230,12 +232,12 @@ Mem::Mem(Size size, uint8_t index_reg, Scale scale, int32_t disp)
 Mem::Mem(Size size, uint8_t base_reg, uint8_t index_reg, Scale scale, int32_t disp)
     : size_(size), base_reg_(base_reg), index_reg_(index_reg), scale_(scale), disp_(disp) {
   if (base_reg > 15 && base_reg != 0xff) {
-    throw "register out of bounds: " + std::to_string(base_reg);
+    common::fail("register out of bounds: " + std::to_string(base_reg));
   }
   if (index_reg > 15 && index_reg != 0xff) {
-    throw "register out bounds: " + std::to_string(index_reg);
+    common::fail("register out bounds: " + std::to_string(index_reg));
   } else if (index_reg == 4) {
-    throw "index register can't be stack pointer";
+    common::fail("index register can't be stack pointer");
   }
 }
 
@@ -373,7 +375,7 @@ bool Imm::RequiresREX() const {
     case Size::k64:
       return true;
     default:
-      throw "unexpected imm size";
+      common::fail("unexpected imm size");
   }
 }
 
@@ -388,7 +390,7 @@ uint8_t Imm::RequiredImmSize() const {
     case Size::k64:
       return 8;
     default:
-      throw "unexpected imm size";
+      common::fail("unexpected imm size");
   }
 }
 
@@ -418,7 +420,7 @@ void Imm::EncodeInImm(uint8_t* imm) const {
       imm[7] = static_cast<uint8_t>(value_ >> uint64_t{56}) & 0xff;
       return;
     default:
-      throw "unexpected imm size";
+      common::fail("unexpected imm size");
   }
 }
 
@@ -439,7 +441,7 @@ std::string Imm::ToString() const {
       ss << std::setw(16) << value_;
       break;
     default:
-      throw "unexpected imm size";
+      common::fail("unexpected imm size");
   }
   return ss.str();
 }
@@ -469,17 +471,17 @@ Size Operand::size() const {
     case Kind::kImm:
       return data_.imm.size();
     default:
-      throw "size operation not supported for operand kind";
+      common::fail("size operation not supported for operand kind");
   }
 }
 
 Reg Operand::reg() const {
-  if (kind_ != Kind::kReg) throw "attempted to obtain reg from non-reg operand";
+  if (kind_ != Kind::kReg) common::fail("attempted to obtain reg from non-reg operand");
   return data_.reg;
 }
 
 Mem Operand::mem() const {
-  if (kind_ != Kind::kMem) throw "attempted to obtain mem from non-mem operand";
+  if (kind_ != Kind::kMem) common::fail("attempted to obtain mem from non-mem operand");
   return data_.mem;
 }
 
@@ -489,22 +491,24 @@ RM Operand::rm() const {
   } else if (kind_ == Kind::kMem) {
     return RM(data_.mem);
   } else {
-    throw "attempted to obtain rm from non-rm operand";
+    common::fail("attempted to obtain rm from non-rm operand");
   }
 }
 
 Imm Operand::imm() const {
-  if (kind_ != Kind::kImm) throw "attempted to obtain imm from non-imm operand";
+  if (kind_ != Kind::kImm) common::fail("attempted to obtain imm from non-imm operand");
   return data_.imm;
 }
 
 FuncRef Operand::func_ref() const {
-  if (kind_ != Kind::kFuncRef) throw "attempted to obtain func-ref from non-func-ref operand";
+  if (kind_ != Kind::kFuncRef)
+    common::fail("attempted to obtain func-ref from non-func-ref operand");
   return data_.func_ref;
 }
 
 BlockRef Operand::block_ref() const {
-  if (kind_ != Kind::kBlockRef) throw "attempted to obtain block-ref from non-block-ref operand";
+  if (kind_ != Kind::kBlockRef)
+    common::fail("attempted to obtain block-ref from non-block-ref operand");
   return data_.block_ref;
 }
 
@@ -520,7 +524,7 @@ bool Operand::RequiresREX() const {
     case Kind::kFuncRef:
       return false;
     default:
-      throw "unexpected operand kind";
+      common::fail("unexpected operand kind");
   }
 }
 
@@ -537,7 +541,7 @@ std::string Operand::ToString() const {
     case Kind::kFuncRef:
       return data_.func_ref.ToString();
     default:
-      throw "unexpected operand kind";
+      common::fail("unexpected operand kind");
   }
 }
 
@@ -568,7 +572,7 @@ bool RM::RequiresSIB() const {
     case Kind::kMem:
       return data_.mem.RequiresSIB();
     default:
-      throw "unexpected rm kind";
+      common::fail("unexpected rm kind");
   }
 }
 
@@ -579,7 +583,7 @@ uint8_t RM::RequiredDispSize() const {
     case Kind::kMem:
       return data_.mem.RequiredDispSize();
     default:
-      throw "unexpected rm kind";
+      common::fail("unexpected rm kind");
   }
 }
 
@@ -592,7 +596,7 @@ void RM::EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint
       data_.mem.EncodeInModRM_SIB_Disp(rex, modrm, sib, disp);
       break;
     default:
-      throw "unexpected rm kind";
+      common::fail("unexpected rm kind");
   }
 }
 

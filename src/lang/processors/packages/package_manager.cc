@@ -8,6 +8,7 @@
 
 #include "package_manager.h"
 
+#include "src/common/logging.h"
 #include "src/lang/processors/parser/parser.h"
 #include "src/lang/processors/type_checker/type_checker.h"
 #include "src/lang/representation/ast/ast_util.h"
@@ -52,7 +53,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path) {
 
 Package* PackageManager::LoadMainPackage(std::string main_dir) {
   if (GetMainPackage() != nullptr) {
-    throw "internal error: tried to load main package twice";
+    common::fail("tried to load main package twice");
   }
   if (!src_loader_->CanReadAbsoluteDir(main_dir)) {
     issue_tracker_.Add(issues::kMainPackageDirectoryUnreadable, std::vector<pos::pos_t>{},
@@ -78,7 +79,7 @@ std::string DirFromPath(std::string file_path) {
 
 Package* PackageManager::LoadMainPackage(std::vector<std::string> main_file_paths) {
   if (GetMainPackage() != nullptr) {
-    throw "internal error: tried to load main package twice";
+    common::fail("tried to load main package twice");
   }
   std::string main_dir;
   for (size_t i = 0; i < main_file_paths.size(); i++) {
@@ -120,7 +121,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path, std::string pkg_dir, 
       insert_ok) {
     pkg = it->second.get();
   } else {
-    throw "internal error: tried to load package twice";
+    common::fail("tried to load package twice");
   }
   pkg->name_ = NameFromPath(pkg_path);
   pkg->path_ = pkg_path;

@@ -8,6 +8,8 @@
 
 #include "expr_builder.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace ir_builder {
 
@@ -31,7 +33,7 @@ std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfExpr(ast::Expr* expr, C
     case ast::NodeKind::kIdent:
       return BuildAddressOfIdent(static_cast<ast::Ident*>(expr), ctx);
     default:
-      throw "internal error: unexpected addressable expr";
+      common::fail("unexpected addressable expr");
   }
 }
 
@@ -78,7 +80,7 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfExpr(ast::Expr
     case ast::NodeKind::kIdent:
       return {BuildValueOfIdent(static_cast<ast::Ident*>(expr), ctx)};
     default:
-      throw "internal error: unexpected expr";
+      common::fail("unexpected expr");
   }
 }
 
@@ -97,7 +99,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryExpr(ast::UnaryExpr* ex
     case tokens::kNot:
       return BuildValueOfBoolNotExpr(expr, ctx);
     default:
-      throw "internal error: unexpected unary op";
+      common::fail("unexpected unary op");
   }
 }
 
@@ -129,7 +131,7 @@ std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfUnaryMemoryExpr(ast::Un
   if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
     return std::static_pointer_cast<ir::Computed>(BuildValuesOfExpr(expr->x(), ctx).front());
   } else {
-    throw "internal error: unexpected unary memory expr";
+    common::fail("unexpected unary memory expr");
   }
 }
 
@@ -162,7 +164,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryEx
     ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(value, address));
     return value;
   } else {
-    throw "internal error: unexpected unary memory expr";
+    common::fail("unexpected unary memory expr");
   }
 }
 
@@ -200,7 +202,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryExpr(ast::BinaryExpr* 
     case tokens::kLOr:
       return BuildValueOfBinaryLogicExpr(expr, ctx);
     default:
-      throw "internal error: unexpected binary op";
+      common::fail("unexpected binary op");
   }
 }
 
@@ -274,7 +276,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryE
       short_circuit_value = std::make_shared<ir::BoolConstant>(true);
       break;
     default:
-      throw "internal error: unexpected logic op";
+      common::fail("unexpected logic op");
   }
 
   x_exit_block->instrs().push_back(
@@ -412,7 +414,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBoolComparison(tokens::Token
       case tokens::kNeq:
         return common::Bool::BinaryOp::kNeq;
       default:
-        throw "internal error: unexpected bool comparison op";
+        common::fail("unexpected bool comparison op");
     }
   }();
   std::shared_ptr<ir::Computed> result =
@@ -440,7 +442,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntComparison(tokens::Token 
       case tokens::kGtr:
         return common::Int::CompareOp::kGtr;
       default:
-        throw "internal error: unexpected int comparison op";
+        common::fail("unexpected int comparison op");
     }
   }();
   common::IntType x_type = static_cast<const ir::IntType*>(x->type())->int_type();
@@ -526,7 +528,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIndexExpr(ast::IndexExpr* ex
     // TODO: actually add load instr
     return value;
   } else {
-    throw "internal error: unexpected accessed value in index expr";
+    common::fail("unexpected accessed value in index expr");
   }
 }
 
@@ -583,7 +585,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIdent(ast::Ident* ident, Con
       return std::make_shared<ir::PointerConstant>(0);
     }
     default:
-      throw "internal error: unexpected object kind";
+      common::fail("unexpected object kind");
   }
 }
 
@@ -599,7 +601,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfConversion(std::shared_ptr<i
     ctx.block()->instrs().push_back(std::make_unique<ir::Conversion>(result, value));
     return result;
   } else {
-    throw "internal error: unexpected conversion";
+    common::fail("unexpected conversion");
   }
 }
 
@@ -636,13 +638,13 @@ std::shared_ptr<ir::Value> ExprBuilder::DefaultIRValueForType(types::Type* types
         case ir::TypeKind::kLangString:
           return std::make_shared<ir_ext::StringConstant>("");
         default:
-          throw "internal error: unexpected ir type for basic type";
+          common::fail("unexpected ir type for basic type");
       }
     }
     default:
       return std::make_shared<ir_ext::StringConstant>("");
       // TODO: implement more types
-      // throw "internal error: unexpected lang type";
+      // common::fail("unexpected lang type");
   }
 }
 

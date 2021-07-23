@@ -8,6 +8,8 @@
 
 #include "context.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace ir_builder {
 
@@ -23,7 +25,7 @@ std::shared_ptr<ir::Computed> Context::LookupAddressOfVar(types::Variable* var) 
 
 void Context::AddAddressOfVar(types::Variable* var, std::shared_ptr<ir::Computed> address) {
   if (LookupAddressOfVar(var) != nullptr) {
-    throw "attempted to a dd var address twice";
+    common::fail("attempted to a dd var address twice");
   }
   var_addresses_.insert({var, address});
 }

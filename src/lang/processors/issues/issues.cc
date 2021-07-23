@@ -8,6 +8,8 @@
 
 #include "issues.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace issues {
 
@@ -24,7 +26,7 @@ Origin OriginOf(IssueKind issue_kind) {
              issue_kind < IssueKind::kPackageManagerEnd) {
     return Origin::kPackageManager;
   } else {
-    throw "internal error: unexpected issue kind";
+    common::fail("unexpected issue kind");
   }
 }
 
@@ -44,7 +46,7 @@ Severity SeverityOf(IssueKind issue_kind) {
              issue_kind < IssueKind::kPackageManagerErrorEnd) {
     return Severity::kError;
   } else {
-    throw "internal error: unexpected issue kind";
+    common::fail("unexpected issue kind");
   }
 }
 

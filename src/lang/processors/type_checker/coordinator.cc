@@ -8,6 +8,7 @@
 
 #include "coordinator.h"
 
+#include "src/common/logging.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/tokens/tokens.h"
 
@@ -74,7 +75,7 @@ void Coordinator::FindActions() {
               FindActionsForVarDecl(gen_decl);
               break;
             default:
-              throw "internal error: unexpected lang::ast::GenDecl";
+              common::fail("unexpected lang::ast::GenDecl");
           }
           break;
         }
@@ -82,7 +83,7 @@ void Coordinator::FindActions() {
           FindActionsForFuncDecl(static_cast<ast::FuncDecl*>(decl));
           break;
         default:
-          throw "internal error: unexpected lang::ast::Decl";
+          common::fail("unexpected lang::ast::Decl");
       }
     }
   }

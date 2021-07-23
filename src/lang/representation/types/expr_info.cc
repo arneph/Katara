@@ -8,13 +8,15 @@
 
 #include "expr_info.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace types {
 
 ExprInfo::ExprInfo(Kind kind, Type* type, std::optional<constants::Value> constant_value)
     : kind_(kind), type_(type), constant_value_(constant_value) {
   if (kind == Kind::kConstant && !constant_value.has_value()) {
-    throw "internal error: attempted to create ExprInfo for constant without constant value";
+    common::fail("attempted to create ExprInfo for constant without constant value");
   }
 }
 

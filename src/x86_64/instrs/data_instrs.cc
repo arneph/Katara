@@ -8,6 +8,7 @@
 
 #include "data_instrs.h"
 
+#include "src/common/logging.h"
 #include "src/x86_64/instrs/instr_encoder.h"
 
 namespace x86_64 {
@@ -18,39 +19,39 @@ Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
       if (dst.size() == src.size() || (dst.size() == Size::k64 && src.size() == Size::k32)) {
         mov_type_ = MovType::kREG_IMM;
       } else {
-        throw "unsupported reg size, imm size combination";
+        common::fail("unsupported reg size, imm size combination");
       }
 
     } else if (src.is_reg() || src.is_mem()) {
-      if (dst.size() != src.size()) throw "unsupported reg size, reg/mem size combination";
+      if (dst.size() != src.size()) common::fail("unsupported reg size, reg/mem size combination");
       mov_type_ = MovType::kREG_RM;
 
     } else {
-      throw "unexpected src operand kind";
+      common::fail("unexpected src operand kind");
     }
 
   } else if (dst.is_mem()) {
     if (src.is_imm()) {
-      if (src.size() == Size::k64) throw "unsupported imm size";
+      if (src.size() == Size::k64) common::fail("unsupported imm size");
       if (dst.size() == src.size() || (dst.size() == Size::k64 && src.size() == Size::k32)) {
         mov_type_ = MovType::kRM_IMM;
       } else {
-        throw "unsupported mem size, imm size combination";
+        common::fail("unsupported mem size, imm size combination");
       }
 
     } else if (src.is_reg()) {
-      if (dst.size() != src.size()) throw "unsupported mem size, reg size combination";
+      if (dst.size() != src.size()) common::fail("unsupported mem size, reg size combination");
       mov_type_ = MovType::kRM_REG;
 
     } else if (src.is_mem()) {
-      throw "unsupported mov: mem to mem";
+      common::fail("unsupported mov: mem to mem");
 
     } else {
-      throw "unexpected src operand kind";
+      common::fail("unexpected src operand kind");
     }
 
   } else {
-    throw "unexpected dst operand kind";
+    common::fail("unexpected dst operand kind");
   }
 }
 
@@ -99,7 +100,7 @@ int8_t Mov::Encode(Linker&, common::data code) const {
 std::string Mov::ToString() const { return "mov " + dst_.ToString() + "," + src_.ToString(); }
 
 Xchg::Xchg(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
-  if (rm.size() != reg.size()) throw "incompatible rm size, reg size combination";
+  if (rm.size() != reg.size()) common::fail("incompatible rm size, reg size combination");
 }
 
 bool Xchg::CanUseRegAShortcut() const {
@@ -133,11 +134,11 @@ int8_t Xchg::Encode(Linker&, common::data code) const {
 std::string Xchg::ToString() const { return "xchg " + op_a_.ToString() + "," + op_b_.ToString(); }
 
 Push::Push(RM rm) : op_(rm) {
-  if (rm.size() != Size::k16 && rm.size() != Size::k64) throw "unsupported rm size";
+  if (rm.size() != Size::k16 && rm.size() != Size::k64) common::fail("unsupported rm size");
 }
 
 Push::Push(Imm imm) : op_(imm) {
-  if (imm.size() == Size::k64) throw "unsupported imm size";
+  if (imm.size() == Size::k64) common::fail("unsupported imm size");
 }
 
 int8_t Push::Encode(Linker&, common::data code) const {
@@ -169,7 +170,7 @@ int8_t Push::Encode(Linker&, common::data code) const {
 std::string Push::ToString() const { return "push " + op_.ToString(); }
 
 Pop::Pop(RM rm) : op_(rm) {
-  if (rm.size() != Size::k16 && rm.size() != Size::k64) throw "unsupported rm size";
+  if (rm.size() != Size::k16 && rm.size() != Size::k64) common::fail("unsupported rm size");
 }
 
 int8_t Pop::Encode(Linker&, common::data code) const {
@@ -197,7 +198,7 @@ int8_t Pop::Encode(Linker&, common::data code) const {
 std::string Pop::ToString() const { return "pop " + op_.ToString(); }
 
 Setcc::Setcc(InstrCond cond, RM op) : cond_(cond), op_(op) {
-  if (op.size() != k8) throw "unsupported rm size";
+  if (op.size() != k8) common::fail("unsupported rm size");
 }
 
 int8_t Setcc::Encode(Linker&, common::data code) const {

@@ -8,6 +8,7 @@
 
 #include "al_instrs.h"
 
+#include "src/common/logging.h"
 #include "src/x86_64/instrs/instr_encoder.h"
 
 namespace x86_64 {
@@ -29,7 +30,7 @@ int8_t UnaryALInstr::Encode(Linker&, common::data code) const {
 
 BinaryALInstr::BinaryALInstr(RM op_a, Operand op_b) : op_a_(op_a), op_b_(op_b) {
   if (op_b.is_imm()) {
-    if (op_b.size() == Size::k64) throw "unsupported imm size";
+    if (op_b.size() == Size::k64) common::fail("unsupported imm size");
 
     if (op_a.size() == op_b.size() || (op_a.size() == Size::k64 && op_b.size() == Size::k32)) {
       op_encoding_ = OpEncoding::kRM_IMM;
@@ -38,11 +39,11 @@ BinaryALInstr::BinaryALInstr(RM op_a, Operand op_b) : op_a_(op_a), op_b_(op_b) {
       op_encoding_ = OpEncoding::kRM_IMM8;
 
     } else {
-      throw "unsupported rm size, imm size combination";
+      common::fail("unsupported rm size, imm size combination");
     }
 
   } else {
-    if (op_a.size() != op_b.size()) throw "unsupported rm size, reg size combination";
+    if (op_a.size() != op_b.size()) common::fail("unsupported rm size, reg size combination");
 
     if (op_a.is_reg()) {
       op_encoding_ = OpEncoding::kREG_RM;
@@ -52,13 +53,13 @@ BinaryALInstr::BinaryALInstr(RM op_a, Operand op_b) : op_a_(op_a), op_b_(op_b) {
         op_encoding_ = OpEncoding::kRM_REG;
 
       } else if (op_b.is_mem()) {
-        throw "unsupported binary al instr: mem with mem";
+        common::fail("unsupported binary al instr: mem with mem");
       } else {
-        throw "unexpected operand kind";
+        common::fail("unexpected operand kind");
       }
 
     } else {
-      throw "unexpected operand kind";
+      common::fail("unexpected operand kind");
     }
   }
 }
@@ -299,22 +300,22 @@ Imul::Imul(RM rm) : factor_a_(Size::k8, 0), factor_b_(rm), factor_c_(0) {
 }
 
 Imul::Imul(Reg reg, RM rm) : factor_a_(reg), factor_b_(rm), factor_c_(0) {
-  if (reg.size() != rm.size()) throw "unsupported reg size, rm size combination";
-  if (reg.size() == Size::k8) throw "unsupported reg or rm size";
+  if (reg.size() != rm.size()) common::fail("unsupported reg size, rm size combination");
+  if (reg.size() == Size::k8) common::fail("unsupported reg or rm size");
 
   imul_type_ = ImulType::kReg_RM;
 }
 
 Imul::Imul(Reg reg, RM rm, Imm imm) : factor_a_(reg), factor_b_(rm), factor_c_(imm) {
-  if (reg.size() != rm.size()) throw "unsupported reg size, rm size combination";
-  if (reg.size() == Size::k8) throw "unsupported reg and rm size";
-  if (imm.size() == Size::k64) throw "unsupported imm size";
+  if (reg.size() != rm.size()) common::fail("unsupported reg size, rm size combination");
+  if (reg.size() == Size::k8) common::fail("unsupported reg and rm size");
+  if (imm.size() == Size::k64) common::fail("unsupported imm size");
   if (reg.size() == imm.size() || (reg.size() == Size::k64 && imm.size() == Size::k32)) {
     imul_type_ = ImulType::kReg_RM_IMM;
   } else if (imm.size() == Size::k8) {
     imul_type_ = ImulType::kReg_RM_IMM8;
   } else {
-    throw "unsupported reg size, rm size, imm size combination";
+    common::fail("unsupported reg size, rm size, imm size combination");
   }
 }
 
@@ -401,7 +402,7 @@ std::string Idiv::ToString() const { return "idiv " + divisor_.ToString(); }
 
 SignExtendRegA::SignExtendRegA(Size op_size) : op_size_(op_size) {
   if (op_size != Size::k16 && op_size != Size::k32 && op_size != Size::k64) {
-    throw "expected op_size 16, 32, or 64";
+    common::fail("expected op_size 16, 32, or 64");
   }
 }
 
@@ -425,7 +426,7 @@ std::string SignExtendRegA::ToString() const {
 }
 SignExtendRegAD::SignExtendRegAD(Size op_size) : op_size_(op_size) {
   if (op_size != Size::k16 && op_size != Size::k32 && op_size != Size::k64) {
-    throw "expected op_size 16, 32, or 64";
+    common::fail("expected op_size 16, 32, or 64");
   }
 }
 
@@ -449,16 +450,16 @@ std::string SignExtendRegAD::ToString() const {
 }
 
 Test::Test(RM rm, Imm imm) : op_a_(rm), op_b_(imm) {
-  if (imm.size() == Size::k64) throw "unsupported imm size";
+  if (imm.size() == Size::k64) common::fail("unsupported imm size");
   if (rm.size() == imm.size() || (rm.size() == Size::k64 && imm.size() == Size::k32)) {
     test_type_ = TestType::kRM_IMM;
   } else {
-    throw "unsupported rm size, imm size combination";
+    common::fail("unsupported rm size, imm size combination");
   }
 }
 
 Test::Test(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
-  if (rm.size() != reg.size()) throw "unsupported rm size, reg size combination";
+  if (rm.size() != reg.size()) common::fail("unsupported rm size, reg size combination");
 
   test_type_ = TestType::kRM_REG;
 }

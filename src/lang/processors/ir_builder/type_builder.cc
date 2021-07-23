@@ -8,6 +8,8 @@
 
 #include "type_builder.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace ir_builder {
 
@@ -41,7 +43,7 @@ const ir::Type* TypeBuilder::BuildType(types::Type* types_type) {
       return BuildType(underlying);
     }
     case types::TypeKind::kTuple:
-      throw "internal error: attempted to convert types tuple to IR type";
+      common::fail("attempted to convert types tuple to IR type");
     case types::TypeKind::kSignature:
       return &ir::kFunc;
     case types::TypeKind::kStruct:
@@ -82,7 +84,7 @@ const ir::Type* TypeBuilder::BuildTypeForBasic(types::Basic* types_basic) {
     case types::Basic::kUntypedNil:
       return &ir::kPointer;
     default:
-      throw "internal error: unexpected basic type";
+      common::fail("unexpected basic type");
   }
 }
 

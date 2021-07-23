@@ -10,6 +10,7 @@
 
 #include <iomanip>
 
+#include "src/common/logging.h"
 #include "src/x86_64/instrs/instr_encoder.h"
 
 namespace x86_64 {
@@ -31,7 +32,7 @@ std::string Jcc::ToString() const { return "j" + to_suffix_string(cond_) + " " +
 
 Jmp::Jmp(RM rm) : dst_(rm) {
   if (rm.size() != Size::k64) {
-    throw "unsupported rm size";
+    common::fail("unsupported rm size");
   }
 }
 
@@ -68,7 +69,7 @@ int8_t Jmp::Encode(Linker& linker, common::data code) const {
 std::string Jmp::ToString() const { return "jmp " + dst_.ToString(); }
 
 Call::Call(RM rm) : callee_(rm) {
-  if (rm.size() != Size::k64) throw "unsupported rm size";
+  if (rm.size() != Size::k64) common::fail("unsupported rm size");
 }
 
 int8_t Call::Encode(Linker& linker, common::data code) const {

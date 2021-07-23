@@ -11,6 +11,7 @@
 #include <optional>
 
 #include "src/common/atomics.h"
+#include "src/common/logging.h"
 #include "src/lang/processors/type_checker/type_resolver.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/types/types_util.h"
@@ -115,7 +116,7 @@ bool ExprHandler::CheckExpr(ast::Expr* expr, Context ctx) {
           }
           return CheckUnaryAddressExpr(static_cast<ast::UnaryExpr*>(expr));
         default:
-          throw "internal error: unexpected unary op";
+          common::fail("unexpected unary op");
       }
     case ast::NodeKind::kBinaryExpr:
       switch (static_cast<ast::BinaryExpr*>(expr)->op()) {
@@ -136,7 +137,7 @@ bool ExprHandler::CheckExpr(ast::Expr* expr, Context ctx) {
         case tokens::kLOr:
           return CheckBinaryLogicExpr(static_cast<ast::BinaryExpr*>(expr), ctx);
         default:
-          throw "internal error: unexpected binary op";
+          common::fail("unexpected binary op");
       }
     case ast::NodeKind::kCompareExpr:
       return CheckCompareExpr(static_cast<ast::CompareExpr*>(expr), ctx);
@@ -180,7 +181,7 @@ bool ExprHandler::CheckExpr(ast::Expr* expr, Context ctx) {
     case ast::NodeKind::kIdent:
       return CheckIdent(static_cast<ast::Ident*>(expr), ctx);
     default:
-      throw "unexpected AST expr";
+      common::fail("unexpected AST expr");
   }
 }
 
@@ -264,7 +265,7 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr* unary_expr) {
     return true;
 
   } else {
-    throw "internal error: unexpected unary operand";
+    common::fail("unexpected unary operand");
   }
 }
 
@@ -462,7 +463,7 @@ bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr, Context ctx) 
         }
         break;
       default:
-        throw "internal error: unexpected compare operation";
+        common::fail("unexpected compare operation");
     }
     if (expr_kind != types::ExprInfo::Kind::kConstant) {
       continue;
@@ -990,7 +991,7 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr* call_expr) {
       return true;
     }
     default:
-      throw "interal error: unexpected builtin kind";
+      common::fail("interal error: unexpected builtin kind");
   }
 }
 
@@ -1156,7 +1157,7 @@ bool ExprHandler::CheckBasicLit(ast::BasicLit* basic_lit) {
       value = constants::Value(basic_lit->value().substr(1, basic_lit->value().length() - 2));
       break;
     default:
-      throw "internal error: unexpected basic literal kind";
+      common::fail("unexpected basic literal kind");
   }
 
   info_builder().SetExprInfo(basic_lit,
@@ -1208,10 +1209,10 @@ bool ExprHandler::CheckIdent(ast::Ident* ident, Context ctx) {
                    "use of package name without selector");
       return false;
     default:
-      throw "internal error: unexpected object type";
+      common::fail("unexpected object type");
   }
   if (expr_kind != types::ExprInfo::Kind::kBuiltin && type == nullptr) {
-    throw "internal error: expect to know type at this point";
+    common::fail("expect to know type at this point");
   }
 
   info_builder().SetExprInfo(ident, types::ExprInfo(expr_kind, type, value));

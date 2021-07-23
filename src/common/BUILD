@@ -30,12 +30,25 @@ cc_library(
     visibility = [
         "//visibility:public",
     ],
+    deps = [
+        ":logging",
+    ],
 )
 
 cc_library(
     name = "graph",
     srcs = ["graph.cc"],
     hdrs = ["graph.h"],
+    copts = COPTS,
+    visibility = [
+        "//visibility:public",
+    ],
+)
+
+cc_library(
+    name = "logging",
+    srcs = ["logging.cc"],
+    hdrs = ["logging.h"],
     copts = COPTS,
     visibility = [
         "//visibility:public",

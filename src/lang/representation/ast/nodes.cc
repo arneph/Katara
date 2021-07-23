@@ -8,6 +8,8 @@
 
 #include "nodes.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace ast {
 
@@ -65,14 +67,14 @@ pos::pos_t TypeSpec::end() const { return type_->end(); }
 
 ExprReceiver* FuncDecl::expr_receiver() const {
   if (kind_ != Kind::kInstanceMethod) {
-    throw "internal error: attempted to access expr receiver of non-instance-method func";
+    common::fail("attempted to access expr receiver of non-instance-method func");
   }
   return expr_receiver_;
 }
 
 TypeReceiver* FuncDecl::type_receiver() const {
   if (kind_ != Kind::kTypeMethod) {
-    throw "internal error: attempted to access type receiver of non-type-method func";
+    common::fail("attempted to access type receiver of non-type-method func");
   }
   return type_receiver_;
 }
@@ -112,7 +114,7 @@ pos::pos_t BranchStmt::end() const {
     case tokens::kBreak:
       return tok_start_ + 4;
     default:
-      throw "unexpected ast::BranchStmt token";
+      common::fail("unexpected ast::BranchStmt token");
   }
 }
 

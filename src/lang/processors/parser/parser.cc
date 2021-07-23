@@ -8,6 +8,8 @@
 
 #include "parser.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace parser {
 
@@ -115,7 +117,7 @@ ast::Spec* Parser::ParseSpec(tokens::Token spec_type) {
     case tokens::kType:
       return ParseTypeSpec();
     default:
-      throw "unexpected spec type";
+      common::fail("unexpected spec type");
   }
 }
 
@@ -264,7 +266,7 @@ ast::FuncDecl* Parser::ParseFuncDecl() {
     case ast::FuncDecl::Kind::kTypeMethod:
       return ast_builder_.Create<ast::FuncDecl>(type_receiver, name, type_params, func_type, body);
     default:
-      throw "internal error: unexpected func decl kind";
+      common::fail("unexpected func decl kind");
   }
 }
 
@@ -1942,7 +1944,7 @@ std::optional<pos::pos_t> Parser::Consume(tokens::Token tok, bool split_shift_op
       scanner_.SkipPastLine();
       return std::nullopt;
     default:
-      throw "unexpected token to be consumed";
+      common::fail("unexpected token to be consumed");
   }
 }
 

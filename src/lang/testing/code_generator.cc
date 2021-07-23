@@ -8,6 +8,8 @@
 
 #include "code_generator.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace testing {
 
@@ -72,7 +74,7 @@ void SequenceGenerator::GenerateOption(int index, Context& ctx, std::stringstrea
     }
     return;
   }
-  throw "unexpected index";
+  common::fail("unexpected index");
 }
 
 }  // namespace testing

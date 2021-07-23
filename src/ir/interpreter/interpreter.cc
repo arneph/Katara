@@ -8,15 +8,17 @@
 
 #include "interpreter.h"
 
+#include "src/common/logging.h"
+
 namespace ir_interpreter {
 
 void Interpreter::run() {
   ir::Func* entry_func = program_->entry_func();
   if (!entry_func->args().empty()) {
     // TODO: support argc, argv
-    throw "internal error: entry func has arguments";
+    common::fail("entry func has arguments");
   } else if (entry_func->result_types().size() != 1) {
-    throw "internal error: entry func does not have one result";
+    common::fail("entry func does not have one result");
   }
 
   state_ = ExecutionState::kRunning;
@@ -51,7 +53,7 @@ std::vector<std::unique_ptr<ir::Constant>> Interpreter::CallFunc(ir::Func* func,
           return EvaluateFuncResults(return_instr->args(), ctx);
         }
         default:
-          throw "internal error: interpreter does not support instruction";
+          common::fail("interpreter does not support instruction");
       }
     }
   }
@@ -81,11 +83,11 @@ std::unique_ptr<ir::Constant> Interpreter::ComputeConversion(const ir::Type* res
     common::IntType int_type = static_cast<const ir::IntType*>(result_type)->int_type();
     common::Int value = static_cast<ir::IntConstant*>(operand)->value();
     if (!value.CanConvertTo(int_type)) {
-      throw "can not handle conversion instr";
+      common::fail("can not handle conversion instr");
     }
     return std::make_unique<ir::IntConstant>(value.ConvertTo(int_type));
   } else {
-    throw "internal error: interpreter does not support conversion";
+    common::fail("interpreter does not support conversion");
   }
 }
 
@@ -93,7 +95,7 @@ void Interpreter::ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& 
   common::Int a = EvaluateInt(instr->operand_a(), ctx);
   common::Int b = EvaluateInt(instr->operand_b(), ctx);
   if (!common::Int::CanCompute(a, b)) {
-    throw "can not compute binary instr";
+    common::fail("can not compute binary instr");
   }
   common::Int result = common::Int::Compute(a, instr->operation(), b);
   ctx.computed_values_.insert(
@@ -137,7 +139,7 @@ std::vector<std::unique_ptr<ir::Constant>> Interpreter::EvaluateFuncResults(
             break;
           }
           default:
-            throw "internal error: interpreter does not support constant";
+            common::fail("interpreter does not support constant");
         }
         break;
       case ir::Value::Kind::kComputed: {
@@ -146,7 +148,7 @@ std::vector<std::unique_ptr<ir::Constant>> Interpreter::EvaluateFuncResults(
         break;
       }
       case ir::Value::Kind::kInherited:
-        throw "internal error: tried to evaluate inherited value";
+        common::fail("tried to evaluate inherited value");
     }
   }
   return results;
@@ -187,7 +189,7 @@ ir::Constant* Interpreter::Evaluate(std::shared_ptr<ir::Value> ir_value, FuncCon
       return ctx.computed_values_.at(computed->number()).get();
     }
     case ir::Value::Kind::kInherited:
-      throw "internal error: tried to evaluate inherited value";
+      common::fail("tried to evaluate inherited value");
   }
 }
 

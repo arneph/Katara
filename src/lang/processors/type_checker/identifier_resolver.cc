@@ -8,6 +8,7 @@
 
 #include "identifier_resolver.h"
 
+#include "src/common/logging.h"
 #include "src/lang/representation/ast/ast_util.h"
 
 namespace lang {
@@ -52,7 +53,7 @@ void IdentifierResolver::ResolveIdentifiers() {
           AddDefinedObjectFromFuncDecl(static_cast<ast::FuncDecl*>(decl), package_->scope());
           break;
         default:
-          throw "unexpected declaration";
+          common::fail("unexpected declaration");
       }
     }
   }
@@ -68,7 +69,7 @@ void IdentifierResolver::ResolveIdentifiers() {
           ResolveIdentifiersInFuncDecl(static_cast<ast::FuncDecl*>(decl), file_scope);
           break;
         default:
-          throw "unexpected declaration";
+          common::fail("unexpected declaration");
       }
     }
   }
@@ -114,7 +115,7 @@ void IdentifierResolver::AddDefinedObjectsFromGenDecl(ast::GenDecl* gen_decl, ty
       }
       return;
     default:
-      throw "unexpected gen decl token";
+      common::fail("unexpected gen decl token");
   }
 }
 
@@ -241,7 +242,7 @@ void IdentifierResolver::ResolveIdentifiersInGenDecl(ast::GenDecl* gen_decl, typ
       }
       return;
     default:
-      throw "unexpected gen decl token";
+      common::fail("unexpected gen decl token");
   }
 }
 
@@ -419,7 +420,7 @@ void IdentifierResolver::ResolveIdentifiersInStmt(ast::Stmt* stmt, types::Scope*
       ResolveIdentifiersInBranchStmt(static_cast<ast::BranchStmt*>(stmt), scope);
       break;
     default:
-      throw "unexpected AST stmt";
+      common::fail("unexpected AST stmt");
   }
 }
 
@@ -464,7 +465,7 @@ void IdentifierResolver::ResolveIdentifiersInDeclStmt(ast::DeclStmt* decl_stmt,
       }
       return;
     default:
-      throw "unexpected gen decl token";
+      common::fail("unexpected gen decl token");
   }
 }
 
@@ -671,7 +672,7 @@ void IdentifierResolver::ResolveIdentifiersInExpr(ast::Expr* expr, types::Scope*
       ResolveIdentifier(static_cast<ast::Ident*>(expr), scope);
       break;
     default:
-      throw "unexpected AST expr";
+      common::fail("unexpected AST expr");
   }
 }
 

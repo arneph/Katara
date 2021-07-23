@@ -14,6 +14,9 @@ cc_library(
     visibility = [
         "//src/x86_64:__subpackages__",
     ],
+    deps = [
+        "//src/common:logging",
+    ],
 )
 
 cc_test(

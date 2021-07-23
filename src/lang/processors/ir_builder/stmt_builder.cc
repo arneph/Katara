@@ -8,6 +8,8 @@
 
 #include "stmt_builder.h"
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace ir_builder {
 
@@ -56,7 +58,7 @@ void StmtBuilder::BuildStmt(ast::Stmt* stmt, Context& ctx) {
       BuildBranchStmt(static_cast<ast::BranchStmt*>(stmt), ctx);
       break;
     default:
-      throw "internal error: unexpected stmt";
+      common::fail("unexpected stmt");
   }
 }
 
@@ -70,7 +72,7 @@ void StmtBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, Context& ctx) {
     case tokens::kVar:
       break;
     default:
-      throw "internal error: unexpected decl";
+      common::fail("unexpected decl");
   }
   for (ast::Spec* spec : decl->specs()) {
     ast::ValueSpec* value_spec = static_cast<ast::ValueSpec*>(spec);
@@ -152,7 +154,7 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx) {
       // TODO: implement
       break;
     default:
-      throw "internal error: unexpected assign op";
+      common::fail("unexpected assign op");
   }
 }
 
@@ -174,7 +176,7 @@ void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, Context& ctx) {
       case tokens::kDec:
         return common::Int::BinaryOp::kSub;
       default:
-        throw "internal error: unexpected inc dec stmt token";
+        common::fail("unexpected inc dec stmt token");
     }
   }();
   ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(old_value, address));

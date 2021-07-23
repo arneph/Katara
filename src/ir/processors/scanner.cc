@@ -10,6 +10,8 @@
 
 #include <cctype>
 
+#include "src/common/logging.h"
+
 namespace ir_proc {
 
 Scanner::Scanner(std::istream& in_stream) : in_stream_(in_stream) { token_ = kUnknown; }
@@ -19,25 +21,25 @@ Scanner::~Scanner() {}
 Scanner::Token Scanner::token() const { return token_; }
 
 std::string Scanner::string() const {
-  if (token_ == kUnknown || token_ == kEoF) throw "token has no associated string";
+  if (token_ == kUnknown || token_ == kEoF) common::fail("token has no associated string");
 
   return string_;
 }
 
 int64_t Scanner::sign() const {
-  if (token_ != kNumber) throw "token has no associated sign";
+  if (token_ != kNumber) common::fail("token has no associated sign");
 
   return sign_;
 }
 
 uint64_t Scanner::number() const {
-  if (token_ != kNumber) throw "token has no associated number";
+  if (token_ != kNumber) common::fail("token has no associated number");
 
   return number_;
 }
 
 void Scanner::Next() {
-  if (token_ == kEoF) throw "can not advance Scanner at EoF";
+  if (token_ == kEoF) common::fail("can not advance Scanner at EoF");
 
   int c = in_stream_.get();
   while (c == ' ' || c == '\t') {

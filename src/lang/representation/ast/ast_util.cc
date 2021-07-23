@@ -11,6 +11,8 @@
 #include <memory>
 #include <vector>
 
+#include "src/common/logging.h"
+
 namespace lang {
 namespace ast {
 
@@ -273,7 +275,7 @@ void Walk(FuncDecl* func_decl, WalkFunction f) {
       Walk(func_decl->type_receiver(), g);
       break;
     default:
-      throw "internal error: unexpected func decl kind";
+      common::fail("unexpected func decl kind");
   }
   Walk(func_decl->name(), g);
   if (func_decl->type_params() != nullptr) {

@@ -76,6 +76,7 @@ cc_library(
         ":num_types",
         ":values",
         "//src/common:atomics",
+        "//src/common:logging",
     ],
 )
 
