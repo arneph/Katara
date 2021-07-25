@@ -30,7 +30,7 @@ void StmtHandler::CheckFuncBody(ast::BlockStmt* body, types::Tuple* func_results
 void StmtHandler::CheckBlockStmt(ast::BlockStmt* block_stmt, Context ctx) {
   for (size_t i = 0; i < block_stmt->stmts().size(); i++) {
     ast::Stmt* stmt = block_stmt->stmts().at(i);
-    ctx.is_last_stmt_in_block = (i == block_stmt->stmts().size());
+    ctx.is_last_stmt_in_block = (i == block_stmt->stmts().size() - 1);
     CheckStmt(stmt, ctx);
   }
 }
