@@ -22,11 +22,10 @@ std::string Block::ReferenceString() const {
 void Block::for_each_phi_instr(std::function<void(PhiInstr*)> f) {
   for (size_t i = 0; i < instrs_.size(); i++) {
     Instr* instr = instrs_.at(i).get();
-    PhiInstr* phi_instr = dynamic_cast<PhiInstr*>(instr);
-
-    if (phi_instr == nullptr) return;
-
-    f(phi_instr);
+    if (instr->instr_kind() != InstrKind::kPhi) {
+      return;
+    }
+    f(static_cast<PhiInstr*>(instr));
   }
 }
 
@@ -34,25 +33,23 @@ void Block::for_each_phi_instr_reverse(std::function<void(PhiInstr*)> f) {
   size_t phi_count = 0;
   for (phi_count = 0; phi_count < instrs_.size(); phi_count++) {
     Instr* instr = instrs_.at(phi_count).get();
-    PhiInstr* phi_instr = dynamic_cast<PhiInstr*>(instr);
-    if (phi_instr == nullptr) break;
+    if (instr->instr_kind() != InstrKind::kPhi) {
+      break;
+    }
   }
 
   for (int64_t i = phi_count - 1; i >= 0; i--) {
     Instr* instr = instrs_.at(i).get();
-    PhiInstr* phi_instr = static_cast<PhiInstr*>(instr);
-
-    f(phi_instr);
+    f(static_cast<PhiInstr*>(instr));
   }
 }
 
 void Block::for_each_non_phi_instr(std::function<void(Instr*)> f) {
   for (size_t i = 0; i < instrs_.size(); i++) {
     Instr* instr = instrs_.at(i).get();
-    PhiInstr* phi_instr = dynamic_cast<PhiInstr*>(instr);
-
-    if (phi_instr != nullptr) continue;
-
+    if (instr->instr_kind() == InstrKind::kPhi) {
+      continue;
+    }
     f(instr);
   }
 }
@@ -60,10 +57,9 @@ void Block::for_each_non_phi_instr(std::function<void(Instr*)> f) {
 void Block::for_each_non_phi_instr_reverse(std::function<void(Instr*)> f) {
   for (int64_t i = instrs_.size() - 1; i >= 0; i--) {
     Instr* instr = instrs_.at(i).get();
-    PhiInstr* phi_instr = dynamic_cast<PhiInstr*>(instr);
-
-    if (phi_instr != nullptr) return;
-
+    if (instr->instr_kind() == InstrKind::kPhi) {
+      return;
+    }
     f(instr);
   }
 }
