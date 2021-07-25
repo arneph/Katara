@@ -808,7 +808,7 @@ ast::Expr* Parser::ParseExpr(tokens::precedence_t prec, ExprOptions expr_options
   }
 
   bool is_comparison = false;
-  std::vector<ast::Expr*> compare_expr_operands{x};
+  std::vector<ast::Expr*> compare_expr_operands;
   std::vector<pos::pos_t> compare_expr_op_starts;
   std::vector<tokens::Token> compare_expr_ops;
   while (true) {
@@ -842,6 +842,9 @@ ast::Expr* Parser::ParseExpr(tokens::precedence_t prec, ExprOptions expr_options
     } else {
       compare_expr_op_starts.push_back(op_start);
       compare_expr_ops.push_back(op);
+      if (compare_expr_operands.empty()) {
+        compare_expr_operands.push_back(x);
+      }
       compare_expr_operands.push_back(y);
     }
   }

@@ -56,7 +56,7 @@ func main() int {
   auto pkg_manager = lang::packages::PackageManager(
       /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
                                      .SetCurrentDir("/")
-                                     .AddSourceFile("/", "add.kat", source)
+                                     .AddSourceFile("/", "expr.kat", source)
                                      .Build());
 
   // Load main package:
@@ -74,7 +74,46 @@ func main() int {
   ir_interpreter::Interpreter interpreter(program.get());
   interpreter.run();
 
-  EXPECT_EQ(GetParam().expected_value, interpreter.exit_code());
+  EXPECT_EQ(interpreter.exit_code(), GetParam().expected_value);
+}
+
+TEST(ConstantIntExprTest2, BinaryOpComparison) {
+  std::string source = R"kat(
+package main
+
+func main() int {
+  if 3 % 2 == 3 {
+    return 123
+  } else if 3 % 2 == 2 {
+    return 234
+  } else {
+    return 345
+  }
+}
+  )kat";
+
+  auto pkg_manager = lang::packages::PackageManager(
+      /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
+                                     .SetCurrentDir("/")
+                                     .AddSourceFile("/", "test.kat", source)
+                                     .Build());
+
+  // Load main package:
+  lang::packages::Package* pkg = pkg_manager.LoadMainPackage("/");
+  EXPECT_TRUE(pkg_manager.issue_tracker()->issues().empty());
+  EXPECT_TRUE(pkg != nullptr);
+  EXPECT_TRUE(pkg->issue_tracker().issues().empty());
+
+  // Generate IR:
+  std::unique_ptr<ir::Program> program =
+      lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
+  EXPECT_TRUE(program != nullptr);
+
+  // Interpret IR:
+  ir_interpreter::Interpreter interpreter(program.get());
+  interpreter.run();
+
+  EXPECT_EQ(interpreter.exit_code(), 345);
 }
 
 }  // namespace
