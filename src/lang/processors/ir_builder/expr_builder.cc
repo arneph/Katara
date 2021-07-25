@@ -55,9 +55,6 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfExprs(
 std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfExpr(ast::Expr* expr,
                                                                        ASTContext& ast_ctx,
                                                                        IRContext& ir_ctx) {
-  //  return
-  //  {std::make_shared<ir::Constant>(program_->type_table().AtomicOfKind(ir::AtomicKind::kBool),
-  //                                         1)};  // TODO: remove
   switch (expr->node_kind()) {
     case ast::NodeKind::kUnaryExpr:
       return {BuildValueOfUnaryExpr(static_cast<ast::UnaryExpr*>(expr), ast_ctx, ir_ctx)};
