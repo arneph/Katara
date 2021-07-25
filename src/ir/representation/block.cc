@@ -19,6 +19,16 @@ std::string Block::ReferenceString() const {
   return title;
 }
 
+Instr* Block::ControlFlowInstr() const {
+  if (instrs_.empty()) {
+    return nullptr;
+  } else if (instrs_.back()->IsControlFlowInstr()) {
+    return instrs_.back().get();
+  } else {
+    return nullptr;
+  }
+}
+
 void Block::for_each_phi_instr(std::function<void(PhiInstr*)> f) {
   for (size_t i = 0; i < instrs_.size(); i++) {
     Instr* instr = instrs_.at(i).get();

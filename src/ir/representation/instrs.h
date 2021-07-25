@@ -56,6 +56,8 @@ class Instr {
   virtual std::vector<std::shared_ptr<Value>> UsedValues() const = 0;
 
   virtual InstrKind instr_kind() const = 0;
+  bool IsControlFlowInstr() const;
+
   virtual std::string ToString() const = 0;
 };
 

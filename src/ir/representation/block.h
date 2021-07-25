@@ -34,6 +34,9 @@ class Block {
   const std::vector<std::unique_ptr<Instr>>& instrs() const { return instrs_; }
   std::vector<std::unique_ptr<Instr>>& instrs() { return instrs_; }
 
+  bool HasControlFlowInstr() const { return ControlFlowInstr() != nullptr; }
+  Instr* ControlFlowInstr() const;
+
   void for_each_phi_instr(std::function<void(PhiInstr*)> f);
   void for_each_phi_instr_reverse(std::function<void(PhiInstr*)> f);
   void for_each_non_phi_instr(std::function<void(Instr*)> f);

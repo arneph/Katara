@@ -12,6 +12,17 @@
 
 namespace ir {
 
+bool Instr::IsControlFlowInstr() const {
+  switch (instr_kind()) {
+    case InstrKind::kJump:
+    case InstrKind::kJumpCond:
+    case InstrKind::kReturn:
+      return true;
+    default:
+      return false;
+  }
+}
+
 MovInstr::MovInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> origin)
     : Computation(result), origin_(origin) {
   if (result->type() != origin->type()) {
