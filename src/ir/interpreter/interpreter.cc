@@ -32,9 +32,12 @@ std::vector<std::unique_ptr<ir::Constant>> Interpreter::CallFunc(ir::Func* func,
                                                                  std::vector<ir::Constant*> args) {
   ir::Block* current_block = func->entry_block();
   ir::Block* previous_block = nullptr;
-
   FuncContext ctx;
-
+  for (std::size_t i = 0; i < func->args().size(); i++) {
+    ir::value_num_t number = func->args().at(i)->number();
+    ir::Constant* value = args.at(i);
+    // ctx.computed_values_.insert({number, value});
+  }
   while (true) {
     for (size_t i = 0; i < current_block->instrs().size(); i++) {
       ir::Instr* instr = current_block->instrs().at(i).get();
@@ -45,15 +48,30 @@ std::vector<std::unique_ptr<ir::Constant>> Interpreter::CallFunc(ir::Func* func,
         case ir::InstrKind::kIntBinary:
           ExecuteIntBinaryInstr(static_cast<ir::IntBinaryInstr*>(instr), ctx);
           break;
+        case ir::InstrKind::kIntCompare:
+          ExecuteIntCompareInstr(static_cast<ir::IntCompareInstr*>(instr), ctx);
+          break;
         case ir::InstrKind::kIntShift:
           ExecuteIntShiftInstr(static_cast<ir::IntShiftInstr*>(instr), ctx);
           break;
+        case ir::InstrKind::kJump:
+          previous_block = current_block;
+          current_block = func->GetBlock(static_cast<ir::JumpInstr*>(instr)->destination());
+          break;
+        case ir::InstrKind::kJumpCond: {
+          auto jump_cond_instr = static_cast<ir::JumpCondInstr*>(instr);
+          bool cond = EvaluateBool(jump_cond_instr->condition(), ctx);
+          previous_block = current_block;
+          current_block = func->GetBlock(cond ? jump_cond_instr->destination_true()
+                                              : jump_cond_instr->destination_false());
+          break;
+        }
         case ir::InstrKind::kReturn: {
           ir::ReturnInstr* return_instr = static_cast<ir::ReturnInstr*>(instr);
           return EvaluateFuncResults(return_instr->args(), ctx);
         }
         default:
-          common::fail("interpreter does not support instruction");
+          common::fail("interpreter does not support instruction: " + instr->ToString());
       }
     }
   }
@@ -100,6 +118,17 @@ void Interpreter::ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& 
   common::Int result = common::Int::Compute(a, instr->operation(), b);
   ctx.computed_values_.insert(
       {instr->result()->number(), std::make_unique<ir::IntConstant>(result)});
+}
+
+void Interpreter::ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx) {
+  common::Int a = EvaluateInt(instr->operand_a(), ctx);
+  common::Int b = EvaluateInt(instr->operand_b(), ctx);
+  if (!common::Int::CanCompare(a, b)) {
+    common::fail("can not compute compare instr");
+  }
+  bool result = common::Int::Compare(a, instr->operation(), b);
+  ctx.computed_values_.insert(
+      {instr->result()->number(), std::make_unique<ir::BoolConstant>(result)});
 }
 
 void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx) {

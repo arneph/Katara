@@ -53,6 +53,7 @@ class Interpreter {
                                                   ir::Constant* operand);
 
   void ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& ctx);
+  void ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx);
   void ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx);
 
   std::vector<std::unique_ptr<ir::Constant>> EvaluateFuncResults(
