@@ -19,7 +19,12 @@ void StmtBuilder::BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx
   for (auto stmt : block_stmt->stmts()) {
     BuildStmt(stmt, child_ast_ctx, ir_ctx);
   }
-  BuildVarDeletionsForASTContext(&child_ast_ctx, ir_ctx);
+  if (ir_ctx.block()->instrs().empty() ||
+      (ir_ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kJump &&
+       ir_ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kJumpCond &&
+       ir_ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kReturn)) {
+    BuildVarDeletionsForASTContext(&child_ast_ctx, ir_ctx);
+  }
 }
 
 void StmtBuilder::BuildVarDecl(types::Variable* var, bool initialize_var, ASTContext& ast_ctx,
@@ -47,7 +52,6 @@ void StmtBuilder::BuildVarDeletionsForASTContext(ASTContext* ast_ctx, IRContext&
     std::shared_ptr<ir::Computed> address = it->second;
     ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
   }
-  ast_ctx->ClearVarAdresses();
 }
 
 void StmtBuilder::BuildStmt(ast::Stmt* stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
