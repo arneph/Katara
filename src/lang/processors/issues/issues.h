@@ -178,6 +178,7 @@ enum IssueKind {
   kWrongNumberOfArgumentsForFuncCall,
   kUnexpectedFuncCallArgumentType,
   kPackageNameWithoutSelection,
+  kForbiddenMultipleStmtLabels,
   kUnexpectedAssignStmtLhsExprKind,
   kMismatchedAssignStmtOperandCountForValueOkRhs,
   kMismatchedAssignStmtValueCount,

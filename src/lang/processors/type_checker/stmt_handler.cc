@@ -36,11 +36,17 @@ void StmtHandler::CheckBlockStmt(ast::BlockStmt* block_stmt, Context ctx) {
 }
 
 void StmtHandler::CheckStmt(ast::Stmt* stmt, Context ctx) {
-  while (stmt->node_kind() == ast::NodeKind::kLabeledStmt) {
-    stmt = static_cast<ast::LabeledStmt*>(stmt)->stmt();
-    ctx.labels.insert({static_cast<ast::LabeledStmt*>(stmt)->label()->name(), stmt});
+  if (stmt->node_kind() == ast::NodeKind::kLabeledStmt) {
+    ast::LabeledStmt* label = static_cast<ast::LabeledStmt*>(stmt);
+    ast::Stmt* labeled = label->stmt();
+    ctx.labels.insert({label->label()->name(), stmt});
+    stmt = labeled;
   }
   switch (stmt->node_kind()) {
+    case ast::NodeKind::kLabeledStmt:
+      issues().Add(issues::kForbiddenMultipleStmtLabels, stmt->start(),
+                   "multiple statement labels are forbidden");
+      break;
     case ast::NodeKind::kBlockStmt:
       ctx.can_fallthrough = false;
       CheckBlockStmt(static_cast<ast::BlockStmt*>(stmt), ctx);
