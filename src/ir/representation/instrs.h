@@ -381,7 +381,7 @@ class CallInstr : public Instr {
 
 class ReturnInstr : public Instr {
  public:
-  ReturnInstr(std::vector<std::shared_ptr<Value>> args) : args_(args) {}
+  ReturnInstr(std::vector<std::shared_ptr<Value>> args = {}) : args_(args) {}
 
   const std::vector<std::shared_ptr<Value>>& args() const { return args_; }
 
