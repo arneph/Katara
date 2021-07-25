@@ -19,10 +19,7 @@ void StmtBuilder::BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx
   for (auto stmt : block_stmt->stmts()) {
     BuildStmt(stmt, child_ast_ctx, ir_ctx);
   }
-  if (ir_ctx.block()->instrs().empty() ||
-      (ir_ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kJump &&
-       ir_ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kJumpCond &&
-       ir_ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kReturn)) {
+  if (!ir_ctx.block()->HasControlFlowInstr()) {
     BuildVarDeletionsForASTContext(&child_ast_ctx, ir_ctx);
   }
 }
@@ -331,16 +328,18 @@ void StmtBuilder::BuildIfStmt(ast::IfStmt* if_stmt, ASTContext& ast_ctx, IRConte
       (has_else) ? else_entry_block->number() : merge_block->number();
   start_block->instrs().push_back(
       std::make_unique<ir::JumpCondInstr>(condition, destination_true, destination_false));
-  if_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
-  if (has_else) {
+  if (!if_exit_block->HasControlFlowInstr()) {
+    if_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
+    ir_ctx.func()->AddControlFlow(if_exit_block->number(), merge_block->number());
+  }
+  if (has_else && !else_exit_block->HasControlFlowInstr()) {
     else_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
+    ir_ctx.func()->AddControlFlow(else_exit_block->number(), merge_block->number());
   }
 
   ir_ctx.func()->AddControlFlow(start_block->number(), if_entry_block->number());
-  ir_ctx.func()->AddControlFlow(if_exit_block->number(), merge_block->number());
   if (has_else) {
     ir_ctx.func()->AddControlFlow(start_block->number(), else_entry_block->number());
-    ir_ctx.func()->AddControlFlow(else_exit_block->number(), merge_block->number());
   } else {
     ir_ctx.func()->AddControlFlow(start_block->number(), merge_block->number());
   }
@@ -375,18 +374,26 @@ void StmtBuilder::BuildForStmt(ast::ForStmt* for_stmt, ASTContext& ast_ctx, IRCo
 
   ir::Block* header_block = ir_ctx.func()->AddBlock();
   IRContext header_ir_ctx = ir_ctx.ChildContextFor(header_block);
-  std::shared_ptr<ir::Value> condition =
-      expr_builder_.BuildValuesOfExpr(for_stmt->cond_expr(), ast_ctx, header_ir_ctx).front();
+  std::shared_ptr<ir::Value> condition;
+  if (for_stmt->cond_expr() != nullptr) {
+    condition =
+        expr_builder_.BuildValuesOfExpr(for_stmt->cond_expr(), ast_ctx, header_ir_ctx).front();
+  } else {
+    condition = std::make_shared<ir::BoolConstant>(true);
+  }
 
   header_block->instrs().push_back(std::make_unique<ir::JumpCondInstr>(
       condition, body_entry_block->number(), continue_block->number()));
   start_block->instrs().push_back(std::make_unique<ir::JumpInstr>(header_block->number()));
-  body_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(header_block->number()));
 
   ir_ctx.func()->AddControlFlow(start_block->number(), header_block->number());
   ir_ctx.func()->AddControlFlow(header_block->number(), body_entry_block->number());
   ir_ctx.func()->AddControlFlow(header_block->number(), continue_block->number());
-  ir_ctx.func()->AddControlFlow(body_exit_block->number(), header_block->number());
+
+  if (!body_exit_block->HasControlFlowInstr()) {
+    body_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(header_block->number()));
+    ir_ctx.func()->AddControlFlow(body_exit_block->number(), header_block->number());
+  }
 
   ir_ctx.set_block(continue_block);
 }

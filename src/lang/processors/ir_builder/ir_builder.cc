@@ -95,8 +95,7 @@ void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
   BuildFuncResults(types_signature->results(), ast_ctx, ir_ctx);
 
   stmt_builder_.BuildBlockStmt(func_decl->body(), ast_ctx, ir_ctx);
-  if (ir_ctx.block()->instrs().empty() ||
-      ir_ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kReturn) {
+  if (!ir_ctx.block()->HasControlFlowInstr()) {
     stmt_builder_.BuildVarDeletionsForASTContext(&ast_ctx, ir_ctx);
     ir_ctx.block()->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   }
