@@ -47,7 +47,14 @@ class StmtBuilder {
  private:
   void BuildStmt(ast::Stmt* stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
   void BuildDeclStmt(ast::DeclStmt* decl_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+
   void BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildSimpleAssignStmt(std::vector<std::shared_ptr<ir::Computed>> lhs_addresses,
+                             std::vector<std::shared_ptr<ir::Value>> rhs_values, IRContext& ir_ctx);
+  void BuildOpAssignStmt(tokens::Token op_assign_tok,
+                         std::vector<std::shared_ptr<ir::Computed>> lhs_addresses,
+                         std::vector<std::shared_ptr<ir::Value>> rhs_values, IRContext& ir_ctx);
+
   void BuildExprStmt(ast::ExprStmt* expr_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
   void BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
   void BuildReturnStmt(ast::ReturnStmt* return_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);

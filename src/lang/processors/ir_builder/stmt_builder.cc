@@ -156,12 +156,7 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_
   switch (assign_stmt->tok()) {
     case tokens::kAssign:
     case tokens::kDefine:
-      for (size_t i = 0; i < lhs_addresses.size(); i++) {
-        std::shared_ptr<ir::Value> lhs_address = lhs_addresses.at(i);
-        std::shared_ptr<ir::Value> rhs_value = rhs_values.at(i);
-        ir_ctx.block()->instrs().push_back(
-            std::make_unique<ir::StoreInstr>(lhs_address, rhs_value));
-      }
+      BuildSimpleAssignStmt(lhs_addresses, rhs_values, ir_ctx);
       break;
     case tokens::kAddAssign:
     case tokens::kSubAssign:
@@ -174,10 +169,89 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_
     case tokens::kShlAssign:
     case tokens::kShrAssign:
     case tokens::kAndNotAssign:
-      // TODO: implement
+      BuildOpAssignStmt(assign_stmt->tok(), lhs_addresses, rhs_values, ir_ctx);
       break;
     default:
       common::fail("unexpected assign op");
+  }
+}
+
+void StmtBuilder::BuildSimpleAssignStmt(std::vector<std::shared_ptr<ir::Computed>> lhs_addresses,
+                                        std::vector<std::shared_ptr<ir::Value>> rhs_values,
+                                        IRContext& ir_ctx) {
+  for (size_t i = 0; i < lhs_addresses.size(); i++) {
+    std::shared_ptr<ir::Value> lhs_address = lhs_addresses.at(i);
+    std::shared_ptr<ir::Value> rhs_value = rhs_values.at(i);
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(lhs_address, rhs_value));
+  }
+}
+
+void StmtBuilder::BuildOpAssignStmt(tokens::Token op_assign_tok,
+                                    std::vector<std::shared_ptr<ir::Computed>> lhs_addresses,
+                                    std::vector<std::shared_ptr<ir::Value>> rhs_values,
+                                    IRContext& ir_ctx) {
+  std::vector<std::shared_ptr<ir::Value>> assigned_values;
+  assigned_values.reserve(lhs_addresses.size());
+  for (size_t i = 0; i < lhs_addresses.size(); i++) {
+    std::shared_ptr<ir::Value> lhs_address = lhs_addresses.at(i);
+    auto lhs_pointer_type = static_cast<const ir_ext::SharedPointer*>(lhs_address->type());
+    const ir::Type* lhs_type = lhs_pointer_type->element();
+    std::shared_ptr<ir::Computed> lhs_value =
+        std::make_shared<ir::Computed>(lhs_type, ir_ctx.func()->next_computed_number());
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(lhs_value, lhs_address));
+    std::shared_ptr<ir::Value> rhs_value = rhs_values.at(i);
+
+    if (op_assign_tok == tokens::kAddAssign && lhs_type->type_kind() == ir::TypeKind::kLangString) {
+      assigned_values.push_back(value_builder_.BuildStringConcat(lhs_value, rhs_value, ir_ctx));
+
+    } else if (op_assign_tok == tokens::kShlAssign || op_assign_tok == tokens::kShrAssign) {
+      common::Int::ShiftOp op = [op_assign_tok]() {
+        switch (op_assign_tok) {
+          case tokens::kShlAssign:
+            return common::Int::ShiftOp::kLeft;
+          case tokens::kShrAssign:
+            return common::Int::ShiftOp::kRight;
+          default:
+            common::fail("unexpected assign op");
+        }
+      }();
+      rhs_value = value_builder_.BuildConversion(rhs_value, &ir::kU64, ir_ctx);
+      assigned_values.push_back(value_builder_.BuildIntShiftOp(lhs_value, op, rhs_value, ir_ctx));
+
+    } else {
+      common::Int::BinaryOp op = [op_assign_tok]() {
+        switch (op_assign_tok) {
+          case tokens::kAddAssign:
+            return common::Int::BinaryOp::kAdd;
+          case tokens::kSubAssign:
+            return common::Int::BinaryOp::kSub;
+          case tokens::kMulAssign:
+            return common::Int::BinaryOp::kMul;
+          case tokens::kQuoAssign:
+            return common::Int::BinaryOp::kDiv;
+          case tokens::kRemAssign:
+            return common::Int::BinaryOp::kRem;
+          case tokens::kAndAssign:
+            return common::Int::BinaryOp::kAnd;
+          case tokens::kOrAssign:
+            return common::Int::BinaryOp::kOr;
+          case tokens::kXorAssign:
+            return common::Int::BinaryOp::kXor;
+          case tokens::kAndNotAssign:
+            return common::Int::BinaryOp::kAndNot;
+          default:
+            common::fail("unexpected assign op");
+        }
+      }();
+      rhs_value = value_builder_.BuildConversion(rhs_value, lhs_type, ir_ctx);
+      assigned_values.push_back(value_builder_.BuildIntBinaryOp(lhs_value, op, rhs_value, ir_ctx));
+    }
+  }
+
+  for (size_t i = 0; i < lhs_addresses.size(); i++) {
+    std::shared_ptr<ir::Value> address = lhs_addresses.at(i);
+    std::shared_ptr<ir::Value> value = assigned_values.at(i);
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
   }
 }
 
