@@ -149,12 +149,14 @@ void Parser::ConnectBlocks(ir::Func* func) {
   for (auto& block : func->blocks()) {
     ir::Instr* last_instr = block->instrs().back().get();
 
-    if (ir::JumpInstr* jump = dynamic_cast<ir::JumpInstr*>(last_instr)) {
+    if (last_instr->instr_kind() == ir::InstrKind::kJump) {
+      ir::JumpInstr* jump = static_cast<ir::JumpInstr*>(last_instr);
       ir::block_num_t child_num = jump->destination();
 
       func->AddControlFlow(block->number(), child_num);
 
-    } else if (ir::JumpCondInstr* jump_cond = dynamic_cast<ir::JumpCondInstr*>(last_instr)) {
+    } else if (last_instr->instr_kind() == ir::InstrKind::kJumpCond) {
+      ir::JumpCondInstr* jump_cond = static_cast<ir::JumpCondInstr*>(last_instr);
       ir::block_num_t child_a_num = jump_cond->destination_true();
       ir::block_num_t child_b_num = jump_cond->destination_false();
 
