@@ -24,6 +24,7 @@
 #include "src/lang/processors/ir_builder/expr_builder.h"
 #include "src/lang/processors/ir_builder/stmt_builder.h"
 #include "src/lang/processors/ir_builder/type_builder.h"
+#include "src/lang/processors/ir_builder/value_builder.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/representation/types/expr_info.h"
 #include "src/lang/representation/types/info.h"
@@ -56,6 +57,7 @@ class IRBuilder {
 
   types::Info* type_info_;
   TypeBuilder type_builder_;
+  ValueBuilder value_builder_;
   ExprBuilder expr_builder_;
   StmtBuilder stmt_builder_;
   std::unique_ptr<ir::Program>& program_;

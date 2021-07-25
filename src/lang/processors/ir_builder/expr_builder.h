@@ -20,6 +20,7 @@
 #include "src/ir/representation/values.h"
 #include "src/lang/processors/ir_builder/context.h"
 #include "src/lang/processors/ir_builder/type_builder.h"
+#include "src/lang/processors/ir_builder/value_builder.h"
 #include "src/lang/representation/ast/nodes.h"
 #include "src/lang/representation/ir_extension/instrs.h"
 #include "src/lang/representation/ir_extension/types.h"
@@ -31,9 +32,12 @@ namespace ir_builder {
 
 class ExprBuilder {
  public:
-  ExprBuilder(types::Info* type_info, TypeBuilder& type_builder,
+  ExprBuilder(types::Info* type_info, TypeBuilder& type_builder, ValueBuilder& value_builder,
               std::unordered_map<types::Func*, ir::Func*>& funcs)
-      : type_info_(type_info), type_builder_(type_builder), funcs_(funcs) {}
+      : type_info_(type_info),
+        type_builder_(type_builder),
+        value_builder_(value_builder),
+        funcs_(funcs) {}
 
   std::vector<std::shared_ptr<ir::Computed>> BuildAddressesOfExprs(std::vector<ast::Expr*> exprs,
                                                                    ASTContext& ast_ctx,
@@ -84,18 +88,14 @@ class ExprBuilder {
                                                     std::shared_ptr<ir::Value> y,
                                                     types::Type* y_type, ASTContext& ast_ctx,
                                                     IRContext& ir_ctx);
-  std::shared_ptr<ir::Value> BuildValueOfBoolComparison(tokens::Token op,
+  std::shared_ptr<ir::Value> BuildValueOfBoolComparison(tokens::Token tok,
                                                         std::shared_ptr<ir::Value> x,
                                                         std::shared_ptr<ir::Value> y,
-                                                        ASTContext& ast_ctx, IRContext& ir_ctx);
-  std::shared_ptr<ir::Value> BuildValueOfIntComparison(tokens::Token op,
+                                                        IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValueOfIntComparison(tokens::Token tok,
                                                        std::shared_ptr<ir::Value> x,
                                                        std::shared_ptr<ir::Value> y,
-                                                       ASTContext& ast_ctx, IRContext& ir_ctx);
-  std::shared_ptr<ir::Value> BuildValueOfStringComparison(tokens::Token op,
-                                                          std::shared_ptr<ir::Value> x,
-                                                          std::shared_ptr<ir::Value> y,
-                                                          ASTContext& ast_ctx, IRContext& ir_ctx);
+                                                       IRContext& ir_ctx);
 
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfSelectionExpr(ast::SelectionExpr* expr,
                                                                      ASTContext& ast_ctx,
@@ -129,16 +129,10 @@ class ExprBuilder {
   std::shared_ptr<ir::Value> BuildValueOfIdent(ast::Ident* ident, ASTContext& ast_ctx,
                                                IRContext& ir_ctx);
 
-  std::shared_ptr<ir::Value> BuildValueOfConversion(std::shared_ptr<ir::Value> value,
-                                                    const ir::Type* desired_type,
-                                                    ASTContext& ast_ctx, IRContext& ir_ctx);
-
-  std::shared_ptr<ir::Value> DefaultIRValueForType(types::Type* type);
-  std::shared_ptr<ir::Value> ToIRConstant(constants::Value value) const;
-
  private:
   types::Info* type_info_;
   TypeBuilder& type_builder_;
+  ValueBuilder& value_builder_;
   std::unordered_map<types::Func*, ir::Func*>& funcs_;
 };
 

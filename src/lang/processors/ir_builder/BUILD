@@ -30,6 +30,22 @@ cc_library(
 )
 
 cc_library(
+    name = "value_builder",
+    srcs = ["value_builder.cc"],
+    hdrs = ["value_builder.h"],
+    copts = COPTS,
+    visibility = [
+        "//visibility:private",
+    ],
+    deps = [
+        ":context",
+        ":type_builder",
+        "//src/ir:ir_lib",
+        "//src/lang/representation",
+    ],
+)
+
+cc_library(
     name = "expr_builder",
     srcs = ["expr_builder.cc"],
     hdrs = ["expr_builder.h"],
@@ -40,6 +56,7 @@ cc_library(
     deps = [
         ":context",
         ":type_builder",
+        ":value_builder",
         "//src/ir:ir_lib",
         "//src/lang/representation",
     ],
@@ -57,6 +74,7 @@ cc_library(
         ":context",
         ":expr_builder",
         ":type_builder",
+        ":value_builder",
         "//src/ir:ir_lib",
         "//src/lang/representation",
     ],
@@ -75,6 +93,7 @@ cc_library(
         ":expr_builder",
         ":stmt_builder",
         ":type_builder",
+        ":value_builder",
         "//src/ir:ir_lib",
         "//src/lang/processors/packages:package",
         "//src/lang/processors/packages:package_manager",

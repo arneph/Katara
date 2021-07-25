@@ -18,6 +18,7 @@
 #include "src/lang/processors/ir_builder/context.h"
 #include "src/lang/processors/ir_builder/expr_builder.h"
 #include "src/lang/processors/ir_builder/type_builder.h"
+#include "src/lang/processors/ir_builder/value_builder.h"
 #include "src/lang/representation/ast/nodes.h"
 #include "src/lang/representation/ir_extension/instrs.h"
 #include "src/lang/representation/ir_extension/types.h"
@@ -29,8 +30,12 @@ namespace ir_builder {
 
 class StmtBuilder {
  public:
-  StmtBuilder(types::Info* type_info, TypeBuilder& type_builder, ExprBuilder& expr_builder)
-      : type_info_(type_info), type_builder_(type_builder), expr_builder_(expr_builder) {}
+  StmtBuilder(types::Info* type_info, TypeBuilder& type_builder, ValueBuilder& value_builder,
+              ExprBuilder& expr_builder)
+      : type_info_(type_info),
+        type_builder_(type_builder),
+        value_builder_(value_builder),
+        expr_builder_(expr_builder) {}
 
   void BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
 
@@ -56,6 +61,7 @@ class StmtBuilder {
 
   types::Info* type_info_;
   TypeBuilder& type_builder_;
+  ValueBuilder& value_builder_;
   ExprBuilder& expr_builder_;
 };
 

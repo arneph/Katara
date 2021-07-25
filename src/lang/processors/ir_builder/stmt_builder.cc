@@ -31,7 +31,7 @@ void StmtBuilder::BuildVarDecl(types::Variable* var, bool initialize_var, ASTCon
   ast_ctx.AddAddressOfVar(var, address);
 
   if (initialize_var) {
-    std::shared_ptr<ir::Value> default_value = expr_builder_.DefaultIRValueForType(var->type());
+    std::shared_ptr<ir::Value> default_value = value_builder_.BuildDefaultForType(var->type());
     ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, default_value));
   }
 }

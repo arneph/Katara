@@ -33,8 +33,9 @@ std::unique_ptr<ir::Program> IRBuilder::TranslateProgram(packages::Package* main
 IRBuilder::IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program)
     : type_info_(type_info),
       type_builder_(type_info, program),
-      expr_builder_(type_info, type_builder_, funcs_),
-      stmt_builder_(type_info, type_builder_, expr_builder_),
+      value_builder_(type_builder_),
+      expr_builder_(type_info, type_builder_, value_builder_, funcs_),
+      stmt_builder_(type_info, type_builder_, value_builder_, expr_builder_),
       program_(program) {}
 
 void IRBuilder::PrepareDeclsInFile(ast::File* file) {
