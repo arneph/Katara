@@ -406,7 +406,7 @@ void StmtHandler::CheckForStmt(ast::ForStmt* for_stmt, Context ctx) {
     CheckStmt(for_stmt->init_stmt(), ctx);
   }
   if (for_stmt->cond_expr() != nullptr) {
-    type_resolver().expr_handler().CheckBoolExpr(for_stmt->cond_expr());    
+    type_resolver().expr_handler().CheckBoolExpr(for_stmt->cond_expr());
   }
   if (for_stmt->post_stmt()) {
     CheckStmt(for_stmt->post_stmt(), ctx);
