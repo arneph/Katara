@@ -13,56 +13,87 @@
 namespace lang {
 namespace ir_builder {
 
-void StmtBuilder::BuildBlockStmt(ast::BlockStmt* block_stmt, Context& ctx) {
+void StmtBuilder::BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx,
+                                 IRContext& ir_ctx) {
+  ASTContext child_ast_ctx = ast_ctx.ChildContextFor(block_stmt);
   for (auto stmt : block_stmt->stmts()) {
-    BuildStmt(stmt, ctx);
+    BuildStmt(stmt, child_ast_ctx, ir_ctx);
+  }
+  BuildVarDeletionsForASTContext(&child_ast_ctx, ir_ctx);
+}
+
+void StmtBuilder::BuildVarDecl(types::Variable* var, bool initialize_var, ASTContext& ast_ctx,
+                               IRContext& ir_ctx) {
+  const ir_ext::SharedPointer* pointer_type = type_builder_.BuildStrongPointerToType(var->type());
+  std::shared_ptr<ir::Computed> address =
+      std::make_shared<ir::Computed>(pointer_type, ir_ctx.func()->next_computed_number());
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::MakeSharedPointerInstr>(address));
+  ast_ctx.AddAddressOfVar(var, address);
+
+  if (initialize_var) {
+    std::shared_ptr<ir::Value> default_value = expr_builder_.DefaultIRValueForType(var->type());
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, default_value));
   }
 }
 
-void StmtBuilder::BuildStmt(ast::Stmt* stmt, Context& ctx) {
+void StmtBuilder::BuildVarDeletionsForASTContextAndParents(ASTContext* ast_ctx, IRContext& ir_ctx) {
+  for (ASTContext* ctx = ast_ctx; ctx != nullptr; ctx = ctx->parent()) {
+    BuildVarDeletionsForASTContext(ctx, ir_ctx);
+  }
+}
+
+void StmtBuilder::BuildVarDeletionsForASTContext(ASTContext* ast_ctx, IRContext& ir_ctx) {
+  for (auto it = ast_ctx->var_addresses().rbegin(); it != ast_ctx->var_addresses().rend(); ++it) {
+    std::shared_ptr<ir::Computed> address = it->second;
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
+  }
+  ast_ctx->ClearVarAdresses();
+}
+
+void StmtBuilder::BuildStmt(ast::Stmt* stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
   while (stmt->node_kind() == ast::NodeKind::kLabeledStmt) {
     stmt = static_cast<ast::LabeledStmt*>(stmt)->stmt();
   }
   switch (stmt->node_kind()) {
     case ast::NodeKind::kBlockStmt:
-      BuildBlockStmt(static_cast<ast::BlockStmt*>(stmt), ctx);
+      BuildBlockStmt(static_cast<ast::BlockStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kDeclStmt:
-      BuildDeclStmt(static_cast<ast::DeclStmt*>(stmt), ctx);
+      BuildDeclStmt(static_cast<ast::DeclStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kAssignStmt:
-      BuildAssignStmt(static_cast<ast::AssignStmt*>(stmt), ctx);
+      BuildAssignStmt(static_cast<ast::AssignStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kExprStmt:
-      BuildExprStmt(static_cast<ast::ExprStmt*>(stmt), ctx);
+      BuildExprStmt(static_cast<ast::ExprStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kIncDecStmt:
-      BuildIncDecStmt(static_cast<ast::IncDecStmt*>(stmt), ctx);
+      BuildIncDecStmt(static_cast<ast::IncDecStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kReturnStmt:
-      BuildReturnStmt(static_cast<ast::ReturnStmt*>(stmt), ctx);
+      BuildReturnStmt(static_cast<ast::ReturnStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kIfStmt:
-      BuildIfStmt(static_cast<ast::IfStmt*>(stmt), ctx);
+      BuildIfStmt(static_cast<ast::IfStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kExprSwitchStmt:
-      BuildExprSwitchStmt(static_cast<ast::ExprSwitchStmt*>(stmt), ctx);
+      BuildExprSwitchStmt(static_cast<ast::ExprSwitchStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kTypeSwitchStmt:
-      BuildTypeSwitchStmt(static_cast<ast::TypeSwitchStmt*>(stmt), ctx);
+      BuildTypeSwitchStmt(static_cast<ast::TypeSwitchStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kForStmt:
-      BuildForStmt(static_cast<ast::ForStmt*>(stmt), ctx);
+      BuildForStmt(static_cast<ast::ForStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     case ast::NodeKind::kBranchStmt:
-      BuildBranchStmt(static_cast<ast::BranchStmt*>(stmt), ctx);
+      BuildBranchStmt(static_cast<ast::BranchStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     default:
       common::fail("unexpected stmt");
   }
 }
 
-void StmtBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, Context& ctx) {
+void StmtBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
   ast::GenDecl* decl = decl_stmt->decl();
   switch (decl->tok()) {
     case tokens::kImport:
@@ -81,37 +112,28 @@ void StmtBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, Context& ctx) {
       if (var == nullptr) {
         continue;
       }
-      BuildVarDecl(var, ctx);
+      BuildVarDecl(var, /*initialize_var=*/value_spec->values().empty(), ast_ctx, ir_ctx);
     }
 
-    if (value_spec->values().empty()) {
-      for (ast::Ident* name : value_spec->names()) {
-        types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
-        if (var == nullptr) {
-          continue;
-        }
-        std::shared_ptr<ir::Value> address = ctx.LookupAddressOfVar(var);
-        std::shared_ptr<ir::Value> default_value = expr_builder_.DefaultIRValueForType(var->type());
-        ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, default_value));
-      }
-    } else {
+    if (!value_spec->values().empty()) {
       std::vector<std::shared_ptr<ir::Value>> values =
-          expr_builder_.BuildValuesOfExprs(value_spec->values(), ctx);
+          expr_builder_.BuildValuesOfExprs(value_spec->values(), ast_ctx, ir_ctx);
       for (size_t i = 0; i < value_spec->names().size() && i < values.size(); i++) {
         ast::Ident* name = value_spec->names().at(i);
         types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
         if (var == nullptr) {
           continue;
         }
-        std::shared_ptr<ir::Value> address = ctx.LookupAddressOfVar(var);
+        std::shared_ptr<ir::Value> address = ast_ctx.LookupAddressOfVar(var);
         std::shared_ptr<ir::Value> value = values.at(i);
-        ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
+        ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
       }
     }
   }
 }
 
-void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx) {
+void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_ctx,
+                                  IRContext& ir_ctx) {
   if (assign_stmt->tok() == tokens::kDefine) {
     for (ast::Expr* lhs : assign_stmt->lhs()) {
       if (lhs->node_kind() != ast::NodeKind::kIdent) {
@@ -122,14 +144,14 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx) {
       if (var == nullptr) {
         continue;
       }
-      BuildVarDecl(var, ctx);
+      BuildVarDecl(var, /*initialize_var=*/false, ast_ctx, ir_ctx);
     }
   }
 
   std::vector<std::shared_ptr<ir::Computed>> lhs_addresses =
-      expr_builder_.BuildAddressesOfExprs(assign_stmt->lhs(), ctx);
+      expr_builder_.BuildAddressesOfExprs(assign_stmt->lhs(), ast_ctx, ir_ctx);
   std::vector<std::shared_ptr<ir::Value>> rhs_values =
-      expr_builder_.BuildValuesOfExprs(assign_stmt->rhs(), ctx);
+      expr_builder_.BuildValuesOfExprs(assign_stmt->rhs(), ast_ctx, ir_ctx);
 
   switch (assign_stmt->tok()) {
     case tokens::kAssign:
@@ -137,7 +159,8 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx) {
       for (size_t i = 0; i < lhs_addresses.size(); i++) {
         std::shared_ptr<ir::Value> lhs_address = lhs_addresses.at(i);
         std::shared_ptr<ir::Value> rhs_value = rhs_values.at(i);
-        ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(lhs_address, rhs_value));
+        ir_ctx.block()->instrs().push_back(
+            std::make_unique<ir::StoreInstr>(lhs_address, rhs_value));
       }
       break;
     case tokens::kAddAssign:
@@ -158,16 +181,18 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx) {
   }
 }
 
-void StmtBuilder::BuildExprStmt(ast::ExprStmt* expr_stmt, Context& ctx) {
-  expr_builder_.BuildValuesOfExpr(expr_stmt->x(), ctx);
+void StmtBuilder::BuildExprStmt(ast::ExprStmt* expr_stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
+  expr_builder_.BuildValuesOfExpr(expr_stmt->x(), ast_ctx, ir_ctx);
 }
 
-void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, Context& ctx) {
+void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, ASTContext& ast_ctx,
+                                  IRContext& ir_ctx) {
   const ir::IntType* type = static_cast<const ir::IntType*>(
       type_builder_.BuildType(type_info_->TypeOf(inc_dec_stmt->x())));
-  std::shared_ptr<ir::Computed> address = expr_builder_.BuildAddressOfExpr(inc_dec_stmt->x(), ctx);
-  auto old_value = std::make_shared<ir::Computed>(type, ctx.func()->next_computed_number());
-  auto new_value = std::make_shared<ir::Computed>(type, ctx.func()->next_computed_number());
+  std::shared_ptr<ir::Computed> address =
+      expr_builder_.BuildAddressOfExpr(inc_dec_stmt->x(), ast_ctx, ir_ctx);
+  auto old_value = std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
+  auto new_value = std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
   auto one = std::make_shared<ir::IntConstant>(common::Int(1).ConvertTo(type->int_type()));
   common::Int::BinaryOp op = [inc_dec_stmt]() {
     switch (inc_dec_stmt->tok()) {
@@ -179,46 +204,49 @@ void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, Context& ctx) {
         common::fail("unexpected inc dec stmt token");
     }
   }();
-  ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(old_value, address));
-  ctx.block()->instrs().push_back(
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(old_value, address));
+  ir_ctx.block()->instrs().push_back(
       std::make_unique<ir::IntBinaryInstr>(new_value, op, old_value, one));
-  ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, new_value));
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, new_value));
 }
 
-void StmtBuilder::BuildReturnStmt(ast::ReturnStmt* return_stmt, Context& ctx) {
+void StmtBuilder::BuildReturnStmt(ast::ReturnStmt* return_stmt, ASTContext& ast_ctx,
+                                  IRContext& ir_ctx) {
   std::vector<std::shared_ptr<ir::Value>> results =
-      expr_builder_.BuildValuesOfExprs(return_stmt->results(), ctx);
+      expr_builder_.BuildValuesOfExprs(return_stmt->results(), ast_ctx, ir_ctx);
 
-  ctx.block()->instrs().push_back(std::make_unique<ir::ReturnInstr>(results));
+  BuildVarDeletionsForASTContextAndParents(&ast_ctx, ir_ctx);
+
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::ReturnInstr>(results));
 }
 
-void StmtBuilder::BuildIfStmt(ast::IfStmt* if_stmt, Context& ctx) {
+void StmtBuilder::BuildIfStmt(ast::IfStmt* if_stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
   if (if_stmt->init_stmt() != nullptr) {
-    BuildStmt(if_stmt->init_stmt(), ctx);
+    BuildStmt(if_stmt->init_stmt(), ast_ctx, ir_ctx);
   }
   std::shared_ptr<ir::Value> condition =
-      expr_builder_.BuildValuesOfExpr(if_stmt->cond_expr(), ctx).front();
+      expr_builder_.BuildValuesOfExpr(if_stmt->cond_expr(), ast_ctx, ir_ctx).front();
 
-  ir::Block* start_block = ctx.block();
+  ir::Block* start_block = ir_ctx.block();
 
-  ir::Block* if_entry_block = ctx.func()->AddBlock();
-  Context if_ctx = ctx.SubContextForBlock(if_entry_block);
-  BuildBlockStmt(if_stmt->body(), if_ctx);
-  ir::Block* if_exit_block = if_ctx.block();
+  ir::Block* if_entry_block = ir_ctx.func()->AddBlock();
+  IRContext if_ir_ctx = ir_ctx.ChildContextFor(if_entry_block);
+  BuildBlockStmt(if_stmt->body(), ast_ctx, if_ir_ctx);
+  ir::Block* if_exit_block = if_ir_ctx.block();
 
   bool has_else = if_stmt->else_stmt() != nullptr;
   ir::Block* else_entry_block = nullptr;
   ir::Block* else_exit_block = nullptr;
-  std::optional<Context> else_ctx;
+  std::optional<IRContext> else_ir_ctx;
   if (has_else) {
-    else_entry_block = ctx.func()->AddBlock();
-    else_ctx = ctx.SubContextForBlock(else_entry_block);
-    BuildStmt(if_stmt->else_stmt(), else_ctx.value());
-    else_exit_block = else_ctx->block();
+    else_entry_block = ir_ctx.func()->AddBlock();
+    else_ir_ctx = ir_ctx.ChildContextFor(else_entry_block);
+    BuildStmt(if_stmt->else_stmt(), ast_ctx, else_ir_ctx.value());
+    else_exit_block = else_ir_ctx->block();
   }
 
-  ir::Block* merge_block = ctx.func()->AddBlock();
-  ctx.set_block(merge_block);
+  ir::Block* merge_block = ir_ctx.func()->AddBlock();
+  ir_ctx.set_block(merge_block);
 
   ir::block_num_t destination_true = if_entry_block->number();
   ir::block_num_t destination_false =
@@ -230,74 +258,64 @@ void StmtBuilder::BuildIfStmt(ast::IfStmt* if_stmt, Context& ctx) {
     else_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
   }
 
-  ctx.func()->AddControlFlow(start_block->number(), if_entry_block->number());
-  ctx.func()->AddControlFlow(if_exit_block->number(), merge_block->number());
+  ir_ctx.func()->AddControlFlow(start_block->number(), if_entry_block->number());
+  ir_ctx.func()->AddControlFlow(if_exit_block->number(), merge_block->number());
   if (has_else) {
-    ctx.func()->AddControlFlow(start_block->number(), else_entry_block->number());
-    ctx.func()->AddControlFlow(else_exit_block->number(), merge_block->number());
+    ir_ctx.func()->AddControlFlow(start_block->number(), else_entry_block->number());
+    ir_ctx.func()->AddControlFlow(else_exit_block->number(), merge_block->number());
   } else {
-    ctx.func()->AddControlFlow(start_block->number(), merge_block->number());
+    ir_ctx.func()->AddControlFlow(start_block->number(), merge_block->number());
   }
 }
 
-void StmtBuilder::BuildExprSwitchStmt(ast::ExprSwitchStmt* expr_switch_stmt, Context& ctx) {
+void StmtBuilder::BuildExprSwitchStmt(ast::ExprSwitchStmt* expr_switch_stmt, ASTContext& ast_ctx,
+                                      IRContext& ir_ctx) {
   // TODO: implement
 }
 
-void StmtBuilder::BuildTypeSwitchStmt(ast::TypeSwitchStmt* type_switch_stmt, Context& ctx) {
+void StmtBuilder::BuildTypeSwitchStmt(ast::TypeSwitchStmt* type_switch_stmt, ASTContext& ast_ctx,
+                                      IRContext& ir_ctx) {
   // TODO: implement
 }
 
-void StmtBuilder::BuildForStmt(ast::ForStmt* for_stmt, Context& ctx) {
+void StmtBuilder::BuildForStmt(ast::ForStmt* for_stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
   if (for_stmt->init_stmt() != nullptr) {
-    BuildStmt(for_stmt->init_stmt(), ctx);
+    BuildStmt(for_stmt->init_stmt(), ast_ctx, ir_ctx);
   }
 
-  ir::Block* start_block = ctx.block();
+  ir::Block* start_block = ir_ctx.block();
 
-  ir::Block* body_entry_block = ctx.func()->AddBlock();
-  Context body_ctx = ctx.SubContextForBlock(body_entry_block);
-  BuildBlockStmt(for_stmt->body(), body_ctx);
+  ir::Block* body_entry_block = ir_ctx.func()->AddBlock();
+  IRContext body_ir_ctx = ir_ctx.ChildContextFor(body_entry_block);
+  BuildBlockStmt(for_stmt->body(), ast_ctx, body_ir_ctx);
   if (for_stmt->post_stmt() != nullptr) {
-    BuildStmt(for_stmt->post_stmt(), body_ctx);
+    BuildStmt(for_stmt->post_stmt(), ast_ctx, body_ir_ctx);
   }
-  ir::Block* body_exit_block = body_ctx.block();
+  ir::Block* body_exit_block = body_ir_ctx.block();
 
-  ir::Block* continue_block = ctx.func()->AddBlock();
+  ir::Block* continue_block = ir_ctx.func()->AddBlock();
 
-  ir::Block* header_block = ctx.func()->AddBlock();
-  Context header_ctx = ctx.SubContextForBlock(header_block);
+  ir::Block* header_block = ir_ctx.func()->AddBlock();
+  IRContext header_ir_ctx = ir_ctx.ChildContextFor(header_block);
   std::shared_ptr<ir::Value> condition =
-      expr_builder_.BuildValuesOfExpr(for_stmt->cond_expr(), header_ctx).front();
+      expr_builder_.BuildValuesOfExpr(for_stmt->cond_expr(), ast_ctx, header_ir_ctx).front();
 
   header_block->instrs().push_back(std::make_unique<ir::JumpCondInstr>(
       condition, body_entry_block->number(), continue_block->number()));
   start_block->instrs().push_back(std::make_unique<ir::JumpInstr>(header_block->number()));
   body_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(header_block->number()));
 
-  ctx.func()->AddControlFlow(start_block->number(), header_block->number());
-  ctx.func()->AddControlFlow(header_block->number(), body_entry_block->number());
-  ctx.func()->AddControlFlow(header_block->number(), continue_block->number());
-  ctx.func()->AddControlFlow(body_exit_block->number(), header_block->number());
+  ir_ctx.func()->AddControlFlow(start_block->number(), header_block->number());
+  ir_ctx.func()->AddControlFlow(header_block->number(), body_entry_block->number());
+  ir_ctx.func()->AddControlFlow(header_block->number(), continue_block->number());
+  ir_ctx.func()->AddControlFlow(body_exit_block->number(), header_block->number());
 
-  ctx.set_block(continue_block);
+  ir_ctx.set_block(continue_block);
 }
 
-void StmtBuilder::BuildBranchStmt(ast::BranchStmt* branch_stmt, Context& ctx) {
+void StmtBuilder::BuildBranchStmt(ast::BranchStmt* branch_stmt, ASTContext& ast_ctx,
+                                  IRContext& ir_ctx) {
   // TODO: implement
-}
-
-void StmtBuilder::BuildVarDecl(types::Variable* var, Context& ctx) {
-  const ir_ext::SharedPointer* pointer_type = type_builder_.BuildStrongPointerToType(var->type());
-  std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(pointer_type, ctx.func()->next_computed_number());
-  ctx.block()->instrs().push_back(std::make_unique<ir_ext::MakeSharedPointerInstr>(result));
-  ctx.AddAddressOfVar(var, result);
-}
-
-void StmtBuilder::BuildVarDeletion(types::Variable* var, Context& ctx) {
-  std::shared_ptr<ir::Computed> address = ctx.LookupAddressOfVar(var);
-  ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
 }
 
 }  // namespace ir_builder

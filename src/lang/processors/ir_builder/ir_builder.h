@@ -51,9 +51,8 @@ class IRBuilder {
 
   void BuildDeclsInFile(ast::File* file);
   void BuildFuncDecl(ast::FuncDecl* func_decl);
-
-  void BuildPrologForFunc(types::Func* types_func, Context& ctx);
-  void BuildEpilogForFunc(Context& ctx);
+  void BuildFuncParameters(types::Tuple* parameters, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildFuncResults(types::Tuple* results, ASTContext& ast_ctx, IRContext& ir_ctx);
 
   types::Info* type_info_;
   TypeBuilder type_builder_;

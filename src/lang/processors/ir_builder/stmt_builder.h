@@ -32,23 +32,28 @@ class StmtBuilder {
   StmtBuilder(types::Info* type_info, TypeBuilder& type_builder, ExprBuilder& expr_builder)
       : type_info_(type_info), type_builder_(type_builder), expr_builder_(expr_builder) {}
 
-  void BuildStmt(ast::Stmt* stmt, Context& ctx);
-  void BuildBlockStmt(ast::BlockStmt* block_stmt, Context& ctx);
-  void BuildDeclStmt(ast::DeclStmt* decl_stmt, Context& ctx);
-  void BuildAssignStmt(ast::AssignStmt* assign_stmt, Context& ctx);
-  void BuildExprStmt(ast::ExprStmt* expr_stmt, Context& ctx);
-  void BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, Context& ctx);
-  void BuildReturnStmt(ast::ReturnStmt* return_stmt, Context& ctx);
-  void BuildIfStmt(ast::IfStmt* if_stmt, Context& ctx);
-  void BuildExprSwitchStmt(ast::ExprSwitchStmt* expr_switch_stmt, Context& ctx);
-  void BuildTypeSwitchStmt(ast::TypeSwitchStmt* type_switch_stmt, Context& ctx);
-  void BuildForStmt(ast::ForStmt* for_stmt, Context& ctx);
-  void BuildBranchStmt(ast::BranchStmt* branch_stmt, Context& ctx);
+  void BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
 
-  void BuildVarDecl(types::Variable* var, Context& ctx);
-  void BuildVarDeletion(types::Variable* var, Context& ctx);
+  void BuildVarDecl(types::Variable* var, bool initialize_var, ASTContext& ast_ctx,
+                    IRContext& ir_ctx);
+  void BuildVarDeletionsForASTContextAndParents(ASTContext* ast_ctx, IRContext& ir_ctx);
+  void BuildVarDeletionsForASTContext(ASTContext* ast_ctx, IRContext& ir_ctx);
 
  private:
+  void BuildStmt(ast::Stmt* stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildDeclStmt(ast::DeclStmt* decl_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildExprStmt(ast::ExprStmt* expr_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildReturnStmt(ast::ReturnStmt* return_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildIfStmt(ast::IfStmt* if_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildExprSwitchStmt(ast::ExprSwitchStmt* expr_switch_stmt, ASTContext& ast_ctx,
+                           IRContext& ir_ctx);
+  void BuildTypeSwitchStmt(ast::TypeSwitchStmt* type_switch_stmt, ASTContext& ast_ctx,
+                           IRContext& ir_ctx);
+  void BuildForStmt(ast::ForStmt* for_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+  void BuildBranchStmt(ast::BranchStmt* branch_stmt, ASTContext& ast_ctx, IRContext& ir_ctx);
+
   types::Info* type_info_;
   TypeBuilder& type_builder_;
   ExprBuilder& expr_builder_;

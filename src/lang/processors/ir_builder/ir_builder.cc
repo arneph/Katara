@@ -87,51 +87,44 @@ void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
   ir::Func* ir_func = funcs_.at(types_func);
   ir::Block* entry_block = ir_func->AddBlock();
   ir_func->set_entry_block_num(entry_block->number());
-  Context ctx(ir_func);
+  ASTContext ast_ctx(/*block=*/nullptr);
+  IRContext ir_ctx(ir_func, entry_block);
 
-  for (types::Variable* types_arg : types_signature->parameters()->variables()) {
-    types::Type* types_arg_type = types_arg->type();
-    const ir::Type* ir_arg_type = type_builder_.BuildType(types_arg_type);
-    std::shared_ptr<ir::Computed> ir_arg =
-        std::make_shared<ir::Computed>(ir_arg_type, ctx.func()->next_computed_number());
-    ir_func->args().push_back(ir_arg);
-  }
-  if (types_signature->results() != nullptr) {
-    for (types::Variable* types_result : types_signature->results()->variables()) {
-      types::Type* types_result_type = types_result->type();
-      const ir::Type* ir_result_type = type_builder_.BuildType(types_result_type);
-      ir_func->result_types().push_back(ir_result_type);
-    }
-  }
+  BuildFuncParameters(types_signature->parameters(), ast_ctx, ir_ctx);
+  BuildFuncResults(types_signature->results(), ast_ctx, ir_ctx);
 
-  BuildPrologForFunc(types_func, ctx);
-  stmt_builder_.BuildBlockStmt(func_decl->body(), ctx);
-  if (ctx.block()->instrs().empty() ||
-      ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kReturn) {
-    BuildEpilogForFunc(ctx);
+  stmt_builder_.BuildBlockStmt(func_decl->body(), ast_ctx, ir_ctx);
+  if (ir_ctx.block()->instrs().empty() ||
+      ir_ctx.block()->instrs().back()->instr_kind() != ir::InstrKind::kReturn) {
+    stmt_builder_.BuildVarDeletionsForASTContext(&ast_ctx, ir_ctx);
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   }
 }
 
-void IRBuilder::BuildPrologForFunc(types::Func* types_func, Context& ctx) {
-  types::Signature* signature = static_cast<types::Signature*>(types_func->type());
-  for (types::Variable* param : signature->parameters()->variables()) {
-    stmt_builder_.BuildVarDecl(param, ctx);
+void IRBuilder::BuildFuncParameters(types::Tuple* parameters, ASTContext& ast_ctx,
+                                    IRContext& ir_ctx) {
+  for (types::Variable* var : parameters->variables()) {
+    types::Type* types_type = var->type();
+    const ir::Type* ir_type = type_builder_.BuildType(types_type);
+    std::shared_ptr<ir::Computed> ir_func_arg =
+        std::make_shared<ir::Computed>(ir_type, ir_ctx.func()->next_computed_number());
+    ir_ctx.func()->args().push_back(ir_func_arg);
+    stmt_builder_.BuildVarDecl(var, /*initialize_var=*/false, ast_ctx, ir_ctx);
+    std::shared_ptr<ir::Value> address = ast_ctx.LookupAddressOfVar(var);
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, ir_func_arg));
   }
-  if (signature->results() != nullptr) {
-    for (types::Variable* result : signature->results()->variables()) {
-      if (result->name().empty()) {
-        continue;
-      }
-      stmt_builder_.BuildVarDecl(result, ctx);
-    }
-  }
-  // TODO: handle args and results
 }
 
-void IRBuilder::BuildEpilogForFunc(Context& ctx) {
-  for (const Context* c = &ctx; c != nullptr; c = c->parent_ctx()) {
-    for (auto [var, address] : c->var_addresses()) {
-      stmt_builder_.BuildVarDeletion(var, ctx);
+void IRBuilder::BuildFuncResults(types::Tuple* results, ASTContext& ast_ctx, IRContext& ir_ctx) {
+  if (results == nullptr) {
+    return;
+  }
+  for (types::Variable* types_result : results->variables()) {
+    types::Type* types_result_type = types_result->type();
+    const ir::Type* ir_result_type = type_builder_.BuildType(types_result_type);
+    ir_ctx.func()->result_types().push_back(ir_result_type);
+    if (!types_result->name().empty()) {
+      stmt_builder_.BuildVarDecl(types_result, /*initialize_var=*/true, ast_ctx, ir_ctx);
     }
   }
 }
