@@ -88,7 +88,7 @@ void IRBuilder::BuildFuncDecl(ast::FuncDecl* func_decl) {
   ir::Func* ir_func = funcs_.at(types_func);
   ir::Block* entry_block = ir_func->AddBlock();
   ir_func->set_entry_block_num(entry_block->number());
-  ASTContext ast_ctx(/*block=*/nullptr);
+  ASTContext ast_ctx;
   IRContext ir_ctx(ir_func, entry_block);
 
   BuildFuncParameters(types_signature->parameters(), ast_ctx, ir_ctx);

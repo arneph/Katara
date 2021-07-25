@@ -23,10 +23,14 @@ namespace ir_builder {
 
 class ASTContext {
  public:
-  ASTContext(ast::BlockStmt* block) : block_(block) {}
+  struct BranchLookupResult {
+    ir::block_num_t destination;
+    ASTContext* defining_ctx;
+  };
+
+  ASTContext() {}
 
   ASTContext* parent() const { return parent_; }
-  ast::BlockStmt* block() const { return block_; }
 
   const std::vector<std::pair<types::Variable*, std::shared_ptr<ir::Computed>>>& var_addresses()
       const {
@@ -35,16 +39,35 @@ class ASTContext {
 
   std::shared_ptr<ir::Computed> LookupAddressOfVar(types::Variable* var) const;
   void AddAddressOfVar(types::Variable* var, std::shared_ptr<ir::Computed> address);
-  void ClearVarAdresses() { var_addresses_.clear(); }
 
-  ASTContext ChildContextFor(ast::BlockStmt* block);
+  BranchLookupResult LookupFallthrough();
+  BranchLookupResult LookupContinue();
+  BranchLookupResult LookupBreak();
+  BranchLookupResult LookupContinueWithLabel(std::string label);
+  BranchLookupResult LookupBreakWithLabel(std::string label);
+
+  ASTContext ChildContext();
+  ASTContext ChildContextForLoop(std::string label, ir::block_num_t continue_block,
+                                 ir::block_num_t break_block);
 
  private:
-  ASTContext(ASTContext* parent, ast::BlockStmt* block) : parent_(parent), block_(block) {}
+  ASTContext(ASTContext* parent) : parent_(parent) {}
+  ASTContext(ASTContext* parent, std::string label, ir::block_num_t fallthrough_block,
+             ir::block_num_t continue_block, ir::block_num_t break_block)
+      : parent_(parent),
+        label_(label),
+        fallthrough_block_(fallthrough_block),
+        continue_block_(continue_block),
+        break_block_(break_block) {}
 
   ASTContext* parent_ = nullptr;
-  ast::BlockStmt* block_;
+
   std::vector<std::pair<types::Variable*, std::shared_ptr<ir::Computed>>> var_addresses_;
+
+  std::string label_;
+  ir::block_num_t fallthrough_block_ = ir::kNoBlockNum;
+  ir::block_num_t continue_block_ = ir::kNoBlockNum;
+  ir::block_num_t break_block_ = ir::kNoBlockNum;
 };
 
 class IRContext {
@@ -58,10 +81,6 @@ class IRContext {
   IRContext ChildContextFor(ir::Block* block) const;
 
  private:
-  IRContext(const IRContext* parent, ir::Func* func, ir::Block* block)
-      : parent_(parent), func_(func), block_(block) {}
-
-  const IRContext* parent_ = nullptr;
   ir::Func* func_;
   ir::Block* block_;
 };

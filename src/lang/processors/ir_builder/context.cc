@@ -33,11 +33,49 @@ void ASTContext::AddAddressOfVar(types::Variable* var, std::shared_ptr<ir::Compu
   var_addresses_.emplace_back(var, address);
 }
 
-ASTContext ASTContext::ChildContextFor(ast::BlockStmt* block) { return ASTContext(this, block); }
-
-IRContext IRContext::ChildContextFor(ir::Block* block) const {
-  return IRContext(this, func_, block);
+ASTContext::BranchLookupResult ASTContext::LookupFallthrough() {
+  return BranchLookupResult{fallthrough_block_, this};
 }
+
+ASTContext::BranchLookupResult ASTContext::LookupContinue() {
+  if (continue_block_ != ir::kNoBlockNum) {
+    return BranchLookupResult{continue_block_, this};
+  } else {
+    return parent_->LookupContinue();
+  }
+}
+
+ASTContext::BranchLookupResult ASTContext::LookupBreak() {
+  if (break_block_ != ir::kNoBlockNum) {
+    return BranchLookupResult{break_block_, this};
+  } else {
+    return parent_->LookupBreak();
+  }
+}
+
+ASTContext::BranchLookupResult ASTContext::LookupContinueWithLabel(std::string label) {
+  if (continue_block_ != ir::kNoBlockNum && label_ == label) {
+    return BranchLookupResult{continue_block_, this};
+  } else {
+    return parent_->LookupContinueWithLabel(label);
+  }
+}
+
+ASTContext::BranchLookupResult ASTContext::LookupBreakWithLabel(std::string label) {
+  if (break_block_ != ir::kNoBlockNum && label_ == label) {
+    return BranchLookupResult{break_block_, this};
+  } else {
+    return parent_->LookupBreakWithLabel(label);
+  }
+}
+
+ASTContext ASTContext::ChildContext() { return ASTContext(this); }
+ASTContext ASTContext::ChildContextForLoop(std::string label, ir::block_num_t continue_block,
+                                           ir::block_num_t break_block) {
+  return ASTContext(this, label, ir::kNoBlockNum, continue_block, break_block);
+}
+
+IRContext IRContext::ChildContextFor(ir::Block* block) const { return IRContext(func_, block); }
 
 }  // namespace ir_builder
 }  // namespace lang
