@@ -8,9 +8,11 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//src/ir/analyzers",
         "//src/ir/info",
         "//src/ir/interpreter",
         "//src/ir/processors",
         "//src/ir/representation",
+        "//src/ir/serialization",
     ],
 )

@@ -11,7 +11,7 @@
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/values.h"
 
-namespace ir_proc {
+namespace ir_analyzers {
 namespace {
 
 void BacktraceBlock(const ir::Func* func, const ir::Block* block,
@@ -97,4 +97,4 @@ const ir_info::FuncLiveRanges FindLiveRangesForFunc(const ir::Func* func) {
   return func_live_ranges;
 }
 
-}  // namespace ir_proc
+}  // namespace ir_analyzers

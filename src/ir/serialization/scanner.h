@@ -6,14 +6,14 @@
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_proc_scanner_h
-#define ir_proc_scanner_h
+#ifndef ir_serialization_scanner_h
+#define ir_serialization_scanner_h
 
 #include <istream>
 #include <memory>
 #include <string>
 
-namespace ir_proc {
+namespace ir_serialization {
 
 class Scanner {
  public:
@@ -37,7 +37,6 @@ class Scanner {
   } Token;
 
   Scanner(std::istream& in_stream);
-  ~Scanner();
 
   Token token() const;
   std::string string() const;
@@ -55,6 +54,6 @@ class Scanner {
   uint64_t number_;
 };
 
-}  // namespace ir_proc
+}  // namespace ir_serialization
 
-#endif /* ir_proc_scanner_h */
+#endif /* ir_serialization_scanner_h */

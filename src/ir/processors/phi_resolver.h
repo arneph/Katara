@@ -14,10 +14,10 @@
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/values.h"
 
-namespace ir_proc {
+namespace ir_processors {
 
 void ResolvePhisInFunc(ir::Func* func);
 
-}  // namespace ir_proc
+}  // namespace ir_processors
 
 #endif /* ir_proc_phi_resolver_h */

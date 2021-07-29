@@ -8,7 +8,7 @@
 
 #include "phi_resolver.h"
 
-namespace ir_proc {
+namespace ir_processors {
 namespace {
 
 void ResolvePhisInBlock(ir::Func* func, ir::Block* block) {
@@ -42,4 +42,4 @@ void ResolvePhisInFunc(ir::Func* func) {
   }
 }
 
-}  // namespace ir_proc
+}  // namespace ir_processors

@@ -8,7 +8,7 @@
 
 #include "interference_graph_builder.h"
 
-namespace ir_proc {
+namespace ir_analyzers {
 namespace {
 
 void PopulateInterferenceGraphForBlock(const ir::Block* block, const ir_info::BlockLiveRanges& info,
@@ -62,4 +62,4 @@ const ir_info::InterferenceGraph BuildInterferenceGraphForFunc(
   return graph;
 }
 
-}  // namespace ir_proc
+}  // namespace ir_analyzers

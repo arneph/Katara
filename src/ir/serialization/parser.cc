@@ -10,7 +10,7 @@
 
 #include "src/common/logging.h"
 
-namespace ir_proc {
+namespace ir_serialization {
 
 std::unique_ptr<ir::Program> Parser::Parse(std::istream& in_stream) {
   Scanner scanner(in_stream);
@@ -677,4 +677,4 @@ const ir::AtomicType* Parser::ParseType() {
   }
 }
 
-}  // namespace ir_proc
+}  // namespace ir_serialization

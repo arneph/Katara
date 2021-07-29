@@ -11,15 +11,15 @@
 #include <iostream>
 #include <memory>
 
+#include "src/ir/analyzers/interference_graph_builder.h"
+#include "src/ir/analyzers/live_range_analyzer.h"
 #include "src/ir/info/func_live_ranges.h"
 #include "src/ir/info/interference_graph.h"
-#include "src/ir/processors/interference_graph_builder.h"
-#include "src/ir/processors/live_range_analyzer.h"
-#include "src/ir/processors/parser.h"
 #include "src/ir/processors/phi_resolver.h"
-#include "src/ir/processors/scanner.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/program.h"
+#include "src/ir/serialization/parser.h"
+#include "src/ir/serialization/scanner.h"
 #include "src/x86_64/ir_translator/ir_translator.h"
 #include "src/x86_64/program.h"
 
@@ -42,8 +42,8 @@ void run_ir_test(std::filesystem::path test_dir) {
   }
 
   std::ifstream in_stream(in_file, std::ios::in);
-  ir_proc::Scanner scanner(in_stream);
-  std::unique_ptr<ir::Program> ir_program = ir_proc::Parser::Parse(scanner);
+  ir_serialization::Scanner scanner(in_stream);
+  std::unique_ptr<ir::Program> ir_program = ir_serialization::Parser::Parse(scanner);
 
   std::cout << ir_program->ToString() << "\n";
 
@@ -61,9 +61,9 @@ void run_ir_test(std::filesystem::path test_dir) {
   std::unordered_map<ir::Func*, ir_info::InterferenceGraph> interference_graphs;
 
   for (auto& func : ir_program->funcs()) {
-    ir_info::FuncLiveRanges func_live_ranges = ir_proc::FindLiveRangesForFunc(func.get());
+    ir_info::FuncLiveRanges func_live_ranges = ir_analyzers::FindLiveRangesForFunc(func.get());
     ir_info::InterferenceGraph func_interference_graph =
-        ir_proc::BuildInterferenceGraphForFunc(func.get(), func_live_ranges);
+        ir_analyzers::BuildInterferenceGraphForFunc(func.get(), func_live_ranges);
 
     live_ranges.insert({func.get(), func_live_ranges});
     interference_graphs.insert({func.get(), func_interference_graph});
@@ -80,7 +80,7 @@ void run_ir_test(std::filesystem::path test_dir) {
   }
 
   for (auto& func : ir_program->funcs()) {
-    ir_proc::ResolvePhisInFunc(func.get());
+    ir_processors::ResolvePhisInFunc(func.get());
     common::Graph cfg = func->ToControlFlowGraph();
     common::Graph dom_tree = func->ToDominatorTree();
 

@@ -12,11 +12,9 @@
 
 #include "src/common/logging.h"
 
-namespace ir_proc {
+namespace ir_serialization {
 
 Scanner::Scanner(std::istream& in_stream) : in_stream_(in_stream) { token_ = kUnknown; }
-
-Scanner::~Scanner() {}
 
 Scanner::Token Scanner::token() const { return token_; }
 
@@ -112,4 +110,4 @@ void Scanner::Next() {
   }
 }
 
-}  // namespace ir_proc
+}  // namespace ir_serialization

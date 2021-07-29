@@ -6,23 +6,23 @@
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_proc_parser_h
-#define ir_proc_parser_h
+#ifndef ir_serialization_parser_h
+#define ir_serialization_parser_h
 
 #include <iostream>
 #include <memory>
 #include <optional>
 
 #include "src/common/atomics.h"
-#include "src/ir/processors/scanner.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/representation/values.h"
+#include "src/ir/serialization/scanner.h"
 
-namespace ir_proc {
+namespace ir_serialization {
 
 class Parser {
  public:
@@ -75,6 +75,6 @@ class Parser {
   std::unique_ptr<ir::Program> program_;
 };
 
-}  // namespace ir_proc
+}  // namespace ir_serialization
 
-#endif /* ir_proc_parser_h */
+#endif /* ir_serialization_parser_h */

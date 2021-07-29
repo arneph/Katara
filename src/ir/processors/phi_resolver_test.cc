@@ -92,7 +92,7 @@ TEST(PhiResolverTest, ResolvesPhisAfterSimpleBranch) {
   merge_block->instrs().push_back(std::move(instr_g));
 
   // Resolve Phis:
-  ir_proc::ResolvePhisInFunc(&func);
+  ir_processors::ResolvePhisInFunc(&func);
 
   // Check entry block:
   EXPECT_EQ(5, entry_block->instrs().size());

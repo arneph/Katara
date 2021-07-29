@@ -6,8 +6,8 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_proc_interference_graph_builder_h
-#define ir_proc_interference_graph_builder_h
+#ifndef ir_analyzers_interference_graph_builder_h
+#define ir_analyzers_interference_graph_builder_h
 
 #include "src/ir/info/block_live_ranges.h"
 #include "src/ir/info/func_live_ranges.h"
@@ -15,11 +15,11 @@
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 
-namespace ir_proc {
+namespace ir_analyzers {
 
 const ir_info::InterferenceGraph BuildInterferenceGraphForFunc(
     const ir::Func* func, const ir_info::FuncLiveRanges live_ranges);
 
 }
 
-#endif /* ir_proc_interference_graph_builder_h */
+#endif /* ir_analyzers_interference_graph_builder_h */

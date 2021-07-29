@@ -8,7 +8,7 @@
 
 #include "interference_graph_colorer.h"
 
-namespace ir_proc {
+namespace ir_analyzers {
 
 const ir_info::InterferenceGraphColors ColorInterferenceGraph(
     const ir_info::InterferenceGraph& graph,
@@ -42,4 +42,4 @@ const ir_info::InterferenceGraphColors ColorInterferenceGraph(
   return result_colors;
 }
 
-}  // namespace ir_proc
+}  // namespace ir_analyzers

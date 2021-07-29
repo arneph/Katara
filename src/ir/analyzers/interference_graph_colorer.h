@@ -6,8 +6,8 @@
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_proc_interference_graph_colorer_h
-#define ir_proc_interference_graph_colorer_h
+#ifndef ir_analyzers_interference_graph_colorer_h
+#define ir_analyzers_interference_graph_colorer_h
 
 #include <unordered_map>
 #include <unordered_set>
@@ -18,12 +18,12 @@
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/values.h"
 
-namespace ir_proc {
+namespace ir_analyzers {
 
 const ir_info::InterferenceGraphColors ColorInterferenceGraph(
     const ir_info::InterferenceGraph& graph,
     const ir_info::InterferenceGraphColors& preferred_colors);
 
-}  // namespace ir_proc
+}  // namespace ir_analyzers
 
-#endif /* ir_proc_interference_graph_colorer_h */
+#endif /* ir_analyzers_interference_graph_colorer_h */
