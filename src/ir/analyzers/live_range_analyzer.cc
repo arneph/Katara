@@ -41,7 +41,7 @@ void BacktraceBlock(const ir::Func* func, const ir::Block* block,
 
   // Include values used in phi instructions of child
   for (ir::block_num_t child_num : block->children()) {
-    func->GetBlock(child_num)->for_each_phi_instr([&](ir::PhiInstr* instr) {
+    func->GetBlock(child_num)->ForEachPhiInstr([&](ir::PhiInstr* instr) {
       ir::Value* value = instr->ValueInheritedFromBlock(block->number()).get();
       if (value->kind() != ir::Value::Kind::kComputed) {
         return;

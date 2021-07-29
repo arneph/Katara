@@ -37,10 +37,10 @@ class Block {
   bool HasControlFlowInstr() const { return ControlFlowInstr() != nullptr; }
   Instr* ControlFlowInstr() const;
 
-  void for_each_phi_instr(std::function<void(PhiInstr*)> f);
-  void for_each_phi_instr_reverse(std::function<void(PhiInstr*)> f);
-  void for_each_non_phi_instr(std::function<void(Instr*)> f);
-  void for_each_non_phi_instr_reverse(std::function<void(Instr*)> f);
+  void ForEachPhiInstr(std::function<void(PhiInstr*)> f) const;
+  void ForEachPhiInstrReverse(std::function<void(PhiInstr*)> f) const;
+  void ForEachNonPhiInstr(std::function<void(Instr*)> f) const;
+  void ForEachNonPhiInstrReverse(std::function<void(Instr*)> f) const;
 
   const std::unordered_set<block_num_t>& parents() const { return parents_; }
   const std::unordered_set<block_num_t>& children() const { return children_; }

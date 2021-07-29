@@ -29,7 +29,7 @@ Instr* Block::ControlFlowInstr() const {
   }
 }
 
-void Block::for_each_phi_instr(std::function<void(PhiInstr*)> f) {
+void Block::ForEachPhiInstr(std::function<void(PhiInstr*)> f) const {
   for (size_t i = 0; i < instrs_.size(); i++) {
     Instr* instr = instrs_.at(i).get();
     if (instr->instr_kind() != InstrKind::kPhi) {
@@ -39,7 +39,7 @@ void Block::for_each_phi_instr(std::function<void(PhiInstr*)> f) {
   }
 }
 
-void Block::for_each_phi_instr_reverse(std::function<void(PhiInstr*)> f) {
+void Block::ForEachPhiInstrReverse(std::function<void(PhiInstr*)> f) const {
   size_t phi_count = 0;
   for (phi_count = 0; phi_count < instrs_.size(); phi_count++) {
     Instr* instr = instrs_.at(phi_count).get();
@@ -54,7 +54,7 @@ void Block::for_each_phi_instr_reverse(std::function<void(PhiInstr*)> f) {
   }
 }
 
-void Block::for_each_non_phi_instr(std::function<void(Instr*)> f) {
+void Block::ForEachNonPhiInstr(std::function<void(Instr*)> f) const {
   for (size_t i = 0; i < instrs_.size(); i++) {
     Instr* instr = instrs_.at(i).get();
     if (instr->instr_kind() == InstrKind::kPhi) {
@@ -64,7 +64,7 @@ void Block::for_each_non_phi_instr(std::function<void(Instr*)> f) {
   }
 }
 
-void Block::for_each_non_phi_instr_reverse(std::function<void(Instr*)> f) {
+void Block::ForEachNonPhiInstrReverse(std::function<void(Instr*)> f) const {
   for (int64_t i = instrs_.size() - 1; i >= 0; i--) {
     Instr* instr = instrs_.at(i).get();
     if (instr->instr_kind() == InstrKind::kPhi) {
