@@ -9,6 +9,7 @@
 #ifndef ir_func_h
 #define ir_func_h
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -57,6 +58,8 @@ class Func {
 
   block_num_t DominatorOf(block_num_t dominee_num) const;
   std::unordered_set<block_num_t> DomineesOf(block_num_t dominator_num) const;
+  std::vector<block_num_t> GetBlocksInDominanceOrder() const;
+  void ForBlocksInDominanceOrder(std::function<void(Block*)> f) const;
 
   int64_t computed_count() const { return computed_count_; }
   value_num_t next_computed_number() { return computed_count_++; }

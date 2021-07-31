@@ -91,6 +91,30 @@ std::unordered_set<block_num_t> Func::DomineesOf(block_num_t dominator_num) cons
   return dominees_.at(dominator_num);
 }
 
+std::vector<block_num_t> Func::GetBlocksInDominanceOrder() const {
+  if (!dominator_tree_ok_) {
+    UpdateDominatorTree();
+  }
+  std::vector<block_num_t> ordered_blocks;
+  ordered_blocks.reserve(blocks_.size());
+  ordered_blocks.push_back(entry_block_num_);
+  for (std::size_t i = 0; i < ordered_blocks.size(); i++) {
+    block_num_t current = ordered_blocks.at(i);
+    for (block_num_t dominee : dominees_.at(current)) {
+      ordered_blocks.push_back(dominee);
+    }
+  }
+  return ordered_blocks;
+}
+
+void Func::ForBlocksInDominanceOrder(std::function<void(Block*)> f) const {
+  std::vector<block_num_t> ordered_block_nums = GetBlocksInDominanceOrder();
+  for (block_num_t current_num : ordered_block_nums) {
+    Block* current_block = GetBlock(current_num);
+    f(current_block);
+  }
+}
+
 std::string Func::ToString() const {
   std::stringstream ss;
   ss << ReferenceString() << " ";
