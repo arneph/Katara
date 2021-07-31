@@ -191,6 +191,30 @@ std::string IntShiftInstr::ToString() const {
          shifted_->ToString() + ", " + offset_->ToString();
 }
 
+PointerOffsetInstr::PointerOffsetInstr(std::shared_ptr<Computed> result,
+                                       std::shared_ptr<Computed> pointer,
+                                       std::shared_ptr<Value> offset)
+    : Computation(result), pointer_(pointer), offset_(offset) {
+  if (offset->type() != &kI64) {
+    common::fail("offset argument of pointer offset instr is not of type I64");
+  }
+}
+
+std::string PointerOffsetInstr::ToString() const {
+  return result()->ToStringWithType() + " = poff " + pointer_->ToString() + ", " +
+         offset_->ToString();
+}
+
+NilTestInstr::NilTestInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> tested)
+    : Computation(result), tested_(tested) {
+  if (result->type() != &kBool) {
+    common::fail("result of nil test instr is not of type bool");
+  } else if (tested->type()->type_kind() != TypeKind::kPointer &&
+             tested->type()->type_kind() != TypeKind::kFunc) {
+    common::fail("operand of nil test instr is not of type pointer or func");
+  }
+}
+
 std::string JumpCondInstr::ToString() const {
   return "jcc " + condition_->ToString() + ", {" + std::to_string(destination_true_) + "}, {" +
          std::to_string(destination_false_) + "}";

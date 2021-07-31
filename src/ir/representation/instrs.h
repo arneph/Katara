@@ -28,6 +28,8 @@ enum class InstrKind {
   kIntCompare,
   kIntBinary,
   kIntShift,
+  kPointerOffset,
+  kNilTest,
   kMalloc,
   kLoad,
   kComputationStart = kMov,
@@ -244,6 +246,41 @@ class IntShiftInstr : public Computation {
   common::Int::ShiftOp operation_;
   std::shared_ptr<Value> shifted_;
   std::shared_ptr<Value> offset_;
+};
+
+class PointerOffsetInstr : public Computation {
+ public:
+  PointerOffsetInstr(std::shared_ptr<Computed> result, std::shared_ptr<Computed> pointer,
+                     std::shared_ptr<Value> offset);
+
+  std::shared_ptr<Computed> pointer() const { return pointer_; }
+  std::shared_ptr<Value> offset() const { return offset_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {pointer_, offset_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kPointerOffset; }
+  std::string ToString() const override;
+
+ private:
+  std::shared_ptr<Computed> pointer_;
+  std::shared_ptr<Value> offset_;
+};
+
+class NilTestInstr : public Computation {
+ public:
+  NilTestInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> tested);
+
+  std::shared_ptr<Value> tested() const { return tested_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {tested_}; }
+
+  InstrKind instr_kind() const override { return InstrKind::kNilTest; }
+  std::string ToString() const override {
+    return result()->ToStringWithType() + " = niltest " + tested_->ToString();
+  }
+
+ private:
+  std::shared_ptr<Value> tested_;
 };
 
 class MallocInstr : public Computation {
