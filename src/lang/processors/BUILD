@@ -11,6 +11,7 @@ cc_library(
         "//src/lang/processors/docs:file_doc",
         "//src/lang/processors/docs:package_doc",
         "//src/lang/processors/ir_builder",
+        "//src/lang/processors/ir_lowerers:shared_pointer_lowerer",
         "//src/lang/processors/issues",
         "//src/lang/processors/packages:filesystem_loader",
         "//src/lang/processors/packages:loader",

@@ -18,6 +18,7 @@
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/docs/package_doc.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
+#include "src/lang/processors/ir_lowerers/shared_pointer_lowerer.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 #include "src/lang/representation/ast/ast.h"
@@ -222,13 +223,12 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
     // TODO: support translating non-main packages to IR
     return BuildResult{nullptr, 5};
   }
-  std::unique_ptr<ir::Program> program =
-      lang::ir_builder::IRBuilder::TranslateProgram(main_pkg, pkg_manager->type_info());
-  if (generate_debug_info && program) {
+
+  auto debug_info_generator = [main_pkg](ir::Program* program, std::string iter) {
     std::filesystem::path debug_dir = (main_pkg != nullptr)
                                           ? std::filesystem::path(main_pkg->dir()) / "debug"
                                           : std::filesystem::current_path();
-    to_file(program->ToString(), debug_dir / "ir.txt");
+    to_file(program->ToString(), debug_dir / ("ir." + iter + ".txt"));
 
     for (auto& func : program->funcs()) {
       std::string file_name =
@@ -236,9 +236,23 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
       common::Graph func_cfg = func->ToControlFlowGraph();
       common::Graph func_dom = func->ToDominatorTree();
 
-      to_file(func_cfg.ToDotFormat(), debug_dir / (file_name + ".cfg.dot"));
-      to_file(func_dom.ToDotFormat(), debug_dir / (file_name + ".dom.dot"));
+      to_file(func_cfg.ToDotFormat(), debug_dir / (file_name + "." + iter + ".cfg.dot"));
+      to_file(func_dom.ToDotFormat(), debug_dir / (file_name + "." + iter + ".dom.dot"));
     }
+  };
+
+  std::unique_ptr<ir::Program> program =
+      lang::ir_builder::IRBuilder::TranslateProgram(main_pkg, pkg_manager->type_info());
+  if (program == nullptr) {
+    return BuildResult{nullptr, 6};
+  }
+  if (generate_debug_info) {
+    debug_info_generator(program.get(), "init");
+  }
+
+  lang::ir_lowerers::LowerSharedPointersInProgram(program.get());
+  if (generate_debug_info) {
+    debug_info_generator(program.get(), "lowered");
   }
 
   return BuildResult{std::move(program), 0};
@@ -254,7 +268,7 @@ int run(const std::vector<const std::string> args, std::istream& in, std::ostrea
   ir_interpreter::Interpreter interpreter(program.get());
   interpreter.run();
 
-  return interpreter.exit_code();
+  return static_cast<int>(interpreter.exit_code());
 }
 
 int main(int argc, char* argv[]) {
