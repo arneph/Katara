@@ -10,6 +10,9 @@
 
 #include <unordered_map>
 
+#include "src/ir/builder/block_builder.h"
+#include "src/ir/builder/func_builder.h"
+
 namespace lang {
 namespace ir_lowerers {
 namespace {
@@ -19,215 +22,138 @@ constexpr common::Int kWeakRefCountPointerOffset{int64_t{8}};
 constexpr common::Int kDestructorPointerOffset{int64_t{16}};
 
 ir::func_num_t BuildMakeSharedPointerFunc(ir::Program* program) {
-  ir::Func* func = program->AddFunc();
-  func->set_name("make_shared");
+  ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(program);
 
-  auto underlying_size = std::make_shared<ir::Computed>(ir::i64(), func->next_computed_number());
-  auto destructor = std::make_shared<ir::Computed>(ir::func_type(), func->next_computed_number());
+  fb.SetName("make_shared");
+  auto underlying_size = fb.AddArg(ir::i64());
+  auto destructor = fb.AddArg(ir::func_type());
+  fb.AddResultType(ir::pointer_type());
+  fb.AddResultType(ir::pointer_type());
 
-  func->args().push_back(underlying_size);
-  func->args().push_back(destructor);
-  func->result_types().push_back(ir::pointer_type());
-  func->result_types().push_back(ir::pointer_type());
-
-  ir::Block* block = func->AddBlock();
-  func->set_entry_block_num(block->number());
+  ir_builder::BlockBuilder bb = fb.AddEntryBlock();
 
   auto control_block_size = std::make_shared<ir::IntConstant>(kControlBlockSize);
-  auto total_size = std::make_shared<ir::Computed>(ir::i64(), func->next_computed_number());
-  block->instrs().push_back(std::make_unique<ir::IntBinaryInstr>(
-      total_size, common::Int::BinaryOp::kAdd, control_block_size, underlying_size));
-
-  auto control_block_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-  block->instrs().push_back(std::make_unique<ir::MallocInstr>(control_block_pointer, total_size));
-  block->instrs().push_back(std::make_unique<ir::StoreInstr>(control_block_pointer, ir::I64One()));
+  auto total_size = bb.IntAdd(control_block_size, underlying_size);
+  auto control_block_pointer = bb.Malloc(total_size);
+  bb.Store(control_block_pointer, ir::I64One());
 
   auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
-  auto weak_ref_count_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-  block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-      weak_ref_count_pointer, control_block_pointer, weak_ref_count_offset));
-  block->instrs().push_back(
-      std::make_unique<ir::StoreInstr>(weak_ref_count_pointer, ir::I64Zero()));
+  auto weak_ref_count_pointer = bb.OffsetPointer(control_block_pointer, weak_ref_count_offset);
+  bb.Store(weak_ref_count_pointer, ir::I64Zero());
 
   auto destructor_offset = std::make_shared<ir::IntConstant>(kDestructorPointerOffset);
-  auto destructor_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-  block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-      destructor_pointer, control_block_pointer, destructor_offset));
-  block->instrs().push_back(std::make_unique<ir::StoreInstr>(destructor_pointer, destructor));
+  auto destructor_pointer = bb.OffsetPointer(control_block_pointer, destructor_offset);
+  bb.Store(destructor_pointer, destructor);
 
-  auto underlying_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-  block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-      underlying_pointer, control_block_pointer, control_block_size));
-  block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
-      std::vector<std::shared_ptr<ir::Value>>{control_block_pointer, underlying_pointer}));
+  auto underlying_pointer = bb.OffsetPointer(control_block_pointer, control_block_size);
+  bb.Return({control_block_pointer, underlying_pointer});
 
-  return func->number();
+  return fb.func_number();
 }
 
 ir::func_num_t BuildCopySharedPointerFunc(ir::Program* program, bool copy_is_strong) {
-  ir::Func* func = program->AddFunc();
-  func->set_name(copy_is_strong ? "strong_copy_shared" : "weak_copy_shared");
+  ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(program);
 
-  auto control_block_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-  auto old_underlying_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-  auto underlying_pointer_offset =
-      std::make_shared<ir::Computed>(ir::i64(), func->next_computed_number());
+  fb.SetName(copy_is_strong ? "strong_copy_shared" : "weak_copy_shared");
 
-  func->args().push_back(control_block_pointer);
-  func->args().push_back(old_underlying_pointer);
-  func->args().push_back(underlying_pointer_offset);
-  func->result_types().push_back(ir::pointer_type());
+  auto control_block_pointer = fb.AddArg(ir::pointer_type());
+  auto old_underlying_pointer = fb.AddArg(ir::pointer_type());
+  auto underlying_pointer_offset = fb.AddArg(ir::i64());
+  fb.AddResultType(ir::pointer_type());
 
-  ir::Block* block = func->AddBlock();
-  func->set_entry_block_num(block->number());
+  ir_builder::BlockBuilder bb = fb.AddEntryBlock();
 
   std::shared_ptr<ir::Computed> ref_count_pointer;
   if (copy_is_strong) {
     ref_count_pointer = std::move(control_block_pointer);
   } else {
     auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
-    ref_count_pointer =
-        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-    block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-        ref_count_pointer, control_block_pointer, weak_ref_count_offset));
+    ref_count_pointer = bb.OffsetPointer(control_block_pointer, weak_ref_count_offset);
   }
 
-  auto old_ref_count = std::make_shared<ir::Computed>(ir::i64(), func->next_computed_number());
-  block->instrs().push_back(std::make_unique<ir::LoadInstr>(old_ref_count, ref_count_pointer));
+  auto old_ref_count = bb.Load(ir::i64(), ref_count_pointer);
+  auto new_ref_count = bb.IntAdd(old_ref_count, ir::I64One());
+  bb.Store(ref_count_pointer, new_ref_count);
 
-  auto ref_count_delta = std::make_shared<ir::IntConstant>(common::Int{int64_t{1}});
-  auto new_ref_count = std::make_shared<ir::Computed>(ir::i64(), func->number());
-  block->instrs().push_back(std::make_unique<ir::IntBinaryInstr>(
-      new_ref_count, common::Int::BinaryOp::kAdd, old_ref_count, ref_count_delta));
-  block->instrs().push_back(std::make_unique<ir::StoreInstr>(ref_count_pointer, new_ref_count));
+  auto new_underlying_pointer = bb.OffsetPointer(old_underlying_pointer, underlying_pointer_offset);
+  bb.Return({new_underlying_pointer});
 
-  auto new_underlying_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-  block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-      new_underlying_pointer, old_underlying_pointer, underlying_pointer_offset));
-  block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
-      std::vector<std::shared_ptr<ir::Value>>{new_underlying_pointer}));
-
-  return func->number();
+  return fb.func_number();
 }
 
 ir::func_num_t BuildDeleteSharedPointerFunc(ir::Program* program, bool pointer_is_strong) {
-  ir::Func* func = program->AddFunc();
-  func->set_name(pointer_is_strong ? "delete_strong_shared" : "delete_weak_shared");
+  ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(program);
 
-  auto control_block_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
+  fb.SetName(pointer_is_strong ? "delete_strong_shared" : "delete_weak_shared");
 
-  func->args().push_back(control_block_pointer);
+  auto control_block_pointer = fb.AddArg(ir::pointer_type());
 
-  ir::Block* entry_block = func->AddBlock();
-  ir::Block* update_count_block = func->AddBlock();
-  ir::Block* count_reaches_zero_block = func->AddBlock();
-  ir::Block* keep_heap_block = func->AddBlock();
-  ir::Block* free_heap_block = func->AddBlock();
-  func->set_entry_block_num(entry_block->number());
+  ir_builder::BlockBuilder entry_bb = fb.AddEntryBlock();
+  ir_builder::BlockBuilder update_count_bb = fb.AddBlock();
+  ir_builder::BlockBuilder count_reaches_zero_bb = fb.AddBlock();
 
   std::shared_ptr<ir::Computed> ref_count_pointer;
   if (pointer_is_strong) {
     ref_count_pointer = control_block_pointer;
   } else {
     auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
-    ref_count_pointer =
-        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-    entry_block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-        ref_count_pointer, control_block_pointer, weak_ref_count_offset));
+    ref_count_pointer = entry_bb.OffsetPointer(control_block_pointer, weak_ref_count_offset);
   }
 
-  auto old_ref_count = std::make_shared<ir::Computed>(ir::i64(), func->next_computed_number());
-  entry_block->instrs().push_back(
-      std::make_unique<ir::LoadInstr>(old_ref_count, ref_count_pointer));
+  auto old_ref_count = entry_bb.Load(ir::i64(), ref_count_pointer);
+  auto is_one = entry_bb.IntEq(old_ref_count, ir::I64One());
+  entry_bb.JumpCond(is_one, count_reaches_zero_bb.block_number(), update_count_bb.block_number());
 
-  auto is_one = std::make_shared<ir::Computed>(ir::bool_type(), func->next_computed_number());
-  entry_block->instrs().push_back(std::make_unique<ir::IntCompareInstr>(
-      is_one, common::Int::CompareOp::kEq, old_ref_count, ir::I64One()));
-  entry_block->instrs().push_back(std::make_unique<ir::JumpCondInstr>(
-      is_one, count_reaches_zero_block->number(), update_count_block->number()));
-  func->AddControlFlow(entry_block->number(), count_reaches_zero_block->number());
-  func->AddControlFlow(entry_block->number(), update_count_block->number());
+  auto new_ref_count = update_count_bb.IntSub(old_ref_count, ir::I64One());
+  update_count_bb.Store(ref_count_pointer, new_ref_count);
+  update_count_bb.Return();
 
-  auto new_ref_count = std::make_shared<ir::Computed>(ir::i64(), func->next_computed_number());
-  update_count_block->instrs().push_back(std::make_unique<ir::IntBinaryInstr>(
-      new_ref_count, common::Int::BinaryOp::kSub, old_ref_count, ir::I64One()));
-  update_count_block->instrs().push_back(
-      std::make_unique<ir::StoreInstr>(ref_count_pointer, new_ref_count));
-  update_count_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
+  auto build_check_other_ref_count = [&fb, control_block_pointer](
+                                         ir_builder::BlockBuilder& check_other_ref_count_bb,
+                                         std::shared_ptr<ir::Computed> other_ref_count) {
+    ir_builder::BlockBuilder keep_heap_bb = fb.AddBlock();
+    ir_builder::BlockBuilder free_heap_bb = fb.AddBlock();
 
-  ir::Block* current_block;
-  auto other_ref_count = std::make_shared<ir::Computed>(ir::i64(), func->next_computed_number());
+    auto is_zero = check_other_ref_count_bb.IntEq(other_ref_count, ir::I64Zero());
+    check_other_ref_count_bb.JumpCond(is_zero, free_heap_bb.block_number(),
+                                      keep_heap_bb.block_number());
+
+    keep_heap_bb.Return();
+
+    free_heap_bb.Free(control_block_pointer);
+    free_heap_bb.Return();
+  };
+
   if (pointer_is_strong) {
-    ir::Block* destruct_underlying_block = func->AddBlock();
-    ir::Block* check_weak_ref_count_block = func->AddBlock();
+    ir_builder::BlockBuilder destruct_underlying_bb = fb.AddBlock();
+    ir_builder::BlockBuilder check_weak_ref_count_bb = fb.AddBlock();
 
     auto destructor_offset = std::make_shared<ir::IntConstant>(kDestructorPointerOffset);
     auto destructor_pointer =
-        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-    count_reaches_zero_block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-        destructor_pointer, control_block_pointer, destructor_offset));
-    auto destructor = std::make_shared<ir::Computed>(ir::func_type(), func->next_computed_number());
-    count_reaches_zero_block->instrs().push_back(
-        std::make_unique<ir::LoadInstr>(destructor, destructor_pointer));
-    auto has_no_destructor =
-        std::make_shared<ir::Computed>(ir::bool_type(), func->next_computed_number());
-    count_reaches_zero_block->instrs().push_back(
-        std::make_unique<ir::NilTestInstr>(has_no_destructor, destructor));
-    count_reaches_zero_block->instrs().push_back(
-        std::make_unique<ir::JumpCondInstr>(has_no_destructor, check_weak_ref_count_block->number(),
-                                            destruct_underlying_block->number()));
-    func->AddControlFlow(count_reaches_zero_block->number(), check_weak_ref_count_block->number());
-    func->AddControlFlow(count_reaches_zero_block->number(), destruct_underlying_block->number());
+        count_reaches_zero_bb.OffsetPointer(control_block_pointer, destructor_offset);
+    auto destructor = count_reaches_zero_bb.Load(ir::func_type(), destructor_pointer);
+    auto has_no_destructor = count_reaches_zero_bb.IsNil(destructor);
+    count_reaches_zero_bb.JumpCond(has_no_destructor, check_weak_ref_count_bb.block_number(),
+                                   destruct_underlying_bb.block_number());
 
     auto control_block_size = std::make_shared<ir::IntConstant>(kControlBlockSize);
     auto underlying_pointer =
-        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-    destruct_underlying_block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-        underlying_pointer, control_block_pointer, control_block_size));
-    destruct_underlying_block->instrs().push_back(std::make_unique<ir::CallInstr>(
-        destructor, /*results=*/std::vector<std::shared_ptr<ir::Computed>>{},
-        /*args=*/std::vector<std::shared_ptr<ir::Value>>{underlying_pointer}));
-    destruct_underlying_block->instrs().push_back(
-        std::make_unique<ir::JumpInstr>(check_weak_ref_count_block->number()));
-    func->AddControlFlow(destruct_underlying_block->number(), check_weak_ref_count_block->number());
+        destruct_underlying_bb.OffsetPointer(control_block_pointer, control_block_size);
+    destruct_underlying_bb.Call(destructor, {}, {underlying_pointer});
+    destruct_underlying_bb.Jump(check_weak_ref_count_bb.block_number());
 
     auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
     auto weak_ref_count_pointer =
-        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
-    check_weak_ref_count_block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
-        weak_ref_count_pointer, control_block_pointer, weak_ref_count_offset));
-    check_weak_ref_count_block->instrs().push_back(
-        std::make_unique<ir::LoadInstr>(other_ref_count, weak_ref_count_pointer));
-    current_block = check_weak_ref_count_block;
+        check_weak_ref_count_bb.OffsetPointer(control_block_pointer, weak_ref_count_offset);
+    auto weak_ref_count = check_weak_ref_count_bb.Load(ir::i64(), weak_ref_count_pointer);
+    build_check_other_ref_count(check_weak_ref_count_bb, weak_ref_count);
 
   } else {
-    count_reaches_zero_block->instrs().push_back(
-        std::make_unique<ir::LoadInstr>(other_ref_count, control_block_pointer));
-    current_block = count_reaches_zero_block;
+    auto strong_ref_count = count_reaches_zero_bb.Load(ir::i64(), control_block_pointer);
+    build_check_other_ref_count(count_reaches_zero_bb, strong_ref_count);
   }
 
-  auto is_zero = std::make_shared<ir::Computed>(ir::bool_type(), func->next_computed_number());
-  current_block->instrs().push_back(std::make_unique<ir::IntCompareInstr>(
-      is_zero, common::Int::CompareOp::kEq, other_ref_count, ir::I64Zero()));
-  current_block->instrs().push_back(std::make_unique<ir::JumpCondInstr>(
-      is_zero, free_heap_block->number(), keep_heap_block->number()));
-  func->AddControlFlow(current_block->number(), free_heap_block->number());
-  func->AddControlFlow(current_block->number(), keep_heap_block->number());
-
-  keep_heap_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
-
-  free_heap_block->instrs().push_back(std::make_unique<ir::FreeInstr>(control_block_pointer));
-  free_heap_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
-
-  return func->number();
+  return fb.func_number();
 }
 
 struct DecomposedSharedPointer {
