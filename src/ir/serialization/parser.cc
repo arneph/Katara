@@ -338,7 +338,7 @@ std::unique_ptr<ir::Conversion> Parser::ParseConversionInstr(std::shared_ptr<ir:
 
 // BoolNotInstr ::= Computed 'bnot' Value NL
 std::unique_ptr<ir::BoolNotInstr> Parser::ParseBoolNotInstr(std::shared_ptr<ir::Computed> result) {
-  std::shared_ptr<ir::Value> operand = ParseValue(&ir::kBool);
+  std::shared_ptr<ir::Value> operand = ParseValue(ir::bool_type());
 
   if (scanner_.token() != Scanner::kNewLine) common::fail("expected new line");
   scanner_.Next();
@@ -433,7 +433,7 @@ std::unique_ptr<ir::JumpInstr> Parser::ParseJumpInstr() {
 
 // JumpCondInstr ::= 'jcc' Value ',' BlockValue ',' BlockValue NL
 std::unique_ptr<ir::JumpCondInstr> Parser::ParseJumpCondInstr() {
-  std::shared_ptr<ir::Value> condition = ParseValue(&ir::kBool);
+  std::shared_ptr<ir::Value> condition = ParseValue(ir::bool_type());
 
   if (scanner_.token() != Scanner::kComma) common::fail("expected ','");
   scanner_.Next();
@@ -455,7 +455,7 @@ std::unique_ptr<ir::JumpCondInstr> Parser::ParseJumpCondInstr() {
 //               'call' Value (',' Value)* NL
 std::unique_ptr<ir::CallInstr> Parser::ParseCallInstr(
     std::vector<std::shared_ptr<ir::Computed>> results) {
-  std::shared_ptr<ir::Value> func = ParseValue(&ir::kFunc);
+  std::shared_ptr<ir::Value> func = ParseValue(ir::func_type());
 
   std::vector<std::shared_ptr<ir::Value>> args;
 
@@ -554,7 +554,7 @@ std::shared_ptr<ir::Value> Parser::ParseValue(const ir::Type* expected_type) {
 //              | '#' Number (':' Type)?
 std::shared_ptr<ir::Constant> Parser::ParseConstant(const ir::Type* expected_type) {
   if (scanner_.token() == Scanner::kAtSign) {
-    if (expected_type != &ir::kFunc) common::fail("unexpected '@'");
+    if (expected_type != ir::func_type()) common::fail("unexpected '@'");
     scanner_.Next();
 
     if (scanner_.token() != Scanner::kNumber) common::fail("expected number");
@@ -568,14 +568,10 @@ std::shared_ptr<ir::Constant> Parser::ParseConstant(const ir::Type* expected_typ
   scanner_.Next();
 
   if (scanner_.token() == Scanner::kIdentifier) {
-    if (scanner_.string() == "f") {
-      if (expected_type != &ir::kBool) common::fail("unexpected 'f'");
+    if (scanner_.string() == "f" || scanner_.string() == "f") {
+      if (expected_type != ir::bool_type()) common::fail("unexpected 'f' or 't'");
 
-      return std::make_shared<ir::BoolConstant>(false);
-    } else if (scanner_.string() == "t") {
-      if (expected_type != &ir::kBool) common::fail("unexpected 't'");
-
-      return std::make_shared<ir::BoolConstant>(true);
+      return (scanner_.string() == "f") ? ir::False() : ir::True();
     } else {
       common::fail("expected number, 't' or 'f'");
     }
@@ -665,13 +661,13 @@ const ir::AtomicType* Parser::ParseType() {
   scanner_.Next();
 
   if (name == "b") {
-    return &ir::kBool;
+    return ir::bool_type();
   } else if (auto int_type = common::ToIntType(name); int_type) {
     return ir::IntTypeFor(int_type.value());
   } else if (name == "ptr") {
-    return &ir::kPointer;
+    return ir::pointer_type();
   } else if (name == "func") {
-    return &ir::kFunc;
+    return ir::func_type();
   } else {
     common::fail("unexpected type");
   }

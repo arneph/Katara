@@ -16,7 +16,7 @@ namespace ir_builder {
 std::shared_ptr<ir::Computed> ValueBuilder::BuildBoolNot(std::shared_ptr<ir::Value> x,
                                                          IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(&ir::kBool, ir_ctx.func()->next_computed_number());
+      std::make_shared<ir::Computed>(ir::bool_type(), ir_ctx.func()->next_computed_number());
   ir_ctx.block()->instrs().push_back(std::make_unique<ir::BoolNotInstr>(result, x));
   return result;
 }
@@ -26,7 +26,7 @@ std::shared_ptr<ir::Computed> ValueBuilder::BuildBoolBinaryOp(std::shared_ptr<ir
                                                               std::shared_ptr<ir::Value> y,
                                                               IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(&ir::kBool, ir_ctx.func()->next_computed_number());
+      std::make_shared<ir::Computed>(ir::bool_type(), ir_ctx.func()->next_computed_number());
   ir_ctx.block()->instrs().push_back(std::make_unique<ir::BoolBinaryInstr>(result, op, x, y));
   return result;
 }
@@ -55,7 +55,7 @@ std::shared_ptr<ir::Computed> ValueBuilder::BuildIntCompareOp(std::shared_ptr<ir
                                                               std::shared_ptr<ir::Value> y,
                                                               IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(&ir::kBool, ir_ctx.func()->next_computed_number());
+      std::make_shared<ir::Computed>(ir::bool_type(), ir_ctx.func()->next_computed_number());
   ir_ctx.block()->instrs().push_back(std::make_unique<ir::IntCompareInstr>(result, op, x, y));
   return result;
 }

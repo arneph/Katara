@@ -229,7 +229,7 @@ void StmtBuilder::BuildOpAssignStmt(tokens::Token op_assign_tok,
             common::fail("unexpected assign op");
         }
       }();
-      rhs_value = value_builder_.BuildConversion(rhs_value, &ir::kU64, ir_ctx);
+      rhs_value = value_builder_.BuildConversion(rhs_value, ir::u64(), ir_ctx);
       assigned_values.push_back(value_builder_.BuildIntShiftOp(lhs_value, op, rhs_value, ir_ctx));
 
     } else {

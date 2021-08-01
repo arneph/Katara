@@ -44,10 +44,10 @@ class Constant : public Value {
 
 class BoolConstant : public Constant {
  public:
-  constexpr BoolConstant(bool value) : value_(value) {}
+  BoolConstant(bool value) : value_(value) {}
 
-  constexpr bool value() const { return value_; }
-  constexpr const Type* type() const override { return &kBool; }
+  bool value() const { return value_; }
+  const Type* type() const override { return bool_type(); }
 
   std::string ToString() const override { return value_ ? "#t" : "#f"; }
   std::string ToStringWithType() const override { return ToString(); }
@@ -56,13 +56,16 @@ class BoolConstant : public Constant {
   bool value_;
 };
 
+std::shared_ptr<BoolConstant> False();
+std::shared_ptr<BoolConstant> True();
+
 class IntConstant : public Constant {
  public:
   IntConstant(common::Int value) : value_(value) {}
 
-  constexpr common::Int value() const { return value_; }
-  constexpr common::IntType int_type() const { return value_.type(); }
-  constexpr const Type* type() const override { return IntTypeFor(value_.type()); }
+  common::Int value() const { return value_; }
+  common::IntType int_type() const { return value_.type(); }
+  const Type* type() const override { return IntTypeFor(value_.type()); }
 
   std::string ToString() const override { return "#" + value().ToString(); }
 
@@ -70,12 +73,15 @@ class IntConstant : public Constant {
   common::Int value_;
 };
 
+std::shared_ptr<IntConstant> I64Zero();
+std::shared_ptr<IntConstant> I64One();
+
 class PointerConstant : public Constant {
  public:
   PointerConstant(int64_t value) : value_(value) {}
 
-  constexpr int64_t value() const { return value_; }
-  constexpr const Type* type() const override { return &kPointer; }
+  int64_t value() const { return value_; }
+  const Type* type() const override { return pointer_type(); }
 
   std::string ToString() const override;
   std::string ToStringWithType() const override { return ToString(); }
@@ -84,12 +90,14 @@ class PointerConstant : public Constant {
   int64_t value_;
 };
 
+std::shared_ptr<PointerConstant> NilPointer();
+
 class FuncConstant : public Constant {
  public:
   FuncConstant(func_num_t value) : value_(value) {}
 
-  constexpr func_num_t value() const { return value_; }
-  constexpr const Type* type() const override { return &kFunc; }
+  func_num_t value() const { return value_; }
+  const Type* type() const override { return func_type(); }
 
   std::string ToString() const override { return "@" + std::to_string(value()); }
   std::string ToStringWithType() const override { return ToString(); }
@@ -97,6 +105,8 @@ class FuncConstant : public Constant {
  private:
   func_num_t value_;
 };
+
+std::shared_ptr<FuncConstant> NilFunc();
 
 class Computed : public Value {
  public:

@@ -22,6 +22,8 @@ bool IsAtomicType(TypeKind type_kind) {
   }
 }
 
+namespace {
+
 const BoolType kBool;
 const IntType kI8{common::IntType::kI8};
 const IntType kI16{common::IntType::kI16};
@@ -33,6 +35,42 @@ const IntType kU32{common::IntType::kU32};
 const IntType kU64{common::IntType::kU64};
 const PointerType kPointer;
 const FuncType kFunc;
+
+}
+
+const BoolType* bool_type() { return &kBool; }
+const IntType* i8() { return &kI8; }
+const IntType* i16() { return &kI16; }
+const IntType* i32() { return &kI32; }
+const IntType* i64() { return &kI64; }
+const IntType* u8() { return &kU8; }
+const IntType* u16() { return &kU16; }
+const IntType* u32() { return &kU32; }
+const IntType* u64() { return &kU64; }
+
+const IntType* IntTypeFor(common::IntType type) {
+  switch (type) {
+    case common::IntType::kI8:
+      return &kI8;
+    case common::IntType::kI16:
+      return &kI16;
+    case common::IntType::kI32:
+      return &kI32;
+    case common::IntType::kI64:
+      return &kI64;
+    case common::IntType::kU8:
+      return &kU8;
+    case common::IntType::kU16:
+      return &kU16;
+    case common::IntType::kU32:
+      return &kU32;
+    case common::IntType::kU64:
+      return &kU64;
+  }
+}
+
+const PointerType* pointer_type() { return &kPointer; }
+const FuncType* func_type() { return &kFunc; }
 
 Type* TypeTable::AddType(std::unique_ptr<Type> type) {
   Type* type_ptr = type.get();

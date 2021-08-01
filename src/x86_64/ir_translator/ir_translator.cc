@@ -418,16 +418,16 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
 
   ir::IntConstant ir_operand_b_narrowed(common::Int(int32_t{0}));
   if (ir_operand_b->kind() == ir::Value::Kind::kConstant &&
-      (ir_type == &ir::kI64 || ir_type == &ir::kU64 || ir_type == &ir::kPointer ||
-       ir_type == &ir::kFunc)) {
+      (ir_type == ir::i64() || ir_type == ir::u64() || ir_type == ir::pointer_type() ||
+       ir_type == ir::func_type())) {
     common::Int v{int64_t{0}};
-    if (ir_operand_b->type() == &ir::kI64) {
+    if (ir_operand_b->type() == ir::i64()) {
       v = static_cast<ir::IntConstant*>(ir_operand_b)->value();
-    } else if (ir_operand_b->type() == &ir::kU64) {
+    } else if (ir_operand_b->type() == ir::u64()) {
       v = static_cast<ir::IntConstant*>(ir_operand_b)->value();
-    } else if (ir_operand_b->type() == &ir::kPointer) {
+    } else if (ir_operand_b->type() == ir::pointer_type()) {
       v = common::Int(static_cast<ir::PointerConstant*>(ir_operand_b)->value());
-    } else if (ir_operand_b->type() == &ir::kFunc) {
+    } else if (ir_operand_b->type() == ir::func_type()) {
       v = common::Int(static_cast<ir::FuncConstant*>(ir_operand_b)->value());
     }
     if (common::IsSigned(v.type()) && v.CanConvertTo(common::IntType::kI32)) {
@@ -514,16 +514,16 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
   bool requires_tmp_reg = false;
   ir::IntConstant ir_operand_b_narrowed(common::Int(int32_t{0}));
   if (ir_operand_b->kind() == ir::Value::Kind::kConstant &&
-      (ir_type == &ir::kI64 || ir_type == &ir::kU64 || ir_type == &ir::kPointer ||
-       ir_type == &ir::kFunc)) {
+      (ir_type == ir::i64() || ir_type == ir::u64() || ir_type == ir::pointer_type() ||
+       ir_type == ir::func_type())) {
     common::Int v{int64_t{0}};
-    if (ir_operand_b->type() == &ir::kI64) {
+    if (ir_operand_b->type() == ir::i64()) {
       v = static_cast<ir::IntConstant*>(ir_operand_b)->value();
-    } else if (ir_operand_b->type() == &ir::kU64) {
+    } else if (ir_operand_b->type() == ir::u64()) {
       v = static_cast<ir::IntConstant*>(ir_operand_b)->value();
-    } else if (ir_operand_b->type() == &ir::kPointer) {
+    } else if (ir_operand_b->type() == ir::pointer_type()) {
       v = common::Int(static_cast<ir::PointerConstant*>(ir_operand_b)->value());
-    } else if (ir_operand_b->type() == &ir::kFunc) {
+    } else if (ir_operand_b->type() == ir::func_type()) {
       v = common::Int(static_cast<ir::FuncConstant*>(ir_operand_b)->value());
     }
     if (common::IsSigned(v.type()) && v.CanConvertTo(common::IntType::kI32)) {

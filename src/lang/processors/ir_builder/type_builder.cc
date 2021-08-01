@@ -45,7 +45,7 @@ const ir::Type* TypeBuilder::BuildType(types::Type* types_type) {
     case types::TypeKind::kTuple:
       common::fail("attempted to convert types tuple to IR type");
     case types::TypeKind::kSignature:
-      return &ir::kFunc;
+      return ir::func_type();
     case types::TypeKind::kStruct:
       return BuildTypeForStruct(static_cast<types::Struct*>(types_type));
     case types::TypeKind::kInterface:
@@ -57,32 +57,32 @@ const ir::Type* TypeBuilder::BuildTypeForBasic(types::Basic* types_basic) {
   switch (types_basic->kind()) {
     case types::Basic::kBool:
     case types::Basic::kUntypedBool:
-      return &ir::kBool;
+      return ir::bool_type();
     case types::Basic::kInt8:
-      return &ir::kI8;
+      return ir::i8();
     case types::Basic::kInt16:
-      return &ir::kI16;
+      return ir::i16();
     case types::Basic::kInt32:
     case types::Basic::kUntypedRune:
-      return &ir::kI32;
+      return ir::i32();
     case types::Basic::kInt:
     case types::Basic::kInt64:
     case types::Basic::kUntypedInt:
-      return &ir::kI64;
+      return ir::i64();
     case types::Basic::kUint8:
-      return &ir::kU8;
+      return ir::u8();
     case types::Basic::kUint16:
-      return &ir::kU16;
+      return ir::u16();
     case types::Basic::kUint32:
-      return &ir::kU32;
+      return ir::u32();
     case types::Basic::kUint:
     case types::Basic::kUint64:
-      return &ir::kU64;
+      return ir::u64();
     case types::Basic::kString:
     case types::Basic::kUntypedString:
       return &ir_ext::kString;
     case types::Basic::kUntypedNil:
-      return &ir::kPointer;
+      return ir::pointer_type();
     default:
       common::fail("unexpected basic type");
   }

@@ -28,17 +28,17 @@ TEST(PhiResolverTest, ResolvesPhisAfterSimpleBranch) {
   func.set_entry_block_num(entry_block->number());
 
   // Define values involved in phi instrs:
-  auto value_a = std::make_shared<ir::Computed>(&ir::kI64, /*vnum=*/0);
+  auto value_a = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto value_b = std::make_shared<ir::IntConstant>(common::Int(int64_t{123}));
-  auto value_c = std::make_shared<ir::Computed>(&ir::kI64, /*vnum=*/1);
+  auto value_c = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
 
-  auto value_i = std::make_shared<ir::Computed>(&ir::kBool, /*vnum=*/2);
-  auto value_j = std::make_shared<ir::Computed>(&ir::kBool, /*vnum=*/3);
-  auto value_k = std::make_shared<ir::Computed>(&ir::kBool, /*vnum=*/4);
+  auto value_i = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
+  auto value_j = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/3);
+  auto value_k = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/4);
 
   auto value_x = std::make_shared<ir::IntConstant>(common::Int(uint8_t{24}));
   auto value_y = std::make_shared<ir::IntConstant>(common::Int(uint8_t{42}));
-  auto value_z = std::make_shared<ir::Computed>(&ir::kU8, /*vnum=*/5);
+  auto value_z = std::make_shared<ir::Computed>(ir::u8(), /*vnum=*/5);
 
   // Add instrs to entry block:
   auto instr_a = std::make_unique<ir::IntUnaryInstr>(

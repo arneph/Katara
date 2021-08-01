@@ -241,7 +241,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntShiftExpr(ast::BinaryExpr
   std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
   x = value_builder_.BuildConversion(x, ir_type, ir_ctx);
   std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ast_ctx, ir_ctx).front();
-  y = value_builder_.BuildConversion(y, &ir::kU64, ir_ctx);
+  y = value_builder_.BuildConversion(y, ir::u64(), ir_ctx);
   return value_builder_.BuildIntShiftOp(x, op, y, ir_ctx);
 }
 
@@ -280,7 +280,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryE
       std::make_unique<ir::JumpCondInstr>(x, destination_true, destination_false));
   y_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
 
-  auto result = std::make_shared<ir::Computed>(&ir::kBool, ir_ctx.func()->next_computed_number());
+  auto result = std::make_shared<ir::Computed>(ir::bool_type(), ir_ctx.func()->next_computed_number());
   auto inherited_short_circuit_value =
       std::make_shared<ir::InheritedValue>(short_circuit_value, x_exit_block->number());
   auto inherited_y = std::make_shared<ir::InheritedValue>(y, y_exit_block->number());
@@ -374,7 +374,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfMultipleCompareExpr(ast::Com
   ir_ctx.set_block(merge_block);
 
   std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(&ir::kBool, ir_ctx.func()->next_computed_number());
+      std::make_shared<ir::Computed>(ir::bool_type(), ir_ctx.func()->next_computed_number());
   merge_block->instrs().push_back(std::make_unique<ir::PhiInstr>(result, merge_values));
 
   return result;
@@ -498,7 +498,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIndexExpr(ast::IndexExpr* ex
       types::UnderlyingOf(types_accessed_type, info_builder);
   if (types_accessed_underlying_type->type_kind() == types::TypeKind::kBasic) {
     // Note: strings are the only basic type that can be indexed
-    const ir::Type* rune_type = &ir::kI32;
+    const ir::Type* rune_type = ir::i32();
     std::shared_ptr<ir::Value> string = BuildValuesOfExpr(accessed_expr, ast_ctx, ir_ctx).front();
     std::shared_ptr<ir::Value> index = BuildValuesOfExpr(index_expr, ast_ctx, ir_ctx).front();
     std::shared_ptr<ir::Computed> value =

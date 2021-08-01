@@ -94,9 +94,9 @@ std::string Conversion::ToString() const {
 
 BoolNotInstr::BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
     : Computation(result), operand_(operand) {
-  if (result->type() != &kBool) {
+  if (result->type() != bool_type()) {
     common::fail("result of bool not instr is not of type bool");
-  } else if (operand->type() != &kBool) {
+  } else if (operand->type() != bool_type()) {
     common::fail("operand of bool not instr is not of type bool");
   }
 }
@@ -108,9 +108,9 @@ std::string BoolNotInstr::ToString() const {
 BoolBinaryInstr::BoolBinaryInstr(std::shared_ptr<Computed> result, common::Bool::BinaryOp operation,
                                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
     : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
-  if (result->type() != &kBool) {
+  if (result->type() != bool_type()) {
     common::fail("result of bool binary instr is not of type bool");
-  } else if (operand_a->type() != &kBool || operand_b->type() != &kBool) {
+  } else if (operand_a->type() != bool_type() || operand_b->type() != bool_type()) {
     common::fail("operand of bool binary instr is not of type bool");
   }
 }
@@ -140,7 +140,7 @@ std::string IntUnaryInstr::ToString() const {
 IntCompareInstr::IntCompareInstr(std::shared_ptr<Computed> result, common::Int::CompareOp operation,
                                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
     : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
-  if (result->type() != &kBool) {
+  if (result->type() != bool_type()) {
     common::fail("result of int compare instr is not of type bool");
   } else if (operand_a->type()->type_kind() != TypeKind::kInt ||
              operand_b->type()->type_kind() != TypeKind::kInt) {
@@ -195,7 +195,7 @@ PointerOffsetInstr::PointerOffsetInstr(std::shared_ptr<Computed> result,
                                        std::shared_ptr<Computed> pointer,
                                        std::shared_ptr<Value> offset)
     : Computation(result), pointer_(pointer), offset_(offset) {
-  if (offset->type() != &kI64) {
+  if (offset->type() != i64()) {
     common::fail("offset argument of pointer offset instr is not of type I64");
   }
 }
@@ -207,7 +207,7 @@ std::string PointerOffsetInstr::ToString() const {
 
 NilTestInstr::NilTestInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> tested)
     : Computation(result), tested_(tested) {
-  if (result->type() != &kBool) {
+  if (result->type() != bool_type()) {
     common::fail("result of nil test instr is not of type bool");
   } else if (tested->type()->type_kind() != TypeKind::kPointer &&
              tested->type()->type_kind() != TypeKind::kFunc) {
