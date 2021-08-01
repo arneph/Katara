@@ -61,7 +61,7 @@ class BoolConstant : public Constant {
 
 std::shared_ptr<BoolConstant> False();
 std::shared_ptr<BoolConstant> True();
-std::shared_ptr<BoolConstant> ToBoolConstant(bool value) { return value ? True() : False(); }
+std::shared_ptr<BoolConstant> ToBoolConstant(bool value);
 
 class IntConstant : public Constant {
  public:

@@ -265,12 +265,12 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryE
     case tokens::kLAnd:
       destination_true = y_entry_block->number();
       destination_false = merge_block->number();
-      short_circuit_value = std::make_shared<ir::BoolConstant>(false);
+      short_circuit_value = ir::False();
       break;
     case tokens::kLOr:
       destination_true = merge_block->number();
       destination_false = y_entry_block->number();
-      short_circuit_value = std::make_shared<ir::BoolConstant>(true);
+      short_circuit_value = ir::True();
       break;
     default:
       common::fail("unexpected logic op");
@@ -338,7 +338,6 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfMultipleCompareExpr(ast::Com
   ir::Block* prior_block = ir_ctx.block();
   ir::Block* merge_block = ir_ctx.func()->AddBlock();
 
-  std::shared_ptr<ir::BoolConstant> false_value = std::make_shared<ir::BoolConstant>(false);
   std::vector<std::shared_ptr<ir::InheritedValue>> merge_values;
 
   for (size_t i = 1; i < expr->compare_ops().size(); i++) {
@@ -350,7 +349,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfMultipleCompareExpr(ast::Com
     ir_ctx.func()->AddControlFlow(prior_block->number(), start_block->number());
     ir_ctx.func()->AddControlFlow(prior_block->number(), merge_block->number());
     merge_values.push_back(
-        std::make_shared<ir::InheritedValue>(false_value, prior_block->number()));
+        std::make_shared<ir::InheritedValue>(ir::False(), prior_block->number()));
 
     x_expr = y_expr;
     x_type = y_type;
@@ -400,7 +399,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfComparison(
   }
 
   // TODO: implement
-  return {std::make_shared<ir::BoolConstant>(true)};
+  return ir::True();
 }
 
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBoolComparison(tokens::Token tok,

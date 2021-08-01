@@ -150,7 +150,7 @@ std::shared_ptr<ir::Value> ValueBuilder::BuildDefaultForType(types::Type* types_
 std::shared_ptr<ir::Value> ValueBuilder::BuildConstant(constants::Value constant) const {
   switch (constant.kind()) {
     case constants::Value::Kind::kBool:
-      return std::make_shared<ir::BoolConstant>(constant.AsBool());
+      return ir::ToBoolConstant(constant.AsBool());
     case constants::Value::Kind::kInt:
       return std::make_shared<ir::IntConstant>(constant.AsInt());
     case constants::Value::Kind::kString:

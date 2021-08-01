@@ -22,6 +22,8 @@ std::shared_ptr<BoolConstant> True() {
   return kTrue;
 }
 
+std::shared_ptr<BoolConstant> ToBoolConstant(bool value) { return value ? True() : False(); }
+
 std::shared_ptr<IntConstant> I64Zero() {
   static auto kI64Zero = std::make_shared<ir::IntConstant>(common::Int(int64_t{0}));
   return kI64Zero;
