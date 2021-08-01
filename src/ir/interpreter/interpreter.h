@@ -42,21 +42,21 @@ class Interpreter {
 
  private:
   struct FuncContext {
-    std::unordered_map<ir::value_num_t, std::unique_ptr<ir::Constant>> computed_values_;
+    std::unordered_map<ir::value_num_t, std::shared_ptr<ir::Constant>> computed_values_;
   };
 
-  std::vector<std::unique_ptr<ir::Constant>> CallFunc(ir::Func* func,
+  std::vector<std::shared_ptr<ir::Constant>> CallFunc(ir::Func* func,
                                                       std::vector<ir::Constant*> args);
 
   void ExecuteConversion(ir::Conversion* instr, FuncContext& ctx);
-  std::unique_ptr<ir::Constant> ComputeConversion(const ir::Type* result_type,
+  std::shared_ptr<ir::Constant> ComputeConversion(const ir::Type* result_type,
                                                   ir::Constant* operand);
 
   void ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& ctx);
   void ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx);
   void ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx);
 
-  std::vector<std::unique_ptr<ir::Constant>> EvaluateFuncResults(
+  std::vector<std::shared_ptr<ir::Constant>> EvaluateFuncResults(
       const std::vector<std::shared_ptr<ir::Value>>& ir_values, FuncContext& ctx);
 
   std::vector<ir::Constant*> Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,

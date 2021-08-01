@@ -44,8 +44,6 @@ class Constant : public Value {
 
 class BoolConstant : public Constant {
  public:
-  BoolConstant(bool value) : value_(value) {}
-
   bool value() const { return value_; }
   const Type* type() const override { return bool_type(); }
 
@@ -53,11 +51,19 @@ class BoolConstant : public Constant {
   std::string ToStringWithType() const override { return ToString(); }
 
  private:
+  BoolConstant(bool value) : value_(value) {}
+  
   bool value_;
+  
+  friend std::shared_ptr<BoolConstant> False();
+  friend std::shared_ptr<BoolConstant> True();
 };
 
 std::shared_ptr<BoolConstant> False();
 std::shared_ptr<BoolConstant> True();
+std::shared_ptr<BoolConstant> ToBoolConstant(bool value) {
+  return value ? True() : False();
+}
 
 class IntConstant : public Constant {
  public:

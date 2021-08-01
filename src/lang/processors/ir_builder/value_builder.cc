@@ -85,7 +85,7 @@ std::shared_ptr<ir::Value> ValueBuilder::BuildStringComparison(std::shared_ptr<i
                                                                std::shared_ptr<ir::Value> y,
                                                                IRContext& ir_ctx) {
   // TODO: implement
-  return {std::make_shared<ir::BoolConstant>(true)};
+  return ir::True();
 }
 
 std::shared_ptr<ir::Value> ValueBuilder::BuildConversion(std::shared_ptr<ir::Value> value,
@@ -110,7 +110,7 @@ std::shared_ptr<ir::Value> ValueBuilder::BuildDefaultForType(types::Type* types_
       const ir::Type* ir_type = type_builder_.BuildType(types_type);
       switch (ir_type->type_kind()) {
         case ir::TypeKind::kBool:
-          return std::make_shared<ir::BoolConstant>(false);
+          return ir::False();
         case ir::TypeKind::kInt:
           switch (static_cast<const ir::IntType*>(ir_type)->int_type()) {
             case common::IntType::kI8:

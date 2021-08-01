@@ -385,7 +385,7 @@ void StmtBuilder::BuildForStmt(std::string label, ast::ForStmt* for_stmt, ASTCon
   if (for_stmt->cond_expr() != nullptr) {
     cond = expr_builder_.BuildValuesOfExpr(for_stmt->cond_expr(), for_ast_ctx, cond_ir_ctx).front();
   } else {
-    cond = std::make_shared<ir::BoolConstant>(true);
+    cond = ir::True();
   }
   ir::Block* cond_exit_block = cond_ir_ctx.block();
 

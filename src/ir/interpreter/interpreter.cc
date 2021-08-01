@@ -22,13 +22,13 @@ void Interpreter::run() {
   }
 
   state_ = ExecutionState::kRunning;
-  std::vector<std::unique_ptr<ir::Constant>> results = CallFunc(entry_func, {});
+  std::vector<std::shared_ptr<ir::Constant>> results = CallFunc(entry_func, {});
   ir::IntConstant* result = static_cast<ir::IntConstant*>(results.front().get());
   exit_code_ = result->value().AsInt64();
   state_ = ExecutionState::kTerminated;
 }
 
-std::vector<std::unique_ptr<ir::Constant>> Interpreter::CallFunc(ir::Func* func,
+std::vector<std::shared_ptr<ir::Constant>> Interpreter::CallFunc(ir::Func* func,
                                                                  std::vector<ir::Constant*> args) {
   ir::Block* current_block = func->entry_block();
   ir::Block* previous_block = nullptr;
@@ -83,12 +83,12 @@ void Interpreter::ExecuteConversion(ir::Conversion* instr, FuncContext& ctx) {
       {instr->result()->number(), ComputeConversion(instr->result()->type(), operand)});
 }
 
-std::unique_ptr<ir::Constant> Interpreter::ComputeConversion(const ir::Type* result_type,
+std::shared_ptr<ir::Constant> Interpreter::ComputeConversion(const ir::Type* result_type,
                                                              ir::Constant* operand) {
   if (result_type->type_kind() == ir::TypeKind::kBool &&
       operand->type()->type_kind() == ir::TypeKind::kInt) {
     common::Int value = static_cast<ir::IntConstant*>(operand)->value();
-    return std::make_unique<ir::BoolConstant>(value.ConvertToBool());
+    return ir::ToBoolConstant(value.ConvertToBool());
 
   } else if (result_type->type_kind() == ir::TypeKind::kInt &&
              operand->type()->type_kind() == ir::TypeKind::kBool) {
@@ -128,7 +128,7 @@ void Interpreter::ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext
   }
   bool result = common::Int::Compare(a, instr->operation(), b);
   ctx.computed_values_.insert(
-      {instr->result()->number(), std::make_unique<ir::BoolConstant>(result)});
+      {instr->result()->number(), ir::ToBoolConstant(result)});
 }
 
 void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx) {
@@ -139,9 +139,9 @@ void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ct
       {instr->result()->number(), std::make_unique<ir::IntConstant>(result)});
 }
 
-std::vector<std::unique_ptr<ir::Constant>> Interpreter::EvaluateFuncResults(
+std::vector<std::shared_ptr<ir::Constant>> Interpreter::EvaluateFuncResults(
     const std::vector<std::shared_ptr<ir::Value>>& ir_values, FuncContext& ctx) {
-  std::vector<std::unique_ptr<ir::Constant>> results;
+  std::vector<std::shared_ptr<ir::Constant>> results;
   results.reserve(ir_values.size());
   for (auto ir_value : ir_values) {
     switch (ir_value->kind()) {
@@ -149,7 +149,7 @@ std::vector<std::unique_ptr<ir::Constant>> Interpreter::EvaluateFuncResults(
         switch (ir_value->type()->type_kind()) {
           case ir::TypeKind::kBool: {
             auto constant = static_cast<ir::BoolConstant*>(ir_value.get());
-            results.push_back(std::make_unique<ir::BoolConstant>(constant->value()));
+            results.push_back(ir::ToBoolConstant(constant->value()));
             break;
           }
           case ir::TypeKind::kInt: {

@@ -36,7 +36,7 @@ const IntType kU64{common::IntType::kU64};
 const PointerType kPointer;
 const FuncType kFunc;
 
-}
+}  // namespace
 
 const BoolType* bool_type() { return &kBool; }
 const IntType* i8() { return &kI8; }

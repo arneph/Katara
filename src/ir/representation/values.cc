@@ -13,12 +13,12 @@
 namespace ir {
 
 std::shared_ptr<BoolConstant> False() {
-  static auto kFalse = std::make_shared<ir::BoolConstant>(false);
+  static auto kFalse = std::shared_ptr<ir::BoolConstant>(new ir::BoolConstant(false));
   return kFalse;
 }
 
 std::shared_ptr<BoolConstant> True() {
-  static auto kTrue = std::make_shared<ir::BoolConstant>(true);
+  static auto kTrue = std::shared_ptr<ir::BoolConstant>(new ir::BoolConstant(true));
   return kTrue;
 }
 
