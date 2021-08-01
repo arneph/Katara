@@ -32,8 +32,6 @@ enum class InstrKind {
   kNilTest,
   kMalloc,
   kLoad,
-  kComputationStart = kMov,
-  kComputationEnd = kIntShift,
 
   kStore,
   kFree,
@@ -43,6 +41,7 @@ enum class InstrKind {
   kCall,
   kReturn,
 
+  kLangPanic,
   kLangMakeSharedPointer,
   kLangCopySharedPointer,
   kLangDeleteSharedPointer,

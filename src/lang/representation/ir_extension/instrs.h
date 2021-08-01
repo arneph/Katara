@@ -19,6 +19,23 @@
 namespace lang {
 namespace ir_ext {
 
+class PanicInstr : public ir::Instr {
+ public:
+  PanicInstr(std::string reason) : reason_(reason) {}
+
+  std::string reason() const { return reason_; }
+
+  std::vector<std::shared_ptr<ir::Computed>> DefinedValues() const override { return {}; };
+  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {}; };
+
+  ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangPanic; };
+
+  std::string ToString() const override { return "panic \"" + reason_ + "\""; }
+
+ private:
+  std::string reason_;
+};
+
 class MakeSharedPointerInstr : public ir::Computation {
  public:
   MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result);
