@@ -42,14 +42,15 @@ ir::func_num_t BuildMakeSharedPointerFunc(ir::Program* program) {
       std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
   block->instrs().push_back(std::make_unique<ir::MallocInstr>(control_block_pointer, total_size));
   block->instrs().push_back(std::make_unique<ir::StoreInstr>(control_block_pointer, ir::I64One()));
-  
+
   auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
   auto weak_ref_count_pointer =
       std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
   block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
       weak_ref_count_pointer, control_block_pointer, weak_ref_count_offset));
-  block->instrs().push_back(std::make_unique<ir::StoreInstr>(weak_ref_count_pointer, ir::I64Zero()));
-  
+  block->instrs().push_back(
+      std::make_unique<ir::StoreInstr>(weak_ref_count_pointer, ir::I64Zero()));
+
   auto destructor_offset = std::make_shared<ir::IntConstant>(kDestructorPointerOffset);
   auto destructor_pointer =
       std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
@@ -91,7 +92,8 @@ ir::func_num_t BuildCopySharedPointerFunc(ir::Program* program, bool copy_is_str
     ref_count_pointer = std::move(control_block_pointer);
   } else {
     auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
-    ref_count_pointer = std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
+    ref_count_pointer =
+        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
     block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
         ref_count_pointer, control_block_pointer, weak_ref_count_offset));
   }
@@ -136,7 +138,8 @@ ir::func_num_t BuildDeleteSharedPointerFunc(ir::Program* program, bool pointer_i
     ref_count_pointer = control_block_pointer;
   } else {
     auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
-    ref_count_pointer = std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
+    ref_count_pointer =
+        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
     entry_block->instrs().push_back(std::make_unique<ir::PointerOffsetInstr>(
         ref_count_pointer, control_block_pointer, weak_ref_count_offset));
   }

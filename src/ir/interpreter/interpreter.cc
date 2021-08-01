@@ -127,8 +127,7 @@ void Interpreter::ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext
     common::fail("can not compute compare instr");
   }
   bool result = common::Int::Compare(a, instr->operation(), b);
-  ctx.computed_values_.insert(
-      {instr->result()->number(), ir::ToBoolConstant(result)});
+  ctx.computed_values_.insert({instr->result()->number(), ir::ToBoolConstant(result)});
 }
 
 void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx) {

@@ -52,18 +52,16 @@ class BoolConstant : public Constant {
 
  private:
   BoolConstant(bool value) : value_(value) {}
-  
+
   bool value_;
-  
+
   friend std::shared_ptr<BoolConstant> False();
   friend std::shared_ptr<BoolConstant> True();
 };
 
 std::shared_ptr<BoolConstant> False();
 std::shared_ptr<BoolConstant> True();
-std::shared_ptr<BoolConstant> ToBoolConstant(bool value) {
-  return value ? True() : False();
-}
+std::shared_ptr<BoolConstant> ToBoolConstant(bool value) { return value ? True() : False(); }
 
 class IntConstant : public Constant {
  public:

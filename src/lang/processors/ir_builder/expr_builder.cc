@@ -280,7 +280,8 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryE
       std::make_unique<ir::JumpCondInstr>(x, destination_true, destination_false));
   y_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
 
-  auto result = std::make_shared<ir::Computed>(ir::bool_type(), ir_ctx.func()->next_computed_number());
+  auto result =
+      std::make_shared<ir::Computed>(ir::bool_type(), ir_ctx.func()->next_computed_number());
   auto inherited_short_circuit_value =
       std::make_shared<ir::InheritedValue>(short_circuit_value, x_exit_block->number());
   auto inherited_y = std::make_shared<ir::InheritedValue>(y, y_exit_block->number());
