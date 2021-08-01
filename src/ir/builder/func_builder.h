@@ -32,23 +32,13 @@ class FuncBuilder {
   std::shared_ptr<ir::Computed> AddArg(const ir::Type* type);
   void AddResultType(const ir::Type* type);
 
-  template <typename BlockBuilderExtension = class BlockBuilder>
-  BlockBuilderExtension AddEntryBlock() {
-    ir::Block* block = func_->AddBlock();
-    func_->set_entry_block_num(block->number());
-    return BlockBuilderExtension(*this, block);
-  }
+  class BlockBuilder AddEntryBlock();
+  class BlockBuilder AddBlock();
 
-  template <typename BlockBuilderExtension = class BlockBuilder>
-  BlockBuilderExtension AddBlock() {
-    ir::Block* block = func_->AddBlock();
-    return BlockBuilderExtension(*this, block);
-  }
+  std::shared_ptr<ir::Computed> MakeComputed(const ir::Type* type);
 
  private:
   FuncBuilder(ir::Program* program, ir::Func* func) : program_(program), func_(func) {}
-
-  std::shared_ptr<ir::Computed> MakeComputed(const ir::Type* type);
 
   ir::Program* program_;
   ir::Func* func_;

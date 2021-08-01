@@ -14,11 +14,6 @@ std::shared_ptr<ir::Computed> BlockBuilder::MakeComputed(const ir::Type* type) {
   return func_builder_.MakeComputed(type);
 }
 
-template <class InstrType, class... Args>
-void BlockBuilder::AddInstr(Args&&... args) {
-  block_->instrs().push_back(std::make_unique<InstrType>(args...));
-}
-
 std::shared_ptr<ir::Value> BlockBuilder::ComputePhi(
     std::vector<std::shared_ptr<ir::InheritedValue>> args) {
   std::shared_ptr<ir::Computed> result = MakeComputed(args.front()->type());

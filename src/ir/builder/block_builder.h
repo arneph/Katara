@@ -25,6 +25,17 @@ class BlockBuilder {
   ir::Block* block() const { return block_; }
   ir::block_num_t block_number() const { return block_->number(); }
 
+  ir::Func* func() const { return func_builder_.func(); }
+  ir::func_num_t func_number() const { return func_builder_.func_number(); }
+  FuncBuilder& func_builder() { return func_builder_; }
+
+  std::shared_ptr<ir::Computed> MakeComputed(const ir::Type* type);
+
+  template <class InstrType, class... Args>
+  void AddInstr(Args&&... args) {
+    block_->instrs().push_back(std::make_unique<InstrType>(args...));
+  }
+
   std::shared_ptr<ir::Value> ComputePhi(std::vector<std::shared_ptr<ir::InheritedValue>> args);
 
   std::shared_ptr<ir::Value> Convert(const ir::AtomicType* desired_type,
@@ -158,18 +169,10 @@ class BlockBuilder {
 
   void Return(std::vector<std::shared_ptr<ir::Value>> args = {});
 
- protected:
+ private:
   BlockBuilder(FuncBuilder& func_builder, ir::Block* block)
       : func_builder_(func_builder), block_(block) {}
 
-  FuncBuilder& func_builder() { return func_builder_; }
-
-  std::shared_ptr<ir::Computed> MakeComputed(const ir::Type* type);
-
-  template <class InstrType, class... Args>
-  void AddInstr(Args&&... args);
-
- private:
   FuncBuilder& func_builder_;
   ir::Block* block_;
 

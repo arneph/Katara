@@ -27,6 +27,17 @@ std::shared_ptr<ir::Computed> FuncBuilder::AddArg(const ir::Type* type) {
   return arg;
 }
 
+BlockBuilder FuncBuilder::AddEntryBlock() {
+  ir::Block* block = func_->AddBlock();
+  func_->set_entry_block_num(block->number());
+  return BlockBuilder(*this, block);
+}
+
+BlockBuilder FuncBuilder::AddBlock() {
+  ir::Block* block = func_->AddBlock();
+  return BlockBuilder(*this, block);
+}
+
 void FuncBuilder::AddResultType(const ir::Type* type) { func_->result_types().push_back(type); }
 
 }  // namespace ir_builder
