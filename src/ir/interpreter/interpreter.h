@@ -55,6 +55,14 @@ class Interpreter {
   void ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx);
   void ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx);
 
+  void ExecutePointerOffsetInstr(ir::PointerOffsetInstr* instr, FuncContext& ctx);
+  void ExecuteNilTestInstr(ir::NilTestInstr* instr, FuncContext& ctx);
+
+  void ExecuteMallocInstr(ir::MallocInstr* instr, FuncContext& ctx);
+  void ExecuteLoadInstr(ir::LoadInstr* instr, FuncContext& ctx);
+  void ExecuteStoreInstr(ir::StoreInstr* instr, FuncContext& ctx);
+  void ExecuteFreeInstr(ir::FreeInstr* instr, FuncContext& ctx);
+
   void ExecuteCallInstr(ir::CallInstr* instr, FuncContext& ctx);
 
   bool EvaluateBool(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);

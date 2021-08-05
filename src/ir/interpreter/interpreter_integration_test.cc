@@ -12,6 +12,7 @@
 #include "gtest/gtest.h"
 #include "src/ir/interpreter/interpreter.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
+#include "src/lang/processors/ir_lowerers/shared_pointer_lowerer.h"
 #include "src/lang/processors/packages/mock_loader.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
@@ -43,7 +44,7 @@ INSTANTIATE_TEST_SUITE_P(
                     ConstantIntExprTestCase{"42 << 2", 168},
                     ConstantIntExprTestCase{"42 >> 2", 10}));
 
-TEST_P(ConstantIntExprTest, ConstantAddition) {
+TEST_P(ConstantIntExprTest, HandlesBinaryOpsWithConstantOperands) {
   std::string source = R"kat(
 package main
 
@@ -77,7 +78,7 @@ func main() int {
   EXPECT_EQ(interpreter.exit_code(), GetParam().expected_value);
 }
 
-TEST(ConstantIntExprTest2, BinaryOpComparison) {
+TEST(ConstantIntExprTest, HandlesComparisonWithBinaryOp) {
   std::string source = R"kat(
 package main
 
@@ -114,6 +115,46 @@ func main() int {
   interpreter.run();
 
   EXPECT_EQ(interpreter.exit_code(), 345);
+}
+
+TEST(LoopTest, SumsIntegersZeroThroughNine) {
+  std::string source = R"kat(
+package main
+
+func main() int {
+        var sum int
+        for i := 0; i < 10; i++ {
+                sum += i
+        }
+        return sum
+}
+  )kat";
+
+  auto pkg_manager = lang::packages::PackageManager(
+      /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
+                                     .SetCurrentDir("/")
+                                     .AddSourceFile("/", "test.kat", source)
+                                     .Build());
+
+  // Load main package:
+  lang::packages::Package* pkg = pkg_manager.LoadMainPackage("/");
+  EXPECT_TRUE(pkg_manager.issue_tracker()->issues().empty());
+  EXPECT_TRUE(pkg != nullptr);
+  EXPECT_TRUE(pkg->issue_tracker().issues().empty());
+
+  // Generate IR:
+  std::unique_ptr<ir::Program> program =
+      lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
+  EXPECT_TRUE(program != nullptr);
+
+  // Lower IR:
+  lang::ir_lowerers::LowerSharedPointersInProgram(program.get());
+
+  // Interpret IR:
+  ir_interpreter::Interpreter interpreter(program.get());
+  interpreter.run();
+
+  EXPECT_EQ(interpreter.exit_code(), 45);
 }
 
 }  // namespace
