@@ -30,9 +30,9 @@ enum class InstrKind {
   kIntShift,
   kPointerOffset,
   kNilTest,
+
   kMalloc,
   kLoad,
-
   kStore,
   kFree,
 
