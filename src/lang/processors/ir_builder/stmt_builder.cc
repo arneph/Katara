@@ -281,7 +281,7 @@ void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, ASTContext& ast
       expr_builder_.BuildAddressOfExpr(inc_dec_stmt->x(), ast_ctx, ir_ctx);
   auto old_value = std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
   auto new_value = std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
-  auto one = std::make_shared<ir::IntConstant>(common::Int(1).ConvertTo(type->int_type()));
+  auto one = ir::ToIntConstant(common::Int(1).ConvertTo(type->int_type()));
   common::Int::BinaryOp op = [inc_dec_stmt]() {
     switch (inc_dec_stmt->tok()) {
       case tokens::kInc:

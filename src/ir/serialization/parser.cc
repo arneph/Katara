@@ -561,7 +561,7 @@ std::shared_ptr<ir::Constant> Parser::ParseConstant(const ir::Type* expected_typ
     ir::func_num_t number = scanner_.number();
     scanner_.Next();
 
-    return std::make_shared<ir::FuncConstant>(number);
+    return ir::ToFuncConstant(number);
   }
 
   if (scanner_.token() != Scanner::kHashSign) common::fail("expected '@' or '#'");
@@ -608,7 +608,7 @@ std::shared_ptr<ir::Constant> Parser::ParseConstant(const ir::Type* expected_typ
     value = common::Int::Compute(common::Int::UnaryOp::kNeg, value);
   }
 
-  return std::make_shared<ir::IntConstant>(value);
+  return ir::ToIntConstant(value);
 }
 
 // Computed ::= '%' Identifier (':' Type)?

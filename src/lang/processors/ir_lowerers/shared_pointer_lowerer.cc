@@ -37,16 +37,16 @@ ir::func_num_t BuildMakeSharedFunc(ir::Program* program) {
 
   ir_builder::BlockBuilder bb = fb.AddEntryBlock();
 
-  auto control_block_size = std::make_shared<ir::IntConstant>(kControlBlockSize);
+  auto control_block_size = ir::ToIntConstant(kControlBlockSize);
   auto total_size = bb.IntAdd(control_block_size, underlying_size);
   auto control_block_pointer = bb.Malloc(total_size);
   bb.Store(control_block_pointer, ir::I64One());
 
-  auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
+  auto weak_ref_count_offset = ir::ToIntConstant(kWeakRefCountPointerOffset);
   auto weak_ref_count_pointer = bb.OffsetPointer(control_block_pointer, weak_ref_count_offset);
   bb.Store(weak_ref_count_pointer, ir::I64Zero());
 
-  auto destructor_offset = std::make_shared<ir::IntConstant>(kDestructorPointerOffset);
+  auto destructor_offset = ir::ToIntConstant(kDestructorPointerOffset);
   auto destructor_pointer = bb.OffsetPointer(control_block_pointer, destructor_offset);
   bb.Store(destructor_pointer, destructor);
 
@@ -59,11 +59,10 @@ ir::func_num_t BuildMakeSharedFunc(ir::Program* program) {
 std::unique_ptr<ir::CallInstr> CallMakeSharedFunc(ir::func_num_t make_shared_func_num,
                                                   DecomposedShared& decomposed_result) {
   return std::make_unique<ir::CallInstr>(
-      std::make_shared<ir::FuncConstant>(make_shared_func_num),
+      ir::ToFuncConstant(make_shared_func_num),
       std::vector<std::shared_ptr<ir::Computed>>{decomposed_result.control_block_pointer,
                                                  decomposed_result.underlying_pointer},
-      std::vector<std::shared_ptr<ir::Value>>{
-          std::make_shared<ir::IntConstant>(common::Int{int64_t{8}}), ir::NilFunc()});
+      std::vector<std::shared_ptr<ir::Value>>{ir::I64Eight(), ir::NilFunc()});
 }
 
 ir::func_num_t BuildCopySharedFunc(ir::Program* program, bool copy_is_strong) {
@@ -82,7 +81,7 @@ ir::func_num_t BuildCopySharedFunc(ir::Program* program, bool copy_is_strong) {
   if (copy_is_strong) {
     ref_count_pointer = std::move(control_block_pointer);
   } else {
-    auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
+    auto weak_ref_count_offset = ir::ToIntConstant(kWeakRefCountPointerOffset);
     ref_count_pointer = bb.OffsetPointer(control_block_pointer, weak_ref_count_offset);
   }
 
@@ -101,7 +100,7 @@ std::unique_ptr<ir::CallInstr> CallCopySharedFunc(ir::func_num_t copy_shared_fun
                                                   DecomposedShared& decomposed_copied,
                                                   std::shared_ptr<ir::Value> offset) {
   return std::make_unique<ir::CallInstr>(
-      std::make_shared<ir::FuncConstant>(copy_shared_func_num),
+      ir::ToFuncConstant(copy_shared_func_num),
       std::vector<std::shared_ptr<ir::Computed>>{decomposed_result.underlying_pointer},
       std::vector<std::shared_ptr<ir::Value>>{decomposed_copied.control_block_pointer,
                                               decomposed_copied.underlying_pointer, offset});
@@ -122,7 +121,7 @@ ir::func_num_t BuildDeleteSharedFunc(ir::Program* program, bool pointer_is_stron
   if (pointer_is_strong) {
     ref_count_pointer = control_block_pointer;
   } else {
-    auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
+    auto weak_ref_count_offset = ir::ToIntConstant(kWeakRefCountPointerOffset);
     ref_count_pointer = entry_bb.OffsetPointer(control_block_pointer, weak_ref_count_offset);
   }
 
@@ -154,7 +153,7 @@ ir::func_num_t BuildDeleteSharedFunc(ir::Program* program, bool pointer_is_stron
     ir_builder::BlockBuilder destruct_underlying_bb = fb.AddBlock();
     ir_builder::BlockBuilder check_weak_ref_count_bb = fb.AddBlock();
 
-    auto destructor_offset = std::make_shared<ir::IntConstant>(kDestructorPointerOffset);
+    auto destructor_offset = ir::ToIntConstant(kDestructorPointerOffset);
     auto destructor_pointer =
         count_reaches_zero_bb.OffsetPointer(control_block_pointer, destructor_offset);
     auto destructor = count_reaches_zero_bb.Load(ir::func_type(), destructor_pointer);
@@ -162,13 +161,13 @@ ir::func_num_t BuildDeleteSharedFunc(ir::Program* program, bool pointer_is_stron
     count_reaches_zero_bb.JumpCond(has_no_destructor, check_weak_ref_count_bb.block_number(),
                                    destruct_underlying_bb.block_number());
 
-    auto control_block_size = std::make_shared<ir::IntConstant>(kControlBlockSize);
+    auto control_block_size = ir::ToIntConstant(kControlBlockSize);
     auto underlying_pointer =
         destruct_underlying_bb.OffsetPointer(control_block_pointer, control_block_size);
     destruct_underlying_bb.Call(destructor, {}, {underlying_pointer});
     destruct_underlying_bb.Jump(check_weak_ref_count_bb.block_number());
 
-    auto weak_ref_count_offset = std::make_shared<ir::IntConstant>(kWeakRefCountPointerOffset);
+    auto weak_ref_count_offset = ir::ToIntConstant(kWeakRefCountPointerOffset);
     auto weak_ref_count_pointer =
         check_weak_ref_count_bb.OffsetPointer(control_block_pointer, weak_ref_count_offset);
     auto weak_ref_count = check_weak_ref_count_bb.Load(ir::i64(), weak_ref_count_pointer);
@@ -185,8 +184,7 @@ ir::func_num_t BuildDeleteSharedFunc(ir::Program* program, bool pointer_is_stron
 std::unique_ptr<ir::CallInstr> CallDeleteSharedFunc(ir::func_num_t delete_shared_func_num,
                                                     DecomposedShared& decomposed_deleted) {
   return std::make_unique<ir::CallInstr>(
-      std::make_shared<ir::FuncConstant>(delete_shared_func_num),
-      std::vector<std::shared_ptr<ir::Computed>>{},
+      ir::ToFuncConstant(delete_shared_func_num), std::vector<std::shared_ptr<ir::Computed>>{},
       std::vector<std::shared_ptr<ir::Value>>{decomposed_deleted.control_block_pointer});
 }
 
@@ -214,7 +212,7 @@ ir::func_num_t BuildValidateWeakSharedFunc(ir::Program* program) {
 std::unique_ptr<ir::CallInstr> CallValidateWeakSharedFunc(
     ir::func_num_t validate_weak_shared_func_num, DecomposedShared& decomposed_validated) {
   return std::make_unique<ir::CallInstr>(
-      std::make_shared<ir::FuncConstant>(validate_weak_shared_func_num),
+      ir::ToFuncConstant(validate_weak_shared_func_num),
       std::vector<std::shared_ptr<ir::Computed>>{},
       std::vector<std::shared_ptr<ir::Value>>{decomposed_validated.control_block_pointer});
 }

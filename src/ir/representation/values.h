@@ -65,8 +65,6 @@ std::shared_ptr<BoolConstant> ToBoolConstant(bool value);
 
 class IntConstant : public Constant {
  public:
-  IntConstant(common::Int value) : value_(value) {}
-
   common::Int value() const { return value_; }
   common::IntType int_type() const { return value_.type(); }
   const Type* type() const override { return IntTypeFor(value_.type()); }
@@ -74,16 +72,30 @@ class IntConstant : public Constant {
   std::string ToString() const override { return "#" + value().ToString(); }
 
  private:
+  IntConstant(common::Int value) : value_(value) {}
+
   common::Int value_;
+
+  friend std::shared_ptr<IntConstant> MakeIntConstant(common::Int value);
 };
 
+std::shared_ptr<IntConstant> I8Zero();
+std::shared_ptr<IntConstant> I16Zero();
+std::shared_ptr<IntConstant> I32Zero();
 std::shared_ptr<IntConstant> I64Zero();
 std::shared_ptr<IntConstant> I64One();
+std::shared_ptr<IntConstant> I64Eight();
+
+std::shared_ptr<IntConstant> U8Zero();
+std::shared_ptr<IntConstant> U16Zero();
+std::shared_ptr<IntConstant> U32Zero();
+std::shared_ptr<IntConstant> U64Zero();
+
+std::shared_ptr<IntConstant> ZeroWithType(common::IntType type);
+std::shared_ptr<IntConstant> ToIntConstant(common::Int value);
 
 class PointerConstant : public Constant {
  public:
-  PointerConstant(int64_t value) : value_(value) {}
-
   int64_t value() const { return value_; }
   const Type* type() const override { return pointer_type(); }
 
@@ -91,15 +103,18 @@ class PointerConstant : public Constant {
   std::string ToStringWithType() const override { return ToString(); }
 
  private:
+  PointerConstant(int64_t value) : value_(value) {}
+
   int64_t value_;
+
+  friend std::shared_ptr<PointerConstant> MakePointerConstant(int64_t value);
 };
 
 std::shared_ptr<PointerConstant> NilPointer();
+std::shared_ptr<PointerConstant> ToPointerConstant(int64_t value);
 
 class FuncConstant : public Constant {
  public:
-  FuncConstant(func_num_t value) : value_(value) {}
-
   func_num_t value() const { return value_; }
   const Type* type() const override { return func_type(); }
 
@@ -107,10 +122,15 @@ class FuncConstant : public Constant {
   std::string ToStringWithType() const override { return ToString(); }
 
  private:
+  FuncConstant(func_num_t value) : value_(value) {}
+
   func_num_t value_;
+
+  friend std::shared_ptr<FuncConstant> MakeFuncConstant(func_num_t value);
 };
 
 std::shared_ptr<FuncConstant> NilFunc();
+std::shared_ptr<FuncConstant> ToFuncConstant(func_num_t value);
 
 class Computed : public Value {
  public:

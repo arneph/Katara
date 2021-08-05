@@ -308,8 +308,8 @@ void IRTranslator::TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_
     common::Int value = static_cast<ir::IntConstant*>(ir_operand_b)->value();
     if (value.CanConvertTo(common::IntType::kI32)) {
       if (common::BitSizeOf(value.type()) > 32) {
-        ir::IntConstant ir_constant(value.ConvertTo(common::IntType::kI32));
-        x86_64_operand_b = TranslateIntConstant(&ir_constant);
+        auto ir_constant = ir::ToIntConstant(value.ConvertTo(common::IntType::kI32));
+        x86_64_operand_b = TranslateIntConstant(ir_constant.get());
       }
     } else {
       requires_tmp_reg = true;
@@ -416,7 +416,7 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
 
   bool requires_tmp_reg = false;
 
-  ir::IntConstant ir_operand_b_narrowed(common::Int(int32_t{0}));
+  std::shared_ptr<ir::IntConstant> ir_operand_b_narrowed;
   if (ir_operand_b->kind() == ir::Value::Kind::kConstant &&
       (ir_type == ir::i64() || ir_type == ir::u64() || ir_type == ir::pointer_type() ||
        ir_type == ir::func_type())) {
@@ -431,11 +431,11 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
       v = common::Int(static_cast<ir::FuncConstant*>(ir_operand_b)->value());
     }
     if (common::IsSigned(v.type()) && v.CanConvertTo(common::IntType::kI32)) {
-      ir_operand_b_narrowed = ir::IntConstant(v.ConvertTo(common::IntType::kI32));
-      ir_operand_b = &ir_operand_b_narrowed;
+      ir_operand_b_narrowed = ir::ToIntConstant(v.ConvertTo(common::IntType::kI32));
+      ir_operand_b = ir_operand_b_narrowed.get();
     } else if (common::IsUnsigned(v.type()) && v.CanConvertTo(common::IntType::kU32)) {
-      ir_operand_b_narrowed = ir::IntConstant(v.ConvertTo(common::IntType::kU32));
-      ir_operand_b = &ir_operand_b_narrowed;
+      ir_operand_b_narrowed = ir::ToIntConstant(v.ConvertTo(common::IntType::kU32));
+      ir_operand_b = ir_operand_b_narrowed.get();
     } else {
       requires_tmp_reg = true;
     }
@@ -512,7 +512,7 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
   }
 
   bool requires_tmp_reg = false;
-  ir::IntConstant ir_operand_b_narrowed(common::Int(int32_t{0}));
+  std::shared_ptr<ir::IntConstant> ir_operand_b_narrowed;
   if (ir_operand_b->kind() == ir::Value::Kind::kConstant &&
       (ir_type == ir::i64() || ir_type == ir::u64() || ir_type == ir::pointer_type() ||
        ir_type == ir::func_type())) {
@@ -527,11 +527,11 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
       v = common::Int(static_cast<ir::FuncConstant*>(ir_operand_b)->value());
     }
     if (common::IsSigned(v.type()) && v.CanConvertTo(common::IntType::kI32)) {
-      ir_operand_b_narrowed = ir::IntConstant(v.ConvertTo(common::IntType::kI32));
-      ir_operand_b = &ir_operand_b_narrowed;
+      ir_operand_b_narrowed = ir::ToIntConstant(v.ConvertTo(common::IntType::kI32));
+      ir_operand_b = ir_operand_b_narrowed.get();
     } else if (common::IsUnsigned(v.type()) && v.CanConvertTo(common::IntType::kU32)) {
-      ir_operand_b_narrowed = ir::IntConstant(v.ConvertTo(common::IntType::kU32));
-      ir_operand_b = &ir_operand_b_narrowed;
+      ir_operand_b_narrowed = ir::ToIntConstant(v.ConvertTo(common::IntType::kU32));
+      ir_operand_b = ir_operand_b_narrowed.get();
     } else {
       requires_tmp_reg = true;
     }

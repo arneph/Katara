@@ -573,10 +573,10 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIdent(ast::Ident* ident, AST
     case types::ObjectKind::kFunc: {
       types::Func* types_func = static_cast<types::Func*>(object);
       ir::Func* ir_func = funcs_.at(types_func);
-      return std::make_shared<ir::FuncConstant>(ir_func->number());
+      return ir::ToFuncConstant(ir_func->number());
     }
     case types::ObjectKind::kNil: {
-      return std::make_shared<ir::PointerConstant>(0);
+      return ir::NilPointer();
     }
     default:
       common::fail("unexpected object kind");

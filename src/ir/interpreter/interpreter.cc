@@ -122,7 +122,7 @@ void Interpreter::ExecuteConversion(ir::Conversion* instr, FuncContext& ctx) {
     if (operand_type_kind == ir::TypeKind::kBool) {
       bool operand = EvaluateBool(instr->operand(), ctx);
       common::Int result = common::Bool::ConvertTo(result_int_type, operand);
-      ctx.computed_values_.insert_or_assign(result_num, std::make_shared<ir::IntConstant>(result));
+      ctx.computed_values_.insert_or_assign(result_num, ir::ToIntConstant(result));
       return;
 
     } else if (operand_type_kind == ir::TypeKind::kInt) {
@@ -131,7 +131,7 @@ void Interpreter::ExecuteConversion(ir::Conversion* instr, FuncContext& ctx) {
         common::fail("can not handle conversion instr");
       }
       common::Int result = operand.ConvertTo(result_int_type);
-      ctx.computed_values_.insert_or_assign(result_num, std::make_shared<ir::IntConstant>(result));
+      ctx.computed_values_.insert_or_assign(result_num, ir::ToIntConstant(result));
       return;
     }
   }
@@ -146,8 +146,7 @@ void Interpreter::ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& 
     common::fail("can not compute binary instr");
   }
   common::Int result = common::Int::Compute(a, instr->operation(), b);
-  ctx.computed_values_.insert_or_assign(instr->result()->number(),
-                                        std::make_shared<ir::IntConstant>(result));
+  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToIntConstant(result));
 }
 
 void Interpreter::ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx) {
@@ -164,16 +163,14 @@ void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ct
   common::Int shifted = EvaluateInt(instr->shifted(), ctx);
   common::Int offset = EvaluateInt(instr->offset(), ctx);
   common::Int result = common::Int::Shift(shifted, instr->operation(), offset);
-  ctx.computed_values_.insert_or_assign(instr->result()->number(),
-                                        std::make_shared<ir::IntConstant>(result));
+  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToIntConstant(result));
 }
 
 void Interpreter::ExecutePointerOffsetInstr(ir::PointerOffsetInstr* instr, FuncContext& ctx) {
   int64_t pointer = EvaluatePointer(instr->pointer(), ctx);
   int64_t offset = EvaluateInt(instr->offset(), ctx).AsInt64();
   int64_t result = pointer + offset;
-  ctx.computed_values_.insert_or_assign(instr->result()->number(),
-                                        std::make_shared<ir::PointerConstant>(result));
+  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToPointerConstant(result));
 }
 
 void Interpreter::ExecuteNilTestInstr(ir::NilTestInstr* instr, FuncContext& ctx) {
@@ -193,8 +190,7 @@ void Interpreter::ExecuteNilTestInstr(ir::NilTestInstr* instr, FuncContext& ctx)
 void Interpreter::ExecuteMallocInstr(ir::MallocInstr* instr, FuncContext& ctx) {
   uint64_t size = EvaluateInt(instr->size(), ctx).AsUint64();
   int64_t address = int64_t(malloc(size));
-  ctx.computed_values_.insert_or_assign(instr->result()->number(),
-                                        std::make_shared<ir::PointerConstant>(address));
+  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToPointerConstant(address));
 }
 
 namespace {
@@ -239,12 +235,12 @@ void Interpreter::ExecuteLoadInstr(ir::LoadInstr* instr, FuncContext& ctx) {
               return common::Int(LoadFromHeap<uint64_t>(address));
           }
         }(static_cast<const ir::IntType*>(result_type)->int_type());
-        return std::make_shared<ir::IntConstant>(result);
+        return ir::ToIntConstant(result);
       }
       case ir::TypeKind::kPointer:
-        return std::make_shared<ir::PointerConstant>(LoadFromHeap<int64_t>(address));
+        return ir::ToPointerConstant(LoadFromHeap<int64_t>(address));
       case ir::TypeKind::kFunc:
-        return std::make_shared<ir::FuncConstant>(LoadFromHeap<ir::func_num_t>(address));
+        return ir::ToFuncConstant(LoadFromHeap<ir::func_num_t>(address));
       default:
         common::fail("can not handle type");
     }

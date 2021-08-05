@@ -112,28 +112,11 @@ std::shared_ptr<ir::Value> ValueBuilder::BuildDefaultForType(types::Type* types_
         case ir::TypeKind::kBool:
           return ir::False();
         case ir::TypeKind::kInt:
-          switch (static_cast<const ir::IntType*>(ir_type)->int_type()) {
-            case common::IntType::kI8:
-              return std::make_shared<ir::IntConstant>(common::Int(int8_t{0}));
-            case common::IntType::kI16:
-              return std::make_shared<ir::IntConstant>(common::Int(int16_t{0}));
-            case common::IntType::kI32:
-              return std::make_shared<ir::IntConstant>(common::Int(int32_t{0}));
-            case common::IntType::kI64:
-              return std::make_shared<ir::IntConstant>(common::Int(int64_t{0}));
-            case common::IntType::kU8:
-              return std::make_shared<ir::IntConstant>(common::Int(uint8_t{0}));
-            case common::IntType::kU16:
-              return std::make_shared<ir::IntConstant>(common::Int(uint16_t{0}));
-            case common::IntType::kU32:
-              return std::make_shared<ir::IntConstant>(common::Int(uint32_t{0}));
-            case common::IntType::kU64:
-              return std::make_shared<ir::IntConstant>(common::Int(uint64_t{0}));
-          }
+          return ir::ZeroWithType(static_cast<const ir::IntType*>(ir_type)->int_type());
         case ir::TypeKind::kPointer:
-          return std::make_shared<ir::PointerConstant>(0);
+          return ir::NilPointer();
         case ir::TypeKind::kFunc:
-          return std::make_shared<ir::FuncConstant>(0);
+          return ir::NilFunc();
         case ir::TypeKind::kLangString:
           return std::make_shared<ir_ext::StringConstant>("");
         default:
@@ -152,7 +135,7 @@ std::shared_ptr<ir::Value> ValueBuilder::BuildConstant(constants::Value constant
     case constants::Value::Kind::kBool:
       return ir::ToBoolConstant(constant.AsBool());
     case constants::Value::Kind::kInt:
-      return std::make_shared<ir::IntConstant>(constant.AsInt());
+      return ir::ToIntConstant(constant.AsInt());
     case constants::Value::Kind::kString:
       return std::make_shared<ir_ext::StringConstant>(constant.AsString());
   }
