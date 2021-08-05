@@ -32,7 +32,7 @@ class Interpreter {
     kTerminated,
   };
 
-  Interpreter(ir::Program* program) : state_(ExecutionState::kReady), program_(program) {}
+  Interpreter(ir::Program* program) : program_(program) {}
 
   ExecutionState state() const { return state_; }
   void run();
@@ -41,35 +41,33 @@ class Interpreter {
   int64_t exit_code() const { return exit_code_; }
 
  private:
+  typedef std::shared_ptr<ir::Constant> RuntimeConstant;
+
   struct FuncContext {
-    std::unordered_map<ir::value_num_t, std::shared_ptr<ir::Constant>> computed_values_;
+    std::unordered_map<ir::value_num_t, RuntimeConstant> computed_values_;
   };
 
   std::vector<std::shared_ptr<ir::Constant>> CallFunc(ir::Func* func,
-                                                      std::vector<ir::Constant*> args);
+                                                      std::vector<RuntimeConstant> args);
 
   void ExecuteConversion(ir::Conversion* instr, FuncContext& ctx);
-  std::shared_ptr<ir::Constant> ComputeConversion(const ir::Type* result_type,
-                                                  ir::Constant* operand);
-
   void ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& ctx);
   void ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx);
   void ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx);
 
-  std::vector<std::shared_ptr<ir::Constant>> EvaluateFuncResults(
-      const std::vector<std::shared_ptr<ir::Value>>& ir_values, FuncContext& ctx);
-
-  std::vector<ir::Constant*> Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,
-                                      FuncContext& ctx);
+  void ExecuteCallInstr(ir::CallInstr* instr, FuncContext& ctx);
 
   bool EvaluateBool(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
   common::Int EvaluateInt(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
   int64_t EvaluatePointer(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
   ir::func_num_t EvaluateFunc(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
-  ir::Constant* Evaluate(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
 
-  ExecutionState state_;
-  int64_t exit_code_;
+  std::vector<RuntimeConstant> Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,
+                                        FuncContext& ctx);
+  RuntimeConstant Evaluate(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
+
+  ExecutionState state_ = ExecutionState::kReady;
+  int64_t exit_code_ = 0;
 
   ir::Program* program_;
 };
