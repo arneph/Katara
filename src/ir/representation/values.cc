@@ -40,7 +40,7 @@ std::shared_ptr<PointerConstant> NilPointer() {
 }
 
 std::shared_ptr<FuncConstant> NilFunc() {
-  static auto kNilFunc = std::make_shared<ir::FuncConstant>(-1);
+  static auto kNilFunc = std::make_shared<ir::FuncConstant>(kNoFuncNum);
   return kNilFunc;
 }
 
