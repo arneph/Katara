@@ -470,6 +470,8 @@ Size Operand::size() const {
       return data_.mem.size();
     case Kind::kImm:
       return data_.imm.size();
+    case Kind::kFuncRef:
+      return Size::k64;
     default:
       common::fail("size operation not supported for operand kind");
   }
