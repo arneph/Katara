@@ -57,16 +57,16 @@ void run_ir_test(std::filesystem::path test_dir) {
             out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".dom.dot");
   }
 
-  std::unordered_map<ir::Func*, ir_info::FuncLiveRanges> live_ranges;
-  std::unordered_map<ir::Func*, ir_info::InterferenceGraph> interference_graphs;
+  std::unordered_map<ir::func_num_t, ir_info::FuncLiveRanges> live_ranges;
+  std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph> interference_graphs;
 
   for (auto& func : ir_program->funcs()) {
     ir_info::FuncLiveRanges func_live_ranges = ir_analyzers::FindLiveRangesForFunc(func.get());
     ir_info::InterferenceGraph func_interference_graph =
         ir_analyzers::BuildInterferenceGraphForFunc(func.get(), func_live_ranges);
 
-    live_ranges.insert({func.get(), func_live_ranges});
-    interference_graphs.insert({func.get(), func_interference_graph});
+    live_ranges.insert({func->number(), func_live_ranges});
+    interference_graphs.insert({func->number(), func_interference_graph});
 
     to_file(
         func_live_ranges.ToString(),

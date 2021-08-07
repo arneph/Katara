@@ -14,7 +14,7 @@ namespace x86_64_ir_translator {
 
 std::unique_ptr<x86_64::Program> IRTranslator::Translate(
     ir::Program* program,
-    std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& inteference_graphs) {
+    std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>& inteference_graphs) {
   IRTranslator translator(program, inteference_graphs);
 
   translator.AllocateRegisters();
@@ -27,8 +27,8 @@ void IRTranslator::AllocateRegisters() {
   interference_graph_colors_.reserve(interference_graphs_.size());
   for (auto& ir_func : ir_program_->funcs()) {
     ir_info::InterferenceGraphColors colors =
-        AllocateRegistersInFunc(ir_func.get(), interference_graphs_.at(ir_func.get()));
-    interference_graph_colors_.insert({ir_func.get(), colors});
+        AllocateRegistersInFunc(ir_func.get(), interference_graphs_.at(ir_func->number()));
+    interference_graph_colors_.insert({ir_func->number(), colors});
   }
 }
 
@@ -1077,7 +1077,7 @@ x86_64::Operand IRTranslator::TranslateFuncConstant(ir::FuncConstant* constant) 
 }
 
 x86_64::RM IRTranslator::TranslateComputed(ir::Computed* computed, ir::Func* ir_func) {
-  ir_info::InterferenceGraphColors& colors = interference_graph_colors_.at(ir_func);
+  ir_info::InterferenceGraphColors& colors = interference_graph_colors_.at(ir_func->number());
   ir_info::color_t color = colors.GetColor(computed->number());
   int8_t ir_size = static_cast<const ir::AtomicType*>(computed->type())->bit_size();
   x86_64::Size x86_64_size = x86_64::Size(ir_size);

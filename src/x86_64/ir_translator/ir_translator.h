@@ -34,11 +34,11 @@ class IRTranslator {
  public:
   static std::unique_ptr<x86_64::Program> Translate(
       ir::Program* program,
-      std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& inteference_graphs);
+      std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>& inteference_graphs);
 
  private:
   IRTranslator(ir::Program* program,
-               std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& inteference_graphs)
+               std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>& inteference_graphs)
       : ir_program_(program), interference_graphs_(inteference_graphs) {}
 
   void AllocateRegisters();
@@ -120,8 +120,8 @@ class IRTranslator {
   x86_64::Size TranslateSizeOfIntType(common::IntType common_int_type);
 
   ir::Program* ir_program_;
-  std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& interference_graphs_;
-  std::unordered_map<ir::Func*, ir_info::InterferenceGraphColors> interference_graph_colors_;
+  std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>& interference_graphs_;
+  std::unordered_map<ir::func_num_t, ir_info::InterferenceGraphColors> interference_graph_colors_;
 
   x86_64::ProgramBuilder x86_64_program_builder_;
   x86_64::Func* x86_64_main_func_;
