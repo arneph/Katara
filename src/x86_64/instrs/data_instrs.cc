@@ -22,6 +22,10 @@ Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
         common::fail("unsupported reg size, imm size combination");
       }
 
+    } else if (src.is_func_ref()) {
+      if (dst.size() != Size::k64) common::fail("unsupported reg size for func ref");
+      mov_type_ = MovType::kREG_FuncRef;
+
     } else if (src.is_reg() || src.is_mem()) {
       if (dst.size() != src.size()) common::fail("unsupported reg size, reg/mem size combination");
       mov_type_ = MovType::kREG_RM;
@@ -39,6 +43,10 @@ Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
         common::fail("unsupported mem size, imm size combination");
       }
 
+    } else if (src.is_func_ref()) {
+      if (dst.size() != Size::k64) common::fail("unsupported mem size for func ref");
+      mov_type_ = MovType::kRM_FuncRef;
+
     } else if (src.is_reg()) {
       if (dst.size() != src.size()) common::fail("unsupported mem size, reg size combination");
       mov_type_ = MovType::kRM_REG;
@@ -55,7 +63,7 @@ Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
   }
 }
 
-int8_t Mov::Encode(Linker&, common::data code) const {
+int8_t Mov::Encode(Linker& linker, common::data code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(src_.size());
@@ -67,20 +75,20 @@ int8_t Mov::Encode(Linker&, common::data code) const {
     encoder.EncodeOpcode((src_.size() == Size::k8) ? 0x88 : 0x89);
   } else if (mov_type_ == kREG_RM) {
     encoder.EncodeOpcode((src_.size() == Size::k8) ? 0x8A : 0x8B);
-  } else if (mov_type_ == kREG_IMM) {
+  } else if (mov_type_ == kREG_IMM || mov_type_ == kREG_FuncRef) {
     encoder.EncodeOpcode((src_.size() == Size::k8) ? 0xB0 : 0xB8);
-  } else if (mov_type_ == kRM_IMM) {
+  } else if (mov_type_ == kRM_IMM || mov_type_ == kRM_FuncRef) {
     encoder.EncodeOpcode((src_.size() == Size::k8) ? 0xC6 : 0xC7);
     encoder.EncodeOpcodeExt(0);
   }
 
-  if (mov_type_ == kRM_REG || mov_type_ == kRM_IMM) {
+  if (mov_type_ == kRM_REG || mov_type_ == kRM_IMM || mov_type_ == kRM_FuncRef) {
     encoder.EncodeRM(dst_.rm());
 
   } else if (mov_type_ == kREG_RM) {
     encoder.EncodeModRMReg(dst_.reg());
 
-  } else if (mov_type_ == kREG_IMM) {
+  } else if (mov_type_ == kREG_IMM || mov_type_ == kREG_FuncRef) {
     encoder.EncodeOpcodeReg(dst_.reg());
   }
 
@@ -92,6 +100,9 @@ int8_t Mov::Encode(Linker&, common::data code) const {
 
   } else if (mov_type_ == kREG_IMM || mov_type_ == kRM_IMM) {
     encoder.EncodeImm(src_.imm());
+  } else if (mov_type_ == kREG_FuncRef || mov_type_ == kRM_FuncRef) {
+    encoder.EncodeImm(Imm(int32_t{0}));
+    linker.AddFuncRef(src_.func_ref(), encoder.imm_view());
   }
 
   return encoder.size();

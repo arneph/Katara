@@ -10,6 +10,7 @@
 #define x86_64_instr_encoder_h
 
 #include <memory>
+#include <optional>
 
 #include "src/common/data.h"
 #include "src/x86_64/ops.h"
@@ -21,6 +22,7 @@ struct InstrEncoder final {
   InstrEncoder(common::data code) : code_(code) {}
 
   uint8_t size() const { return size_; }
+  common::data imm_view() const { return imm_view_.value(); }
 
   void EncodeOperandSize(Size op_size);
 
@@ -47,6 +49,7 @@ struct InstrEncoder final {
   uint8_t* sib_ = nullptr;
   uint8_t* disp_ = nullptr;
   uint8_t* imm_ = nullptr;
+  std::optional<common::data> imm_view_;
 };
 
 }  // namespace x86_64

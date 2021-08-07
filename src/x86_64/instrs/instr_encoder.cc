@@ -112,6 +112,7 @@ void InstrEncoder::EncodeImm(const Imm& imm) {
   if (imm_ != nullptr) common::fail("attempted to encode imm twice");
 
   imm_ = &code_[size_];
+  imm_view_.emplace(&code_[size_], imm.RequiredImmSize());
   size_ += imm.RequiredImmSize();
 
   if (size_ > code_.size()) common::fail("instruction exceeds code capacity");

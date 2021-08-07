@@ -31,7 +31,7 @@ class Mov final : public Instr {
   std::string ToString() const override;
 
  private:
-  typedef enum : uint8_t { kRM_REG, kREG_RM, kREG_IMM, kRM_IMM } MovType;
+  typedef enum : uint8_t { kRM_REG, kREG_RM, kREG_IMM, kRM_IMM, kREG_FuncRef, kRM_FuncRef } MovType;
 
   MovType mov_type_;
   RM dst_;
