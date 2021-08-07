@@ -6,6 +6,8 @@
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
+#include <sys/mman.h>
+
 #include <filesystem>
 #include <fstream>
 #include <iostream>
@@ -13,7 +15,12 @@
 #include <string_view>
 #include <vector>
 
+#include "src/ir/analyzers/interference_graph_builder.h"
+#include "src/ir/analyzers/live_range_analyzer.h"
+#include "src/ir/info/func_live_ranges.h"
+#include "src/ir/info/interference_graph.h"
 #include "src/ir/interpreter/interpreter.h"
+#include "src/ir/processors/phi_resolver.h"
 #include "src/ir/representation/program.h"
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/docs/package_doc.h"
@@ -25,6 +32,7 @@
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/info_util.h"
+#include "src/x86_64/ir_translator/ir_translator.h"
 
 constexpr std::string_view kVersion = "0.1";
 constexpr std::string_view kStdLibPath = "/Users/arne/Documents/Xcode/Katara/stdlib";
@@ -208,67 +216,155 @@ int doc(const std::vector<const std::string> args, std::ostream& err) {
 }
 
 struct BuildResult {
-  std::unique_ptr<ir::Program> program;
+  std::unique_ptr<ir::Program> ir_program;
+  std::unique_ptr<x86_64::Program> x86_64_program;
   int exit_code;
 };
 
 BuildResult build(const std::vector<const std::string> args, std::ostream& err) {
   auto [pkg_manager, arg_pkgs, generate_debug_info, exit_code] = load(args, err);
   if (exit_code) {
-    return BuildResult{nullptr, exit_code};
+    return BuildResult{
+        .ir_program = nullptr,
+        .x86_64_program = nullptr,
+        .exit_code = exit_code,
+    };
   }
 
   lang::packages::Package* main_pkg = pkg_manager->GetMainPackage();
   if (main_pkg == nullptr) {
     // TODO: support translating non-main packages to IR
-    return BuildResult{nullptr, 5};
+    return BuildResult{
+        .ir_program = nullptr,
+        .x86_64_program = nullptr,
+        .exit_code = 5,
+    };
   }
 
-  auto debug_info_generator = [main_pkg](ir::Program* program, std::string iter) {
-    std::filesystem::path debug_dir = (main_pkg != nullptr)
-                                          ? std::filesystem::path(main_pkg->dir()) / "debug"
-                                          : std::filesystem::current_path();
-    to_file(program->ToString(), debug_dir / ("ir." + iter + ".txt"));
+  std::filesystem::path debug_dir = (main_pkg != nullptr)
+                                        ? std::filesystem::path(main_pkg->dir()) / "debug"
+                                        : std::filesystem::current_path();
+  auto ir_program_debug_info_generator =
+      [main_pkg, debug_dir](
+          ir::Program* program, std::string iter,
+          std::unordered_map<ir::Func*, ir_info::FuncLiveRanges>* live_ranges = nullptr,
+          std::unordered_map<ir::Func*, ir_info::InterferenceGraph>* interference_graphs =
+              nullptr) {
+        to_file(program->ToString(), debug_dir / ("ir." + iter + ".txt"));
 
-    for (auto& func : program->funcs()) {
-      std::string file_name =
-          main_pkg->name() + "_@" + std::to_string(func->number()) + "_" + func->name();
-      common::Graph func_cfg = func->ToControlFlowGraph();
-      common::Graph func_dom = func->ToDominatorTree();
+        for (auto& func : program->funcs()) {
+          ir::func_num_t func_num = func->number();
+          std::string file_name =
+              main_pkg->name() + "_@" + std::to_string(func_num) + "_" + func->name() + "." + iter;
+          common::Graph func_cfg = func->ToControlFlowGraph();
+          common::Graph func_dom = func->ToDominatorTree();
 
-      to_file(func_cfg.ToDotFormat(), debug_dir / (file_name + "." + iter + ".cfg.dot"));
-      to_file(func_dom.ToDotFormat(), debug_dir / (file_name + "." + iter + ".dom.dot"));
-    }
-  };
+          to_file(func_cfg.ToDotFormat(), debug_dir / (file_name + ".cfg.dot"));
+          to_file(func_dom.ToDotFormat(), debug_dir / (file_name + ".dom.dot"));
+          if (live_ranges != nullptr) {
+            ir_info::FuncLiveRanges& func_live_ranges = live_ranges->at(func.get());
 
-  std::unique_ptr<ir::Program> program =
+            to_file(func_live_ranges.ToString(), debug_dir / (file_name + ".live_range_info.txt"));
+          }
+          if (interference_graphs != nullptr) {
+            ir_info::InterferenceGraph& func_interference_graph =
+                interference_graphs->at(func.get());
+
+            to_file(func_interference_graph.ToString(), debug_dir / (file_name + ".interference_"
+                                                                                 "graph.txt"));
+            to_file(func_interference_graph.ToGraph().ToDotFormat(), debug_dir / (file_name + ".int"
+                                                                                              "erfe"
+                                                                                              "renc"
+                                                                                              "e_"
+                                                                                              "grap"
+                                                                                              "h."
+                                                                                              "do"
+                                                                                              "t"));
+          }
+        }
+      };
+
+  std::unique_ptr<ir::Program> ir_program =
       lang::ir_builder::IRBuilder::TranslateProgram(main_pkg, pkg_manager->type_info());
-  if (program == nullptr) {
-    return BuildResult{nullptr, 6};
+  if (ir_program == nullptr) {
+    return BuildResult{
+        .ir_program = nullptr,
+        .x86_64_program = nullptr,
+        .exit_code = 6,
+    };
   }
   if (generate_debug_info) {
-    debug_info_generator(program.get(), "init");
+    ir_program_debug_info_generator(ir_program.get(), "init");
   }
 
-  lang::ir_lowerers::LowerSharedPointersInProgram(program.get());
+  lang::ir_lowerers::LowerSharedPointersInProgram(ir_program.get());
+  std::unordered_map<ir::Func*, ir_info::FuncLiveRanges> live_ranges;
+  std::unordered_map<ir::Func*, ir_info::InterferenceGraph> interference_graphs;
+  for (auto& func : ir_program->funcs()) {
+    ir_info::FuncLiveRanges func_live_ranges = ir_analyzers::FindLiveRangesForFunc(func.get());
+    ir_info::InterferenceGraph func_interference_graph =
+        ir_analyzers::BuildInterferenceGraphForFunc(func.get(), func_live_ranges);
+
+    live_ranges.insert({func.get(), func_live_ranges});
+    interference_graphs.insert({func.get(), func_interference_graph});
+  }
   if (generate_debug_info) {
-    debug_info_generator(program.get(), "lowered");
+    ir_program_debug_info_generator(ir_program.get(), "lowered", &live_ranges,
+                                    &interference_graphs);
   }
 
-  return BuildResult{std::move(program), 0};
+  for (auto& func : ir_program->funcs()) {
+    ir_processors::ResolvePhisInFunc(func.get());
+  }
+  std::unique_ptr<x86_64::Program> x86_64_program =
+      x86_64_ir_translator::IRTranslator::Translate(ir_program.get(), interference_graphs);
+  if (generate_debug_info) {
+    to_file(x86_64_program->ToString(), debug_dir / "x86_64.txt");
+  }
+
+  return BuildResult{
+      .ir_program = std::move(ir_program),
+      .x86_64_program = std::move(x86_64_program),
+      .exit_code = 0,
+  };
 }
 
 int run(const std::vector<const std::string> args, std::istream& in, std::ostream& out,
         std::ostream& err) {
-  auto [program, exit_code] = build(args, err);
+  auto [ir_program, x86_64_program, exit_code] = build(args, err);
   if (exit_code) {
     return exit_code;
   }
 
-  ir_interpreter::Interpreter interpreter(program.get());
-  interpreter.run();
+  // ir_interpreter::Interpreter interpreter(ir_program.get());
+  // interpreter.run();
 
-  return static_cast<int>(interpreter.exit_code());
+  // return static_cast<int>(interpreter.exit_code());
+
+  x86_64::Linker linker;
+  linker.AddFuncAddr(x86_64_program->declared_funcs().at("malloc"), (uint8_t*)&malloc);
+  linker.AddFuncAddr(x86_64_program->declared_funcs().at("free"), (uint8_t*)&free);
+
+  int64_t page_size = 1 << 12;
+  uint8_t* base =
+      (uint8_t*)mmap(NULL, page_size, PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
+  common::data code(base, page_size);
+
+  int64_t program_size = x86_64_program->Encode(linker, code);
+  linker.ApplyPatches();
+
+  std::cout << "BEGIN machine code\n";
+  for (int64_t j = 0; j < program_size; j++) {
+    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short)code[j] << " ";
+    if (j % 8 == 7 && j != program_size - 1) {
+      std::cout << "\n";
+    }
+  }
+  std::cout << "END machine code\n";
+
+  x86_64::Func* x86_64_main_func = x86_64_program->DefinedFuncWithName("main");
+  int (*main_func)(void) = (int (*)(void))(linker.func_addrs().at(x86_64_main_func->func_id()));
+  return main_func();
 }
 
 int main(int argc, char* argv[]) {

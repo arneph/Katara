@@ -78,6 +78,20 @@ class IRTranslator {
   void TranslateIntShiftInstr(ir::IntShiftInstr* ir_int_shift_instr, ir::Func* ir_func,
                               x86_64::BlockBuilder& x86_64_block_builder);
 
+  void TranslatePointerOffsetInstr(ir::PointerOffsetInstr* ir_pointer_offset_instr, ir::Func* func,
+                                   x86_64::BlockBuilder& x86_64_block_builder);
+  void TranslateNilTestInstr(ir::NilTestInstr* ir_nil_test_instr, ir::Func* ir_func,
+                             x86_64::BlockBuilder& x86_64_block_builder);
+
+  void TranslateMallocInstr(ir::MallocInstr* ir_malloc_instr, ir::Func* ir_func,
+                            x86_64::BlockBuilder& x86_64_block_builder);
+  void TranslateLoadInstr(ir::LoadInstr* ir_load_instr, ir::Func* ir_func,
+                          x86_64::BlockBuilder& x86_64_block_builder);
+  void TranslateStoreInstr(ir::StoreInstr* ir_store_instr, ir::Func* ir_func,
+                           x86_64::BlockBuilder& x86_64_block_builder);
+  void TranslateFreeInstr(ir::FreeInstr* ir_free_instr, ir::Func* ir_func,
+                          x86_64::BlockBuilder& x86_64_block_builder);
+
   void TranslateJumpInstr(ir::JumpInstr* ir_jump_instr, x86_64::BlockBuilder& x86_64_block_builder);
   void TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr, ir::Func* ir_func,
                               x86_64::BlockBuilder& x86_64_block_builder);
@@ -97,10 +111,13 @@ class IRTranslator {
   x86_64::Imm TranslateBoolConstant(ir::BoolConstant* constant);
   x86_64::Imm TranslateIntConstant(ir::IntConstant* constant);
   x86_64::Imm TranslatePointerConstant(ir::PointerConstant* constant);
-  x86_64::Imm TranslateFuncConstant(ir::FuncConstant* constant);
+  x86_64::Operand TranslateFuncConstant(ir::FuncConstant* constant);
   x86_64::RM TranslateComputed(ir::Computed* computed, ir::Func* ir_func);
   x86_64::BlockRef TranslateBlockValue(ir::block_num_t block_value);
-  x86_64::FuncRef TranslateFuncValue(ir::Value func_value);
+
+  x86_64::Size TranslateSizeOfType(const ir::Type* ir_type);
+  x86_64::Size TranslateSizeOfIntType(const ir::IntType* ir_int_type);
+  x86_64::Size TranslateSizeOfIntType(common::IntType common_int_type);
 
   ir::Program* ir_program_;
   std::unordered_map<ir::Func*, ir_info::InterferenceGraph>& interference_graphs_;

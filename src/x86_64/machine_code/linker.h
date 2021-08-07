@@ -21,6 +21,8 @@ namespace x86_64 {
 
 class Linker {
  public:
+  const std::unordered_map<int64_t, uint8_t*>& func_addrs() const { return func_addrs_; }
+
   void AddFuncAddr(int64_t func_id, uint8_t* func_addr);
   void AddBlockAddr(int64_t block_id, uint8_t* block_addr);
 

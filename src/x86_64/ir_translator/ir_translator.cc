@@ -33,6 +33,9 @@ void IRTranslator::AllocateRegisters() {
 }
 
 void IRTranslator::TranslateProgram() {
+  x86_64_program_builder_.DeclareFunc("malloc");
+  x86_64_program_builder_.DeclareFunc("free");
+
   for (auto& ir_func : ir_program_->funcs()) {
     std::string ir_func_name = ir_func->name();
     if (ir_func_name.empty()) {
@@ -40,7 +43,7 @@ void IRTranslator::TranslateProgram() {
     }
 
     x86_64::Func* x86_64_func =
-        TranslateFunc(ir_func.get(), x86_64_program_builder_.AddFunc(ir_func_name));
+        TranslateFunc(ir_func.get(), x86_64_program_builder_.DefineFunc(ir_func_name));
 
     if (ir_func->number() == ir_program_->entry_func_num()) {
       x86_64_main_func_ = x86_64_func;
@@ -118,6 +121,26 @@ void IRTranslator::TranslateInstr(ir::Instr* ir_instr, ir::Func* ir_func,
       TranslateIntShiftInstr(static_cast<ir::IntShiftInstr*>(ir_instr), ir_func,
                              x86_64_block_builder);
       break;
+    case ir::InstrKind::kPointerOffset:
+      TranslatePointerOffsetInstr(static_cast<ir::PointerOffsetInstr*>(ir_instr), ir_func,
+                                  x86_64_block_builder);
+      break;
+    case ir::InstrKind::kNilTest:
+      TranslateNilTestInstr(static_cast<ir::NilTestInstr*>(ir_instr), ir_func,
+                            x86_64_block_builder);
+      break;
+    case ir::InstrKind::kMalloc:
+      TranslateMallocInstr(static_cast<ir::MallocInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      break;
+    case ir::InstrKind::kLoad:
+      TranslateLoadInstr(static_cast<ir::LoadInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      break;
+    case ir::InstrKind::kStore:
+      TranslateStoreInstr(static_cast<ir::StoreInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      break;
+    case ir::InstrKind::kFree:
+      TranslateFreeInstr(static_cast<ir::FreeInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      break;
     case ir::InstrKind::kJump:
       TranslateJumpInstr(static_cast<ir::JumpInstr*>(ir_instr), x86_64_block_builder);
       break;
@@ -131,8 +154,11 @@ void IRTranslator::TranslateInstr(ir::Instr* ir_instr, ir::Func* ir_func,
     case ir::InstrKind::kReturn:
       TranslateReturnInstr(static_cast<ir::ReturnInstr*>(ir_instr), ir_func, x86_64_block_builder);
       break;
+    case ir::InstrKind::kLangPanic:
+      // TODO: add lowering pass
+      break;
     default:
-      common::fail("unexpected instr");
+      common::fail("unexpected instr: " + ir_instr->ToString());
   }
 }
 
@@ -290,7 +316,7 @@ void IRTranslator::TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_
   auto ir_result = ir_int_compare_instr->result().get();
   auto ir_operand_a = ir_int_compare_instr->operand_a().get();
   auto ir_operand_b = ir_int_compare_instr->operand_b().get();
-  auto ir_type = static_cast<const ir::IntType*>(ir_result->type());
+  auto ir_type = static_cast<const ir::IntType*>(ir_operand_a->type());
   bool is_signed = common::IsSigned(ir_type->int_type());
 
   if (ir_operand_a->kind() == ir::Value::Kind::kConstant) {
@@ -397,7 +423,7 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
   auto ir_result = ir_int_binary_instr->result().get();
   auto ir_operand_a = ir_int_binary_instr->operand_a().get();
   auto ir_operand_b = ir_int_binary_instr->operand_b().get();
-  auto ir_type = static_cast<const ir::Type*>(ir_result->type());
+  auto ir_type = static_cast<const ir::IntType*>(ir_result->type());
 
   if (ir_operand_a->kind() == ir::Value::Kind::kConstant) {
     switch (op) {
@@ -418,8 +444,7 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
 
   std::shared_ptr<ir::IntConstant> ir_operand_b_narrowed;
   if (ir_operand_b->kind() == ir::Value::Kind::kConstant &&
-      (ir_type == ir::i64() || ir_type == ir::u64() || ir_type == ir::pointer_type() ||
-       ir_type == ir::func_type())) {
+      (ir_type == ir::i64() || ir_type == ir::u64())) {
     common::Int v{int64_t{0}};
     if (ir_operand_b->type() == ir::i64()) {
       v = static_cast<ir::IntConstant*>(ir_operand_b)->value();
@@ -448,18 +473,7 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
     requires_tmp_reg = true;
   }
 
-  x86_64::Size x86_64_size = [ir_type]() {
-    switch (ir_type->type_kind()) {
-      case ir::TypeKind::kInt:
-        return x86_64::Size(
-            common::BitSizeOf(static_cast<const ir::IntType*>(ir_type)->int_type()));
-      case ir::TypeKind::kPointer:
-      case ir::TypeKind::kFunc:
-        return x86_64::Size::k64;
-      default:
-        common::fail("unexpected int binary operand type");
-    }
-  }();
+  x86_64::Size x86_64_size = TranslateSizeOfIntType(ir_type);
   x86_64::Reg x86_64_tmp_reg(x86_64_size, 0);
   if (x86_64_operand_a.is_reg() && x86_64_operand_a.reg().reg() == 0) {
     x86_64_tmp_reg = x86_64::Reg(x86_64_size, 1);
@@ -505,7 +519,7 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
   auto ir_result = ir_int_binary_instr->result().get();
   auto ir_operand_a = ir_int_binary_instr->operand_a().get();
   auto ir_operand_b = ir_int_binary_instr->operand_b().get();
-  auto ir_type = static_cast<const ir::Type*>(ir_result->type());
+  auto ir_type = static_cast<const ir::IntType*>(ir_result->type());
 
   if (ir_operand_a->kind() == ir::Value::Kind::kConstant) {
     std::swap(ir_operand_a, ir_operand_b);
@@ -514,8 +528,7 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
   bool requires_tmp_reg = false;
   std::shared_ptr<ir::IntConstant> ir_operand_b_narrowed;
   if (ir_operand_b->kind() == ir::Value::Kind::kConstant &&
-      (ir_type == ir::i64() || ir_type == ir::u64() || ir_type == ir::pointer_type() ||
-       ir_type == ir::func_type())) {
+      (ir_type == ir::i64() || ir_type == ir::u64())) {
     common::Int v{int64_t{0}};
     if (ir_operand_b->type() == ir::i64()) {
       v = static_cast<ir::IntConstant*>(ir_operand_b)->value();
@@ -546,18 +559,7 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
     requires_tmp_reg = true;
   }
 
-  x86_64::Size x86_64_size = [ir_type]() {
-    switch (ir_type->type_kind()) {
-      case ir::TypeKind::kInt:
-        return x86_64::Size(
-            common::BitSizeOf(static_cast<const ir::IntType*>(ir_type)->int_type()));
-      case ir::TypeKind::kPointer:
-      case ir::TypeKind::kFunc:
-        return x86_64::Size::k64;
-      default:
-        common::fail("unexpected int binary operand type");
-    }
-  }();
+  x86_64::Size x86_64_size = TranslateSizeOfIntType(ir_type);
   x86_64::Reg x86_64_tmp_reg(x86_64_size, 0);
   while ((x86_64_operand_a.is_reg() && x86_64_operand_a.reg().reg() == x86_64_tmp_reg.reg()) ||
          (x86_64_operand_b.is_reg() && x86_64_operand_b.reg().reg() == x86_64_tmp_reg.reg())) {
@@ -591,6 +593,257 @@ void IRTranslator::TranslateIntDivOrRemInstr(ir::IntBinaryInstr* ir_int_binary_i
 void IRTranslator::TranslateIntShiftInstr(ir::IntShiftInstr* ir_int_shift_instr, ir::Func* ir_func,
                                           x86_64::BlockBuilder& x86_64_block_builder) {
   // TODO: implement
+}
+
+void IRTranslator::TranslatePointerOffsetInstr(ir::PointerOffsetInstr* ir_pointer_offset_instr,
+                                               ir::Func* ir_func,
+                                               x86_64::BlockBuilder& x86_64_block_builder) {
+  // Note: It is assumed that at least one operand is not a constant. A constant folding
+  // optimization pass should ensure this.
+  auto ir_result = ir_pointer_offset_instr->result().get();
+  auto ir_pointer = ir_pointer_offset_instr->pointer().get();
+  auto ir_offset = ir_pointer_offset_instr->offset().get();
+
+  GenerateMovs(ir_result, ir_pointer, ir_func, x86_64_block_builder);
+
+  bool requires_tmp_reg = false;
+
+  std::shared_ptr<ir::IntConstant> ir_offset_narrowed;
+  if (ir_offset->kind() == ir::Value::Kind::kConstant) {
+    common::Int v = static_cast<ir::IntConstant*>(ir_offset)->value();
+    if (v.CanConvertTo(common::IntType::kI32)) {
+      ir_offset_narrowed = ir::ToIntConstant(v.ConvertTo(common::IntType::kI32));
+      ir_offset = ir_offset_narrowed.get();
+    } else {
+      requires_tmp_reg = true;
+    }
+  }
+
+  x86_64::RM x86_64_operand_a = TranslateComputed(ir_result, ir_func);
+  x86_64::Operand x86_64_operand_b = TranslateValue(ir_offset, ir_func);
+
+  if (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem()) {
+    requires_tmp_reg = true;
+  }
+
+  x86_64::Reg x86_64_tmp_reg = x86_64::rax;
+  if (x86_64_operand_a == x86_64_tmp_reg) {
+    x86_64_tmp_reg = x86_64::rdx;
+  }
+
+  if (requires_tmp_reg) {
+    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_tmp_reg);
+    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
+    x86_64_operand_b = x86_64_tmp_reg;
+  }
+  x86_64_block_builder.AddInstr<x86_64::Add>(x86_64_operand_a, x86_64_operand_b);
+  if (requires_tmp_reg) {
+    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_tmp_reg);
+  }
+}
+
+void IRTranslator::TranslateNilTestInstr(ir::NilTestInstr* ir_nil_test_instr, ir::Func* ir_func,
+                                         x86_64::BlockBuilder& x86_64_block_builder) {
+  // Note: It is assumed that the tested operand is not constant. A constant folding optimization
+  // pass should ensure this.
+  auto ir_result = ir_nil_test_instr->result().get();
+  auto ir_tested = ir_nil_test_instr->tested().get();
+
+  x86_64::RM x86_64_result = TranslateComputed(ir_result, ir_func);
+  x86_64::RM x86_64_tested = TranslateComputed(static_cast<ir::Computed*>(ir_tested), ir_func);
+
+  x86_64_block_builder.AddInstr<x86_64::Cmp>(x86_64_tested, x86_64::Imm(0));
+  x86_64_block_builder.AddInstr<x86_64::Setcc>(x86_64::InstrCond::kEqual, x86_64_result);
+}
+
+void IRTranslator::TranslateMallocInstr(ir::MallocInstr* ir_malloc_instr, ir::Func* ir_func,
+                                        x86_64::BlockBuilder& x86_64_block_builder) {
+  ir::Value* ir_size = ir_malloc_instr->size().get();
+  ir::Computed* ir_result = ir_malloc_instr->result().get();
+
+  x86_64::Operand x86_64_size = TranslateValue(ir_size, ir_func);
+  x86_64::RM x86_64_result = TranslateComputed(ir_result, ir_func);
+
+  x86_64::RM x86_64_size_location = OperandForArg(0, x86_64::Size::k64);
+  x86_64::RM x86_64_result_location = OperandForResult(0, x86_64::k64);
+
+  bool size_reg_needs_preservation = (x86_64_size != x86_64_size_location);
+  bool result_reg_needs_preservation = (x86_64_result != x86_64_result_location);
+
+  if (result_reg_needs_preservation) {
+    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_result_location);
+  }
+  if (size_reg_needs_preservation) {
+    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_size_location);
+  }
+  if (x86_64_size_location != x86_64_size) {
+    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_size_location, x86_64_size);
+  }
+
+  int64_t malloc_func_id = x86_64_program_builder_.program()->declared_funcs().at("malloc");
+  x86_64_block_builder.AddInstr<x86_64::Call>(x86_64::FuncRef(malloc_func_id));
+  if (x86_64_result_location != x86_64_result) {
+    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_result, x86_64_result_location);
+  }
+  if (size_reg_needs_preservation) {
+    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_size_location);
+  }
+  if (result_reg_needs_preservation) {
+    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_result_location);
+  }
+}
+
+void IRTranslator::TranslateLoadInstr(ir::LoadInstr* ir_load_instr, ir::Func* ir_func,
+                                      x86_64::BlockBuilder& x86_64_block_builder) {
+  ir::Value* ir_address = ir_load_instr->address().get();
+  ir::Computed* ir_result = ir_load_instr->result().get();
+
+  x86_64::Operand x86_64_address_holder = TranslateValue(ir_address, ir_func);
+  x86_64::RM x86_64_result = TranslateComputed(ir_result, ir_func);
+
+  bool requires_address_reg = false;
+  bool address_reg_needs_preservation = !x86_64_result.is_reg();
+  x86_64::Reg x86_64_address_reg = (x86_64_result.is_reg()) ? x86_64_result.reg() : x86_64::rax;
+  if (x86_64_address_holder.is_mem()) {
+    requires_address_reg = true;
+
+  } else if (x86_64_address_holder.is_imm()) {
+    common::Int v = common::Int(static_cast<ir::PointerConstant*>(ir_address)->value());
+    requires_address_reg = !v.CanConvertTo(common::IntType::kI32);
+
+  } else if (x86_64_address_holder.is_reg()) {
+    x86_64_address_reg = x86_64_address_holder.reg();
+    requires_address_reg = true;
+    address_reg_needs_preservation = false;
+  }
+
+  if (requires_address_reg) {
+    if (address_reg_needs_preservation) {
+      x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_address_reg);
+    }
+    if (x86_64_address_holder != x86_64_address_reg) {
+      x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_address_reg, x86_64_address_holder);
+    }
+  }
+
+  x86_64::Size x86_64_size = TranslateSizeOfType(ir_result->type());
+  x86_64::Mem mem(x86_64_size, int32_t{0});
+  if (requires_address_reg) {
+    mem = x86_64::Mem(x86_64_size, /*base_reg=*/uint8_t(x86_64_address_reg.reg()));
+  } else {
+    if (!x86_64_address_holder.is_imm()) {
+      common::fail("unexpected load address kind");
+    }
+    mem = x86_64::Mem(x86_64_size, /*disp=*/int32_t(x86_64_address_holder.imm().value()));
+  }
+  x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_result, mem);
+
+  if (requires_address_reg && address_reg_needs_preservation) {
+    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_address_reg);
+  }
+}
+
+void IRTranslator::TranslateStoreInstr(ir::StoreInstr* ir_store_instr, ir::Func* ir_func,
+                                       x86_64::BlockBuilder& x86_64_block_builder) {
+  ir::Value* ir_address = ir_store_instr->address().get();
+  ir::Value* ir_value = ir_store_instr->value().get();
+
+  x86_64::Operand x86_64_address_holder = TranslateValue(ir_address, ir_func);
+  x86_64::Operand x86_64_value = TranslateValue(ir_value, ir_func);
+
+  bool requires_value_reg = false;
+  x86_64::Reg x86_64_value_reg = x86_64::rax;
+  if (x86_64_value.is_imm() && x86_64_value.imm().size() == x86_64::k64) {
+    common::Int v = common::Int(x86_64_value.imm().value());
+    if (v.CanConvertTo(common::IntType::kI32)) {
+      v.ConvertTo(common::IntType::kI32);
+      x86_64_value = x86_64::Imm(int32_t(v.AsInt64()));
+    } else {
+      requires_value_reg = true;
+    }
+  }
+
+  bool requires_address_reg = false;
+  bool address_reg_needs_preservation = true;
+  x86_64::Reg x86_64_address_reg = x86_64::rax;
+  if (x86_64_address_holder.is_mem()) {
+    requires_address_reg = true;
+
+  } else if (x86_64_address_holder.is_imm()) {
+    common::Int v = common::Int(static_cast<ir::PointerConstant*>(ir_address)->value());
+    if (v.CanConvertTo(common::IntType::kI32)) {
+      v = v.ConvertTo(common::IntType::kI32);
+      x86_64_address_holder = x86_64::Imm(int32_t(v.AsInt64()));
+    } else {
+      requires_address_reg = true;
+    }
+
+  } else if (x86_64_address_holder.is_reg()) {
+    x86_64_address_reg = x86_64_address_holder.reg();
+    requires_address_reg = true;
+    address_reg_needs_preservation = false;
+  }
+
+  if (x86_64_value_reg == x86_64_address_reg) {
+    x86_64_value_reg = x86_64::rdx;
+  }
+
+  if (requires_value_reg) {
+    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_value_reg);
+    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_value_reg, x86_64_value);
+    x86_64_value = x86_64_value_reg;
+  }
+
+  if (requires_address_reg) {
+    if (address_reg_needs_preservation) {
+      x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_address_reg);
+    }
+    if (x86_64_address_holder != x86_64_address_reg) {
+      x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_address_reg, x86_64_address_holder);
+    }
+  }
+
+  x86_64::Size x86_64_size = TranslateSizeOfType(ir_value->type());
+  x86_64::Mem mem(x86_64_size, int32_t{0});
+  if (requires_address_reg) {
+    mem = x86_64::Mem(x86_64_size, /*base_reg=*/uint8_t(x86_64_address_reg.reg()));
+  } else {
+    if (!x86_64_address_holder.is_imm()) {
+      common::fail("unexpected load address kind");
+    }
+    mem = x86_64::Mem(x86_64_size, /*disp=*/int32_t(x86_64_address_holder.imm().value()));
+  }
+  x86_64_block_builder.AddInstr<x86_64::Mov>(mem, x86_64_value);
+
+  if (requires_address_reg && address_reg_needs_preservation) {
+    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_address_reg);
+  }
+  if (requires_value_reg) {
+    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_value_reg);
+  }
+}
+
+void IRTranslator::TranslateFreeInstr(ir::FreeInstr* ir_free_instr, ir::Func* ir_func,
+                                      x86_64::BlockBuilder& x86_64_block_builder) {
+  ir::Value* ir_address = ir_free_instr->address().get();
+  x86_64::Operand x86_64_address = TranslateValue(ir_address, ir_func);
+
+  x86_64::RM x86_64_address_location = OperandForArg(0, x86_64::Size::k64);
+
+  bool address_reg_needs_preservation = (x86_64_address != x86_64_address_location);
+
+  if (address_reg_needs_preservation) {
+    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_address_location);
+  }
+  if (x86_64_address_location != x86_64_address) {
+    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_address_location, x86_64_address);
+  }
+
+  int64_t free_func_id = x86_64_program_builder_.program()->declared_funcs().at("free");
+  x86_64_block_builder.AddInstr<x86_64::Call>(x86_64::FuncRef(free_func_id));
+  if (address_reg_needs_preservation) {
+    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_address_location);
+  }
 }
 
 void IRTranslator::TranslateJumpInstr(ir::JumpInstr* ir_jump_instr,
@@ -635,15 +888,99 @@ void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr,
   }
 }
 
-void IRTranslator::TranslateCallInstr(ir::CallInstr* ir_call_instr, ir::Func* ir_func,
+void IRTranslator::TranslateCallInstr(ir::CallInstr* ir_call_instr, ir::Func* ir_calling_func,
                                       x86_64::BlockBuilder& x86_64_block_builder) {
-  // TODO: implement
+  struct ArgInfo {
+    x86_64::Operand x86_64_arg_value;
+    x86_64::RM x86_64_arg_location;
+  };
+  std::vector<ArgInfo> arg_infos;
+  arg_infos.reserve(ir_call_instr->args().size());
+  for (std::size_t arg_index = 0; arg_index < ir_call_instr->args().size(); arg_index++) {
+    ir::Value* ir_arg_value = ir_call_instr->args().at(arg_index).get();
+    x86_64::Operand x86_64_arg_value = TranslateValue(ir_arg_value, ir_calling_func);
+    x86_64::Size x86_64_arg_size = TranslateSizeOfType(ir_arg_value->type());
+    x86_64::RM x86_64_arg_location = OperandForArg(int(arg_index), x86_64_arg_size);
+    arg_infos.push_back(ArgInfo{
+        .x86_64_arg_value = x86_64_arg_value,
+        .x86_64_arg_location = x86_64_arg_location,
+    });
+  }
+
+  struct ResultInfo {
+    x86_64::RM x86_64_result;
+    x86_64::RM x86_64_result_location;
+  };
+  std::vector<ResultInfo> result_infos;
+  result_infos.reserve(ir_call_instr->results().size());
+  for (std::size_t result_index = 0; result_index < ir_call_instr->results().size();
+       result_index++) {
+    ir::Computed* ir_result = ir_call_instr->results().at(result_index).get();
+    x86_64::RM x86_64_result = TranslateComputed(ir_result, ir_calling_func);
+    x86_64::Size x86_64_result_size = TranslateSizeOfType(ir_result->type());
+    x86_64::RM x86_64_result_location = OperandForResult(int(result_index), x86_64_result_size);
+    result_infos.push_back(ResultInfo{
+        .x86_64_result = x86_64_result,
+        .x86_64_result_location = x86_64_result_location,
+    });
+  }
+
+  for (ArgInfo& arg_info : arg_infos) {
+    if (arg_info.x86_64_arg_location != arg_info.x86_64_arg_value) {
+      x86_64_block_builder.AddInstr<x86_64::Mov>(arg_info.x86_64_arg_location,
+                                                 arg_info.x86_64_arg_value);
+    }
+  }
+
+  ir::Value* ir_called_func = ir_call_instr->func().get();
+  x86_64::Operand x86_64_called_func = TranslateValue(ir_called_func, ir_calling_func);
+  if (x86_64_called_func.is_func_ref()) {
+    x86_64_block_builder.AddInstr<x86_64::Call>(x86_64_called_func.func_ref());
+  } else if (x86_64_called_func.is_rm()) {
+    x86_64_block_builder.AddInstr<x86_64::Call>(x86_64_called_func.rm());
+  } else {
+    common::fail("unexpected func operand");
+  }
+
+  for (ResultInfo& result_info : result_infos) {
+    if (result_info.x86_64_result_location != result_info.x86_64_result) {
+      x86_64_block_builder.AddInstr<x86_64::Mov>(result_info.x86_64_result,
+                                                 result_info.x86_64_result_location);
+    }
+  }
+
+  // TODO: improve
 }
 
 void IRTranslator::TranslateReturnInstr(ir::ReturnInstr* ir_return_instr, ir::Func* ir_func,
                                         x86_64::BlockBuilder& x86_64_block_builder) {
-  // TODO: implement
+  struct ArgInfo {
+    x86_64::Operand x86_64_arg_value;
+    x86_64::RM x86_64_arg_location;
+  };
+  std::vector<ArgInfo> arg_infos;
+  arg_infos.reserve(ir_return_instr->args().size());
+  for (std::size_t arg_index = 0; arg_index < ir_return_instr->args().size(); arg_index++) {
+    ir::Value* ir_arg_value = ir_return_instr->args().at(arg_index).get();
+    x86_64::Operand x86_64_arg_value = TranslateValue(ir_arg_value, ir_func);
+    x86_64::Size x86_64_arg_size = TranslateSizeOfType(ir_arg_value->type());
+    x86_64::RM x86_64_arg_location = OperandForResult(int(arg_index), x86_64_arg_size);
+    arg_infos.push_back(ArgInfo{
+        .x86_64_arg_value = x86_64_arg_value,
+        .x86_64_arg_location = x86_64_arg_location,
+    });
+  }
+
+  for (ArgInfo& arg_info : arg_infos) {
+    if (arg_info.x86_64_arg_location != arg_info.x86_64_arg_value) {
+      x86_64_block_builder.AddInstr<x86_64::Mov>(arg_info.x86_64_arg_location,
+                                                 arg_info.x86_64_arg_value);
+    }
+  }
+
   GenerateFuncEpilogue(ir_func, x86_64_block_builder);
+
+  // TODO: improve
 }
 
 void IRTranslator::GenerateFuncPrologue(ir::Func* /*ir_func*/,
@@ -731,8 +1068,12 @@ x86_64::Imm IRTranslator::TranslatePointerConstant(ir::PointerConstant* constant
   return x86_64::Imm(constant->value());
 }
 
-x86_64::Imm IRTranslator::TranslateFuncConstant(ir::FuncConstant* constant) {
-  return x86_64::Imm(constant->value());
+x86_64::Operand IRTranslator::TranslateFuncConstant(ir::FuncConstant* constant) {
+  if (constant == ir::NilFunc().get()) {
+    return x86_64::Imm(int32_t{0});
+  }
+  return x86_64::FuncRef(constant->value() +
+                         x86_64_program_builder_.program()->declared_funcs().size());
 }
 
 x86_64::RM IRTranslator::TranslateComputed(ir::Computed* computed, ir::Func* ir_func) {
@@ -747,9 +1088,26 @@ x86_64::BlockRef IRTranslator::TranslateBlockValue(ir::block_num_t block_value) 
   return x86_64::BlockRef(block_value);
 }
 
-x86_64::FuncRef IRTranslator::TranslateFuncValue(ir::Value /*func_value*/) {
-  // TODO: keep track of func nums from ir to x86_64
-  return x86_64::FuncRef(-1);
+x86_64::Size IRTranslator::TranslateSizeOfType(const ir::Type* ir_type) {
+  switch (ir_type->type_kind()) {
+    case ir::TypeKind::kBool:
+      return x86_64::Size::k8;
+    case ir::TypeKind::kInt:
+      return TranslateSizeOfIntType(static_cast<const ir::IntType*>(ir_type));
+    case ir::TypeKind::kPointer:
+    case ir::TypeKind::kFunc:
+      return x86_64::Size::k64;
+    default:
+      common::fail("unexpected int binary operand type");
+  }
+}
+
+x86_64::Size IRTranslator::TranslateSizeOfIntType(const ir::IntType* ir_int_type) {
+  return TranslateSizeOfIntType(ir_int_type->int_type());
+}
+
+x86_64::Size IRTranslator::TranslateSizeOfIntType(common::IntType common_int_type) {
+  return x86_64::Size(common::BitSizeOf(common_int_type));
 }
 
 }  // namespace x86_64_ir_translator

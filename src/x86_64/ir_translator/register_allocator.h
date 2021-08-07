@@ -15,6 +15,9 @@
 
 namespace x86_64_ir_translator {
 
+x86_64::RM OperandForArg(int arg_index, x86_64::Size size);
+x86_64::RM OperandForResult(int result_index, x86_64::Size size);
+
 x86_64::RM ColorAndSizeToOperand(ir_info::color_t color, x86_64::Size size);
 ir_info::color_t OperandToColor(x86_64::RM operand);
 

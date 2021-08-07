@@ -21,7 +21,10 @@ namespace x86_64 {
 
 class Program {
  public:
-  const std::vector<std::unique_ptr<Func>>& funcs() const { return funcs_; }
+  const std::vector<std::unique_ptr<Func>>& defined_funcs() const { return defined_funcs_; }
+  const std::unordered_map<std::string, int64_t>& declared_funcs() const { return declared_funcs_; }
+
+  Func* DefinedFuncWithName(std::string name) const;
 
   int64_t Encode(Linker& linker, common::data code) const;
   std::string ToString() const;
@@ -29,7 +32,8 @@ class Program {
  private:
   Program() {}
 
-  std::vector<std::unique_ptr<Func>> funcs_;
+  std::vector<std::unique_ptr<Func>> defined_funcs_;
+  std::unordered_map<std::string, int64_t> declared_funcs_;
 
   friend class ProgramBuilder;
 };
@@ -38,7 +42,8 @@ class ProgramBuilder {
  public:
   ProgramBuilder() : program_(new Program()), func_count_(0), block_count_(0) {}
 
-  FuncBuilder AddFunc(std::string func_name);
+  FuncBuilder DefineFunc(std::string func_name);
+  void DeclareFunc(std::string func_name);
 
   Program* program() const { return program_.get(); }
   std::unique_ptr<Program> Build() { return std::move(program_); }

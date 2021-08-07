@@ -40,7 +40,7 @@ int main() {
   x86_64::Imm str_c((int64_t(str)));
 
   x86_64::ProgramBuilder prog_builder;
-  x86_64::FuncBuilder main_func_builder = prog_builder.AddFunc("main");
+  x86_64::FuncBuilder main_func_builder = prog_builder.DefineFunc("main");
 
   // Prolog:
   {
