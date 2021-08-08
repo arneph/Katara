@@ -11,14 +11,14 @@
 
 #include <memory>
 
-#include "src/common/data.h"
+#include "src/common/data_view.h"
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {
 
 class InstrDecoder final {
  public:
-  InstrDecoder(const common::data code);
+  InstrDecoder(const common::DataView code);
 
   uint8_t size() const { return size_; }
 
@@ -38,7 +38,7 @@ class InstrDecoder final {
   void DecodeSIB();
   void DecodeDisp(uint8_t disp_size);
 
-  const common::data code_;
+  const common::DataView code_;
   uint8_t size_ = 0;
 
   Size op_size_ = Size::k32;

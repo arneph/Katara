@@ -23,15 +23,25 @@ cc_test(
 )
 
 cc_library(
-    name = "data",
-    srcs = ["data.cc"],
-    hdrs = ["data.h"],
+    name = "data_view",
+    srcs = ["data_view.cc"],
+    hdrs = ["data_view.h"],
     copts = COPTS,
     visibility = [
         "//visibility:public",
     ],
     deps = [
         ":logging",
+    ],
+)
+
+cc_test(
+    name = "data_view_test",
+    srcs = ["data_view_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":data_view",
+        "@gtest//:gtest_main",
     ],
 )
 

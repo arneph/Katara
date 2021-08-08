@@ -12,16 +12,16 @@
 
 namespace x86_64 {
 
-int64_t Func::Encode(Linker& linker, common::data code) const {
+int64_t Func::Encode(Linker& linker, common::DataView code) const {
   linker.AddFuncAddr(func_id_, code.base());
 
-  int64_t c = 0;
+  int64_t code_index = 0;
   for (auto& block : blocks_) {
-    int64_t r = block->Encode(linker, code.view(c));
-    if (r == -1) return -1;
-    c += r;
+    int64_t written_bytes = block->Encode(linker, code.SubView(code_index));
+    if (written_bytes == -1) return -1;
+    code_index += written_bytes;
   }
-  return c;
+  return code_index;
 }
 
 std::string Func::ToString() const {

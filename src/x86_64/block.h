@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "src/common/data.h"
+#include "src/common/data_view.h"
 #include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/machine_code/linker.h"
 
@@ -29,7 +29,7 @@ class Block {
 
   BlockRef GetBlockRef() const { return BlockRef(block_id_); }
 
-  int64_t Encode(Linker& linker, common::data code) const;
+  int64_t Encode(Linker& linker, common::DataView code) const;
   std::string ToString() const;
 
  private:

@@ -12,7 +12,7 @@
 
 namespace x86_64 {
 
-InstrDecoder::InstrDecoder(const common::data code) : code_(code) {
+InstrDecoder::InstrDecoder(const common::DataView code) : code_(code) {
   if (code[size_] == 0x66) {
     op_size_ = Size::k16;
     size_++;

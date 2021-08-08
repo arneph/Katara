@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-#include "src/common/data.h"
+#include "src/common/data_view.h"
 #include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/machine_code/linker.h"
 #include "src/x86_64/ops.h"
@@ -26,7 +26,7 @@ class UnaryALInstr : public Instr {
 
   RM op() const { return op_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
 
  protected:
   virtual uint8_t Opcode() const = 0;
@@ -44,7 +44,7 @@ class BinaryALInstr : public Instr {
   RM op_a() const { return op_a_; }
   Operand op_b() const { return op_b_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
 
  protected:
   enum class OpEncoding : uint8_t {
@@ -183,7 +183,7 @@ class Mul final : public Instr {
 
   RM factor() const { return factor_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -200,7 +200,7 @@ class Imul final : public Instr {
   RM factor_b() const { return factor_b_; }
   Imm factor_c() const { return factor_c_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -225,7 +225,7 @@ class Div final : public Instr {
 
   RM divisor() const { return divisor_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -238,7 +238,7 @@ class Idiv final : public Instr {
 
   RM divisor() const { return divisor_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -251,7 +251,7 @@ class SignExtendRegA final : public Instr {
 
   Size op_size() const { return op_size_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -263,7 +263,7 @@ class SignExtendRegAD final : public Instr {
 
   Size op_size() const { return op_size_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -278,7 +278,7 @@ class Test final : public Instr {
   RM op_a() const { return op_a_; }
   Operand op_b() const { return op_b_; }
 
-  int8_t Encode(Linker& linker, common::data code) const override;
+  int8_t Encode(Linker& linker, common::DataView code) const override;
   std::string ToString() const override;
 
  private:

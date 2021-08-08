@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "src/common/data.h"
+#include "src/common/data_view.h"
 #include "src/x86_64/func.h"
 #include "src/x86_64/machine_code/linker.h"
 
@@ -26,7 +26,7 @@ class Program {
 
   Func* DefinedFuncWithName(std::string name) const;
 
-  int64_t Encode(Linker& linker, common::data code) const;
+  int64_t Encode(Linker& linker, common::DataView code) const;
   std::string ToString() const;
 
  private:

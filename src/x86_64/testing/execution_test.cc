@@ -13,7 +13,7 @@
 #include <iostream>
 #include <memory>
 
-#include "src/common/data.h"
+#include "src/common/data_view.h"
 #include "src/x86_64/block.h"
 #include "src/x86_64/func.h"
 #include "src/x86_64/instrs/al_instrs.h"
@@ -117,7 +117,7 @@ int main() {
   int64_t page_size = 1 << 12;
   uint8_t* base =
       (uint8_t*)mmap(NULL, page_size, PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-  common::data code(base, page_size);
+  common::DataView code(base, page_size);
 
   int64_t program_size = program->Encode(linker, code);
   linker.ApplyPatches();

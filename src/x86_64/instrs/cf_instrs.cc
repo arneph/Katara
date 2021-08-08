@@ -15,7 +15,7 @@
 
 namespace x86_64 {
 
-int8_t Jcc::Encode(Linker& linker, common::data code) const {
+int8_t Jcc::Encode(Linker& linker, common::DataView code) const {
   code[0] = 0x0f;
   code[1] = 0x80 | cond_;
   code[2] = 0x00;
@@ -23,7 +23,7 @@ int8_t Jcc::Encode(Linker& linker, common::data code) const {
   code[4] = 0x00;
   code[5] = 0x00;
 
-  linker.AddBlockRef(dst_, code.view(2, 6));
+  linker.AddBlockRef(dst_, code.SubView(2, 6));
 
   return 6;
 }
@@ -36,7 +36,7 @@ Jmp::Jmp(RM rm) : dst_(rm) {
   }
 }
 
-int8_t Jmp::Encode(Linker& linker, common::data code) const {
+int8_t Jmp::Encode(Linker& linker, common::DataView code) const {
   if (dst_.is_rm()) {
     RM rm = dst_.rm();
     InstrEncoder encoder(code);
@@ -58,7 +58,7 @@ int8_t Jmp::Encode(Linker& linker, common::data code) const {
     code[3] = 0x00;
     code[4] = 0x00;
 
-    linker.AddBlockRef(block_ref, code.view(1, 5));
+    linker.AddBlockRef(block_ref, code.SubView(1, 5));
 
     return 5;
   } else {
@@ -72,7 +72,7 @@ Call::Call(RM rm) : callee_(rm) {
   if (rm.size() != Size::k64) common::fail("unsupported rm size");
 }
 
-int8_t Call::Encode(Linker& linker, common::data code) const {
+int8_t Call::Encode(Linker& linker, common::DataView code) const {
   if (callee_.is_rm()) {
     RM rm = callee_.rm();
 
@@ -95,7 +95,7 @@ int8_t Call::Encode(Linker& linker, common::data code) const {
     code[3] = 0x00;
     code[4] = 0x00;
 
-    linker.AddFuncRef(func_ref, code.view(1, 5));
+    linker.AddFuncRef(func_ref, code.SubView(1, 5));
 
     return 5;
   } else {
@@ -105,7 +105,7 @@ int8_t Call::Encode(Linker& linker, common::data code) const {
 
 std::string Call::ToString() const { return "call " + callee_.ToString(); }
 
-int8_t Syscall::Encode(Linker&, common::data code) const {
+int8_t Syscall::Encode(Linker&, common::DataView code) const {
   code[0] = 0x0f;
   code[1] = 0x05;
 
@@ -114,7 +114,7 @@ int8_t Syscall::Encode(Linker&, common::data code) const {
 
 std::string Syscall::ToString() const { return "syscall"; }
 
-int8_t Ret::Encode(Linker&, common::data code) const {
+int8_t Ret::Encode(Linker&, common::DataView code) const {
   code[0] = 0xc3;
 
   return 1;

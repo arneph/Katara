@@ -14,16 +14,16 @@
 
 namespace x86_64 {
 
-int64_t Block::Encode(Linker& linker, common::data code) const {
+int64_t Block::Encode(Linker& linker, common::DataView code) const {
   linker.AddBlockAddr(block_id_, code.base());
 
-  int64_t c = 0;
+  int64_t code_index = 0;
   for (auto& instr : instrs_) {
-    int8_t r = instr->Encode(linker, code.view(c));
-    if (r == -1) return -1;
-    c += r;
+    int8_t written_bytes = instr->Encode(linker, code.SubView(code_index));
+    if (written_bytes == -1) return -1;
+    code_index += written_bytes;
   }
-  return c;
+  return code_index;
 }
 
 std::string Block::ToString() const {

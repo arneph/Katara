@@ -21,10 +21,10 @@ Func* Program::DefinedFuncWithName(std::string name) const {
   return nullptr;
 }
 
-int64_t Program::Encode(Linker& linker, common::data code) const {
+int64_t Program::Encode(Linker& linker, common::DataView code) const {
   int64_t c = 0;
   for (auto& func : defined_funcs_) {
-    int64_t r = func->Encode(linker, code.view(c));
+    int64_t r = func->Encode(linker, code.SubView(c));
     if (r == -1) return -1;
     c += r;
   }

@@ -63,7 +63,7 @@ Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
   }
 }
 
-int8_t Mov::Encode(Linker& linker, common::data code) const {
+int8_t Mov::Encode(Linker& linker, common::DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(src_.size());
@@ -121,7 +121,7 @@ bool Xchg::CanUseRegAShortcut() const {
   return op_a_.reg().reg() == 0;
 }
 
-int8_t Xchg::Encode(Linker&, common::data code) const {
+int8_t Xchg::Encode(Linker&, common::DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());
@@ -152,7 +152,7 @@ Push::Push(Imm imm) : op_(imm) {
   if (imm.size() == Size::k64) common::fail("unsupported imm size");
 }
 
-int8_t Push::Encode(Linker&, common::data code) const {
+int8_t Push::Encode(Linker&, common::DataView code) const {
   InstrEncoder encoder(code);
 
   if (op_.size() != Size::k64) {
@@ -184,7 +184,7 @@ Pop::Pop(RM rm) : op_(rm) {
   if (rm.size() != Size::k16 && rm.size() != Size::k64) common::fail("unsupported rm size");
 }
 
-int8_t Pop::Encode(Linker&, common::data code) const {
+int8_t Pop::Encode(Linker&, common::DataView code) const {
   InstrEncoder encoder(code);
 
   if (op_.size() != Size::k64) {
@@ -212,7 +212,7 @@ Setcc::Setcc(InstrCond cond, RM op) : cond_(cond), op_(op) {
   if (op.size() != k8) common::fail("unsupported rm size");
 }
 
-int8_t Setcc::Encode(Linker&, common::data code) const {
+int8_t Setcc::Encode(Linker&, common::DataView code) const {
   InstrEncoder encoder(code);
 
   if (op_.RequiresREX()) {
