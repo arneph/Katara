@@ -12,6 +12,8 @@
 #include <memory>
 #include <unordered_map>
 
+#include "src/ir/info/block_live_ranges.h"
+#include "src/ir/info/func_live_ranges.h"
 #include "src/ir/info/interference_graph.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
@@ -34,12 +36,16 @@ class IRTranslator {
  public:
   static std::unique_ptr<x86_64::Program> Translate(
       ir::Program* program,
+      std::unordered_map<ir::func_num_t, ir_info::FuncLiveRanges>& live_ranges,
       std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>& inteference_graphs);
 
  private:
   IRTranslator(ir::Program* program,
+               std::unordered_map<ir::func_num_t, ir_info::FuncLiveRanges>& live_ranges,
                std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>& inteference_graphs)
-      : ir_program_(program), interference_graphs_(inteference_graphs) {}
+      : ir_program_(program),
+        func_live_ranges_(live_ranges),
+        interference_graphs_(inteference_graphs) {}
 
   void AllocateRegisters();
   void TranslateProgram();
@@ -120,6 +126,7 @@ class IRTranslator {
   x86_64::Size TranslateSizeOfIntType(common::IntType common_int_type);
 
   ir::Program* ir_program_;
+  std::unordered_map<ir::func_num_t, ir_info::FuncLiveRanges>& func_live_ranges_;
   std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>& interference_graphs_;
   std::unordered_map<ir::func_num_t, ir_info::InterferenceGraphColors> interference_graph_colors_;
 

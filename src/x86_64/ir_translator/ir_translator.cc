@@ -13,9 +13,9 @@
 namespace x86_64_ir_translator {
 
 std::unique_ptr<x86_64::Program> IRTranslator::Translate(
-    ir::Program* program,
+    ir::Program* program, std::unordered_map<ir::func_num_t, ir_info::FuncLiveRanges>& live_ranges,
     std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>& inteference_graphs) {
-  IRTranslator translator(program, inteference_graphs);
+  IRTranslator translator(program, live_ranges, inteference_graphs);
 
   translator.AllocateRegisters();
   translator.TranslateProgram();

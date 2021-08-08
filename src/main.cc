@@ -316,8 +316,8 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
   for (auto& func : ir_program->funcs()) {
     ir_processors::ResolvePhisInFunc(func.get());
   }
-  std::unique_ptr<x86_64::Program> x86_64_program =
-      x86_64_ir_translator::IRTranslator::Translate(ir_program.get(), interference_graphs);
+  std::unique_ptr<x86_64::Program> x86_64_program = x86_64_ir_translator::IRTranslator::Translate(
+      ir_program.get(), live_ranges, interference_graphs);
   if (generate_debug_info) {
     to_file(x86_64_program->ToString(), debug_dir / "x86_64.txt");
   }
