@@ -26,24 +26,26 @@ class BlockLiveRanges {
 
   bool HasValue(ir::value_num_t value) const;
   bool HasValueDefinition(ir::value_num_t value) const;
-  void AddValueDefinition(ir::value_num_t value, int64_t index);
-  void AddValueUse(ir::value_num_t value, int64_t index);
+  void AddValueDefinition(ir::value_num_t value, const ir::Instr* instr);
+  void AddValueUse(ir::value_num_t value, const ir::Instr* instr);
   void PropagateBackwardsFromExitSet(ir::value_num_t value);
 
   std::unordered_set<ir::value_num_t> GetEntrySet() const;
   std::unordered_set<ir::value_num_t> GetExitSet() const;
-  std::unordered_set<ir::value_num_t> GetLiveSet(int64_t index) const;
+  std::unordered_set<ir::value_num_t> GetLiveSet(const ir::Instr* instr) const;
 
   std::string ToString() const;
 
  private:
   struct ValueRange {
-    int64_t start_index_;
-    int64_t end_index_;
+    const ir::Instr* start_instr_;
+    const ir::Instr* end_instr_;
   };
-
+  
+  bool InstrsAreOrdered(const ir::Instr* instr_a, const ir::Instr* instr_b) const;
+  bool InstrIsInRange(const ir::Instr* instr, const ValueRange& range) const;
+  
   const ir::Block* block_;
-
   std::unordered_map<ir::value_num_t, ValueRange> value_ranges_;
 };
 

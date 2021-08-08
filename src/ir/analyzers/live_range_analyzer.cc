@@ -16,30 +16,23 @@ namespace {
 
 void BacktraceBlock(const ir::Func* func, const ir::Block* block,
                     ir_info::BlockLiveRanges& live_ranges) {
-  const size_t n = block->instrs().size();
-
   // Backtrace through instructions in block
   // Add value defintions and uses (outside phi instructions)
-  for (int64_t index = n - 1; index >= 0; index--) {
-    ir::Instr* instr = block->instrs().at(index).get();
-
+  block->ForEachNonPhiInstrReverse([&live_ranges](ir::Instr* instr) {
     for (auto& defined_value : instr->DefinedValues()) {
-      live_ranges.AddValueDefinition(defined_value->number(), index);
+      live_ranges.AddValueDefinition(defined_value->number(), instr);
     }
-
-    if (instr->instr_kind() == ir::InstrKind::kPhi) {
-      continue;
-    }
+    
     for (auto& used_value : instr->UsedValues()) {
       if (used_value->kind() != ir::Value::Kind::kComputed) {
         continue;
       }
       auto used_computed = static_cast<ir::Computed*>(used_value.get());
-      live_ranges.AddValueUse(used_computed->number(), index);
+      live_ranges.AddValueUse(used_computed->number(), instr);
     }
-  }
-
-  // Include values used in phi instructions of child
+  });
+  
+  // Include values used in phi instructions of children
   for (ir::block_num_t child_num : block->children()) {
     func->GetBlock(child_num)->ForEachPhiInstr([&](ir::PhiInstr* instr) {
       ir::Value* value = instr->ValueInheritedFromBlock(block->number()).get();
