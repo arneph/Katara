@@ -29,6 +29,8 @@ class Program {
   Func* DefineFunc(std::string func_name);
   Func* DefinedFuncWithName(std::string name) const;
 
+  int64_t block_count() const { return block_count_; }
+
   int64_t Encode(Linker& linker, common::DataView code) const;
   std::string ToString() const;
 

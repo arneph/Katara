@@ -70,6 +70,7 @@ void IRTranslator::TranslateFunc(ir::Func* ir_func, x86_64::Func* x86_64_func) {
     return lhs->number() < rhs->number();
   });
 
+  int64_t ir_to_x86_64_block_num_offset = x86_64_program_->block_count();
   for (ir::Block* ir_block : ir_blocks) {
     x86_64::Block* x86_64_block = x86_64_func->AddBlock();
 
@@ -77,13 +78,12 @@ void IRTranslator::TranslateFunc(ir::Func* ir_func, x86_64::Func* x86_64_func) {
       GenerateFuncPrologue(ir_func, x86_64_block);
     }
 
-    TranslateBlock(ir_block, ir_func, x86_64_block);
+    InstrContext ctx{ir_func, x86_64_block, ir_to_x86_64_block_num_offset};
+    TranslateBlock(ir_block, ctx);
   }
 }
 
-void IRTranslator::TranslateBlock(ir::Block* ir_block, ir::Func* ir_func,
-                                  x86_64::Block* x86_64_block) {
-  InstrContext ctx{ir_func, x86_64_block};
+void IRTranslator::TranslateBlock(ir::Block* ir_block, InstrContext& ctx) {
   for (auto& ir_instr : ir_block->instrs()) {
     TranslateInstr(ir_instr.get(), ctx);
   }
@@ -821,7 +821,8 @@ void IRTranslator::TranslateFreeInstr(ir::FreeInstr* ir_free_instr, InstrContext
 
 void IRTranslator::TranslateJumpInstr(ir::JumpInstr* ir_jump_instr, InstrContext& ctx) {
   ir::block_num_t ir_destination = ir_jump_instr->destination();
-  x86_64::BlockRef x86_64_destination = TranslateBlockValue(ir_destination);
+  x86_64::BlockRef x86_64_destination =
+      TranslateBlockValue(ir_destination, ctx.ir_to_x86_64_block_num_offset);
 
   ctx.x86_64_block->AddInstr<x86_64::Jmp>(x86_64_destination);
 }
@@ -832,8 +833,10 @@ void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr,
   ir::block_num_t ir_destination_true = ir_jump_cond_instr->destination_true();
   ir::block_num_t ir_destination_false = ir_jump_cond_instr->destination_false();
 
-  x86_64::BlockRef x86_64_destination_true = TranslateBlockValue(ir_destination_true);
-  x86_64::BlockRef x86_64_destination_false = TranslateBlockValue(ir_destination_false);
+  x86_64::BlockRef x86_64_destination_true =
+      TranslateBlockValue(ir_destination_true, ctx.ir_to_x86_64_block_num_offset);
+  x86_64::BlockRef x86_64_destination_false =
+      TranslateBlockValue(ir_destination_false, ctx.ir_to_x86_64_block_num_offset);
 
   switch (ir_condition->kind()) {
     case ir::Value::Kind::kConstant: {
@@ -1049,8 +1052,9 @@ x86_64::RM IRTranslator::TranslateComputed(ir::Computed* computed, ir::Func* ir_
   return ColorAndSizeToOperand(color, x86_64_size);
 }
 
-x86_64::BlockRef IRTranslator::TranslateBlockValue(ir::block_num_t block_value) {
-  return x86_64::BlockRef(block_value);
+x86_64::BlockRef IRTranslator::TranslateBlockValue(ir::block_num_t block_value,
+                                                   int64_t ir_to_x86_64_block_num_offset) {
+  return x86_64::BlockRef(block_value + ir_to_x86_64_block_num_offset);
 }
 
 x86_64::Size IRTranslator::TranslateSizeOfType(const ir::Type* ir_type) {

@@ -43,6 +43,7 @@ class IRTranslator {
   struct InstrContext {
     ir::Func* ir_func;
     x86_64::Block* x86_64_block;
+    int64_t ir_to_x86_64_block_num_offset;
   };
 
   IRTranslator(ir::Program* program,
@@ -57,7 +58,7 @@ class IRTranslator {
 
   void TranslateFunc(ir::Func* ir_func, x86_64::Func* x86_64_func);
 
-  void TranslateBlock(ir::Block* ir_block, ir::Func* ir_func, x86_64::Block* x86_64_block);
+  void TranslateBlock(ir::Block* ir_block, InstrContext& ctx);
 
   void TranslateInstr(ir::Instr* ir_instr, InstrContext& ctx);
   void TranslateMovInstr(ir::MovInstr* ir_mov_instr, InstrContext& ctx);
@@ -101,7 +102,8 @@ class IRTranslator {
   x86_64::Imm TranslatePointerConstant(ir::PointerConstant* constant);
   x86_64::Operand TranslateFuncConstant(ir::FuncConstant* constant);
   x86_64::RM TranslateComputed(ir::Computed* computed, ir::Func* ir_func);
-  x86_64::BlockRef TranslateBlockValue(ir::block_num_t block_value);
+  x86_64::BlockRef TranslateBlockValue(ir::block_num_t block_value,
+                                       int64_t ir_to_x86_64_block_num_offset);
 
   x86_64::Size TranslateSizeOfType(const ir::Type* ir_type);
   x86_64::Size TranslateSizeOfIntType(const ir::IntType* ir_int_type);
