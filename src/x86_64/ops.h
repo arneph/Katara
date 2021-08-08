@@ -9,8 +9,9 @@
 #ifndef x86_64_ops_h
 #define x86_64_ops_h
 
-#include <memory>
+#include <cstdint>
 #include <string>
+#include <variant>
 
 namespace x86_64 {
 
@@ -152,31 +153,31 @@ class Operand {
     kBlockRef,
   };
 
-  Operand(Reg reg) : kind_(Kind::kReg), data_(reg) {}
-  Operand(Mem mem) : kind_(Kind::kMem), data_(mem) {}
-  Operand(Imm imm) : kind_(Kind::kImm), data_(imm) {}
-  Operand(FuncRef func_ref) : kind_(Kind::kFuncRef), data_(func_ref) {}
-  Operand(BlockRef block_ref) : kind_(Kind::kBlockRef), data_(block_ref) {}
+  Operand(Reg reg) : value_(reg) {}
+  Operand(Mem mem) : value_(mem) {}
+  Operand(Imm imm) : value_(imm) {}
+  Operand(FuncRef func_ref) : value_(func_ref) {}
+  Operand(BlockRef block_ref) : value_(block_ref) {}
 
-  Kind kind() const { return kind_; }
+  Kind kind() const { return Kind(value_.index()); }
   Size size() const;
 
-  bool is_reg() const { return kind_ == Kind::kReg; }
+  bool is_reg() const { return kind() == Kind::kReg; }
   Reg reg() const;
 
-  bool is_mem() const { return kind_ == Kind::kMem; }
+  bool is_mem() const { return kind() == Kind::kMem; }
   Mem mem() const;
 
-  bool is_rm() const { return kind_ == Kind::kReg || kind_ == Kind::kMem; }
+  bool is_rm() const { return kind() == Kind::kReg || kind() == Kind::kMem; }
   RM rm() const;
 
-  bool is_imm() const { return kind_ == Kind::kImm; }
+  bool is_imm() const { return kind() == Kind::kImm; }
   Imm imm() const;
 
-  bool is_func_ref() const { return kind_ == Kind::kFuncRef; }
+  bool is_func_ref() const { return kind() == Kind::kFuncRef; }
   FuncRef func_ref() const;
 
-  bool is_block_ref() const { return kind_ == Kind::kBlockRef; }
+  bool is_block_ref() const { return kind() == Kind::kBlockRef; }
   BlockRef block_ref() const;
 
   bool RequiresREX() const;
@@ -184,22 +185,9 @@ class Operand {
   std::string ToString() const;
 
  protected:
-  union Data {
-    Reg reg;
-    Mem mem;
-    Imm imm;
-    FuncRef func_ref;
-    BlockRef block_ref;
+  typedef std::variant<Reg, Mem, Imm, FuncRef, BlockRef> operand_t;
 
-    Data(Reg r) : reg(r) {}
-    Data(Mem m) : mem(m) {}
-    Data(Imm i) : imm(i) {}
-    Data(FuncRef r) : func_ref(r) {}
-    Data(BlockRef r) : block_ref(r) {}
-  };
-
-  Kind kind_;
-  Data data_;
+  operand_t value_;
 };
 
 bool operator==(const Operand& lhs, const Operand& rhs);

@@ -463,13 +463,13 @@ bool operator==(const BlockRef& lhs, const BlockRef& rhs) {
 bool operator!=(const BlockRef& lhs, const BlockRef& rhs) { return !(lhs == rhs); }
 
 Size Operand::size() const {
-  switch (kind_) {
+  switch (kind()) {
     case Kind::kReg:
-      return data_.reg.size();
+      return reg().size();
     case Kind::kMem:
-      return data_.mem.size();
+      return mem().size();
     case Kind::kImm:
-      return data_.imm.size();
+      return imm().size();
     case Kind::kFuncRef:
       return Size::k64;
     default:
@@ -478,50 +478,50 @@ Size Operand::size() const {
 }
 
 Reg Operand::reg() const {
-  if (kind_ != Kind::kReg) common::fail("attempted to obtain reg from non-reg operand");
-  return data_.reg;
+  if (kind() != Kind::kReg) common::fail("attempted to obtain reg from non-reg operand");
+  return std::get<Reg>(value_);
 }
 
 Mem Operand::mem() const {
-  if (kind_ != Kind::kMem) common::fail("attempted to obtain mem from non-mem operand");
-  return data_.mem;
+  if (kind() != Kind::kMem) common::fail("attempted to obtain mem from non-mem operand");
+  return std::get<Mem>(value_);
 }
 
 RM Operand::rm() const {
-  if (kind_ == Kind::kReg) {
-    return RM(data_.reg);
-  } else if (kind_ == Kind::kMem) {
-    return RM(data_.mem);
+  if (kind() == Kind::kReg) {
+    return RM(reg());
+  } else if (kind() == Kind::kMem) {
+    return RM(mem());
   } else {
     common::fail("attempted to obtain rm from non-rm operand");
   }
 }
 
 Imm Operand::imm() const {
-  if (kind_ != Kind::kImm) common::fail("attempted to obtain imm from non-imm operand");
-  return data_.imm;
+  if (kind() != Kind::kImm) common::fail("attempted to obtain imm from non-imm operand");
+  return std::get<Imm>(value_);
 }
 
 FuncRef Operand::func_ref() const {
-  if (kind_ != Kind::kFuncRef)
+  if (kind() != Kind::kFuncRef)
     common::fail("attempted to obtain func-ref from non-func-ref operand");
-  return data_.func_ref;
+  return std::get<FuncRef>(value_);
 }
 
 BlockRef Operand::block_ref() const {
-  if (kind_ != Kind::kBlockRef)
+  if (kind() != Kind::kBlockRef)
     common::fail("attempted to obtain block-ref from non-block-ref operand");
-  return data_.block_ref;
+  return std::get<BlockRef>(value_);
 }
 
 bool Operand::RequiresREX() const {
-  switch (kind_) {
+  switch (kind()) {
     case Kind::kReg:
-      return data_.reg.RequiresREX();
+      return reg().RequiresREX();
     case Kind::kMem:
-      return data_.mem.RequiresREX();
+      return mem().RequiresREX();
     case Kind::kImm:
-      return data_.imm.RequiresREX();
+      return imm().RequiresREX();
     case Kind::kBlockRef:
     case Kind::kFuncRef:
       return false;
@@ -531,20 +531,7 @@ bool Operand::RequiresREX() const {
 }
 
 std::string Operand::ToString() const {
-  switch (kind_) {
-    case Kind::kReg:
-      return data_.reg.ToString();
-    case Kind::kMem:
-      return data_.mem.ToString();
-    case Kind::kImm:
-      return data_.imm.ToString();
-    case Kind::kBlockRef:
-      return data_.block_ref.ToString();
-    case Kind::kFuncRef:
-      return data_.func_ref.ToString();
-    default:
-      common::fail("unexpected operand kind");
-  }
+  return std::visit([](auto&& value) { return value.ToString(); }, value_);
 }
 
 bool operator==(const Operand& lhs, const Operand& rhs) {
@@ -568,22 +555,22 @@ bool operator==(const Operand& lhs, const Operand& rhs) {
 bool operator!=(const Operand& lhs, const Operand& rhs) { return !(lhs == rhs); }
 
 bool RM::RequiresSIB() const {
-  switch (kind_) {
+  switch (kind()) {
     case Kind::kReg:
-      return data_.reg.RequiresSIB();
+      return reg().RequiresSIB();
     case Kind::kMem:
-      return data_.mem.RequiresSIB();
+      return mem().RequiresSIB();
     default:
       common::fail("unexpected rm kind");
   }
 }
 
 uint8_t RM::RequiredDispSize() const {
-  switch (kind_) {
+  switch (kind()) {
     case Kind::kReg:
-      return data_.reg.RequiredDispSize();
+      return reg().RequiredDispSize();
     case Kind::kMem:
-      return data_.mem.RequiredDispSize();
+      return mem().RequiredDispSize();
     default:
       common::fail("unexpected rm kind");
   }
@@ -592,10 +579,10 @@ uint8_t RM::RequiredDispSize() const {
 void RM::EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint8_t* disp) const {
   switch (kind()) {
     case Operand::Kind::kReg:
-      data_.reg.EncodeInModRM_SIB_Disp(rex, modrm, sib, disp);
+      reg().EncodeInModRM_SIB_Disp(rex, modrm, sib, disp);
       break;
     case Operand::Kind::kMem:
-      data_.mem.EncodeInModRM_SIB_Disp(rex, modrm, sib, disp);
+      mem().EncodeInModRM_SIB_Disp(rex, modrm, sib, disp);
       break;
     default:
       common::fail("unexpected rm kind");
