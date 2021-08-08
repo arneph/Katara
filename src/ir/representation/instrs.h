@@ -384,7 +384,7 @@ class JumpCondInstr : public Instr {
   block_num_t destination_false() const { return destination_false_; }
 
   std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
-  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {}; }
+  std::vector<std::shared_ptr<Value>> UsedValues() const override { return {condition_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kJumpCond; }
   std::string ToString() const override;
