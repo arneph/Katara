@@ -20,45 +20,33 @@
 namespace x86_64 {
 
 class Program;
+typedef int64_t func_num_t;
 
 class Func {
  public:
   Program* program() const { return program_; }
-  int64_t func_id() const { return func_id_; }
+
+  func_num_t func_num() const { return func_num_; }
   std::string name() const { return name_; }
+  FuncRef GetFuncRef() const { return FuncRef(func_num_); }
+
   const std::vector<std::unique_ptr<Block>>& blocks() const { return blocks_; }
 
-  FuncRef GetFuncRef() const { return FuncRef(func_id_); }
+  Block* AddBlock();
 
   int64_t Encode(Linker& linker, common::DataView code) const;
   std::string ToString() const;
 
  private:
-  Func(Program* program, int64_t func_id, std::string name)
-      : program_(program), func_id_(func_id), name_(name) {}
+  Func(Program* program, func_num_t func_num, std::string name)
+      : program_(program), func_num_(func_num), name_(name) {}
 
   Program* program_;
-  int64_t func_id_;
+  func_num_t func_num_;
   std::string name_;
   std::vector<std::unique_ptr<Block>> blocks_;
 
-  friend class ProgramBuilder;
-  friend class FuncBuilder;
-};
-
-class FuncBuilder {
- public:
-  BlockBuilder AddBlock();
-
-  Func* func() const { return func_; }
-
- private:
-  FuncBuilder(Func* func, int64_t& block_count) : func_(func), block_count_(block_count) {}
-
-  Func* func_;
-  int64_t& block_count_;
-
-  friend class ProgramBuilder;
+  friend Program;
 };
 
 }  // namespace x86_64

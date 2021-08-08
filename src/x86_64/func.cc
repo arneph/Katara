@@ -10,10 +10,17 @@
 
 #include <sstream>
 
+#include "src/x86_64/program.h"
+
 namespace x86_64 {
 
+Block* Func::AddBlock() {
+  block_num_t block_num = program_->block_count_++;
+  return blocks_.emplace_back(new Block(this, block_num)).get();
+}
+
 int64_t Func::Encode(Linker& linker, common::DataView code) const {
-  linker.AddFuncAddr(func_id_, code.base());
+  linker.AddFuncAddr(func_num_, code.base());
 
   int64_t code_index = 0;
   for (auto& block : blocks_) {
@@ -32,12 +39,6 @@ std::string Func::ToString() const {
     if (i < blocks_.size() - 1) ss << "\n";
   }
   return ss.str();
-}
-
-BlockBuilder FuncBuilder::AddBlock() {
-  int64_t block_id = block_count_++;
-  Block* block = func_->blocks_.emplace_back(new Block(func_, block_id)).get();
-  return BlockBuilder(block);
 }
 
 }  // namespace x86_64

@@ -363,7 +363,7 @@ int run(const std::vector<const std::string> args, std::istream& in, std::ostrea
   std::cout << "END machine code\n";
 
   x86_64::Func* x86_64_main_func = x86_64_program->DefinedFuncWithName("main");
-  int (*main_func)(void) = (int (*)(void))(linker.func_addrs().at(x86_64_main_func->func_id()));
+  int (*main_func)(void) = (int (*)(void))(linker.func_addrs().at(x86_64_main_func->func_num()));
   return main_func();
 }
 

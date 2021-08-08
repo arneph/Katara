@@ -10,9 +10,12 @@
 
 #include <sstream>
 
-#include "func.h"
+#include "src/x86_64/func.h"
+#include "src/x86_64/program.h"
 
 namespace x86_64 {
+
+Program* Block::program() const { return func_->program(); }
 
 int64_t Block::Encode(Linker& linker, common::DataView code) const {
   linker.AddBlockAddr(block_id_, code.base());

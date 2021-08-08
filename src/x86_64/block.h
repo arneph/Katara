@@ -19,45 +19,42 @@
 
 namespace x86_64 {
 
+class Program;
 class Func;
+typedef int64_t block_num_t;
 
 class Block {
  public:
+  Program* program() const;
   Func* func() const { return func_; }
-  int64_t block_id() const { return block_id_; }
+
+  block_num_t block_num() const { return block_id_; }
+  BlockRef GetBlockRef() const { return BlockRef(block_id_); }
+
   const std::vector<std::unique_ptr<Instr>>& instrs() const { return instrs_; }
 
-  BlockRef GetBlockRef() const { return BlockRef(block_id_); }
+  template <class T, class... Args>
+  void AddInstr(Args&&... args) {
+    instrs_.push_back(std::make_unique<T>(args...));
+  }
+
+  template <class T, class... Args>
+  std::vector<std::unique_ptr<Instr>>::iterator InsertInstr(
+      std::vector<std::unique_ptr<Instr>>::iterator it, Args&&... args) {
+    return instrs_.insert(it, std::make_unique<T>(args...));
+  }
 
   int64_t Encode(Linker& linker, common::DataView code) const;
   std::string ToString() const;
 
  private:
-  Block(Func* func, int64_t block_id) : func_(func), block_id_(block_id) {}
+  Block(Func* func, block_num_t block_id) : func_(func), block_id_(block_id) {}
 
   Func* func_;
-  int64_t block_id_;
+  block_num_t block_id_;
   std::vector<std::unique_ptr<Instr>> instrs_;
 
-  friend class FuncBuilder;
-  friend class BlockBuilder;
-};
-
-class BlockBuilder {
- public:
-  template <class T, class... Args>
-  void AddInstr(Args&&... args) {
-    block_->instrs_.push_back(std::make_unique<T>(args...));
-  }
-
-  Block* block() const { return block_; }
-
- private:
-  BlockBuilder(Block* block) : block_(block) {}
-
-  Block* block_;
-
-  friend class FuncBuilder;
+  friend Func;
 };
 
 }  // namespace x86_64

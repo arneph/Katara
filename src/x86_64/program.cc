@@ -12,6 +12,16 @@
 
 namespace x86_64 {
 
+void Program::DeclareFunc(std::string func_name) {
+  func_num_t func_num = defined_funcs_.size() + declared_funcs_.size();
+  declared_funcs_.emplace(func_name, func_num);
+}
+
+Func* Program::DefineFunc(std::string func_name) {
+  func_num_t func_num = defined_funcs_.size() + declared_funcs_.size();
+  return defined_funcs_.emplace_back(new Func(this, func_num, func_name)).get();
+}
+
 Func* Program::DefinedFuncWithName(std::string name) const {
   for (auto& func : defined_funcs_) {
     if (func->name() == name) {
@@ -38,18 +48,6 @@ std::string Program::ToString() const {
     if (i < defined_funcs_.size() - 1) ss << "\n\n";
   }
   return ss.str();
-}
-
-FuncBuilder ProgramBuilder::DefineFunc(std::string func_name) {
-  int64_t func_id = func_count_++;
-  Func* func =
-      program_->defined_funcs_.emplace_back(new Func(program_.get(), func_id, func_name)).get();
-  return FuncBuilder(func, block_count_);
-}
-
-void ProgramBuilder::DeclareFunc(std::string func_name) {
-  int64_t func_id = func_count_++;
-  program_->declared_funcs_.emplace(func_name, func_id);
 }
 
 }  // namespace x86_64

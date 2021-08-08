@@ -20,7 +20,7 @@ std::unique_ptr<x86_64::Program> IRTranslator::Translate(
   translator.AllocateRegisters();
   translator.TranslateProgram();
 
-  return translator.x86_64_program_builder_.Build();
+  return std::move(translator.x86_64_program_);
 }
 
 void IRTranslator::AllocateRegisters() {
@@ -33,8 +33,9 @@ void IRTranslator::AllocateRegisters() {
 }
 
 void IRTranslator::TranslateProgram() {
-  x86_64_program_builder_.DeclareFunc("malloc");
-  x86_64_program_builder_.DeclareFunc("free");
+  x86_64_program_ = std::make_unique<x86_64::Program>();
+  x86_64_program_->DeclareFunc("malloc");
+  x86_64_program_->DeclareFunc("free");
 
   for (auto& ir_func : ir_program_->funcs()) {
     std::string ir_func_name = ir_func->name();
@@ -42,8 +43,9 @@ void IRTranslator::TranslateProgram() {
       ir_func_name = "Func" + std::to_string(ir_func->number());
     }
 
-    x86_64::Func* x86_64_func =
-        TranslateFunc(ir_func.get(), x86_64_program_builder_.DefineFunc(ir_func_name));
+    x86_64::Func* x86_64_func = x86_64_program_->DefineFunc(ir_func_name);
+
+    TranslateFunc(ir_func.get(), x86_64_func);
 
     if (ir_func->number() == ir_program_->entry_func_num()) {
       x86_64_main_func_ = x86_64_func;
@@ -51,8 +53,7 @@ void IRTranslator::TranslateProgram() {
   }
 }
 
-x86_64::Func* IRTranslator::TranslateFunc(ir::Func* ir_func,
-                                          x86_64::FuncBuilder x86_64_func_builder) {
+void IRTranslator::TranslateFunc(ir::Func* ir_func, x86_64::Func* x86_64_func) {
   std::vector<ir::Block*> ir_blocks;
   ir_blocks.reserve(ir_func->blocks().size());
   for (auto& ir_block : ir_func->blocks()) {
@@ -70,89 +71,77 @@ x86_64::Func* IRTranslator::TranslateFunc(ir::Func* ir_func,
   });
 
   for (ir::Block* ir_block : ir_blocks) {
-    x86_64::BlockBuilder x86_64_block_builder = x86_64_func_builder.AddBlock();
+    x86_64::Block* x86_64_block = x86_64_func->AddBlock();
 
     if (ir_func->entry_block() == ir_block) {
-      GenerateFuncPrologue(ir_func, x86_64_block_builder);
+      GenerateFuncPrologue(ir_func, x86_64_block);
     }
 
-    TranslateBlock(ir_block, ir_func, x86_64_block_builder);
+    TranslateBlock(ir_block, ir_func, x86_64_block);
   }
-
-  return x86_64_func_builder.func();
 }
 
-x86_64::Block* IRTranslator::TranslateBlock(ir::Block* ir_block, ir::Func* ir_func,
-                                            x86_64::BlockBuilder x86_64_block_builder) {
+void IRTranslator::TranslateBlock(ir::Block* ir_block, ir::Func* ir_func,
+                                  x86_64::Block* x86_64_block) {
   for (auto& ir_instr : ir_block->instrs()) {
-    TranslateInstr(ir_instr.get(), ir_func, x86_64_block_builder);
+    TranslateInstr(ir_instr.get(), ir_func, x86_64_block);
   }
-
-  return x86_64_block_builder.block();
 }
 
 void IRTranslator::TranslateInstr(ir::Instr* ir_instr, ir::Func* ir_func,
-                                  x86_64::BlockBuilder& x86_64_block_builder) {
+                                  x86_64::Block* x86_64_block) {
   switch (ir_instr->instr_kind()) {
     case ir::InstrKind::kMov:
-      TranslateMovInstr(static_cast<ir::MovInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      TranslateMovInstr(static_cast<ir::MovInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kBoolNot:
-      TranslateBoolNotInstr(static_cast<ir::BoolNotInstr*>(ir_instr), ir_func,
-                            x86_64_block_builder);
+      TranslateBoolNotInstr(static_cast<ir::BoolNotInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kBoolBinary:
-      TranslateBoolBinaryInstr(static_cast<ir::BoolBinaryInstr*>(ir_instr), ir_func,
-                               x86_64_block_builder);
+      TranslateBoolBinaryInstr(static_cast<ir::BoolBinaryInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kIntUnary:
-      TranslateIntUnaryInstr(static_cast<ir::IntUnaryInstr*>(ir_instr), ir_func,
-                             x86_64_block_builder);
+      TranslateIntUnaryInstr(static_cast<ir::IntUnaryInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kIntCompare:
-      TranslateIntCompareInstr(static_cast<ir::IntCompareInstr*>(ir_instr), ir_func,
-                               x86_64_block_builder);
+      TranslateIntCompareInstr(static_cast<ir::IntCompareInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kIntBinary:
-      TranslateIntBinaryInstr(static_cast<ir::IntBinaryInstr*>(ir_instr), ir_func,
-                              x86_64_block_builder);
+      TranslateIntBinaryInstr(static_cast<ir::IntBinaryInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kIntShift:
-      TranslateIntShiftInstr(static_cast<ir::IntShiftInstr*>(ir_instr), ir_func,
-                             x86_64_block_builder);
+      TranslateIntShiftInstr(static_cast<ir::IntShiftInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kPointerOffset:
       TranslatePointerOffsetInstr(static_cast<ir::PointerOffsetInstr*>(ir_instr), ir_func,
-                                  x86_64_block_builder);
+                                  x86_64_block);
       break;
     case ir::InstrKind::kNilTest:
-      TranslateNilTestInstr(static_cast<ir::NilTestInstr*>(ir_instr), ir_func,
-                            x86_64_block_builder);
+      TranslateNilTestInstr(static_cast<ir::NilTestInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kMalloc:
-      TranslateMallocInstr(static_cast<ir::MallocInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      TranslateMallocInstr(static_cast<ir::MallocInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kLoad:
-      TranslateLoadInstr(static_cast<ir::LoadInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      TranslateLoadInstr(static_cast<ir::LoadInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kStore:
-      TranslateStoreInstr(static_cast<ir::StoreInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      TranslateStoreInstr(static_cast<ir::StoreInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kFree:
-      TranslateFreeInstr(static_cast<ir::FreeInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      TranslateFreeInstr(static_cast<ir::FreeInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kJump:
-      TranslateJumpInstr(static_cast<ir::JumpInstr*>(ir_instr), x86_64_block_builder);
+      TranslateJumpInstr(static_cast<ir::JumpInstr*>(ir_instr), x86_64_block);
       break;
     case ir::InstrKind::kJumpCond:
-      TranslateJumpCondInstr(static_cast<ir::JumpCondInstr*>(ir_instr), ir_func,
-                             x86_64_block_builder);
+      TranslateJumpCondInstr(static_cast<ir::JumpCondInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kCall:
-      TranslateCallInstr(static_cast<ir::CallInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      TranslateCallInstr(static_cast<ir::CallInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kReturn:
-      TranslateReturnInstr(static_cast<ir::ReturnInstr*>(ir_instr), ir_func, x86_64_block_builder);
+      TranslateReturnInstr(static_cast<ir::ReturnInstr*>(ir_instr), ir_func, x86_64_block);
       break;
     case ir::InstrKind::kLangPanic:
       // TODO: add lowering pass
@@ -163,43 +152,41 @@ void IRTranslator::TranslateInstr(ir::Instr* ir_instr, ir::Func* ir_func,
 }
 
 void IRTranslator::TranslateMovInstr(ir::MovInstr* ir_mov_instr, ir::Func* ir_func,
-                                     x86_64::BlockBuilder& x86_64_block_builder) {
+                                     x86_64::Block* x86_64_block) {
   auto ir_result = ir_mov_instr->result().get();
   auto ir_origin = ir_mov_instr->origin().get();
 
-  GenerateMovs(ir_result, ir_origin, ir_func, x86_64_block_builder);
+  GenerateMovs(ir_result, ir_origin, ir_func, x86_64_block);
 }
 
 void IRTranslator::TranslateBoolNotInstr(ir::BoolNotInstr* ir_bool_not_instr, ir::Func* ir_func,
-                                         x86_64::BlockBuilder& x86_64_block_builder) {
+                                         x86_64::Block* x86_64_block) {
   auto ir_result = ir_bool_not_instr->result().get();
   auto ir_operand = ir_bool_not_instr->operand().get();
 
-  GenerateMovs(ir_result, ir_operand, ir_func, x86_64_block_builder);
+  GenerateMovs(ir_result, ir_operand, ir_func, x86_64_block);
 
   x86_64::RM x86_64_operand = TranslateComputed(ir_result, ir_func);
 
-  x86_64_block_builder.AddInstr<x86_64::Not>(x86_64_operand);
+  x86_64_block->AddInstr<x86_64::Not>(x86_64_operand);
 }
 
 void IRTranslator::TranslateBoolBinaryInstr(ir::BoolBinaryInstr* ir_bool_binary_instr,
-                                            ir::Func* ir_func,
-                                            x86_64::BlockBuilder& x86_64_block_builder) {
+                                            ir::Func* ir_func, x86_64::Block* x86_64_block) {
   switch (ir_bool_binary_instr->operation()) {
     case common::Bool::BinaryOp::kEq:
     case common::Bool::BinaryOp::kNeq:
-      TranslateBoolCompareInstr(ir_bool_binary_instr, ir_func, x86_64_block_builder);
+      TranslateBoolCompareInstr(ir_bool_binary_instr, ir_func, x86_64_block);
       break;
     case common::Bool::BinaryOp::kAnd:
     case common::Bool::BinaryOp::kOr:
-      TranslateBoolLogicInstr(ir_bool_binary_instr, ir_func, x86_64_block_builder);
+      TranslateBoolLogicInstr(ir_bool_binary_instr, ir_func, x86_64_block);
       break;
   }
 }
 
 void IRTranslator::TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compare_instr,
-                                             ir::Func* ir_func,
-                                             x86_64::BlockBuilder& x86_64_block_builder) {
+                                             ir::Func* ir_func, x86_64::Block* x86_64_block) {
   // Note: It is assumed that neither operand is a constant. A constant folding optimization pass
   // should ensure this.
   auto ir_result = ir_bool_compare_instr->result().get();
@@ -231,30 +218,29 @@ void IRTranslator::TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compar
 
   if (requires_tmp_reg) {
     if (!required_tmp_reg_is_result_reg) {
-      x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_tmp_reg);
+      x86_64_block->AddInstr<x86_64::Push>(x86_64_tmp_reg);
     }
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
     x86_64_operand_b = x86_64_tmp_reg;
   }
 
-  x86_64_block_builder.AddInstr<x86_64::Cmp>(x86_64_operand_a, x86_64_operand_b);
-  x86_64_block_builder.AddInstr<x86_64::Setcc>(x86_64_cond, x86_64_result);
+  x86_64_block->AddInstr<x86_64::Cmp>(x86_64_operand_a, x86_64_operand_b);
+  x86_64_block->AddInstr<x86_64::Setcc>(x86_64_cond, x86_64_result);
 
   if (requires_tmp_reg && !required_tmp_reg_is_result_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_tmp_reg);
   }
 }
 
 void IRTranslator::TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_instr,
-                                           ir::Func* ir_func,
-                                           x86_64::BlockBuilder& x86_64_block_builder) {
+                                           ir::Func* ir_func, x86_64::Block* x86_64_block) {
   // Note: It is assumed that neither operand is a constant. A constant folding optimization pass
   // should ensure this.
   auto ir_result = ir_bool_logic_instr->result().get();
   auto ir_operand_a = static_cast<ir::Computed*>(ir_bool_logic_instr->operand_a().get());
   auto ir_operand_b = static_cast<ir::Computed*>(ir_bool_logic_instr->operand_b().get());
 
-  GenerateMovs(ir_result, ir_operand_a, ir_func, x86_64_block_builder);
+  GenerateMovs(ir_result, ir_operand_a, ir_func, x86_64_block);
 
   x86_64::RM x86_64_operand_a = TranslateComputed(ir_result, ir_func);
   x86_64::RM x86_64_operand_b = TranslateComputed(ir_operand_b, ir_func);
@@ -263,44 +249,44 @@ void IRTranslator::TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_in
   x86_64::Reg x86_64_tmp_reg(x86_64::Size::k8, 0);
 
   if (requires_tmp_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_tmp_reg);
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
     x86_64_operand_b = x86_64_tmp_reg;
   }
 
   switch (ir_bool_logic_instr->operation()) {
     case common::Bool::BinaryOp::kAnd:
-      x86_64_block_builder.AddInstr<x86_64::And>(x86_64_operand_a, x86_64_operand_b);
+      x86_64_block->AddInstr<x86_64::And>(x86_64_operand_a, x86_64_operand_b);
       break;
     case common::Bool::BinaryOp::kOr:
-      x86_64_block_builder.AddInstr<x86_64::Or>(x86_64_operand_a, x86_64_operand_b);
+      x86_64_block->AddInstr<x86_64::Or>(x86_64_operand_a, x86_64_operand_b);
       break;
     default:
       common::fail("unexpexted bool logic op");
   }
 
   if (requires_tmp_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_tmp_reg);
   }
 }
 
 void IRTranslator::TranslateIntUnaryInstr(ir::IntUnaryInstr* ir_int_unary_instr, ir::Func* ir_func,
-                                          x86_64::BlockBuilder& x86_64_block_builder) {
+                                          x86_64::Block* x86_64_block) {
   // Note: It is assumed that the operand is not a constant. A constant folding optimization pass
   // should ensure this.
   auto ir_result = ir_int_unary_instr->result().get();
   auto ir_operand_a = static_cast<ir::Computed*>(ir_int_unary_instr->operand().get());
 
-  GenerateMovs(ir_result, ir_operand_a, ir_func, x86_64_block_builder);
+  GenerateMovs(ir_result, ir_operand_a, ir_func, x86_64_block);
 
   x86_64::RM x86_64_operand = TranslateComputed(ir_result, ir_func);
 
   switch (ir_int_unary_instr->operation()) {
     case common::Int::UnaryOp::kNot:
-      x86_64_block_builder.AddInstr<x86_64::Not>(x86_64_operand);
+      x86_64_block->AddInstr<x86_64::Not>(x86_64_operand);
       break;
     case common::Int::UnaryOp::kNeg:
-      x86_64_block_builder.AddInstr<x86_64::Neg>(x86_64_operand);
+      x86_64_block->AddInstr<x86_64::Neg>(x86_64_operand);
       break;
     default:
       common::fail("unexpected unary int op");
@@ -308,8 +294,7 @@ void IRTranslator::TranslateIntUnaryInstr(ir::IntUnaryInstr* ir_int_unary_instr,
 }
 
 void IRTranslator::TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_instr,
-                                            ir::Func* ir_func,
-                                            x86_64::BlockBuilder& x86_64_block_builder) {
+                                            ir::Func* ir_func, x86_64::Block* x86_64_block) {
   // Note: It is assumed that at least one operand is not a constant. A constant folding
   // optimization pass should ensure this.
   common::Int::CompareOp op = ir_int_compare_instr->operation();
@@ -377,46 +362,44 @@ void IRTranslator::TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_
 
   if (requires_tmp_reg) {
     if (!required_tmp_reg_is_result_reg) {
-      x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_tmp_reg);
+      x86_64_block->AddInstr<x86_64::Push>(x86_64_tmp_reg);
     }
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
     x86_64_operand_b = x86_64_tmp_reg;
   }
 
-  x86_64_block_builder.AddInstr<x86_64::Cmp>(x86_64_operand_a, x86_64_operand_b);
-  x86_64_block_builder.AddInstr<x86_64::Setcc>(x86_64_cond, x86_64_result);
+  x86_64_block->AddInstr<x86_64::Cmp>(x86_64_operand_a, x86_64_operand_b);
+  x86_64_block->AddInstr<x86_64::Setcc>(x86_64_cond, x86_64_result);
 
   if (requires_tmp_reg && !required_tmp_reg_is_result_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_tmp_reg);
   }
 }
 
 void IRTranslator::TranslateIntBinaryInstr(ir::IntBinaryInstr* ir_int_binary_instr,
-                                           ir::Func* ir_func,
-                                           x86_64::BlockBuilder& x86_64_block_builder) {
+                                           ir::Func* ir_func, x86_64::Block* x86_64_block) {
   switch (ir_int_binary_instr->operation()) {
     case common::Int::BinaryOp::kAdd:
     case common::Int::BinaryOp::kSub:
     case common::Int::BinaryOp::kAnd:
     case common::Int::BinaryOp::kOr:
     case common::Int::BinaryOp::kXor:
-      TranslateIntSimpleALInstr(ir_int_binary_instr, ir_func, x86_64_block_builder);
+      TranslateIntSimpleALInstr(ir_int_binary_instr, ir_func, x86_64_block);
       break;
     case common::Int::BinaryOp::kAndNot:
       common::fail("int andnot operation was not decomposed into separate instrs");
     case common::Int::BinaryOp::kMul:
-      TranslateIntMulInstr(ir_int_binary_instr, ir_func, x86_64_block_builder);
+      TranslateIntMulInstr(ir_int_binary_instr, ir_func, x86_64_block);
       break;
     case common::Int::BinaryOp::kDiv:
     case common::Int::BinaryOp::kRem:
-      TranslateIntDivOrRemInstr(ir_int_binary_instr, ir_func, x86_64_block_builder);
+      TranslateIntDivOrRemInstr(ir_int_binary_instr, ir_func, x86_64_block);
       break;
   }
 }
 
 void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_instr,
-                                             ir::Func* ir_func,
-                                             x86_64::BlockBuilder& x86_64_block_builder) {
+                                             ir::Func* ir_func, x86_64::Block* x86_64_block) {
   // Note: It is assumed that at least one operand is not a constant. A constant folding
   // optimization pass should ensure this.
   common::Int::BinaryOp op = ir_int_binary_instr->operation();
@@ -438,7 +421,7 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
     }
   }
 
-  GenerateMovs(ir_result, ir_operand_a, ir_func, x86_64_block_builder);
+  GenerateMovs(ir_result, ir_operand_a, ir_func, x86_64_block);
 
   bool requires_tmp_reg = false;
 
@@ -480,27 +463,27 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
   }
 
   if (requires_tmp_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_tmp_reg);
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
     x86_64_operand_b = x86_64_tmp_reg;
   }
 
   switch (op) {
     case common::Int::BinaryOp::kAdd:
-      x86_64_block_builder.AddInstr<x86_64::Add>(x86_64_operand_a, x86_64_operand_b);
+      x86_64_block->AddInstr<x86_64::Add>(x86_64_operand_a, x86_64_operand_b);
       break;
     case common::Int::BinaryOp::kSub:
-      x86_64_block_builder.AddInstr<x86_64::Sub>(x86_64_operand_a, x86_64_operand_b);
+      x86_64_block->AddInstr<x86_64::Sub>(x86_64_operand_a, x86_64_operand_b);
       break;
 
     case common::Int::BinaryOp::kAnd:
-      x86_64_block_builder.AddInstr<x86_64::And>(x86_64_operand_a, x86_64_operand_b);
+      x86_64_block->AddInstr<x86_64::And>(x86_64_operand_a, x86_64_operand_b);
       break;
     case common::Int::BinaryOp::kOr:
-      x86_64_block_builder.AddInstr<x86_64::Or>(x86_64_operand_a, x86_64_operand_b);
+      x86_64_block->AddInstr<x86_64::Or>(x86_64_operand_a, x86_64_operand_b);
       break;
     case common::Int::BinaryOp::kXor:
-      x86_64_block_builder.AddInstr<x86_64::Xor>(x86_64_operand_a, x86_64_operand_b);
+      x86_64_block->AddInstr<x86_64::Xor>(x86_64_operand_a, x86_64_operand_b);
       break;
 
     default:
@@ -508,12 +491,12 @@ void IRTranslator::TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_i
   }
 
   if (requires_tmp_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_tmp_reg);
   }
 }
 
 void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr, ir::Func* ir_func,
-                                        x86_64::BlockBuilder& x86_64_block_builder) {
+                                        x86_64::Block* x86_64_block) {
   // Note: It is assumed that at least one operand is not a constant. A constant folding
   // optimization pass should ensure this.
   auto ir_result = ir_int_binary_instr->result().get();
@@ -568,43 +551,41 @@ void IRTranslator::TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr,
 
   if (x86_64_result.is_reg()) {
     if (x86_64_operand_b.is_imm() && !requires_tmp_reg) {
-      x86_64_block_builder.AddInstr<x86_64::Imul>(x86_64_result.reg(), x86_64_operand_a,
-                                                  x86_64_operand_b.imm());
+      x86_64_block->AddInstr<x86_64::Imul>(x86_64_result.reg(), x86_64_operand_a,
+                                           x86_64_operand_b.imm());
     } else {
-      x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_result.reg(), x86_64_operand_b);
-      x86_64_block_builder.AddInstr<x86_64::Imul>(x86_64_result.reg(), x86_64_operand_a);
+      x86_64_block->AddInstr<x86_64::Mov>(x86_64_result.reg(), x86_64_operand_b);
+      x86_64_block->AddInstr<x86_64::Imul>(x86_64_result.reg(), x86_64_operand_a);
     }
 
   } else {
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_tmp_reg);
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
-    x86_64_block_builder.AddInstr<x86_64::Imul>(x86_64_tmp_reg, x86_64_operand_a);
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_result, x86_64_tmp_reg);
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
+    x86_64_block->AddInstr<x86_64::Imul>(x86_64_tmp_reg, x86_64_operand_a);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_result, x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_tmp_reg);
   }
 }
 
 void IRTranslator::TranslateIntDivOrRemInstr(ir::IntBinaryInstr* ir_int_binary_instr,
-                                             ir::Func* ir_func,
-                                             x86_64::BlockBuilder& x86_64_block_builder) {
+                                             ir::Func* ir_func, x86_64::Block* x86_64_block) {
   // TODO: implement
 }
 
 void IRTranslator::TranslateIntShiftInstr(ir::IntShiftInstr* ir_int_shift_instr, ir::Func* ir_func,
-                                          x86_64::BlockBuilder& x86_64_block_builder) {
+                                          x86_64::Block* x86_64_block) {
   // TODO: implement
 }
 
 void IRTranslator::TranslatePointerOffsetInstr(ir::PointerOffsetInstr* ir_pointer_offset_instr,
-                                               ir::Func* ir_func,
-                                               x86_64::BlockBuilder& x86_64_block_builder) {
+                                               ir::Func* ir_func, x86_64::Block* x86_64_block) {
   // Note: It is assumed that at least one operand is not a constant. A constant folding
   // optimization pass should ensure this.
   auto ir_result = ir_pointer_offset_instr->result().get();
   auto ir_pointer = ir_pointer_offset_instr->pointer().get();
   auto ir_offset = ir_pointer_offset_instr->offset().get();
 
-  GenerateMovs(ir_result, ir_pointer, ir_func, x86_64_block_builder);
+  GenerateMovs(ir_result, ir_pointer, ir_func, x86_64_block);
 
   bool requires_tmp_reg = false;
 
@@ -632,18 +613,18 @@ void IRTranslator::TranslatePointerOffsetInstr(ir::PointerOffsetInstr* ir_pointe
   }
 
   if (requires_tmp_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_tmp_reg);
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_operand_b);
     x86_64_operand_b = x86_64_tmp_reg;
   }
-  x86_64_block_builder.AddInstr<x86_64::Add>(x86_64_operand_a, x86_64_operand_b);
+  x86_64_block->AddInstr<x86_64::Add>(x86_64_operand_a, x86_64_operand_b);
   if (requires_tmp_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_tmp_reg);
   }
 }
 
 void IRTranslator::TranslateNilTestInstr(ir::NilTestInstr* ir_nil_test_instr, ir::Func* ir_func,
-                                         x86_64::BlockBuilder& x86_64_block_builder) {
+                                         x86_64::Block* x86_64_block) {
   // Note: It is assumed that the tested operand is not constant. A constant folding optimization
   // pass should ensure this.
   auto ir_result = ir_nil_test_instr->result().get();
@@ -652,12 +633,12 @@ void IRTranslator::TranslateNilTestInstr(ir::NilTestInstr* ir_nil_test_instr, ir
   x86_64::RM x86_64_result = TranslateComputed(ir_result, ir_func);
   x86_64::RM x86_64_tested = TranslateComputed(static_cast<ir::Computed*>(ir_tested), ir_func);
 
-  x86_64_block_builder.AddInstr<x86_64::Cmp>(x86_64_tested, x86_64::Imm(0));
-  x86_64_block_builder.AddInstr<x86_64::Setcc>(x86_64::InstrCond::kEqual, x86_64_result);
+  x86_64_block->AddInstr<x86_64::Cmp>(x86_64_tested, x86_64::Imm(0));
+  x86_64_block->AddInstr<x86_64::Setcc>(x86_64::InstrCond::kEqual, x86_64_result);
 }
 
 void IRTranslator::TranslateMallocInstr(ir::MallocInstr* ir_malloc_instr, ir::Func* ir_func,
-                                        x86_64::BlockBuilder& x86_64_block_builder) {
+                                        x86_64::Block* x86_64_block) {
   ir::Value* ir_size = ir_malloc_instr->size().get();
   ir::Computed* ir_result = ir_malloc_instr->result().get();
 
@@ -671,30 +652,30 @@ void IRTranslator::TranslateMallocInstr(ir::MallocInstr* ir_malloc_instr, ir::Fu
   bool result_reg_needs_preservation = (x86_64_result != x86_64_result_location);
 
   if (result_reg_needs_preservation) {
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_result_location);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_result_location);
   }
   if (size_reg_needs_preservation) {
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_size_location);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_size_location);
   }
   if (x86_64_size_location != x86_64_size) {
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_size_location, x86_64_size);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_size_location, x86_64_size);
   }
 
-  int64_t malloc_func_id = x86_64_program_builder_.program()->declared_funcs().at("malloc");
-  x86_64_block_builder.AddInstr<x86_64::Call>(x86_64::FuncRef(malloc_func_id));
+  int64_t malloc_func_id = x86_64_program_->declared_funcs().at("malloc");
+  x86_64_block->AddInstr<x86_64::Call>(x86_64::FuncRef(malloc_func_id));
   if (x86_64_result_location != x86_64_result) {
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_result, x86_64_result_location);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_result, x86_64_result_location);
   }
   if (size_reg_needs_preservation) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_size_location);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_size_location);
   }
   if (result_reg_needs_preservation) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_result_location);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_result_location);
   }
 }
 
 void IRTranslator::TranslateLoadInstr(ir::LoadInstr* ir_load_instr, ir::Func* ir_func,
-                                      x86_64::BlockBuilder& x86_64_block_builder) {
+                                      x86_64::Block* x86_64_block) {
   ir::Value* ir_address = ir_load_instr->address().get();
   ir::Computed* ir_result = ir_load_instr->result().get();
 
@@ -719,10 +700,10 @@ void IRTranslator::TranslateLoadInstr(ir::LoadInstr* ir_load_instr, ir::Func* ir
 
   if (requires_address_reg) {
     if (address_reg_needs_preservation) {
-      x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_address_reg);
+      x86_64_block->AddInstr<x86_64::Push>(x86_64_address_reg);
     }
     if (x86_64_address_holder != x86_64_address_reg) {
-      x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_address_reg, x86_64_address_holder);
+      x86_64_block->AddInstr<x86_64::Mov>(x86_64_address_reg, x86_64_address_holder);
     }
   }
 
@@ -736,15 +717,15 @@ void IRTranslator::TranslateLoadInstr(ir::LoadInstr* ir_load_instr, ir::Func* ir
     }
     mem = x86_64::Mem(x86_64_size, /*disp=*/int32_t(x86_64_address_holder.imm().value()));
   }
-  x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_result, mem);
+  x86_64_block->AddInstr<x86_64::Mov>(x86_64_result, mem);
 
   if (requires_address_reg && address_reg_needs_preservation) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_address_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_address_reg);
   }
 }
 
 void IRTranslator::TranslateStoreInstr(ir::StoreInstr* ir_store_instr, ir::Func* ir_func,
-                                       x86_64::BlockBuilder& x86_64_block_builder) {
+                                       x86_64::Block* x86_64_block) {
   ir::Value* ir_address = ir_store_instr->address().get();
   ir::Value* ir_value = ir_store_instr->value().get();
 
@@ -789,17 +770,17 @@ void IRTranslator::TranslateStoreInstr(ir::StoreInstr* ir_store_instr, ir::Func*
   }
 
   if (requires_value_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_value_reg);
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_value_reg, x86_64_value);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_value_reg);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_value_reg, x86_64_value);
     x86_64_value = x86_64_value_reg;
   }
 
   if (requires_address_reg) {
     if (address_reg_needs_preservation) {
-      x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_address_reg);
+      x86_64_block->AddInstr<x86_64::Push>(x86_64_address_reg);
     }
     if (x86_64_address_holder != x86_64_address_reg) {
-      x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_address_reg, x86_64_address_holder);
+      x86_64_block->AddInstr<x86_64::Mov>(x86_64_address_reg, x86_64_address_holder);
     }
   }
 
@@ -813,18 +794,18 @@ void IRTranslator::TranslateStoreInstr(ir::StoreInstr* ir_store_instr, ir::Func*
     }
     mem = x86_64::Mem(x86_64_size, /*disp=*/int32_t(x86_64_address_holder.imm().value()));
   }
-  x86_64_block_builder.AddInstr<x86_64::Mov>(mem, x86_64_value);
+  x86_64_block->AddInstr<x86_64::Mov>(mem, x86_64_value);
 
   if (requires_address_reg && address_reg_needs_preservation) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_address_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_address_reg);
   }
   if (requires_value_reg) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_value_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_value_reg);
   }
 }
 
 void IRTranslator::TranslateFreeInstr(ir::FreeInstr* ir_free_instr, ir::Func* ir_func,
-                                      x86_64::BlockBuilder& x86_64_block_builder) {
+                                      x86_64::Block* x86_64_block) {
   ir::Value* ir_address = ir_free_instr->address().get();
   x86_64::Operand x86_64_address = TranslateValue(ir_address, ir_func);
 
@@ -833,29 +814,28 @@ void IRTranslator::TranslateFreeInstr(ir::FreeInstr* ir_free_instr, ir::Func* ir
   bool address_reg_needs_preservation = (x86_64_address != x86_64_address_location);
 
   if (address_reg_needs_preservation) {
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_address_location);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_address_location);
   }
   if (x86_64_address_location != x86_64_address) {
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_address_location, x86_64_address);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_address_location, x86_64_address);
   }
 
-  int64_t free_func_id = x86_64_program_builder_.program()->declared_funcs().at("free");
-  x86_64_block_builder.AddInstr<x86_64::Call>(x86_64::FuncRef(free_func_id));
+  int64_t free_func_id = x86_64_program_->declared_funcs().at("free");
+  x86_64_block->AddInstr<x86_64::Call>(x86_64::FuncRef(free_func_id));
   if (address_reg_needs_preservation) {
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_address_location);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_address_location);
   }
 }
 
-void IRTranslator::TranslateJumpInstr(ir::JumpInstr* ir_jump_instr,
-                                      x86_64::BlockBuilder& x86_64_block_builder) {
+void IRTranslator::TranslateJumpInstr(ir::JumpInstr* ir_jump_instr, x86_64::Block* x86_64_block) {
   ir::block_num_t ir_destination = ir_jump_instr->destination();
   x86_64::BlockRef x86_64_destination = TranslateBlockValue(ir_destination);
 
-  x86_64_block_builder.AddInstr<x86_64::Jmp>(x86_64_destination);
+  x86_64_block->AddInstr<x86_64::Jmp>(x86_64_destination);
 }
 
 void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr, ir::Func* ir_func,
-                                          x86_64::BlockBuilder& x86_64_block_builder) {
+                                          x86_64::Block* x86_64_block) {
   auto ir_condition = ir_jump_cond_instr->condition().get();
   ir::block_num_t ir_destination_true = ir_jump_cond_instr->destination_true();
   ir::block_num_t ir_destination_false = ir_jump_cond_instr->destination_false();
@@ -867,9 +847,9 @@ void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr,
     case ir::Value::Kind::kConstant: {
       auto ir_condition_constant = static_cast<ir::BoolConstant*>(ir_condition);
       if (ir_condition_constant->value()) {
-        x86_64_block_builder.AddInstr<x86_64::Jmp>(x86_64_destination_true);
+        x86_64_block->AddInstr<x86_64::Jmp>(x86_64_destination_true);
       } else {
-        x86_64_block_builder.AddInstr<x86_64::Jmp>(x86_64_destination_false);
+        x86_64_block->AddInstr<x86_64::Jmp>(x86_64_destination_false);
       }
       return;
     }
@@ -877,10 +857,9 @@ void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr,
       auto ir_condition_computed = static_cast<ir::Computed*>(ir_condition);
       x86_64::RM x86_64_condition = TranslateComputed(ir_condition_computed, ir_func);
 
-      x86_64_block_builder.AddInstr<x86_64::Test>(x86_64_condition, x86_64::Imm(int8_t{-1}));
-      x86_64_block_builder.AddInstr<x86_64::Jcc>(x86_64::InstrCond::kNoZero,
-                                                 x86_64_destination_true);
-      x86_64_block_builder.AddInstr<x86_64::Jmp>(x86_64_destination_false);
+      x86_64_block->AddInstr<x86_64::Test>(x86_64_condition, x86_64::Imm(int8_t{-1}));
+      x86_64_block->AddInstr<x86_64::Jcc>(x86_64::InstrCond::kNoZero, x86_64_destination_true);
+      x86_64_block->AddInstr<x86_64::Jmp>(x86_64_destination_false);
       return;
     }
     case ir::Value::Kind::kInherited:
@@ -889,7 +868,7 @@ void IRTranslator::TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr,
 }
 
 void IRTranslator::TranslateCallInstr(ir::CallInstr* ir_call_instr, ir::Func* ir_calling_func,
-                                      x86_64::BlockBuilder& x86_64_block_builder) {
+                                      x86_64::Block* x86_64_block) {
   struct ArgInfo {
     x86_64::Operand x86_64_arg_value;
     x86_64::RM x86_64_arg_location;
@@ -927,25 +906,24 @@ void IRTranslator::TranslateCallInstr(ir::CallInstr* ir_call_instr, ir::Func* ir
 
   for (ArgInfo& arg_info : arg_infos) {
     if (arg_info.x86_64_arg_location != arg_info.x86_64_arg_value) {
-      x86_64_block_builder.AddInstr<x86_64::Mov>(arg_info.x86_64_arg_location,
-                                                 arg_info.x86_64_arg_value);
+      x86_64_block->AddInstr<x86_64::Mov>(arg_info.x86_64_arg_location, arg_info.x86_64_arg_value);
     }
   }
 
   ir::Value* ir_called_func = ir_call_instr->func().get();
   x86_64::Operand x86_64_called_func = TranslateValue(ir_called_func, ir_calling_func);
   if (x86_64_called_func.is_func_ref()) {
-    x86_64_block_builder.AddInstr<x86_64::Call>(x86_64_called_func.func_ref());
+    x86_64_block->AddInstr<x86_64::Call>(x86_64_called_func.func_ref());
   } else if (x86_64_called_func.is_rm()) {
-    x86_64_block_builder.AddInstr<x86_64::Call>(x86_64_called_func.rm());
+    x86_64_block->AddInstr<x86_64::Call>(x86_64_called_func.rm());
   } else {
     common::fail("unexpected func operand");
   }
 
   for (ResultInfo& result_info : result_infos) {
     if (result_info.x86_64_result_location != result_info.x86_64_result) {
-      x86_64_block_builder.AddInstr<x86_64::Mov>(result_info.x86_64_result,
-                                                 result_info.x86_64_result_location);
+      x86_64_block->AddInstr<x86_64::Mov>(result_info.x86_64_result,
+                                          result_info.x86_64_result_location);
     }
   }
 
@@ -953,7 +931,7 @@ void IRTranslator::TranslateCallInstr(ir::CallInstr* ir_call_instr, ir::Func* ir
 }
 
 void IRTranslator::TranslateReturnInstr(ir::ReturnInstr* ir_return_instr, ir::Func* ir_func,
-                                        x86_64::BlockBuilder& x86_64_block_builder) {
+                                        x86_64::Block* x86_64_block) {
   struct ArgInfo {
     x86_64::Operand x86_64_arg_value;
     x86_64::RM x86_64_arg_location;
@@ -973,32 +951,29 @@ void IRTranslator::TranslateReturnInstr(ir::ReturnInstr* ir_return_instr, ir::Fu
 
   for (ArgInfo& arg_info : arg_infos) {
     if (arg_info.x86_64_arg_location != arg_info.x86_64_arg_value) {
-      x86_64_block_builder.AddInstr<x86_64::Mov>(arg_info.x86_64_arg_location,
-                                                 arg_info.x86_64_arg_value);
+      x86_64_block->AddInstr<x86_64::Mov>(arg_info.x86_64_arg_location, arg_info.x86_64_arg_value);
     }
   }
 
-  GenerateFuncEpilogue(ir_func, x86_64_block_builder);
+  GenerateFuncEpilogue(ir_func, x86_64_block);
 
   // TODO: improve
 }
 
-void IRTranslator::GenerateFuncPrologue(ir::Func* /*ir_func*/,
-                                        x86_64::BlockBuilder& x86_64_block_builder) {
-  x86_64_block_builder.AddInstr<x86_64::Push>(x86_64::rbp);
-  x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64::rbp, x86_64::rsp);
+void IRTranslator::GenerateFuncPrologue(ir::Func* /*ir_func*/, x86_64::Block* x86_64_block) {
+  x86_64_block->AddInstr<x86_64::Push>(x86_64::rbp);
+  x86_64_block->AddInstr<x86_64::Mov>(x86_64::rbp, x86_64::rsp);
   // TODO: reserve stack space
 }
 
-void IRTranslator::GenerateFuncEpilogue(ir::Func* /*ir_func*/,
-                                        x86_64::BlockBuilder& x86_64_block_builder) {
+void IRTranslator::GenerateFuncEpilogue(ir::Func* /*ir_func*/, x86_64::Block* x86_64_block) {
   // TODO: revert stack pointer
-  x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64::rbp);
-  x86_64_block_builder.AddInstr<x86_64::Ret>();
+  x86_64_block->AddInstr<x86_64::Pop>(x86_64::rbp);
+  x86_64_block->AddInstr<x86_64::Ret>();
 }
 
 void IRTranslator::GenerateMovs(ir::Computed* ir_result, ir::Value* ir_origin, ir::Func* ir_func,
-                                x86_64::BlockBuilder& x86_64_block_builder) {
+                                x86_64::Block* x86_64_block) {
   x86_64::RM x86_64_result = TranslateComputed(ir_result, ir_func);
   x86_64::Operand x86_64_origin = TranslateValue(ir_origin, ir_func);
 
@@ -1007,17 +982,17 @@ void IRTranslator::GenerateMovs(ir::Computed* ir_result, ir::Value* ir_origin, i
   }
 
   if (!x86_64_result.is_mem() || !x86_64_origin.is_mem()) {
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_result, x86_64_origin);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_result, x86_64_origin);
 
   } else {
     auto ir_type = static_cast<const ir::AtomicType*>(ir_result->type());
     x86_64::Size x86_64_size = x86_64::Size(ir_type->bit_size());
     x86_64::Reg x86_64_tmp_reg = x86_64::Reg(x86_64_size, 0);
 
-    x86_64_block_builder.AddInstr<x86_64::Push>(x86_64_tmp_reg);
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_origin);
-    x86_64_block_builder.AddInstr<x86_64::Mov>(x86_64_result, x86_64_tmp_reg);
-    x86_64_block_builder.AddInstr<x86_64::Pop>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Push>(x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_tmp_reg, x86_64_origin);
+    x86_64_block->AddInstr<x86_64::Mov>(x86_64_result, x86_64_tmp_reg);
+    x86_64_block->AddInstr<x86_64::Pop>(x86_64_tmp_reg);
   }
 }
 
@@ -1072,8 +1047,7 @@ x86_64::Operand IRTranslator::TranslateFuncConstant(ir::FuncConstant* constant) 
   if (constant == ir::NilFunc().get()) {
     return x86_64::Imm(int32_t{0});
   }
-  return x86_64::FuncRef(constant->value() +
-                         x86_64_program_builder_.program()->declared_funcs().size());
+  return x86_64::FuncRef(constant->value() + x86_64_program_->declared_funcs().size());
 }
 
 x86_64::RM IRTranslator::TranslateComputed(ir::Computed* computed, ir::Func* ir_func) {
