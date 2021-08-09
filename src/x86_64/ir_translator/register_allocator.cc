@@ -54,6 +54,21 @@ x86_64::RM OperandForResult(int result_index, x86_64::Size size) {
   }
 }
 
+RegSavingBehaviour SavingBehaviourForReg(x86_64::Reg reg) {
+  switch (reg.reg()) {
+    case 3:   // rbx
+    case 4:   // rsp
+    case 5:   // rbp
+    case 12:  // r12
+    case 13:  // r13
+    case 14:  // r14
+    case 15:  // r15
+      return RegSavingBehaviour::kByCallee;
+    default:
+      return RegSavingBehaviour::kByCaller;
+  }
+}
+
 x86_64::RM ColorAndSizeToOperand(ir_info::color_t color, x86_64::Size size) {
   if (0 <= color && color <= 3) {
     return x86_64::Reg(size, color);
