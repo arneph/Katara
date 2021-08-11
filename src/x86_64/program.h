@@ -25,7 +25,7 @@ class Program {
   const std::vector<std::unique_ptr<Func>>& defined_funcs() const { return defined_funcs_; }
   const std::unordered_map<std::string, int64_t>& declared_funcs() const { return declared_funcs_; }
 
-  void DeclareFunc(std::string func_name);
+  func_num_t DeclareFunc(std::string func_name);
   Func* DefineFunc(std::string func_name);
   Func* DefinedFuncWithName(std::string name) const;
 

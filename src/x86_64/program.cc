@@ -12,9 +12,10 @@
 
 namespace x86_64 {
 
-void Program::DeclareFunc(std::string func_name) {
+func_num_t Program::DeclareFunc(std::string func_name) {
   func_num_t func_num = defined_funcs_.size() + declared_funcs_.size();
   declared_funcs_.emplace(func_name, func_num);
+  return func_num;
 }
 
 Func* Program::DefineFunc(std::string func_name) {
