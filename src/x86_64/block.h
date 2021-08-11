@@ -39,8 +39,8 @@ class Block {
   }
 
   template <class T, class... Args>
-  std::vector<std::unique_ptr<Instr>>::iterator InsertInstr(
-      std::vector<std::unique_ptr<Instr>>::iterator it, Args&&... args) {
+  std::vector<std::unique_ptr<Instr>>::const_iterator InsertInstr(
+      std::vector<std::unique_ptr<Instr>>::const_iterator it, Args&&... args) {
     return instrs_.insert(it, std::make_unique<T>(args...));
   }
 
