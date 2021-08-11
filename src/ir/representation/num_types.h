@@ -9,6 +9,8 @@
 #ifndef ir_num_types_h
 #define ir_num_types_h
 
+#include <cstdint>
+
 namespace ir {
 
 typedef int64_t func_num_t;
