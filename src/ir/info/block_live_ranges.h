@@ -41,10 +41,10 @@ class BlockLiveRanges {
     const ir::Instr* start_instr_;
     const ir::Instr* end_instr_;
   };
-  
+
   bool InstrsAreOrdered(const ir::Instr* instr_a, const ir::Instr* instr_b) const;
   bool InstrIsInRange(const ir::Instr* instr, const ValueRange& range) const;
-  
+
   const ir::Block* block_;
   std::unordered_map<ir::value_num_t, ValueRange> value_ranges_;
 };
