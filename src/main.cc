@@ -247,9 +247,9 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
   auto ir_program_debug_info_generator =
       [main_pkg, debug_dir](
           ir::Program* program, std::string iter,
-          std::unordered_map<ir::func_num_t, ir_info::FuncLiveRanges>* live_ranges = nullptr,
-          std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph>* interference_graphs =
-              nullptr) {
+          std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges>* live_ranges = nullptr,
+          std::unordered_map<ir::func_num_t,
+                             const ir_info::InterferenceGraph>* interference_graphs = nullptr) {
         to_file(program->ToString(), debug_dir / ("ir." + iter + ".txt"));
 
         for (auto& func : program->funcs()) {
@@ -262,12 +262,12 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
           to_file(func_cfg.ToDotFormat(), debug_dir / (file_name + ".cfg.dot"));
           to_file(func_dom.ToDotFormat(), debug_dir / (file_name + ".dom.dot"));
           if (live_ranges != nullptr) {
-            ir_info::FuncLiveRanges& func_live_ranges = live_ranges->at(func->number());
+            const ir_info::FuncLiveRanges& func_live_ranges = live_ranges->at(func->number());
 
             to_file(func_live_ranges.ToString(), debug_dir / (file_name + ".live_range_info.txt"));
           }
           if (interference_graphs != nullptr) {
-            ir_info::InterferenceGraph& func_interference_graph =
+            const ir_info::InterferenceGraph& func_interference_graph =
                 interference_graphs->at(func->number());
 
             to_file(func_interference_graph.ToString(), debug_dir / (file_name + ".interference_"
@@ -298,11 +298,12 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
   }
 
   lang::ir_lowerers::LowerSharedPointersInProgram(ir_program.get());
-  std::unordered_map<ir::func_num_t, ir_info::FuncLiveRanges> live_ranges;
-  std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph> interference_graphs;
+  std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges> live_ranges;
+  std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph> interference_graphs;
   for (auto& func : ir_program->funcs()) {
-    ir_info::FuncLiveRanges func_live_ranges = ir_analyzers::FindLiveRangesForFunc(func.get());
-    ir_info::InterferenceGraph func_interference_graph =
+    const ir_info::FuncLiveRanges func_live_ranges =
+        ir_analyzers::FindLiveRangesForFunc(func.get());
+    const ir_info::InterferenceGraph func_interference_graph =
         ir_analyzers::BuildInterferenceGraphForFunc(func.get(), func_live_ranges);
 
     live_ranges.insert({func->number(), func_live_ranges});
@@ -316,8 +317,8 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
   for (auto& func : ir_program->funcs()) {
     ir_processors::ResolvePhisInFunc(func.get());
   }
-  std::unique_ptr<x86_64::Program> x86_64_program = x86_64_ir_translator::IRTranslator::Translate(
-      ir_program.get(), live_ranges, interference_graphs);
+  std::unique_ptr<x86_64::Program> x86_64_program =
+      ir_to_x86_64_translator::Translate(ir_program.get(), live_ranges, interference_graphs);
   if (generate_debug_info) {
     to_file(x86_64_program->ToString(), debug_dir / "x86_64.txt");
   }

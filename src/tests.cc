@@ -57,12 +57,13 @@ void run_ir_test(std::filesystem::path test_dir) {
             out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".dom.dot");
   }
 
-  std::unordered_map<ir::func_num_t, ir_info::FuncLiveRanges> live_ranges;
-  std::unordered_map<ir::func_num_t, ir_info::InterferenceGraph> interference_graphs;
+  std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges> live_ranges;
+  std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph> interference_graphs;
 
   for (auto& func : ir_program->funcs()) {
-    ir_info::FuncLiveRanges func_live_ranges = ir_analyzers::FindLiveRangesForFunc(func.get());
-    ir_info::InterferenceGraph func_interference_graph =
+    const ir_info::FuncLiveRanges func_live_ranges =
+        ir_analyzers::FindLiveRangesForFunc(func.get());
+    const ir_info::InterferenceGraph func_interference_graph =
         ir_analyzers::BuildInterferenceGraphForFunc(func.get(), func_live_ranges);
 
     live_ranges.insert({func->number(), func_live_ranges});
@@ -90,8 +91,8 @@ void run_ir_test(std::filesystem::path test_dir) {
             out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".dom.dot");
   }
 
-  auto x86_64_program = x86_64_ir_translator::IRTranslator::Translate(ir_program.get(), live_ranges,
-                                                                      interference_graphs);
+  auto x86_64_program =
+      ir_to_x86_64_translator::Translate(ir_program.get(), live_ranges, interference_graphs);
 
   to_file(x86_64_program->ToString(), out_file_base.string() + ".x86_64.txt");
 }

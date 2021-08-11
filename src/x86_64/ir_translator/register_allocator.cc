@@ -10,13 +10,12 @@
 
 #include "src/common/logging.h"
 #include "src/ir/analyzers/interference_graph_colorer.h"
-#include "src/ir/info/interference_graph.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/values.h"
 
-namespace x86_64_ir_translator {
+namespace ir_to_x86_64_translator {
 
 x86_64::RM OperandForArg(int arg_index, x86_64::Size size) {
   switch (arg_index) {
@@ -125,8 +124,6 @@ void AddPreferredColorsForFuncResults(const ir::ReturnInstr* return_instr,
   }
 }
 
-}  // namespace
-
 const ir_info::InterferenceGraphColors AllocateRegistersInFunc(
     const ir::Func* func, const ir_info::InterferenceGraph& graph) {
   ir_info::InterferenceGraphColors preferred_colors;
@@ -146,4 +143,21 @@ const ir_info::InterferenceGraphColors AllocateRegistersInFunc(
   return ir_analyzers::ColorInterferenceGraph(graph, preferred_colors);
 }
 
-}  // namespace x86_64_ir_translator
+}  // namespace
+
+std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraphColors> AllocateRegisters(
+    const ir::Program* program,
+    const std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>&
+        interference_graphs) {
+  std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraphColors>
+      interference_graph_colors;
+  interference_graph_colors.reserve(interference_graphs.size());
+  for (auto& ir_func : program->funcs()) {
+    interference_graph_colors.emplace(
+        ir_func->number(),
+        AllocateRegistersInFunc(ir_func.get(), interference_graphs.at(ir_func->number())));
+  }
+  return interference_graph_colors;
+}
+
+}  // namespace ir_to_x86_64_translator
