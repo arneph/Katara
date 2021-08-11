@@ -22,7 +22,7 @@ void BacktraceBlock(const ir::Func* func, const ir::Block* block,
     for (auto& defined_value : instr->DefinedValues()) {
       live_ranges.AddValueDefinition(defined_value->number(), instr);
     }
-    
+
     for (auto& used_value : instr->UsedValues()) {
       if (used_value->kind() != ir::Value::Kind::kComputed) {
         continue;
@@ -31,7 +31,7 @@ void BacktraceBlock(const ir::Func* func, const ir::Block* block,
       live_ranges.AddValueUse(used_computed->number(), instr);
     }
   });
-  
+
   // Include values used in phi instructions of children
   for (ir::block_num_t child_num : block->children()) {
     func->GetBlock(child_num)->ForEachPhiInstr([&](ir::PhiInstr* instr) {
