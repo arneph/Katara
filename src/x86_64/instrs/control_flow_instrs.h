@@ -1,13 +1,13 @@
 //
-//  cf_instrs.h
+//  control_flow_instrs.h
 //  Katara
 //
 //  Created by Arne Philipeit on 12/17/19.
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#ifndef x86_64_cf_instrs_h
-#define x86_64_cf_instrs_h
+#ifndef x86_64_control_flow_instrs_h
+#define x86_64_control_flow_instrs_h
 
 #include <memory>
 #include <string>
@@ -73,4 +73,4 @@ class Ret final : public Instr {
 
 }  // namespace x86_64
 
-#endif /* x86_64_cf_instrs_h */
+#endif /* x86_64_control_flow_instrs_h */

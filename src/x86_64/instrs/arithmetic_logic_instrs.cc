@@ -1,12 +1,12 @@
 //
-//  al_instrs.cc
+//  arithmetic_logic_instrs.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 12/17/19.
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#include "al_instrs.h"
+#include "arithmetic_logic_instrs.h"
 
 #include "src/common/logging.h"
 #include "src/x86_64/instrs/instr_encoder.h"

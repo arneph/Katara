@@ -1,12 +1,12 @@
 //
-//  cf_instrs.cc
+//  control_flow_instrs.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 12/17/19.
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#include "cf_instrs.h"
+#include "control_flow_instrs.h"
 
 #include <iomanip>
 

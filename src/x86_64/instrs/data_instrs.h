@@ -13,8 +13,8 @@
 #include <string>
 
 #include "src/common/data_view.h"
-#include "src/x86_64/instrs/cf_instrs.h"
 #include "src/x86_64/instrs/instr.h"
+#include "src/x86_64/instrs/instr_cond.h"
 #include "src/x86_64/machine_code/linker.h"
 #include "src/x86_64/ops.h"
 

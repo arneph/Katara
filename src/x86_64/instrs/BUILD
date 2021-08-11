@@ -40,14 +40,14 @@ cc_library(
 cc_library(
     name = "instrs",
     srcs = [
-        "al_instrs.cc",
-        "cf_instrs.cc",
+        "arithmetic_logic_instrs.cc",
+        "control_flow_instrs.cc",
         "data_instrs.cc",
         "instr_cond.cc",
     ],
     hdrs = [
-        "al_instrs.h",
-        "cf_instrs.h",
+        "arithmetic_logic_instrs.h",
+        "control_flow_instrs.h",
         "data_instrs.h",
         "instr.h",
         "instr_cond.h",

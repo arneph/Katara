@@ -14,7 +14,7 @@
 
 #include "src/common/logging.h"
 #include "src/ir/representation/values.h"
-#include "src/x86_64/instrs/al_instrs.h"
+#include "src/x86_64/instrs/arithmetic_logic_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/instrs/instr_cond.h"

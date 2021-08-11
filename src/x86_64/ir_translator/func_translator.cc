@@ -13,6 +13,7 @@
 
 #include "src/ir/representation/block.h"
 #include "src/x86_64/block.h"
+#include "src/x86_64/instrs/control_flow_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/ir_translator/instrs_translator.h"
 
