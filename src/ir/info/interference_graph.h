@@ -43,6 +43,9 @@ constexpr color_t kNoColor = -1;
 class InterferenceGraphColors {
  public:
   color_t GetColor(ir::value_num_t value) const;
+  std::unordered_set<ir_info::color_t> GetColors(
+      const std::unordered_set<ir::value_num_t>& values) const;
+
   void SetColor(ir::value_num_t value, color_t color) { colors_.insert({value, color}); }
 
   std::string ToString() const;

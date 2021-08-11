@@ -145,6 +145,15 @@ color_t InterferenceGraphColors::GetColor(ir::value_num_t value) const {
   }
 }
 
+std::unordered_set<ir_info::color_t> InterferenceGraphColors::GetColors(
+    const std::unordered_set<ir::value_num_t>& values) const {
+  std::unordered_set<ir_info::color_t> colors;
+  for (ir::value_num_t value : values) {
+    colors.insert(GetColor(value));
+  }
+  return colors;
+}
+
 std::string InterferenceGraphColors::ToString() const {
   std::stringstream ss;
   ss << "interference graph colors:";
