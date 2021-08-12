@@ -51,6 +51,22 @@ void BlockLiveRanges::PropagateBackwardsFromExitSet(ir::value_num_t value) {
   }
 }
 
+const ir::Instr* BlockLiveRanges::ValueDefinitionOf(ir::value_num_t value) const {
+  if (auto it = value_ranges_.find(value); it != value_ranges_.end()) {
+    return it->second.start_instr_;
+  } else {
+    return nullptr;
+  }
+}
+
+const ir::Instr* BlockLiveRanges::LastValueUseOf(ir::value_num_t value) const {
+  if (auto it = value_ranges_.find(value); it != value_ranges_.end()) {
+    return it->second.end_instr_;
+  } else {
+    return nullptr;
+  }
+}
+
 std::unordered_set<ir::value_num_t> BlockLiveRanges::GetEntrySet() const {
   std::unordered_set<ir::value_num_t> entry_set;
   for (auto& [value, range] : value_ranges_) {

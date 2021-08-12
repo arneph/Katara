@@ -30,6 +30,9 @@ class BlockLiveRanges {
   void AddValueUse(ir::value_num_t value, const ir::Instr* instr);
   void PropagateBackwardsFromExitSet(ir::value_num_t value);
 
+  const ir::Instr* ValueDefinitionOf(ir::value_num_t value) const;
+  const ir::Instr* LastValueUseOf(ir::value_num_t value) const;
+
   std::unordered_set<ir::value_num_t> GetEntrySet() const;
   std::unordered_set<ir::value_num_t> GetExitSet() const;
   std::unordered_set<ir::value_num_t> GetLiveSet(const ir::Instr* instr) const;
