@@ -26,10 +26,8 @@ void GenerateMov(ir::Computed* ir_result, ir::Value* ir_origin, ir::Instr* instr
     return;
   }
 
-  if (!x86_64_result.is_mem() || !x86_64_origin.is_mem()) {
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, x86_64_origin);
-
-  } else {
+  if ((x86_64_origin.is_imm() && x86_64_origin.size() == x86_64::k64) ||
+      (x86_64_result.is_mem() && x86_64_origin.is_mem())) {
     x86_64::Size x86_64_size = TranslateSizeOfType(ir_result->type());
     TemporaryReg tmp = TemporaryReg::Prepare(x86_64_size, /*can_be_result_reg=*/false, instr, ctx);
 
@@ -37,6 +35,8 @@ void GenerateMov(ir::Computed* ir_result, ir::Value* ir_origin, ir::Instr* instr
     ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, tmp.reg());
 
     tmp.Restore(ctx);
+  } else {
+    ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, x86_64_origin);
   }
 }
 

@@ -54,13 +54,29 @@ x86_64::Imm TranslateIntConstant(ir::IntConstant* constant) {
     case common::IntType::kI32:
     case common::IntType::kU32:
       return x86_64::Imm(int32_t(constant->value().AsInt64()));
-    case common::IntType::kI64:
-    case common::IntType::kU64:
-      return x86_64::Imm(int64_t(constant->value().AsInt64()));
+    case common::IntType::kI64: {
+      common::Int value = constant->value();
+      if (value.CanConvertTo(common::IntType::kI32)) {
+        return x86_64::Imm(int32_t(value.AsInt64()));
+      } else {
+        return x86_64::Imm(int64_t(value.AsInt64()));
+      }
+    }
+    case common::IntType::kU64: {
+      common::Int value = constant->value();
+      if (value.CanConvertTo(common::IntType::kU32)) {
+        return x86_64::Imm(int32_t(value.AsInt64()));
+      } else {
+        return x86_64::Imm(int64_t(value.AsInt64()));
+      }
+    }
   }
 }
 
 x86_64::Imm TranslatePointerConstant(ir::PointerConstant* constant) {
+  if (constant == ir::NilPointer().get()) {
+    return x86_64::Imm(int32_t{0});
+  }
   return x86_64::Imm(constant->value());
 }
 
