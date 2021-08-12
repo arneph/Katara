@@ -91,10 +91,10 @@ void run_ir_test(std::filesystem::path test_dir) {
             out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".dom.dot");
   }
 
-  auto x86_64_program =
+  ir_to_x86_64_translator::TranslationResults translation_results =
       ir_to_x86_64_translator::Translate(ir_program.get(), live_ranges, interference_graphs);
 
-  to_file(x86_64_program->ToString(), out_file_base.string() + ".x86_64.txt");
+  to_file(translation_results.program->ToString(), out_file_base.string() + ".x86_64.txt");
 }
 
 void test_ir() {

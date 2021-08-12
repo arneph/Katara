@@ -317,15 +317,26 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
   for (auto& func : ir_program->funcs()) {
     ir_processors::ResolvePhisInFunc(func.get());
   }
-  std::unique_ptr<x86_64::Program> x86_64_program =
-      ir_to_x86_64_translator::Translate(ir_program.get(), live_ranges, interference_graphs);
+
+  ir_to_x86_64_translator::TranslationResults translation_results =
+      ir_to_x86_64_translator::Translate(ir_program.get(), live_ranges, interference_graphs,
+                                         generate_debug_info);
+
   if (generate_debug_info) {
-    to_file(x86_64_program->ToString(), debug_dir / "x86_64.txt");
+    to_file(translation_results.program->ToString(), debug_dir / "x86_64.txt");
+    for (auto& func : ir_program->funcs()) {
+      ir::func_num_t func_num = func->number();
+      std::string file_name =
+          main_pkg->name() + "_@" + std::to_string(func_num) + "_" + func->name() + ".x86_64";
+
+      to_file(translation_results.interference_graph_colors.at(func_num).ToString(),
+              debug_dir / (file_name + ".colors.txt"));
+    }
   }
 
   return BuildResult{
       .ir_program = std::move(ir_program),
-      .x86_64_program = std::move(x86_64_program),
+      .x86_64_program = std::move(translation_results.program),
       .exit_code = 0,
   };
 }

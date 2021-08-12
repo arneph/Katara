@@ -20,11 +20,19 @@
 
 namespace ir_to_x86_64_translator {
 
-std::unique_ptr<x86_64::Program> Translate(
+struct TranslationResults {
+  std::unique_ptr<x86_64::Program> program;
+
+  // Debug info:
+  std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraphColors>
+      interference_graph_colors;
+};
+
+TranslationResults Translate(
     const ir::Program* program,
     const std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges>& live_ranges,
-    const std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>&
-        interference_graphs);
+    const std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>& interference_graphs,
+    bool generate_debug_info = false);
 
 }  // namespace ir_to_x86_64_translator
 

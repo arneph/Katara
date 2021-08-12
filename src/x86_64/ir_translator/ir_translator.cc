@@ -38,11 +38,11 @@ std::vector<x86_64::Func*> PrepareFuncs(ProgramContext& ctx) {
 
 }  // namespace
 
-std::unique_ptr<x86_64::Program> Translate(
+TranslationResults Translate(
     const ir::Program* ir_program,
     const std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges>& live_ranges,
-    const std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>&
-        interference_graphs) {
+    const std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>& interference_graphs,
+    bool generate_debug_info) {
   auto x86_64_program = std::make_unique<x86_64::Program>();
 
   x86_64::func_num_t malloc_func_num = x86_64_program->DeclareFunc("malloc");
@@ -64,7 +64,14 @@ std::unique_ptr<x86_64::Program> Translate(
     TranslateFunc(func_ctx);
   }
 
-  return x86_64_program;
+  TranslationResults results{
+      .program = std::move(x86_64_program),
+  };
+  if (generate_debug_info) {
+    results.interference_graph_colors = std::move(interference_graph_colors);
+  }
+
+  return results;
 }
 
 }  // namespace ir_to_x86_64_translator
