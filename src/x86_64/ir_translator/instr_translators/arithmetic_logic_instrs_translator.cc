@@ -27,14 +27,13 @@
 namespace ir_to_x86_64_translator {
 
 void TranslateBoolNotInstr(ir::BoolNotInstr* ir_bool_not_instr, BlockContext& ctx) {
-  auto ir_result = ir_bool_not_instr->result().get();
-  auto ir_operand = ir_bool_not_instr->operand().get();
+  x86_64::RM x86_64_result = TranslateComputed(ir_bool_not_instr->result().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand =
+      TranslateValue(ir_bool_not_instr->operand().get(), ctx.func_ctx());
 
-  GenerateMov(ir_result, ir_operand, ir_bool_not_instr, ctx);
+  GenerateMov(x86_64_result, x86_64_operand, ir_bool_not_instr, ctx);
 
-  x86_64::RM x86_64_operand = TranslateComputed(ir_result, ctx.func_ctx());
-
-  ctx.x86_64_block()->AddInstr<x86_64::Not>(x86_64_operand);
+  ctx.x86_64_block()->AddInstr<x86_64::Not>(x86_64_result);
 }
 
 void TranslateBoolBinaryInstr(ir::BoolBinaryInstr* ir_bool_binary_instr, BlockContext& ctx) {
@@ -53,10 +52,6 @@ void TranslateBoolBinaryInstr(ir::BoolBinaryInstr* ir_bool_binary_instr, BlockCo
 void TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compare_instr, BlockContext& ctx) {
   // Note: It is assumed that neither operand is a constant. A constant folding optimization pass
   // should ensure this.
-  auto ir_result = ir_bool_compare_instr->result().get();
-  auto ir_operand_a = static_cast<ir::Computed*>(ir_bool_compare_instr->operand_a().get());
-  auto ir_operand_b = static_cast<ir::Computed*>(ir_bool_compare_instr->operand_b().get());
-
   x86_64::InstrCond x86_64_cond = [](common::Bool::BinaryOp op) {
     switch (op) {
       case common::Bool::BinaryOp::kEq:
@@ -67,10 +62,12 @@ void TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compare_instr, Block
         common::fail("unexpected bool compare op");
     }
   }(ir_bool_compare_instr->operation());
-
-  x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
-  x86_64::RM x86_64_operand_a = TranslateComputed(ir_operand_a, ctx.func_ctx());
-  x86_64::RM x86_64_operand_b = TranslateComputed(ir_operand_b, ctx.func_ctx());
+  x86_64::RM x86_64_result =
+      TranslateComputed(ir_bool_compare_instr->result().get(), ctx.func_ctx());
+  x86_64::RM x86_64_operand_a = TranslateComputed(
+      static_cast<ir::Computed*>(ir_bool_compare_instr->operand_a().get()), ctx.func_ctx());
+  x86_64::RM x86_64_operand_b = TranslateComputed(
+      static_cast<ir::Computed*>(ir_bool_compare_instr->operand_b().get()), ctx.func_ctx());
 
   std::optional<TemporaryReg> tmp;
   if (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem()) {
@@ -90,14 +87,17 @@ void TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compare_instr, Block
 void TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_instr, BlockContext& ctx) {
   // Note: It is assumed that neither operand is a constant. A constant folding optimization pass
   // should ensure this.
-  auto ir_result = ir_bool_logic_instr->result().get();
-  auto ir_operand_a = static_cast<ir::Computed*>(ir_bool_logic_instr->operand_a().get());
-  auto ir_operand_b = static_cast<ir::Computed*>(ir_bool_logic_instr->operand_b().get());
+  x86_64::RM x86_64_result = TranslateComputed(ir_bool_logic_instr->result().get(), ctx.func_ctx());
+  x86_64::RM x86_64_operand_a = TranslateComputed(
+      static_cast<ir::Computed*>(ir_bool_logic_instr->operand_a().get()), ctx.func_ctx());
+  x86_64::RM x86_64_operand_b = TranslateComputed(
+      static_cast<ir::Computed*>(ir_bool_logic_instr->operand_b().get()), ctx.func_ctx());
 
-  GenerateMov(ir_result, ir_operand_a, ir_bool_logic_instr, ctx);
-
-  x86_64::RM x86_64_operand_a = TranslateComputed(ir_result, ctx.func_ctx());
-  x86_64::RM x86_64_operand_b = TranslateComputed(ir_operand_b, ctx.func_ctx());
+  if (x86_64_result == x86_64_operand_b) {
+    x86_64_operand_b = x86_64_operand_a;
+  } else {
+    GenerateMov(x86_64_result, x86_64_operand_a, ir_bool_logic_instr, ctx);
+  }
 
   std::optional<TemporaryReg> tmp;
   if (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem()) {
@@ -108,10 +108,10 @@ void TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_instr, BlockCont
 
   switch (ir_bool_logic_instr->operation()) {
     case common::Bool::BinaryOp::kAnd:
-      ctx.x86_64_block()->AddInstr<x86_64::And>(x86_64_operand_a, x86_64_operand_b);
+      ctx.x86_64_block()->AddInstr<x86_64::And>(x86_64_result, x86_64_operand_b);
       break;
     case common::Bool::BinaryOp::kOr:
-      ctx.x86_64_block()->AddInstr<x86_64::Or>(x86_64_operand_a, x86_64_operand_b);
+      ctx.x86_64_block()->AddInstr<x86_64::Or>(x86_64_result, x86_64_operand_b);
       break;
     default:
       common::fail("unexpexted bool logic op");
@@ -125,12 +125,11 @@ void TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_instr, BlockCont
 void TranslateIntUnaryInstr(ir::IntUnaryInstr* ir_int_unary_instr, BlockContext& ctx) {
   // Note: It is assumed that the operand is not a constant. A constant folding optimization pass
   // should ensure this.
-  auto ir_result = ir_int_unary_instr->result().get();
-  auto ir_operand_a = static_cast<ir::Computed*>(ir_int_unary_instr->operand().get());
+  x86_64::RM x86_64_result = TranslateComputed(ir_int_unary_instr->result().get(), ctx.func_ctx());
+  x86_64::RM x86_64_operand = TranslateComputed(
+      static_cast<ir::Computed*>(ir_int_unary_instr->operand().get()), ctx.func_ctx());
 
-  GenerateMov(ir_result, ir_operand_a, ir_int_unary_instr, ctx);
-
-  x86_64::RM x86_64_operand = TranslateComputed(ir_result, ctx.func_ctx());
+  GenerateMov(x86_64_result, x86_64_operand, ir_int_unary_instr, ctx);
 
   switch (ir_int_unary_instr->operation()) {
     case common::Int::UnaryOp::kNot:
@@ -200,14 +199,14 @@ void TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_instr, BlockCo
 void TranslateIntBinaryInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx) {
   switch (ir_int_binary_instr->operation()) {
     case common::Int::BinaryOp::kAdd:
-    case common::Int::BinaryOp::kSub:
     case common::Int::BinaryOp::kAnd:
     case common::Int::BinaryOp::kOr:
     case common::Int::BinaryOp::kXor:
-      TranslateIntSimpleALInstr(ir_int_binary_instr, ctx);
+      TranslateIntCommutativeALInstr(ir_int_binary_instr, ctx);
       break;
-    case common::Int::BinaryOp::kAndNot:
-      common::fail("int andnot operation was not decomposed into separate instrs");
+    case common::Int::BinaryOp::kSub:
+      TranslateIntSubInstr(ir_int_binary_instr, ctx);
+      break;
     case common::Int::BinaryOp::kMul:
       TranslateIntMulInstr(ir_int_binary_instr, ctx);
       break;
@@ -215,61 +214,85 @@ void TranslateIntBinaryInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockConte
     case common::Int::BinaryOp::kRem:
       TranslateIntDivOrRemInstr(ir_int_binary_instr, ctx);
       break;
+    case common::Int::BinaryOp::kAndNot:
+      common::fail("int andnot operation was not decomposed into separate instrs");
   }
 }
 
-void TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx) {
+void TranslateIntCommutativeALInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx) {
   // Note: It is assumed that at least one operand is not a constant. A constant folding
   // optimization pass should ensure this.
-  common::Int::BinaryOp op = ir_int_binary_instr->operation();
-  auto ir_result = ir_int_binary_instr->result().get();
-  auto ir_operand_a = ir_int_binary_instr->operand_a().get();
-  auto ir_operand_b = ir_int_binary_instr->operand_b().get();
+  x86_64::RM x86_64_result = TranslateComputed(ir_int_binary_instr->result().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_a =
+      TranslateValue(ir_int_binary_instr->operand_a().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_b =
+      TranslateValue(ir_int_binary_instr->operand_b().get(), ctx.func_ctx());
 
-  if (ir_operand_a->kind() == ir::Value::Kind::kConstant) {
-    switch (op) {
-      case common::Int::BinaryOp::kAdd:
-      case common::Int::BinaryOp::kAnd:
-      case common::Int::BinaryOp::kOr:
-      case common::Int::BinaryOp::kXor:
-        std::swap(ir_operand_a, ir_operand_b);
-        break;
-      default:
-        break;
-    }
+  if (x86_64_operand_a.is_imm()) {
+    std::swap(x86_64_operand_a, x86_64_operand_b);
   }
 
-  GenerateMov(ir_result, ir_operand_a, ir_int_binary_instr, ctx);
-
-  x86_64::RM x86_64_operand_a = TranslateComputed(ir_result, ctx.func_ctx());
-  x86_64::Operand x86_64_operand_b = TranslateValue(ir_operand_b, ctx.func_ctx());
+  if (x86_64_result == x86_64_operand_b) {
+    x86_64_operand_b = x86_64_operand_a;
+  } else {
+    GenerateMov(x86_64_result, x86_64_operand_a, ir_int_binary_instr, ctx);
+  }
 
   std::optional<TemporaryReg> tmp;
   if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
-      (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem())) {
+      (x86_64_operand_b.is_mem() && x86_64_result.is_mem())) {
     tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/false,
                                    ir_int_binary_instr, ctx);
     x86_64_operand_b = tmp->reg();
   }
 
-  switch (op) {
+  switch (ir_int_binary_instr->operation()) {
     case common::Int::BinaryOp::kAdd:
-      ctx.x86_64_block()->AddInstr<x86_64::Add>(x86_64_operand_a, x86_64_operand_b);
-      break;
-    case common::Int::BinaryOp::kSub:
-      ctx.x86_64_block()->AddInstr<x86_64::Sub>(x86_64_operand_a, x86_64_operand_b);
+      ctx.x86_64_block()->AddInstr<x86_64::Add>(x86_64_result, x86_64_operand_b);
       break;
     case common::Int::BinaryOp::kAnd:
-      ctx.x86_64_block()->AddInstr<x86_64::And>(x86_64_operand_a, x86_64_operand_b);
+      ctx.x86_64_block()->AddInstr<x86_64::And>(x86_64_result, x86_64_operand_b);
       break;
     case common::Int::BinaryOp::kOr:
-      ctx.x86_64_block()->AddInstr<x86_64::Or>(x86_64_operand_a, x86_64_operand_b);
+      ctx.x86_64_block()->AddInstr<x86_64::Or>(x86_64_result, x86_64_operand_b);
       break;
     case common::Int::BinaryOp::kXor:
-      ctx.x86_64_block()->AddInstr<x86_64::Xor>(x86_64_operand_a, x86_64_operand_b);
+      ctx.x86_64_block()->AddInstr<x86_64::Xor>(x86_64_result, x86_64_operand_b);
       break;
     default:
       common::fail("unexpexted simple int binary operation");
+  }
+
+  if (tmp.has_value()) {
+    tmp->Restore(ctx);
+  }
+}
+
+void TranslateIntSubInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx) {
+  x86_64::RM x86_64_result = TranslateComputed(ir_int_binary_instr->result().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_a =
+      TranslateValue(ir_int_binary_instr->operand_a().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_b =
+      TranslateValue(ir_int_binary_instr->operand_b().get(), ctx.func_ctx());
+
+  std::optional<TemporaryReg> tmp;
+  if (x86_64_result == x86_64_operand_b) {
+    tmp = TemporaryReg::ForOperand(x86_64_operand_a, /*can_be_result_reg=*/false,
+                                   ir_int_binary_instr, ctx);
+    ctx.x86_64_block()->AddInstr<x86_64::Sub>(tmp->reg(), x86_64_operand_b);
+    ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, tmp->reg());
+
+  } else {
+    GenerateMov(x86_64_result, x86_64_operand_a, ir_int_binary_instr, ctx);
+
+    if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
+        (x86_64_operand_b.is_mem() && x86_64_result.is_mem())) {
+      tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/false,
+                                     ir_int_binary_instr, ctx);
+      x86_64_operand_b = tmp->reg();
+    }
+
+    ctx.x86_64_block()->AddInstr<x86_64::Sub>(x86_64_result, x86_64_operand_b);
   }
 
   if (tmp.has_value()) {
@@ -333,24 +356,28 @@ void TranslatePointerOffsetInstr(ir::PointerOffsetInstr* ir_pointer_offset_instr
                                  BlockContext& ctx) {
   // Note: It is assumed that at least one operand is not a constant. A constant folding
   // optimization pass should ensure this.
-  auto ir_result = ir_pointer_offset_instr->result().get();
-  auto ir_pointer = ir_pointer_offset_instr->pointer().get();
-  auto ir_offset = ir_pointer_offset_instr->offset().get();
+  x86_64::RM x86_64_result =
+      TranslateComputed(ir_pointer_offset_instr->result().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_a =
+      TranslateValue(ir_pointer_offset_instr->pointer().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_b =
+      TranslateValue(ir_pointer_offset_instr->offset().get(), ctx.func_ctx());
 
-  GenerateMov(ir_result, ir_pointer, ir_pointer_offset_instr, ctx);
-
-  x86_64::RM x86_64_operand_a = TranslateComputed(ir_result, ctx.func_ctx());
-  x86_64::Operand x86_64_operand_b = TranslateValue(ir_offset, ctx.func_ctx());
+  if (x86_64_result == x86_64_operand_b) {
+    x86_64_operand_b = x86_64_operand_a;
+  } else {
+    GenerateMov(x86_64_result, x86_64_operand_a, ir_pointer_offset_instr, ctx);
+  }
 
   std::optional<TemporaryReg> tmp;
   if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
-      (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem())) {
+      (x86_64_operand_a.is_mem() && x86_64_result.is_mem())) {
     tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/false,
                                    ir_pointer_offset_instr, ctx);
     x86_64_operand_b = tmp->reg();
   }
 
-  ctx.x86_64_block()->AddInstr<x86_64::Add>(x86_64_operand_a, x86_64_operand_b);
+  ctx.x86_64_block()->AddInstr<x86_64::Add>(x86_64_result, x86_64_operand_b);
 
   if (tmp.has_value()) {
     tmp->Restore(ctx);

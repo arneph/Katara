@@ -17,11 +17,8 @@
 
 namespace ir_to_x86_64_translator {
 
-void GenerateMov(ir::Computed* ir_result, ir::Value* ir_origin, ir::Instr* instr,
+void GenerateMov(x86_64::RM x86_64_result, x86_64::Operand x86_64_origin, ir::Instr* instr,
                  BlockContext& ctx) {
-  x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
-  x86_64::Operand x86_64_origin = TranslateValue(ir_origin, ctx.func_ctx());
-
   if (x86_64_result == x86_64_origin) {
     return;
   }

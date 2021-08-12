@@ -22,7 +22,8 @@ void TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_instr, BlockCont
 void TranslateIntUnaryInstr(ir::IntUnaryInstr* ir_int_unary_instr, BlockContext& ctx);
 void TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_instr, BlockContext& ctx);
 void TranslateIntBinaryInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx);
-void TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx);
+void TranslateIntCommutativeALInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx);
+void TranslateIntSubInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx);
 void TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx);
 void TranslateIntDivOrRemInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx);
 void TranslateIntShiftInstr(ir::IntShiftInstr* ir_int_shift_instr, BlockContext& ctx);

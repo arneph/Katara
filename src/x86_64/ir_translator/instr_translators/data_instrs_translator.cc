@@ -24,10 +24,10 @@
 namespace ir_to_x86_64_translator {
 
 void TranslateMovInstr(ir::MovInstr* ir_mov_instr, BlockContext& ctx) {
-  auto ir_result = ir_mov_instr->result().get();
-  auto ir_origin = ir_mov_instr->origin().get();
+  x86_64::RM x86_64_result = TranslateComputed(ir_mov_instr->result().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_origin = TranslateValue(ir_mov_instr->origin().get(), ctx.func_ctx());
 
-  GenerateMov(ir_result, ir_origin, ir_mov_instr, ctx);
+  GenerateMov(x86_64_result, x86_64_origin, ir_mov_instr, ctx);
 }
 
 void TranslateMallocInstr(ir::MallocInstr* ir_malloc_instr, BlockContext& ctx) {
