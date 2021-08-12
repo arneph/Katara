@@ -277,10 +277,19 @@ void TranslateIntSubInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext&
 
   std::optional<TemporaryReg> tmp;
   if (x86_64_result == x86_64_operand_b) {
-    tmp = TemporaryReg::ForOperand(x86_64_operand_a, /*can_be_result_reg=*/false,
-                                   ir_int_binary_instr, ctx);
-    ctx.x86_64_block()->AddInstr<x86_64::Sub>(tmp->reg(), x86_64_operand_b);
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, tmp->reg());
+    x86_64::Reg r = x86_64::rax;
+    if (x86_64_operand_a.is_reg() &&
+        ir_int_binary_instr ==
+            ctx.live_ranges().LastValueUseOf(
+                static_cast<ir::Computed*>(ir_int_binary_instr->operand_a().get())->number())) {
+      r = x86_64_operand_a.reg();
+    } else {
+      tmp = TemporaryReg::ForOperand(x86_64_operand_a, /*can_be_result_reg=*/false,
+                                     ir_int_binary_instr, ctx);
+      r = tmp->reg();
+    }
+    ctx.x86_64_block()->AddInstr<x86_64::Sub>(r, x86_64_operand_b);
+    ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, r);
 
   } else {
     GenerateMov(x86_64_result, x86_64_operand_a, ir_int_binary_instr, ctx);
