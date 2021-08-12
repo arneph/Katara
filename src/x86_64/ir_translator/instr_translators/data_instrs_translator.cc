@@ -38,48 +38,41 @@ void TranslateLoadInstr(ir::LoadInstr* ir_load_instr, BlockContext& ctx) {
   ir::Value* ir_address = ir_load_instr->address().get();
   ir::Computed* ir_result = ir_load_instr->result().get();
 
-  x86_64::Operand x86_64_address_holder = TranslateValue(ir_address, ctx.func_ctx());
+  x86_64::Operand x86_64_address = TranslateValue(ir_address, ctx.func_ctx());
   x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
-
-  bool requires_address_reg = false;
-  bool address_reg_needs_preservation = !x86_64_result.is_reg();
-  x86_64::Reg x86_64_address_reg = (x86_64_result.is_reg()) ? x86_64_result.reg() : x86_64::rax;
-  if (x86_64_address_holder.is_mem()) {
-    requires_address_reg = true;
-
-  } else if (x86_64_address_holder.is_imm()) {
-    common::Int v = common::Int(static_cast<ir::PointerConstant*>(ir_address)->value());
-    requires_address_reg = !v.CanConvertTo(common::IntType::kI32);
-
-  } else if (x86_64_address_holder.is_reg()) {
-    x86_64_address_reg = x86_64_address_holder.reg();
-    requires_address_reg = true;
-    address_reg_needs_preservation = false;
-  }
-
-  if (requires_address_reg) {
-    if (address_reg_needs_preservation) {
-      ctx.x86_64_block()->AddInstr<x86_64::Push>(x86_64_address_reg);
-    }
-    if (x86_64_address_holder != x86_64_address_reg) {
-      ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_address_reg, x86_64_address_holder);
-    }
-  }
-
   x86_64::Size x86_64_size = TranslateSizeOfType(ir_result->type());
-  x86_64::Mem mem(x86_64_size, int32_t{0});
-  if (requires_address_reg) {
-    mem = x86_64::Mem(x86_64_size, /*base_reg=*/uint8_t(x86_64_address_reg.reg()));
-  } else {
-    if (!x86_64_address_holder.is_imm()) {
-      common::fail("unexpected load address kind");
-    }
-    mem = x86_64::Mem(x86_64_size, /*disp=*/int32_t(x86_64_address_holder.imm().value()));
-  }
-  ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, mem);
 
-  if (requires_address_reg && address_reg_needs_preservation) {
-    ctx.x86_64_block()->AddInstr<x86_64::Pop>(x86_64_address_reg);
+  x86_64::Mem mem(x86_64_size, /*disp=*/int32_t{0});
+  std::optional<TemporaryReg> tmp;
+  if (x86_64_address.is_imm()) {
+    mem = x86_64::Mem(x86_64_size, /*disp=*/int32_t(x86_64_address.imm().value()));
+
+  } else {
+    x86_64::Reg x86_64_address_reg = x86_64::rax;
+    if (x86_64_address.is_reg()) {
+      x86_64_address_reg = x86_64_address.reg();
+    } else {
+      tmp =
+          TemporaryReg::ForOperand(x86_64_address, /*can_use_result_reg=*/true, ir_load_instr, ctx);
+      x86_64_address_reg = tmp->reg();
+    }
+    mem = x86_64::Mem(x86_64_size, /*base_reg=*/uint8_t(x86_64_address_reg.reg()));
+  }
+
+  if (x86_64_result.is_reg()) {
+    ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, mem);
+  } else if (x86_64_result.is_mem()) {
+    if (!tmp.has_value()) {
+      tmp = TemporaryReg::Prepare(x86_64_size, /*can_use_result_reg=*/false, ir_load_instr, ctx);
+    }
+    ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp->reg(), mem);
+    ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, tmp->reg());
+  } else {
+    common::fail("unexpected load result operand");
+  }
+
+  if (tmp.has_value()) {
+    tmp->Restore(ctx);
   }
 }
 
@@ -87,78 +80,41 @@ void TranslateStoreInstr(ir::StoreInstr* ir_store_instr, BlockContext& ctx) {
   ir::Value* ir_address = ir_store_instr->address().get();
   ir::Value* ir_value = ir_store_instr->value().get();
 
-  x86_64::Operand x86_64_address_holder = TranslateValue(ir_address, ctx.func_ctx());
+  x86_64::Operand x86_64_address = TranslateValue(ir_address, ctx.func_ctx());
   x86_64::Operand x86_64_value = TranslateValue(ir_value, ctx.func_ctx());
-
-  bool requires_value_reg = false;
-  x86_64::Reg x86_64_value_reg = x86_64::rax;
-  if (x86_64_value.is_imm() && x86_64_value.imm().size() == x86_64::k64) {
-    common::Int v = common::Int(x86_64_value.imm().value());
-    if (v.CanConvertTo(common::IntType::kI32)) {
-      v.ConvertTo(common::IntType::kI32);
-      x86_64_value = x86_64::Imm(int32_t(v.AsInt64()));
-    } else {
-      requires_value_reg = true;
-    }
-  }
-
-  bool requires_address_reg = false;
-  bool address_reg_needs_preservation = true;
-  x86_64::Reg x86_64_address_reg = x86_64::rax;
-  if (x86_64_address_holder.is_mem()) {
-    requires_address_reg = true;
-
-  } else if (x86_64_address_holder.is_imm()) {
-    common::Int v = common::Int(static_cast<ir::PointerConstant*>(ir_address)->value());
-    if (v.CanConvertTo(common::IntType::kI32)) {
-      v = v.ConvertTo(common::IntType::kI32);
-      x86_64_address_holder = x86_64::Imm(int32_t(v.AsInt64()));
-    } else {
-      requires_address_reg = true;
-    }
-
-  } else if (x86_64_address_holder.is_reg()) {
-    x86_64_address_reg = x86_64_address_holder.reg();
-    requires_address_reg = true;
-    address_reg_needs_preservation = false;
-  }
-
-  if (x86_64_value_reg == x86_64_address_reg) {
-    x86_64_value_reg = x86_64::rdx;
-  }
-
-  if (requires_value_reg) {
-    ctx.x86_64_block()->AddInstr<x86_64::Push>(x86_64_value_reg);
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_value_reg, x86_64_value);
-    x86_64_value = x86_64_value_reg;
-  }
-
-  if (requires_address_reg) {
-    if (address_reg_needs_preservation) {
-      ctx.x86_64_block()->AddInstr<x86_64::Push>(x86_64_address_reg);
-    }
-    if (x86_64_address_holder != x86_64_address_reg) {
-      ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_address_reg, x86_64_address_holder);
-    }
-  }
-
   x86_64::Size x86_64_size = TranslateSizeOfType(ir_value->type());
-  x86_64::Mem mem(x86_64_size, int32_t{0});
-  if (requires_address_reg) {
-    mem = x86_64::Mem(x86_64_size, /*base_reg=*/uint8_t(x86_64_address_reg.reg()));
-  } else {
-    if (!x86_64_address_holder.is_imm()) {
-      common::fail("unexpected load address kind");
-    }
-    mem = x86_64::Mem(x86_64_size, /*disp=*/int32_t(x86_64_address_holder.imm().value()));
+
+  std::optional<TemporaryReg> value_tmp;
+  if ((x86_64_value.is_imm() && x86_64_value.size() == 64) || x86_64_value.is_mem()) {
+    value_tmp =
+        TemporaryReg::ForOperand(x86_64_value, /*can_use_result_reg=*/false, ir_store_instr, ctx);
+    x86_64_value = value_tmp->reg();
   }
+
+  std::optional<TemporaryReg> address_tmp;
+  x86_64::Mem mem(x86_64_size, /*disp=*/int32_t{0});
+  if (x86_64_address.is_imm()) {
+    mem = x86_64::Mem(x86_64_size, /*disp=*/int32_t(x86_64_address.imm().value()));
+
+  } else {
+    x86_64::Reg x86_64_address_reg = x86_64::rax;
+    if (x86_64_address.is_reg()) {
+      x86_64_address_reg = x86_64_address.reg();
+    } else {
+      address_tmp = TemporaryReg::ForOperand(x86_64_address, /*can_use_result_reg=*/false,
+                                             ir_store_instr, ctx);
+      x86_64_address_reg = address_tmp->reg();
+    }
+    mem = x86_64::Mem(x86_64_size, /*base_reg=*/uint8_t(x86_64_address_reg.reg()));
+  }
+
   ctx.x86_64_block()->AddInstr<x86_64::Mov>(mem, x86_64_value);
 
-  if (requires_address_reg && address_reg_needs_preservation) {
-    ctx.x86_64_block()->AddInstr<x86_64::Pop>(x86_64_address_reg);
+  if (address_tmp.has_value()) {
+    address_tmp->Restore(ctx);
   }
-  if (requires_value_reg) {
-    ctx.x86_64_block()->AddInstr<x86_64::Pop>(x86_64_value_reg);
+  if (value_tmp.has_value()) {
+    value_tmp->Restore(ctx);
   }
 }
 
