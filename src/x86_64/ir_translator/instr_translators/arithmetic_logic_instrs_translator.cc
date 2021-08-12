@@ -74,9 +74,8 @@ void TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compare_instr, Block
 
   std::optional<TemporaryReg> tmp;
   if (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem()) {
-    tmp = TemporaryReg::Prepare(x86_64::Size::k8, /*can_be_result_reg=*/true, ir_bool_compare_instr,
-                                ctx);
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp->reg(), x86_64_operand_b);
+    tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/true,
+                                   ir_bool_compare_instr, ctx);
     x86_64_operand_b = tmp->reg();
   }
 
@@ -102,9 +101,8 @@ void TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_instr, BlockCont
 
   std::optional<TemporaryReg> tmp;
   if (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem()) {
-    tmp = TemporaryReg::Prepare(x86_64::Size::k8, /*can_be_result_reg=*/false, ir_bool_logic_instr,
-                                ctx);
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp->reg(), x86_64_operand_b);
+    tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/false,
+                                   ir_bool_logic_instr, ctx);
     x86_64_operand_b = tmp->reg();
   }
 
@@ -186,9 +184,8 @@ void TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_instr, BlockCo
   std::optional<TemporaryReg> tmp;
   if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
       (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem())) {
-    x86_64::Size x86_64_size = x86_64::Size(common::BitSizeOf(ir_type->int_type()));
-    tmp = TemporaryReg::Prepare(x86_64_size, /*can_be_result_reg=*/true, ir_int_compare_instr, ctx);
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp->reg(), x86_64_operand_b);
+    tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/true,
+                                   ir_int_compare_instr, ctx);
     x86_64_operand_b = tmp->reg();
   }
 
@@ -228,7 +225,6 @@ void TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockCon
   auto ir_result = ir_int_binary_instr->result().get();
   auto ir_operand_a = ir_int_binary_instr->operand_a().get();
   auto ir_operand_b = ir_int_binary_instr->operand_b().get();
-  auto ir_type = static_cast<const ir::IntType*>(ir_result->type());
 
   if (ir_operand_a->kind() == ir::Value::Kind::kConstant) {
     switch (op) {
@@ -251,9 +247,8 @@ void TranslateIntSimpleALInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockCon
   std::optional<TemporaryReg> tmp;
   if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
       (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem())) {
-    x86_64::Size x86_64_size = x86_64::Size(common::BitSizeOf(ir_type->int_type()));
-    tmp = TemporaryReg::Prepare(x86_64_size, /*can_be_result_reg=*/false, ir_int_binary_instr, ctx);
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp->reg(), x86_64_operand_b);
+    tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/false,
+                                   ir_int_binary_instr, ctx);
     x86_64_operand_b = tmp->reg();
   }
 
@@ -288,7 +283,6 @@ void TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext&
   auto ir_result = ir_int_binary_instr->result().get();
   auto ir_operand_a = ir_int_binary_instr->operand_a().get();
   auto ir_operand_b = ir_int_binary_instr->operand_b().get();
-  auto ir_type = static_cast<const ir::IntType*>(ir_result->type());
 
   if (ir_operand_a->kind() == ir::Value::Kind::kConstant) {
     std::swap(ir_operand_a, ir_operand_b);
@@ -302,9 +296,8 @@ void TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext&
   std::optional<TemporaryReg> tmp;
   if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
       (!x86_64_result.is_reg() && x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem())) {
-    x86_64::Size x86_64_size = TranslateSizeOfIntType(ir_type);
-    tmp = TemporaryReg::Prepare(x86_64_size, /*can_be_result_reg=*/true, ir_int_binary_instr, ctx);
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp->reg(), x86_64_operand_b);
+    tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/true,
+                                   ir_int_binary_instr, ctx);
     x86_64_operand_b = tmp->reg();
   }
 
@@ -352,9 +345,8 @@ void TranslatePointerOffsetInstr(ir::PointerOffsetInstr* ir_pointer_offset_instr
   std::optional<TemporaryReg> tmp;
   if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
       (x86_64_operand_a.is_mem() && x86_64_operand_b.is_mem())) {
-    tmp = TemporaryReg::Prepare(x86_64::Size::k64, /*can_be_result_reg=*/false,
-                                ir_pointer_offset_instr, ctx);
-    ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp->reg(), x86_64_operand_b);
+    tmp = TemporaryReg::ForOperand(x86_64_operand_b, /*can_be_result_reg=*/false,
+                                   ir_pointer_offset_instr, ctx);
     x86_64_operand_b = tmp->reg();
   }
 

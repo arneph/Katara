@@ -20,6 +20,8 @@ namespace ir_to_x86_64_translator {
 
 class TemporaryReg {
  public:
+  static TemporaryReg ForOperand(x86_64::Operand operand, bool can_use_result_reg,
+                                 const ir::Instr* instr, BlockContext& ctx);
   static TemporaryReg Prepare(x86_64::Size x86_64_size, bool can_use_result_reg,
                               const ir::Instr* instr, BlockContext& ctx);
   static TemporaryReg Prepare(x86_64::Reg reg, const ir::Instr* instr, BlockContext& ctx);

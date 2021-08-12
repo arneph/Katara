@@ -19,6 +19,13 @@
 
 namespace ir_to_x86_64_translator {
 
+TemporaryReg TemporaryReg::ForOperand(x86_64::Operand operand, bool can_use_result_reg,
+                                      const ir::Instr* instr, BlockContext& ctx) {
+  TemporaryReg tmp = Prepare(operand.size(), can_use_result_reg, instr, ctx);
+  ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp.reg(), operand);
+  return tmp;
+}
+
 TemporaryReg TemporaryReg::Prepare(x86_64::Size x86_64_size, bool can_use_result_reg,
                                    const ir::Instr* instr, BlockContext& ctx) {
   if (can_use_result_reg) {
