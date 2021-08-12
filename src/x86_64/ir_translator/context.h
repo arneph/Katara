@@ -118,6 +118,10 @@ class BlockContext {
 
   const ir_info::BlockLiveRanges& live_ranges() const { return live_ranges_; }
 
+  bool IsTemporaryColorUsedDuringInstr(const ir::Instr* instr,
+                                       ir_info::color_t temporary_color) const;
+  void AddTemporaryColorUsedDuringInstr(const ir::Instr* instr, ir_info::color_t temporary_color);
+
  private:
   FuncContext& func_ctx_;
 
@@ -125,6 +129,9 @@ class BlockContext {
   x86_64::Block* x86_64_block_;
 
   const ir_info::BlockLiveRanges& live_ranges_;
+
+  std::unordered_map<const ir::Instr*, std::unordered_set<ir_info::color_t>>
+      instr_temporary_colors_;
 };
 
 }  // namespace ir_to_x86_64_translator

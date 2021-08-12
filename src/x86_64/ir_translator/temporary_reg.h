@@ -38,11 +38,12 @@ class TemporaryReg {
 
   static std::optional<TemporaryReg> PrepareFromResultReg(x86_64::Size x86_64_size,
                                                           const ir::Instr* instr,
-                                                          const BlockContext& ctx);
+                                                          BlockContext& ctx);
   static std::optional<TemporaryReg> PrepareFromUsedInFuncButNotLive(x86_64::Size x86_64_size,
                                                                      const ir::Instr* instr,
-                                                                     const BlockContext& ctx);
+                                                                     BlockContext& ctx);
   static std::optional<TemporaryReg> PrepareFromUnusedInFunc(x86_64::Size x86_64_size,
+                                                             const ir::Instr* instr,
                                                              BlockContext& ctx);
   static std::optional<TemporaryReg> PrepareFromLiveButNotInvolvedInInstr(x86_64::Size x86_64_size,
                                                                           const ir::Instr* instr,

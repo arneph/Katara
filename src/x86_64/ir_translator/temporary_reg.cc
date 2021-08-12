@@ -36,7 +36,7 @@ TemporaryReg TemporaryReg::Prepare(x86_64::Size x86_64_size, bool can_use_result
   if (std::optional<TemporaryReg> tmp = PrepareFromUsedInFuncButNotLive(x86_64_size, instr, ctx)) {
     return tmp.value();
   }
-  if (std::optional<TemporaryReg> tmp = PrepareFromUnusedInFunc(x86_64_size, ctx)) {
+  if (std::optional<TemporaryReg> tmp = PrepareFromUnusedInFunc(x86_64_size, instr, ctx)) {
     return tmp.value();
   }
   if (std::optional<TemporaryReg> tmp =
@@ -48,10 +48,13 @@ TemporaryReg TemporaryReg::Prepare(x86_64::Size x86_64_size, bool can_use_result
 
 std::optional<TemporaryReg> TemporaryReg::PrepareFromResultReg(x86_64::Size x86_64_size,
                                                                const ir::Instr* instr,
-                                                               const BlockContext& ctx) {
+                                                               BlockContext& ctx) {
   for (auto& result : instr->DefinedValues()) {
     ir::value_num_t result_num = result->number();
     ir_info::color_t result_color = ctx.func_ctx().interference_graph_colors().GetColor(result_num);
+    if (ctx.IsTemporaryColorUsedDuringInstr(instr, result_color)) {
+      continue;
+    }
     x86_64::Operand tmp_op = ColorAndSizeToOperand(result_color, x86_64_size);
     if (!tmp_op.is_reg()) {
       continue;
@@ -71,6 +74,7 @@ std::optional<TemporaryReg> TemporaryReg::PrepareFromResultReg(x86_64::Size x86_
     if (result_color_is_also_arg_color) {
       continue;
     }
+    ctx.AddTemporaryColorUsedDuringInstr(instr, result_color);
     return TemporaryReg(tmp_op.reg(), RestorationState::kNotNeeded);
   }
   return std::nullopt;
@@ -78,16 +82,20 @@ std::optional<TemporaryReg> TemporaryReg::PrepareFromResultReg(x86_64::Size x86_
 
 std::optional<TemporaryReg> TemporaryReg::PrepareFromUsedInFuncButNotLive(x86_64::Size x86_64_size,
                                                                           const ir::Instr* instr,
-                                                                          const BlockContext& ctx) {
+                                                                          BlockContext& ctx) {
   const std::unordered_set<ir::value_num_t>& value_live_set = ctx.live_ranges().GetLiveSet(instr);
   const std::unordered_set<ir_info::color_t> color_live_set =
       ctx.func_ctx().interference_graph_colors().GetColors(value_live_set);
 
   for (ir_info::color_t color : ctx.func_ctx().used_colors()) {
+    if (ctx.IsTemporaryColorUsedDuringInstr(instr, color)) {
+      continue;
+    }
     x86_64::Operand tmp_op = ColorAndSizeToOperand(color, x86_64_size);
     if (!tmp_op.is_reg() || color_live_set.contains(color)) {
       continue;
     }
+    ctx.AddTemporaryColorUsedDuringInstr(instr, color);
     return TemporaryReg(tmp_op.reg(), RestorationState::kNotNeeded);
   }
   return std::nullopt;
@@ -96,8 +104,12 @@ std::optional<TemporaryReg> TemporaryReg::PrepareFromUsedInFuncButNotLive(x86_64
 namespace {
 
 std::optional<std::pair<x86_64::Reg, ir_info::color_t>> FindRegWithSizeAndColorIf(
-    x86_64::Size x86_64_size, std::function<bool(ir_info::color_t)> f) {
+    x86_64::Size x86_64_size, const ir::Instr* instr, const BlockContext& ctx,
+    std::function<bool(ir_info::color_t)> f) {
   for (ir_info::color_t color = 0; true; color++) {
+    if (ctx.IsTemporaryColorUsedDuringInstr(instr, color)) {
+      continue;
+    }
     x86_64::Operand tmp_op = ColorAndSizeToOperand(color, x86_64_size);
     if (!tmp_op.is_reg()) {
       break;
@@ -112,13 +124,15 @@ std::optional<std::pair<x86_64::Reg, ir_info::color_t>> FindRegWithSizeAndColorI
 }  // namespace
 
 std::optional<TemporaryReg> TemporaryReg::PrepareFromUnusedInFunc(x86_64::Size x86_64_size,
+                                                                  const ir::Instr* instr,
                                                                   BlockContext& ctx) {
-  auto reg_and_color = FindRegWithSizeAndColorIf(x86_64_size, [ctx](ir_info::color_t color) {
-    return !ctx.func_ctx().used_colors().contains(color);
-  });
+  auto reg_and_color = FindRegWithSizeAndColorIf(
+      x86_64_size, instr, ctx,
+      [ctx](ir_info::color_t color) { return !ctx.func_ctx().used_colors().contains(color); });
   if (reg_and_color) {
     auto [reg, color] = reg_and_color.value();
     ctx.func_ctx().AddUsedColor(color);
+    ctx.AddTemporaryColorUsedDuringInstr(instr, color);
     return TemporaryReg(reg, RestorationState::kNotNeeded);
   }
   return std::nullopt;
@@ -147,13 +161,14 @@ std::optional<TemporaryReg> TemporaryReg::PrepareFromLiveButNotInvolvedInInstr(
   const std::unordered_set<ir::value_num_t> involved_values_set = ValuesInvolvedInInstr(instr);
   const std::unordered_set<ir_info::color_t> involved_colors_set =
       ctx.func_ctx().interference_graph_colors().GetColors(involved_values_set);
-  auto reg_and_color =
-      FindRegWithSizeAndColorIf(x86_64_size, [&involved_colors_set](ir_info::color_t color) {
-        return !involved_colors_set.contains(color);
-      });
+  auto reg_and_color = FindRegWithSizeAndColorIf(x86_64_size, instr, ctx,
+                                                 [&involved_colors_set](ir_info::color_t color) {
+                                                   return !involved_colors_set.contains(color);
+                                                 });
   if (reg_and_color) {
     auto [reg, color] = reg_and_color.value();
     ctx.func_ctx().AddUsedColor(color);
+    ctx.AddTemporaryColorUsedDuringInstr(instr, color);
     ctx.x86_64_block()->AddInstr<x86_64::Push>(reg);
     return TemporaryReg(reg, RestorationState::kNeeded);
   }
@@ -166,6 +181,7 @@ TemporaryReg TemporaryReg::Prepare(x86_64::Reg tmp_reg, const ir::Instr* instr, 
   if (!ctx.func_ctx().used_colors().contains(tmp_color)) {
     // Register was previously unused in the function.
     ctx.func_ctx().AddUsedColor(tmp_color);
+    ctx.AddTemporaryColorUsedDuringInstr(instr, tmp_color);
     return TemporaryReg(tmp_reg, RestorationState::kNotNeeded);
   }
 
@@ -175,9 +191,11 @@ TemporaryReg TemporaryReg::Prepare(x86_64::Reg tmp_reg, const ir::Instr* instr, 
 
   if (!color_live_set.contains(tmp_color)) {
     // Register is not live during the instruction.
+    ctx.AddTemporaryColorUsedDuringInstr(instr, tmp_color);
     return TemporaryReg(tmp_reg, RestorationState::kNotNeeded);
   } else {
     // Register is live during the instruction (and therefore needs preservation).
+    ctx.AddTemporaryColorUsedDuringInstr(instr, tmp_color);
     ctx.x86_64_block()->AddInstr<x86_64::Push>(tmp_reg);
     return TemporaryReg(tmp_reg, RestorationState::kNeeded);
   }
