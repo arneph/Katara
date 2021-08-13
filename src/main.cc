@@ -329,8 +329,13 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
       std::string file_name =
           main_pkg->name() + "_@" + std::to_string(func_num) + "_" + func->name() + ".x86_64";
 
-      to_file(translation_results.interference_graph_colors.at(func_num).ToString(),
-              debug_dir / (file_name + ".colors.txt"));
+      const ir_info::InterferenceGraph& func_interference_graph = interference_graphs.at(func_num);
+      const ir_info::InterferenceGraphColors& func_interference_graph_colors =
+          translation_results.interference_graph_colors.at(func_num);
+
+      to_file(func_interference_graph.ToGraph(&func_interference_graph_colors).ToDotFormat(),
+              debug_dir / (file_name + ".interference_graph.dot"));
+      to_file(func_interference_graph_colors.ToString(), debug_dir / (file_name + ".colors.txt"));
     }
   }
 
