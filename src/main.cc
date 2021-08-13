@@ -270,16 +270,10 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
             const ir_info::InterferenceGraph& func_interference_graph =
                 interference_graphs->at(func->number());
 
-            to_file(func_interference_graph.ToString(), debug_dir / (file_name + ".interference_"
-                                                                                 "graph.txt"));
-            to_file(func_interference_graph.ToGraph().ToDotFormat(), debug_dir / (file_name + ".int"
-                                                                                              "erfe"
-                                                                                              "renc"
-                                                                                              "e_"
-                                                                                              "grap"
-                                                                                              "h."
-                                                                                              "do"
-                                                                                              "t"));
+            to_file(func_interference_graph.ToString(),
+                    debug_dir / (file_name + ".interference_graph.txt"));
+            to_file(func_interference_graph.ToGraph().ToDotFormat(),
+                    debug_dir / (file_name + ".interference_graph.dot"));
           }
         }
       };
