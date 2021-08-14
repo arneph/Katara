@@ -69,7 +69,9 @@ RegSavingBehaviour SavingBehaviourForReg(x86_64::Reg reg) {
 }
 
 x86_64::RM ColorAndSizeToOperand(ir_info::color_t color, x86_64::Size size) {
-  if (0 <= color && color <= 3) {
+  if (color == ir_info::kNoColor) {
+    common::fail("attempted to convert no color to operand");
+  } else if (0 <= color && color <= 3) {
     return x86_64::Reg(size, color);
   } else if (4 <= color && color <= 13) {
     return x86_64::Reg(size, color + 2);
