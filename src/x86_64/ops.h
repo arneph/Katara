@@ -56,6 +56,8 @@ enum class Scale : uint8_t { kS00 = 0, kS01 = 1, kS10 = 2, kS11 = 3 };
 
 class Mem {
  public:
+  static Mem BasePointerDisp(Size size, int32_t disp);
+
   Mem(Size size, int32_t disp);
   Mem(Size size, uint8_t base_reg, int32_t disp = 0);
   Mem(Size size, uint8_t index_reg, Scale scale, int32_t disp = 0);

@@ -221,6 +221,12 @@ bool operator==(const Reg& lhs, const Reg& rhs) {
 
 bool operator!=(const Reg& lhs, const Reg& rhs) { return !(lhs == rhs); }
 
+Mem Mem::BasePointerDisp(Size size, int32_t disp) {
+  return x86_64::Mem(size,
+                     /* base_reg= */ 5 /* (base pointer) */,
+                     /* disp= */ disp);
+}
+
 Mem::Mem(Size size, int32_t disp) : Mem(size, 0xff, 0xff, Scale::kS00, disp) {}
 
 Mem::Mem(Size size, uint8_t base_reg, int32_t disp)

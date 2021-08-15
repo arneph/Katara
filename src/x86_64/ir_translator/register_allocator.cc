@@ -76,9 +76,7 @@ x86_64::RM ColorAndSizeToOperand(ir_info::color_t color, x86_64::Size size) {
   } else if (4 <= color && color <= 13) {
     return x86_64::Reg(size, color + 2);
   } else {
-    return x86_64::Mem(size,
-                       /* base_reg= */ 5 /* (base pointer) */,
-                       /* disp= */ int32_t(-8 * (color - 14)));
+    return x86_64::Mem::BasePointerDisp(size, int32_t(-8 * (color - 14)));
   }
 }
 
