@@ -39,6 +39,7 @@ class Mov final : public Instr {
 };
 
 class Xchg final : public Instr {
+ public:
   Xchg(RM rm, Reg reg);
 
   RM op_a() const { return op_a_; }
