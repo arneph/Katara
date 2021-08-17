@@ -8,12 +8,15 @@
 
 #include "ops.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 
 #include "src/common/logging.h"
 
 namespace x86_64 {
+
+Size Max(Size a, Size b) { return std::max(a, b); }
 
 Reg::Reg(Size size, uint8_t reg) : size_(size), reg_(reg) {
   if (reg > 15) common::fail("register out of bounds: " + std::to_string(reg));
@@ -221,6 +224,8 @@ bool operator==(const Reg& lhs, const Reg& rhs) {
 
 bool operator!=(const Reg& lhs, const Reg& rhs) { return !(lhs == rhs); }
 
+Reg Resize(Reg reg, Size new_size) { return Reg(new_size, reg.reg()); }
+
 Mem Mem::BasePointerDisp(Size size, int32_t disp) {
   return x86_64::Mem(size,
                      /* base_reg= */ 5 /* (base pointer) */,
@@ -371,6 +376,10 @@ bool operator==(const Mem& lhs, const Mem& rhs) {
 }
 
 bool operator!=(const Mem& lhs, const Mem& rhs) { return !(lhs == rhs); }
+
+Mem Resize(Mem mem, Size new_size) {
+  return Mem(new_size, mem.base_reg(), mem.index_reg(), mem.scale(), mem.disp());
+}
 
 bool Imm::RequiresREX() const {
   switch (size_) {
@@ -590,6 +599,17 @@ void RM::EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint
     case Operand::Kind::kMem:
       mem().EncodeInModRM_SIB_Disp(rex, modrm, sib, disp);
       break;
+    default:
+      common::fail("unexpected rm kind");
+  }
+}
+
+RM Resize(RM rm, Size new_size) {
+  switch (rm.kind()) {
+    case Operand::Kind::kReg:
+      return Resize(rm.reg(), new_size);
+    case Operand::Kind::kMem:
+      return Resize(rm.mem(), new_size);
     default:
       common::fail("unexpected rm kind");
   }

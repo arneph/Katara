@@ -22,6 +22,8 @@ typedef enum : int8_t {
   k64 = 64,
 } Size;
 
+Size Max(Size a, Size b);
+
 class Reg {
  public:
   Reg(Size size, uint8_t reg);
@@ -48,6 +50,8 @@ class Reg {
   Size size_;
   int8_t reg_;
 };
+
+Reg Resize(Reg reg, Size new_size);
 
 bool operator==(const Reg& lhs, const Reg& rhs);
 bool operator!=(const Reg& lhs, const Reg& rhs);
@@ -88,6 +92,8 @@ class Mem {
 
 bool operator==(const Mem& lhs, const Mem& rhs);
 bool operator!=(const Mem& lhs, const Mem& rhs);
+
+Mem Resize(Mem mem, Size new_size);
 
 class Imm {
  public:
@@ -204,6 +210,8 @@ class RM : public Operand {
   uint8_t RequiredDispSize() const;
   void EncodeInModRM_SIB_Disp(uint8_t* rex, uint8_t* modrm, uint8_t* sib, uint8_t* disp) const;
 };
+
+RM Resize(RM reg, Size new_size);
 
 extern const Reg al;
 extern const Reg cl;
