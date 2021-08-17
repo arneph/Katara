@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
@@ -21,6 +21,21 @@ cc_library(
         "//src/x86_64/ir_translator:size_translator",
         "//src/x86_64/ir_translator:temporary_reg",
         "//src/x86_64/ir_translator:value_translator",
+    ],
+)
+
+cc_test(
+    name = "arithmetic_logic_instrs_translator_test",
+    srcs = [
+        "arithmetic_logic_instrs_translator_test.cc",
+    ],
+    copts = COPTS,
+    deps = [
+        ":arithmetic_logic_instrs_translator",
+        "//src/ir:ir_lib",
+        "//src/x86_64:x86_64_lib",
+        "//src/x86_64/ir_translator:context",
+        "@gtest//:gtest_main",
     ],
 )
 
