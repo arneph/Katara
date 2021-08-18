@@ -69,7 +69,7 @@ struct LoadResult {
   int exit_code;
 };
 
-LoadResult load(const std::vector<const std::string> args, std::ostream& err) {
+LoadResult load(const std::vector<std::string> args, std::ostream& err) {
   enum class ArgsKind {
     kNone,
     kMainPackageDirectory,
@@ -193,7 +193,7 @@ LoadResult load(const std::vector<const std::string> args, std::ostream& err) {
   };
 }
 
-int doc(const std::vector<const std::string> args, std::ostream& err) {
+int doc(const std::vector<std::string> args, std::ostream& err) {
   auto [pkg_manager, arg_pkgs, generate_debug_info, exit_code] = load(args, err);
   if (exit_code) {
     return exit_code;
@@ -221,7 +221,7 @@ struct BuildResult {
   int exit_code;
 };
 
-BuildResult build(const std::vector<const std::string> args, std::ostream& err) {
+BuildResult build(const std::vector<std::string> args, std::ostream& err) {
   auto [pkg_manager, arg_pkgs, generate_debug_info, exit_code] = load(args, err);
   if (exit_code) {
     return BuildResult{
@@ -340,7 +340,7 @@ BuildResult build(const std::vector<const std::string> args, std::ostream& err) 
   };
 }
 
-int run(const std::vector<const std::string> args, std::istream& in, std::ostream& out,
+int run(const std::vector<std::string> args, std::istream& in, std::ostream& out,
         std::ostream& err) {
   auto [ir_program, x86_64_program, exit_code] = build(args, err);
   if (exit_code) {
@@ -384,11 +384,7 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   std::string command(argv[1]);
-  std::vector<const std::string> args;
-  args.reserve(argc - 2);
-  for (int i = 2; i < argc; i++) {
-    args.push_back(std::string(argv[i]));
-  }
+  std::vector<std::string> args(argv + 1, argv + argc);
 
   if (command == "build") {
     return build(args, std::cerr).exit_code;
