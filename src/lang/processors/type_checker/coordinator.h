@@ -9,6 +9,7 @@
 #ifndef lang_type_checker_coordinator_h
 #define lang_type_checker_coordinator_h
 
+#include <functional>
 #include <memory>
 #include <unordered_set>
 #include <vector>

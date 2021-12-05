@@ -9,6 +9,7 @@
 #ifndef lang_packages_mock_loader_h
 #define lang_packages_mock_loader_h
 
+#include <memory>
 #include <unordered_map>
 
 #include "src/lang/processors/packages/loader.h"
