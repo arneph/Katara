@@ -384,7 +384,7 @@ int main(int argc, char* argv[]) {
     return 0;
   }
   std::string command(argv[1]);
-  std::vector<std::string> args(argv + 1, argv + argc);
+  std::vector<std::string> args(argv + 2, argv + argc);
 
   if (command == "build") {
     return build(args, std::cerr).exit_code;
