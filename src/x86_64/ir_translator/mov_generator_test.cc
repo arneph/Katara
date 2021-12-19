@@ -9,12 +9,12 @@
 #include "src/x86_64/ir_translator/mov_generator.h"
 
 #include <algorithm>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
-#include <iostream>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -327,9 +327,7 @@ TEST_F(GenerateMovsTest, GeneratesInstrsForSmallMoveChain) {
   ir_func_builder().AddResultType(ir::i64());
   ir_func_builder().AddResultType(ir::i64());
 
-  ir_block_builder().Call(
-      ir::NilFunc(), {},
-      {ir_operand_a, ir_operand_b});
+  ir_block_builder().Call(ir::NilFunc(), {}, {ir_operand_a, ir_operand_b});
   ir_block_builder().Return({ir_operand_a, ir_operand_b});
 
   ir::CallInstr* ir_call_instr = static_cast<ir::CallInstr*>(ir_block()->instrs().front().get());

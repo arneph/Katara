@@ -88,7 +88,7 @@ void TranslateCallInstr(ir::CallInstr* ir_call_instr, BlockContext& ctx) {
   } else {
     common::fail("unexpected func operand");
   }
-  
+
   std::vector<MoveOperation> result_moves;
   result_moves.reserve(ir_call_instr->results().size());
   for (std::size_t result_index = 0; result_index < ir_call_instr->results().size();
@@ -100,7 +100,7 @@ void TranslateCallInstr(ir::CallInstr* ir_call_instr, BlockContext& ctx) {
     result_moves.push_back(MoveOperation(x86_64_result, x86_64_result_location));
   }
   GenerateMovs(result_moves, ir_call_instr, ctx);
-  
+
   // TODO: respect calling conventions
 }
 
