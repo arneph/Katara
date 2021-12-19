@@ -14,6 +14,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <iostream>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -115,6 +116,7 @@ class GenerateMovsTest : public InstrTranslatorTest {
 
     for (auto& instr : x86_64_block()->instrs()) {
       std::string instr_str = instr->ToString();
+      std::cout << instr_str << "\n";
       if (instr_str.starts_with("mov")) {
         auto mov_instr = static_cast<x86_64::Mov*>(instr.get());
         write(mov_instr->dst(), read(mov_instr->src()));
@@ -317,7 +319,44 @@ TEST_F(GenerateMovsTest, GeneratesInstrsForSimpleMemMoves) {
   CheckGeneratedInstrsForMoveOperations(operations);
 }
 
-TEST_F(GenerateMovsTest, GeneratesInstrsForMoveChain) {
+TEST_F(GenerateMovsTest, GeneratesInstrsForSmallMoveChain) {
+  const int16_t kD = 0x321;
+  std::shared_ptr<ir::Computed> ir_operand_a = ir_func_builder().AddArg(ir::i64());
+  std::shared_ptr<ir::Computed> ir_operand_b = ir_func_builder().AddArg(ir::i64());
+
+  ir_func_builder().AddResultType(ir::i64());
+  ir_func_builder().AddResultType(ir::i64());
+
+  ir_block_builder().Call(
+      ir::NilFunc(), {},
+      {ir_operand_a, ir_operand_b});
+  ir_block_builder().Return({ir_operand_a, ir_operand_b});
+
+  ir::CallInstr* ir_call_instr = static_cast<ir::CallInstr*>(ir_block()->instrs().front().get());
+
+  GenerateIRInfo();
+
+  interference_graph_colors().SetColor(ir_operand_a->number(), 0);
+  interference_graph_colors().SetColor(ir_operand_b->number(), 2);
+
+  GenerateTranslationContexts();
+
+  x86_64::RM x86_64_operand_a = TranslateComputed(ir_operand_a.get(), func_ctx());
+  x86_64::RM x86_64_operand_b = TranslateComputed(ir_operand_b.get(), func_ctx());
+
+  x86_64::Reg x86_64_result_a = x86_64::rdx;
+  x86_64::Reg x86_64_result_b = x86_64::rbx;
+
+  std::vector<MoveOperation> operations{MoveOperation(x86_64_result_a, x86_64_operand_a),
+                                        MoveOperation(x86_64_result_b, x86_64_operand_b)};
+
+  GenerateMovs(operations, ir_call_instr, block_ctx());
+
+  EXPECT_EQ(x86_64_block()->instrs().size(), 2);
+  CheckGeneratedInstrsForMoveOperations(operations);
+}
+
+TEST_F(GenerateMovsTest, GeneratesInstrsForLargeMoveChain) {
   const int16_t kD = 0x321;
   std::shared_ptr<ir::Computed> ir_operand_a = ir_func_builder().AddArg(ir::i64());
   std::shared_ptr<ir::Computed> ir_operand_b = ir_func_builder().AddArg(ir::bool_type());
