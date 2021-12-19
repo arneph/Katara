@@ -55,6 +55,7 @@ cc_library(
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
         "//src/x86_64/ir_translator:context",
+        "//src/x86_64/ir_translator:mov_generator",
         "//src/x86_64/ir_translator:register_allocator",
         "//src/x86_64/ir_translator:size_translator",
         "//src/x86_64/ir_translator:value_translator",

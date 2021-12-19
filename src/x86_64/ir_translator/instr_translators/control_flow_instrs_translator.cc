@@ -17,6 +17,7 @@
 #include "src/x86_64/instrs/arithmetic_logic_instrs.h"
 #include "src/x86_64/instrs/control_flow_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
+#include "src/x86_64/ir_translator/mov_generator.h"
 #include "src/x86_64/ir_translator/register_allocator.h"
 #include "src/x86_64/ir_translator/size_translator.h"
 #include "src/x86_64/ir_translator/value_translator.h"
@@ -67,47 +68,16 @@ void TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr, BlockContext&
 }
 
 void TranslateCallInstr(ir::CallInstr* ir_call_instr, BlockContext& ctx) {
-  struct ArgInfo {
-    x86_64::Operand x86_64_arg_value;
-    x86_64::RM x86_64_arg_location;
-  };
-  std::vector<ArgInfo> arg_infos;
-  arg_infos.reserve(ir_call_instr->args().size());
+  std::vector<MoveOperation> arg_moves;
+  arg_moves.reserve(ir_call_instr->args().size());
   for (std::size_t arg_index = 0; arg_index < ir_call_instr->args().size(); arg_index++) {
     ir::Value* ir_arg_value = ir_call_instr->args().at(arg_index).get();
     x86_64::Operand x86_64_arg_value = TranslateValue(ir_arg_value, ctx.func_ctx());
     x86_64::Size x86_64_arg_size = TranslateSizeOfType(ir_arg_value->type());
     x86_64::RM x86_64_arg_location = OperandForArg(int(arg_index), x86_64_arg_size);
-    arg_infos.push_back(ArgInfo{
-        .x86_64_arg_value = x86_64_arg_value,
-        .x86_64_arg_location = x86_64_arg_location,
-    });
+    arg_moves.push_back(MoveOperation(x86_64_arg_location, x86_64_arg_value));
   }
-
-  struct ResultInfo {
-    x86_64::RM x86_64_result;
-    x86_64::RM x86_64_result_location;
-  };
-  std::vector<ResultInfo> result_infos;
-  result_infos.reserve(ir_call_instr->results().size());
-  for (std::size_t result_index = 0; result_index < ir_call_instr->results().size();
-       result_index++) {
-    ir::Computed* ir_result = ir_call_instr->results().at(result_index).get();
-    x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
-    x86_64::Size x86_64_result_size = TranslateSizeOfType(ir_result->type());
-    x86_64::RM x86_64_result_location = OperandForResult(int(result_index), x86_64_result_size);
-    result_infos.push_back(ResultInfo{
-        .x86_64_result = x86_64_result,
-        .x86_64_result_location = x86_64_result_location,
-    });
-  }
-
-  for (ArgInfo& arg_info : arg_infos) {
-    if (arg_info.x86_64_arg_location != arg_info.x86_64_arg_value) {
-      ctx.x86_64_block()->AddInstr<x86_64::Mov>(arg_info.x86_64_arg_location,
-                                                arg_info.x86_64_arg_value);
-    }
-  }
+  GenerateMovs(arg_moves, ir_call_instr, ctx);
 
   ir::Value* ir_called_func = ir_call_instr->func().get();
   x86_64::Operand x86_64_called_func = TranslateValue(ir_called_func, ctx.func_ctx());
@@ -118,15 +88,20 @@ void TranslateCallInstr(ir::CallInstr* ir_call_instr, BlockContext& ctx) {
   } else {
     common::fail("unexpected func operand");
   }
-
-  for (ResultInfo& result_info : result_infos) {
-    if (result_info.x86_64_result_location != result_info.x86_64_result) {
-      ctx.x86_64_block()->AddInstr<x86_64::Mov>(result_info.x86_64_result,
-                                                result_info.x86_64_result_location);
-    }
+  
+  std::vector<MoveOperation> result_moves;
+  result_moves.reserve(ir_call_instr->results().size());
+  for (std::size_t result_index = 0; result_index < ir_call_instr->results().size();
+       result_index++) {
+    ir::Computed* ir_result = ir_call_instr->results().at(result_index).get();
+    x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
+    x86_64::Size x86_64_result_size = TranslateSizeOfType(ir_result->type());
+    x86_64::RM x86_64_result_location = OperandForResult(int(result_index), x86_64_result_size);
+    result_moves.push_back(MoveOperation(x86_64_result, x86_64_result_location));
   }
-
-  // TODO: improve
+  GenerateMovs(result_moves, ir_call_instr, ctx);
+  
+  // TODO: respect calling conventions
 }
 
 void TranslateReturnInstr(ir::ReturnInstr* ir_return_instr, BlockContext& ctx) {
