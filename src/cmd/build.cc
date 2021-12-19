@@ -25,24 +25,18 @@
 
 namespace cmd {
 
-BuildResult Build(const std::vector<std::string> args, std::ostream& err) {
-  auto [pkg_manager, arg_pkgs, generate_debug_info, exit_code] = Load(args, err);
-  if (exit_code) {
-    return BuildResult{
-        .ir_program = nullptr,
-        .x86_64_program = nullptr,
-        .exit_code = exit_code,
-    };
+std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, std::ostream& err) {
+  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(args, err);
+  if (std::holds_alternative<ErrorCode>(load_result_or_error)) {
+    return std::get<ErrorCode>(load_result_or_error);
   }
+  LoadResult& load_result = std::get<LoadResult>(load_result_or_error);
+  std::unique_ptr<lang::packages::PackageManager>& pkg_manager = load_result.pkg_manager;
 
   lang::packages::Package* main_pkg = pkg_manager->GetMainPackage();
   if (main_pkg == nullptr) {
     // TODO: support translating non-main packages to IR
-    return BuildResult{
-        .ir_program = nullptr,
-        .x86_64_program = nullptr,
-        .exit_code = 5,
-    };
+    return kBuildErrorNoMainPackage;
   }
 
   std::filesystem::path debug_dir = (main_pkg != nullptr)
@@ -86,13 +80,9 @@ BuildResult Build(const std::vector<std::string> args, std::ostream& err) {
   std::unique_ptr<ir::Program> ir_program =
       lang::ir_builder::IRBuilder::TranslateProgram(main_pkg, pkg_manager->type_info());
   if (ir_program == nullptr) {
-    return BuildResult{
-        .ir_program = nullptr,
-        .x86_64_program = nullptr,
-        .exit_code = 6,
-    };
+    return kBuildErrorTranslationToIRProgramFailed;
   }
-  if (generate_debug_info) {
+  if (load_result.generate_debug_info) {
     ir_program_debug_info_generator(ir_program.get(), "init");
   }
 
@@ -108,7 +98,7 @@ BuildResult Build(const std::vector<std::string> args, std::ostream& err) {
     live_ranges.insert({func->number(), func_live_ranges});
     interference_graphs.insert({func->number(), func_interference_graph});
   }
-  if (generate_debug_info) {
+  if (load_result.generate_debug_info) {
     ir_program_debug_info_generator(ir_program.get(), "lowered", &live_ranges,
                                     &interference_graphs);
   }
@@ -119,9 +109,9 @@ BuildResult Build(const std::vector<std::string> args, std::ostream& err) {
 
   ir_to_x86_64_translator::TranslationResults translation_results =
       ir_to_x86_64_translator::Translate(ir_program.get(), live_ranges, interference_graphs,
-                                         generate_debug_info);
+                                         load_result.generate_debug_info);
 
-  if (generate_debug_info) {
+  if (load_result.generate_debug_info) {
     WriteToFile(translation_results.program->ToString(), debug_dir / "x86_64.txt");
     for (auto& func : ir_program->funcs()) {
       ir::func_num_t func_num = func->number();
@@ -142,7 +132,6 @@ BuildResult Build(const std::vector<std::string> args, std::ostream& err) {
   return BuildResult{
       .ir_program = std::move(ir_program),
       .x86_64_program = std::move(translation_results.program),
-      .exit_code = 0,
   };
 }
 

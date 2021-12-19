@@ -11,8 +11,10 @@
 
 #include <ostream>
 #include <string>
+#include <variant>
 #include <vector>
 
+#include "src/cmd/error_codes.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 
@@ -22,10 +24,9 @@ struct LoadResult {
   std::unique_ptr<lang::packages::PackageManager> pkg_manager;
   std::vector<lang::packages::Package*> arg_pkgs;
   bool generate_debug_info;
-  int exit_code;
 };
 
-LoadResult Load(const std::vector<std::string> args, std::ostream& err);
+std::variant<LoadResult, ErrorCode> Load(const std::vector<std::string> args, std::ostream& err);
 
 }  // namespace cmd
 

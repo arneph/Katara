@@ -13,9 +13,11 @@
 #include <string>
 #include <vector>
 
+#include "src/cmd/error_codes.h"
+
 namespace cmd {
 
-int Doc(const std::vector<std::string> args, std::ostream& err);
+ErrorCode Doc(const std::vector<std::string> args, std::ostream& err);
 
 }
 

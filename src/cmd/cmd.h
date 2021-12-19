@@ -11,9 +11,11 @@
 
 #include <iostream>
 
+#include "src/cmd/error_codes.h"
+
 namespace cmd {
 
-int Execute(int argc, char* argv[], std::istream& in, std::ostream& out, std::ostream& err);
+ErrorCode Execute(int argc, char* argv[], std::istream& in, std::ostream& out, std::ostream& err);
 
 }
 

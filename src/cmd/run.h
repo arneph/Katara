@@ -13,10 +13,12 @@
 #include <string>
 #include <vector>
 
+#include "src/cmd/error_codes.h"
+
 namespace cmd {
 
-int Run(const std::vector<std::string> args, std::istream& in, std::ostream& out,
-        std::ostream& err);
+ErrorCode Run(const std::vector<std::string> args, std::istream& in, std::ostream& out,
+              std::ostream& err);
 
 }
 

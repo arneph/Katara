@@ -10,6 +10,7 @@
 
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "src/cmd/build.h"
@@ -43,26 +44,31 @@ void PrintVersion(std::ostream& out) { out << "Katara version " << kVersion << "
 
 namespace cmd {
 
-int Execute(int argc, char* argv[], std::istream& in, std::ostream& out, std::ostream& err) {
+ErrorCode Execute(int argc, char* argv[], std::istream& in, std::ostream& out, std::ostream& err) {
   if (argc <= 1) {
     PrintHelp(err);
-    return 0;
+    return ErrorCode::kNoError;
   }
   std::string command(argv[1]);
   std::vector<std::string> args(argv + 2, argv + argc);
 
   if (command == "build") {
-    return Build(args, err).exit_code;
+    std::variant<BuildResult, ErrorCode> build_result_or_error = Build(args, err);
+    if (std::holds_alternative<ErrorCode>(build_result_or_error)) {
+      return std::get<ErrorCode>(build_result_or_error);
+    } else {
+      return kNoError;
+    }
   } else if (command == "doc") {
     return Doc(args, err);
   } else if (command == "run") {
     return Run(args, in, out, err);
   } else if (command == "version") {
     PrintVersion(err);
-    return 0;
+    return kNoError;
   } else {
     PrintHelp(err);
-    return 0;
+    return kNoError;
   }
 }
 

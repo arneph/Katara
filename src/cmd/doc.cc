@@ -8,6 +8,8 @@
 
 #include "doc.h"
 
+#include <variant>
+
 #include "src/cmd/load.h"
 #include "src/cmd/util.h"
 #include "src/lang/processors/docs/file_doc.h"
@@ -15,11 +17,14 @@
 
 namespace cmd {
 
-int Doc(const std::vector<std::string> args, std::ostream& err) {
-  auto [pkg_manager, arg_pkgs, generate_debug_info, exit_code] = Load(args, err);
-  if (exit_code) {
-    return exit_code;
+ErrorCode Doc(const std::vector<std::string> args, std::ostream& err) {
+  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(args, err);
+  if (std::holds_alternative<ErrorCode>(load_result_or_error)) {
+    return std::get<ErrorCode>(load_result_or_error);
   }
+  LoadResult& load_result = std::get<LoadResult>(load_result_or_error);
+  std::unique_ptr<lang::packages::PackageManager>& pkg_manager = load_result.pkg_manager;
+  std::vector<lang::packages::Package*>& arg_pkgs = load_result.arg_pkgs;
 
   for (lang::packages::Package* pkg : arg_pkgs) {
     std::filesystem::path pkg_dir{pkg->dir()};
@@ -34,7 +39,7 @@ int Doc(const std::vector<std::string> args, std::ostream& err) {
       WriteToFile(file_doc.html, docs_dir / (file_doc.name + ".html"));
     }
   }
-  return 0;
+  return kNoError;
 }
 
 }  // namespace cmd

@@ -21,7 +21,7 @@ constexpr std::string_view kStdLibPath = "/Users/arne/Documents/Xcode/Katara/std
 
 namespace cmd {
 
-LoadResult Load(const std::vector<std::string> args, std::ostream& err) {
+std::variant<LoadResult, ErrorCode> Load(const std::vector<std::string> args, std::ostream& err) {
   enum class ArgsKind {
     kNone,
     kMainPackageDirectory,
@@ -41,10 +41,7 @@ LoadResult Load(const std::vector<std::string> args, std::ostream& err) {
     if (path.extension() == ".kat") {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kMainPackageFiles) {
         err << "source file arguments can not be mixed with package path arguments\n";
-        return LoadResult{.pkg_manager = nullptr,
-                          .arg_pkgs = {},
-                          .generate_debug_info = generate_debug_info,
-                          .exit_code = 1};
+        return ErrorCode::kLoadErrorMixedSourceFileArgsWithPackagePathArgs;
       }
       args_kind = ArgsKind::kMainPackageFiles;
       arg = path;
@@ -55,20 +52,14 @@ LoadResult Load(const std::vector<std::string> args, std::ostream& err) {
     if (std::filesystem::is_directory(path)) {
       if (args_kind != ArgsKind::kNone) {
         err << "can only handle one main package path argument\n";
-        return LoadResult{.pkg_manager = nullptr,
-                          .arg_pkgs = {},
-                          .generate_debug_info = generate_debug_info,
-                          .exit_code = 2};
+        return ErrorCode::kLoadErrorMultiplePackagePathArgs;
       }
       args_kind = ArgsKind::kMainPackageDirectory;
       arg = path;
     } else {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kPackagePaths) {
         err << "source file arguments can not be mixed with package path arguments\n";
-        return LoadResult{.pkg_manager = nullptr,
-                          .arg_pkgs = {},
-                          .generate_debug_info = generate_debug_info,
-                          .exit_code = 3};
+        return ErrorCode::kLoadErrorMixedSourceFileArgsWithPackagePathArgs;
       }
       args_kind = ArgsKind::kPackagePaths;
     }
@@ -129,19 +120,13 @@ LoadResult Load(const std::vector<std::string> args, std::ostream& err) {
     }
   }
   if (contains_issues) {
-    return LoadResult{
-        .pkg_manager = std::move(pkg_manager),
-        .arg_pkgs = arg_pkgs,
-        .generate_debug_info = generate_debug_info,
-        .exit_code = 4,
-    };
+    return ErrorCode::kLoadErrorForPackage;
   }
 
   return LoadResult{
       .pkg_manager = std::move(pkg_manager),
       .arg_pkgs = arg_pkgs,
       .generate_debug_info = generate_debug_info,
-      .exit_code = 0,
   };
 }
 

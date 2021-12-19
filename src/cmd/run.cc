@@ -11,23 +11,21 @@
 #include <sys/mman.h>
 
 #include <iomanip>
+#include <variant>
 
 #include "src/cmd/build.h"
 #include "src/x86_64/machine_code/linker.h"
 
 namespace cmd {
 
-int Run(const std::vector<std::string> args, std::istream& in, std::ostream& out,
-        std::ostream& err) {
-  auto [ir_program, x86_64_program, exit_code] = Build(args, err);
-  if (exit_code) {
-    return exit_code;
+ErrorCode Run(const std::vector<std::string> args, std::istream& in, std::ostream& out,
+              std::ostream& err) {
+  std::variant<BuildResult, ErrorCode> build_result_or_error = Build(args, err);
+  if (std::holds_alternative<ErrorCode>(build_result_or_error)) {
+    return std::get<ErrorCode>(build_result_or_error);
   }
-
-  // ir_interpreter::Interpreter interpreter(ir_program.get());
-  // interpreter.run();
-
-  // return static_cast<int>(interpreter.exit_code());
+  BuildResult& build_result = std::get<BuildResult>(build_result_or_error);
+  std::unique_ptr<x86_64::Program>& x86_64_program = build_result.x86_64_program;
 
   x86_64::Linker linker;
   linker.AddFuncAddr(x86_64_program->declared_funcs().at("malloc"), (uint8_t*)&malloc);
@@ -52,7 +50,7 @@ int Run(const std::vector<std::string> args, std::istream& in, std::ostream& out
 
   x86_64::Func* x86_64_main_func = x86_64_program->DefinedFuncWithName("main");
   int (*main_func)(void) = (int (*)(void))(linker.func_addrs().at(x86_64_main_func->func_num()));
-  return main_func();
+  return ErrorCode(main_func());
 }
 
 }  // namespace cmd
