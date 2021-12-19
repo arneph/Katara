@@ -1,0 +1,149 @@
+//
+//  build.cc
+//  Katara
+//
+//  Created by Arne Philipeit on 12/19/21.
+//  Copyright © 2021 Arne Philipeit. All rights reserved.
+//
+
+#include "build.h"
+
+#include <unordered_map>
+
+#include "src/cmd/load.h"
+#include "src/cmd/util.h"
+#include "src/ir/analyzers/interference_graph_builder.h"
+#include "src/ir/analyzers/live_range_analyzer.h"
+#include "src/ir/info/func_live_ranges.h"
+#include "src/ir/info/interference_graph.h"
+#include "src/ir/processors/phi_resolver.h"
+#include "src/lang/processors/ir_builder/ir_builder.h"
+#include "src/lang/processors/ir_lowerers/shared_pointer_lowerer.h"
+#include "src/lang/processors/packages/package.h"
+#include "src/lang/processors/packages/package_manager.h"
+#include "src/x86_64/ir_translator/ir_translator.h"
+
+namespace cmd {
+
+BuildResult Build(const std::vector<std::string> args, std::ostream& err) {
+  auto [pkg_manager, arg_pkgs, generate_debug_info, exit_code] = Load(args, err);
+  if (exit_code) {
+    return BuildResult{
+        .ir_program = nullptr,
+        .x86_64_program = nullptr,
+        .exit_code = exit_code,
+    };
+  }
+
+  lang::packages::Package* main_pkg = pkg_manager->GetMainPackage();
+  if (main_pkg == nullptr) {
+    // TODO: support translating non-main packages to IR
+    return BuildResult{
+        .ir_program = nullptr,
+        .x86_64_program = nullptr,
+        .exit_code = 5,
+    };
+  }
+
+  std::filesystem::path debug_dir = (main_pkg != nullptr)
+                                        ? std::filesystem::path(main_pkg->dir()) / "debug"
+                                        : std::filesystem::current_path();
+  auto ir_program_debug_info_generator =
+      [main_pkg, debug_dir](
+          ir::Program* program, std::string iter,
+          std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges>* live_ranges = nullptr,
+          std::unordered_map<ir::func_num_t,
+                             const ir_info::InterferenceGraph>* interference_graphs = nullptr) {
+        WriteToFile(program->ToString(), debug_dir / ("ir." + iter + ".txt"));
+
+        for (auto& func : program->funcs()) {
+          ir::func_num_t func_num = func->number();
+          std::string file_name =
+              main_pkg->name() + "_@" + std::to_string(func_num) + "_" + func->name() + "." + iter;
+          common::Graph func_cfg = func->ToControlFlowGraph();
+          common::Graph func_dom = func->ToDominatorTree();
+
+          WriteToFile(func_cfg.ToDotFormat(), debug_dir / (file_name + ".cfg.dot"));
+          WriteToFile(func_dom.ToDotFormat(), debug_dir / (file_name + ".dom.dot"));
+          if (live_ranges != nullptr) {
+            const ir_info::FuncLiveRanges& func_live_ranges = live_ranges->at(func->number());
+
+            WriteToFile(func_live_ranges.ToString(),
+                        debug_dir / (file_name + ".live_range_info.txt"));
+          }
+          if (interference_graphs != nullptr) {
+            const ir_info::InterferenceGraph& func_interference_graph =
+                interference_graphs->at(func->number());
+
+            WriteToFile(func_interference_graph.ToString(),
+                        debug_dir / (file_name + ".interference_graph.txt"));
+            WriteToFile(func_interference_graph.ToGraph().ToDotFormat(),
+                        debug_dir / (file_name + ".interference_graph.dot"));
+          }
+        }
+      };
+
+  std::unique_ptr<ir::Program> ir_program =
+      lang::ir_builder::IRBuilder::TranslateProgram(main_pkg, pkg_manager->type_info());
+  if (ir_program == nullptr) {
+    return BuildResult{
+        .ir_program = nullptr,
+        .x86_64_program = nullptr,
+        .exit_code = 6,
+    };
+  }
+  if (generate_debug_info) {
+    ir_program_debug_info_generator(ir_program.get(), "init");
+  }
+
+  lang::ir_lowerers::LowerSharedPointersInProgram(ir_program.get());
+  std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges> live_ranges;
+  std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph> interference_graphs;
+  for (auto& func : ir_program->funcs()) {
+    const ir_info::FuncLiveRanges func_live_ranges =
+        ir_analyzers::FindLiveRangesForFunc(func.get());
+    const ir_info::InterferenceGraph func_interference_graph =
+        ir_analyzers::BuildInterferenceGraphForFunc(func.get(), func_live_ranges);
+
+    live_ranges.insert({func->number(), func_live_ranges});
+    interference_graphs.insert({func->number(), func_interference_graph});
+  }
+  if (generate_debug_info) {
+    ir_program_debug_info_generator(ir_program.get(), "lowered", &live_ranges,
+                                    &interference_graphs);
+  }
+
+  for (auto& func : ir_program->funcs()) {
+    ir_processors::ResolvePhisInFunc(func.get());
+  }
+
+  ir_to_x86_64_translator::TranslationResults translation_results =
+      ir_to_x86_64_translator::Translate(ir_program.get(), live_ranges, interference_graphs,
+                                         generate_debug_info);
+
+  if (generate_debug_info) {
+    WriteToFile(translation_results.program->ToString(), debug_dir / "x86_64.txt");
+    for (auto& func : ir_program->funcs()) {
+      ir::func_num_t func_num = func->number();
+      std::string file_name =
+          main_pkg->name() + "_@" + std::to_string(func_num) + "_" + func->name() + ".x86_64";
+
+      const ir_info::InterferenceGraph& func_interference_graph = interference_graphs.at(func_num);
+      const ir_info::InterferenceGraphColors& func_interference_graph_colors =
+          translation_results.interference_graph_colors.at(func_num);
+
+      WriteToFile(func_interference_graph.ToGraph(&func_interference_graph_colors).ToDotFormat(),
+                  debug_dir / (file_name + ".interference_graph.dot"));
+      WriteToFile(func_interference_graph_colors.ToString(),
+                  debug_dir / (file_name + ".colors.txt"));
+    }
+  }
+
+  return BuildResult{
+      .ir_program = std::move(ir_program),
+      .x86_64_program = std::move(translation_results.program),
+      .exit_code = 0,
+  };
+}
+
+}  // namespace cmd

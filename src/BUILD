@@ -17,7 +17,7 @@ cc_binary(
     srcs = ["main.cc"],
     copts = COPTS,
     deps = [
-        ":katara_lib",
+        "//src/cmd",
     ],
 )
 
