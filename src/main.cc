@@ -7,7 +7,10 @@
 //
 
 #include "src/cmd/cmd.h"
+#include "src/cmd/context.h"
+#include "src/cmd/util.h"
 
 int main(int argc, char* argv[]) {
-  return cmd::Execute(argc, argv, std::cin, std::cout, std::cerr);
+  cmd::RealContext ctx(cmd::ConvertMainArgs(argc, argv));
+  return cmd::Execute(&ctx);
 }

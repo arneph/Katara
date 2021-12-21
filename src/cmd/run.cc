@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 
 #include <iomanip>
+#include <sstream>
 #include <variant>
 
 #include "src/cmd/build.h"
@@ -18,9 +19,8 @@
 
 namespace cmd {
 
-ErrorCode Run(const std::vector<std::string> args, std::istream& in, std::ostream& out,
-              std::ostream& err) {
-  std::variant<BuildResult, ErrorCode> build_result_or_error = Build(args, err);
+ErrorCode Run(Context* ctx) {
+  std::variant<BuildResult, ErrorCode> build_result_or_error = Build(ctx);
   if (std::holds_alternative<ErrorCode>(build_result_or_error)) {
     return std::get<ErrorCode>(build_result_or_error);
   }
@@ -39,14 +39,16 @@ ErrorCode Run(const std::vector<std::string> args, std::istream& in, std::ostrea
   int64_t program_size = x86_64_program->Encode(linker, code);
   linker.ApplyPatches();
 
-  out << "BEGIN machine code\n";
-  for (int64_t j = 0; j < program_size; j++) {
-    std::cout << std::hex << std::setfill('0') << std::setw(2) << (unsigned short)code[j] << " ";
-    if (j % 8 == 7 && j != program_size - 1) {
-      out << "\n";
+  if (ctx->generate_debug_info()) {
+    std::ostringstream buffer;
+    for (int64_t j = 0; j < program_size; j++) {
+      buffer << std::hex << std::setfill('0') << std::setw(2) << (unsigned short)code[j] << " ";
+      if (j % 8 == 7 && j != program_size - 1) {
+        buffer << "\n";
+      }
     }
+    ctx->WriteToDebugFile(buffer.str(), "x86_64.hex.txt");
   }
-  out << "END machine code\n";
 
   x86_64::Func* x86_64_main_func = x86_64_program->DefinedFuncWithName("main");
   int (*main_func)(void) = (int (*)(void))(linker.func_addrs().at(x86_64_main_func->func_num()));

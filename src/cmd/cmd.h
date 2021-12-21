@@ -9,14 +9,13 @@
 #ifndef cmd_cmd_h
 #define cmd_cmd_h
 
-#include <iostream>
-
+#include "src/cmd/context.h"
 #include "src/cmd/error_codes.h"
 
 namespace cmd {
 
-ErrorCode Execute(int argc, char* argv[], std::istream& in, std::ostream& out, std::ostream& err);
+ErrorCode Execute(Context* ctx);
 
-}
+}  // namespace cmd
 
 #endif /* cmd_cmd_h */

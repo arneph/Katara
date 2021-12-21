@@ -10,11 +10,9 @@
 #define cmd_build_h
 
 #include <memory>
-#include <ostream>
-#include <string>
 #include <variant>
-#include <vector>
 
+#include "src/cmd/context.h"
 #include "src/cmd/error_codes.h"
 #include "src/ir/representation/program.h"
 #include "src/x86_64/program.h"
@@ -26,7 +24,7 @@ struct BuildResult {
   std::unique_ptr<x86_64::Program> x86_64_program;
 };
 
-std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, std::ostream& err);
+std::variant<BuildResult, ErrorCode> Build(Context* ctx);
 
 }  // namespace cmd
 

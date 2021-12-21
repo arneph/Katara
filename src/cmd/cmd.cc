@@ -17,57 +17,56 @@
 #include "src/cmd/doc.h"
 #include "src/cmd/run.h"
 
+namespace cmd {
 namespace {
 
 constexpr std::string_view kVersion = "0.1";
 
-void PrintHelp(std::ostream& out) {
-  out << "Katara is a tool to work with Katara source code.\n"
-         "\n"
-         "Usage:\n"
-         "\n"
-         "\tkatara <command> [arguments]\n"
-         "\n"
-         "The commands are:\n"
-         "\n"
-         "\tbuild\tbuild Katara packages\n"
-         "\tdoc\tgenerate documentation for Katara packages\n"
-         "\thelp\tprint this documentation\n"
-         "\trun\trun Katara programs\n"
-         "\tversion\tprint Katara version\n"
-         "\n";
+void PrintHelp(Context* ctx) {
+  ctx->stdout() << "Katara is a tool to work with Katara source code.\n"
+                   "\n"
+                   "Usage:\n"
+                   "\n"
+                   "\tkatara <command> [arguments]\n"
+                   "\n"
+                   "The commands are:\n"
+                   "\n"
+                   "\tbuild\tbuild Katara packages\n"
+                   "\tdoc\tgenerate documentation for Katara packages\n"
+                   "\thelp\tprint this documentation\n"
+                   "\trun\trun Katara programs\n"
+                   "\tversion\tprint Katara version\n"
+                   "\n";
 }
 
-void PrintVersion(std::ostream& out) { out << "Katara version " << kVersion << "\n"; }
+void PrintVersion(Context* ctx) { ctx->stdout() << "Katara version " << kVersion << "\n"; }
 
 }  // namespace
 
-namespace cmd {
-
-ErrorCode Execute(int argc, char* argv[], std::istream& in, std::ostream& out, std::ostream& err) {
-  if (argc <= 1) {
-    PrintHelp(err);
+ErrorCode Execute(Context* ctx) {
+  if (ctx->args().empty()) {
+    PrintHelp(ctx);
     return ErrorCode::kNoError;
   }
-  std::string command(argv[1]);
-  std::vector<std::string> args(argv + 2, argv + argc);
+  std::string command = ctx->args().front();
+  ctx->args().erase(ctx->args().begin());
 
   if (command == "build") {
-    std::variant<BuildResult, ErrorCode> build_result_or_error = Build(args, err);
+    std::variant<BuildResult, ErrorCode> build_result_or_error = Build(ctx);
     if (std::holds_alternative<ErrorCode>(build_result_or_error)) {
       return std::get<ErrorCode>(build_result_or_error);
     } else {
       return kNoError;
     }
   } else if (command == "doc") {
-    return Doc(args, err);
+    return Doc(ctx);
   } else if (command == "run") {
-    return Run(args, in, out, err);
+    return Run(ctx);
   } else if (command == "version") {
-    PrintVersion(err);
+    PrintVersion(ctx);
     return kNoError;
   } else {
-    PrintHelp(err);
+    PrintHelp(ctx);
     return kNoError;
   }
 }

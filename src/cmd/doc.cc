@@ -11,14 +11,13 @@
 #include <variant>
 
 #include "src/cmd/load.h"
-#include "src/cmd/util.h"
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/docs/package_doc.h"
 
 namespace cmd {
 
-ErrorCode Doc(const std::vector<std::string> args, std::ostream& err) {
-  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(args, err);
+ErrorCode Doc(Context* ctx) {
+  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(ctx);
   if (std::holds_alternative<ErrorCode>(load_result_or_error)) {
     return std::get<ErrorCode>(load_result_or_error);
   }
@@ -34,9 +33,9 @@ ErrorCode Doc(const std::vector<std::string> args, std::ostream& err) {
     lang::docs::PackageDoc pkg_doc = lang::docs::GenerateDocumentationForPackage(
         pkg, pkg_manager->file_set(), pkg_manager->type_info());
 
-    WriteToFile(pkg_doc.html, docs_dir / (pkg_doc.name + ".html"));
+    ctx->WriteToFile(pkg_doc.html, docs_dir / (pkg_doc.name + ".html"));
     for (auto file_doc : pkg_doc.docs) {
-      WriteToFile(file_doc.html, docs_dir / (file_doc.name + ".html"));
+      ctx->WriteToFile(file_doc.html, docs_dir / (file_doc.name + ".html"));
     }
   }
   return kNoError;

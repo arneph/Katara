@@ -9,16 +9,12 @@
 #ifndef cmd_run_h
 #define cmd_run_h
 
-#include <iostream>
-#include <string>
-#include <vector>
-
+#include "src/cmd/context.h"
 #include "src/cmd/error_codes.h"
 
 namespace cmd {
 
-ErrorCode Run(const std::vector<std::string> args, std::istream& in, std::ostream& out,
-              std::ostream& err);
+ErrorCode Run(Context* ctx);
 
 }
 

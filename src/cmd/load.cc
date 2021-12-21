@@ -8,7 +8,6 @@
 
 #include "load.h"
 
-#include "src/cmd/util.h"
 #include "src/common/graph.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/types/info_util.h"
@@ -21,7 +20,7 @@ constexpr std::string_view kStdLibPath = "/Users/arne/Documents/Xcode/Katara/std
 
 namespace cmd {
 
-std::variant<LoadResult, ErrorCode> Load(const std::vector<std::string> args, std::ostream& err) {
+std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
   enum class ArgsKind {
     kNone,
     kMainPackageDirectory,
@@ -29,41 +28,31 @@ std::variant<LoadResult, ErrorCode> Load(const std::vector<std::string> args, st
     kPackagePaths,
   };
   ArgsKind args_kind = ArgsKind::kNone;
-  std::vector<std::string> args_without_flags;
-  bool generate_debug_info = false;
-  for (std::string arg : args) {
-    if (arg == "-d" || arg == "--debug") {
-      generate_debug_info = true;
-      continue;
-    }
+  for (std::string arg : ctx->args()) {
     std::filesystem::path path(arg);
     path = std::filesystem::absolute(path);
     if (path.extension() == ".kat") {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kMainPackageFiles) {
-        err << "source file arguments can not be mixed with package path arguments\n";
+        ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
         return ErrorCode::kLoadErrorMixedSourceFileArgsWithPackagePathArgs;
       }
       args_kind = ArgsKind::kMainPackageFiles;
-      arg = path;
-      args_without_flags.push_back(arg);
       continue;
     }
 
     if (std::filesystem::is_directory(path)) {
       if (args_kind != ArgsKind::kNone) {
-        err << "can only handle one main package path argument\n";
+        ctx->stderr() << "can only handle one main package path argument\n";
         return ErrorCode::kLoadErrorMultiplePackagePathArgs;
       }
       args_kind = ArgsKind::kMainPackageDirectory;
-      arg = path;
     } else {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kPackagePaths) {
-        err << "source file arguments can not be mixed with package path arguments\n";
+        ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
         return ErrorCode::kLoadErrorMixedSourceFileArgsWithPackagePathArgs;
       }
       args_kind = ArgsKind::kPackagePaths;
     }
-    args_without_flags.push_back(arg);
   }
 
   auto pkg_manager = std::make_unique<lang::packages::PackageManager>(
@@ -75,13 +64,13 @@ std::variant<LoadResult, ErrorCode> Load(const std::vector<std::string> args, st
       main_pkg = pkg_manager->LoadMainPackage(std::filesystem::current_path());
       break;
     case ArgsKind::kMainPackageDirectory:
-      main_pkg = pkg_manager->LoadMainPackage(args_without_flags.front());
+      main_pkg = pkg_manager->LoadMainPackage(ctx->args().front());
       break;
     case ArgsKind::kMainPackageFiles:
-      main_pkg = pkg_manager->LoadMainPackage(args_without_flags);
+      main_pkg = pkg_manager->LoadMainPackage(ctx->args());
       break;
     case ArgsKind::kPackagePaths:
-      for (std::string& pkg_path : args_without_flags) {
+      for (std::string& pkg_path : ctx->args()) {
         lang::packages::Package* pkg = pkg_manager->LoadPackage(pkg_path);
         if (pkg != nullptr) {
           arg_pkgs.push_back(pkg);
@@ -95,28 +84,25 @@ std::variant<LoadResult, ErrorCode> Load(const std::vector<std::string> args, st
 
   bool contains_issues = !pkg_manager->issue_tracker()->issues().empty();
   pkg_manager->issue_tracker()->PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal,
-                                            err);
+                                            ctx->stderr());
   for (auto pkg : pkg_manager->Packages()) {
-    pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal, err);
+    pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal,
+                                     ctx->stderr());
     if (!pkg->issue_tracker().issues().empty()) {
       contains_issues = true;
     }
   }
-  if (generate_debug_info) {
+  if (ctx->generate_debug_info()) {
     for (lang::packages::Package* pkg : arg_pkgs) {
-      std::filesystem::path pkg_dir{pkg->dir()};
-      std::filesystem::path debug_dir = pkg_dir / "debug";
-      std::filesystem::create_directory(debug_dir);
-
-      for (auto [name, ast_file] : main_pkg->ast_package()->files()) {
+      for (auto [name, ast_file] : pkg->ast_package()->files()) {
         common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager->file_set(), ast_file);
 
-        WriteToFile(ast_graph.ToDotFormat(), debug_dir / (name + ".ast.dot"));
+        ctx->WriteToDebugFile(ast_graph.ToDotFormat(), name + ".ast.dot");
       }
 
       std::string type_info =
           lang::types::InfoToText(pkg_manager->file_set(), pkg_manager->type_info());
-      WriteToFile(type_info, debug_dir / (main_pkg->name() + ".types.txt"));
+      ctx->WriteToDebugFile(type_info, main_pkg->name() + ".types.txt");
     }
   }
   if (contains_issues) {
@@ -126,7 +112,6 @@ std::variant<LoadResult, ErrorCode> Load(const std::vector<std::string> args, st
   return LoadResult{
       .pkg_manager = std::move(pkg_manager),
       .arg_pkgs = arg_pkgs,
-      .generate_debug_info = generate_debug_info,
   };
 }
 

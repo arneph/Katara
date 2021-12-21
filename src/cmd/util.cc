@@ -8,14 +8,10 @@
 
 #include "util.h"
 
-#include <filesystem>
-#include <fstream>
-
 namespace cmd {
 
-void WriteToFile(std::string text, std::filesystem::path out_file) {
-  std::ofstream out_stream(out_file, std::ios::out);
-  out_stream << text;
+std::vector<std::string> ConvertMainArgs(int argc, char* argv[]) {
+  return std::vector<std::string>(argv + 1, argv + argc);
 }
 
 }  // namespace cmd

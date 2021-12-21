@@ -9,11 +9,11 @@
 #ifndef cmd_load_h
 #define cmd_load_h
 
-#include <ostream>
 #include <string>
 #include <variant>
 #include <vector>
 
+#include "src/cmd/context.h"
 #include "src/cmd/error_codes.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
@@ -23,10 +23,9 @@ namespace cmd {
 struct LoadResult {
   std::unique_ptr<lang::packages::PackageManager> pkg_manager;
   std::vector<lang::packages::Package*> arg_pkgs;
-  bool generate_debug_info;
 };
 
-std::variant<LoadResult, ErrorCode> Load(const std::vector<std::string> args, std::ostream& err);
+std::variant<LoadResult, ErrorCode> Load(Context* ctx);
 
 }  // namespace cmd
 

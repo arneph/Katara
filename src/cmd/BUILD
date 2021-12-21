@@ -11,12 +11,24 @@ cc_library(
 )
 
 cc_library(
+    name = "context",
+    srcs = ["context.cc"],
+    hdrs = ["context.h"],
+    copts = COPTS,
+    visibility = [
+        "//src:__pkg__",
+        "//src/cmd:__pkg__",
+    ],
+)
+
+cc_library(
     name = "util",
     srcs = ["util.cc"],
     hdrs = ["util.h"],
     copts = COPTS,
     visibility = [
-        "//visibility:private",
+        "//src:__pkg__",
+        "//src/cmd:__pkg__",
     ],
 )
 
@@ -29,8 +41,8 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
+        ":context",
         ":error_codes",
-        ":util",
         "//src/common:graph",
         "//src/lang:lang_lib",
     ],
@@ -45,9 +57,9 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
+        ":context",
         ":error_codes",
         ":load",
-        ":util",
     ],
 )
 
@@ -60,9 +72,9 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
+        ":context",
         ":error_codes",
         ":load",
-        ":util",
         "//src/ir:ir_lib",
         "//src/lang:lang_lib",
         "//src/x86_64:x86_64_lib",
@@ -80,8 +92,8 @@ cc_library(
     ],
     deps = [
         ":build",
+        ":context",
         ":error_codes",
-        ":util",
         "//src/x86_64:x86_64_lib",
     ],
 )
@@ -96,6 +108,7 @@ cc_library(
     ],
     deps = [
         ":build",
+        ":context",
         ":doc",
         ":error_codes",
         ":run",

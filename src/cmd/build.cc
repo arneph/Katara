@@ -11,7 +11,6 @@
 #include <unordered_map>
 
 #include "src/cmd/load.h"
-#include "src/cmd/util.h"
 #include "src/ir/analyzers/interference_graph_builder.h"
 #include "src/ir/analyzers/live_range_analyzer.h"
 #include "src/ir/info/func_live_ranges.h"
@@ -25,8 +24,8 @@
 
 namespace cmd {
 
-std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, std::ostream& err) {
-  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(args, err);
+std::variant<BuildResult, ErrorCode> Build(Context* ctx) {
+  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(ctx);
   if (std::holds_alternative<ErrorCode>(load_result_or_error)) {
     return std::get<ErrorCode>(load_result_or_error);
   }
@@ -39,16 +38,13 @@ std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, 
     return kBuildErrorNoMainPackage;
   }
 
-  std::filesystem::path debug_dir = (main_pkg != nullptr)
-                                        ? std::filesystem::path(main_pkg->dir()) / "debug"
-                                        : std::filesystem::current_path();
   auto ir_program_debug_info_generator =
-      [main_pkg, debug_dir](
+      [ctx, main_pkg](
           ir::Program* program, std::string iter,
           std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges>* live_ranges = nullptr,
           std::unordered_map<ir::func_num_t,
                              const ir_info::InterferenceGraph>* interference_graphs = nullptr) {
-        WriteToFile(program->ToString(), debug_dir / ("ir." + iter + ".txt"));
+        ctx->WriteToDebugFile(program->ToString(), "ir." + iter + ".txt");
 
         for (auto& func : program->funcs()) {
           ir::func_num_t func_num = func->number();
@@ -57,22 +53,21 @@ std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, 
           common::Graph func_cfg = func->ToControlFlowGraph();
           common::Graph func_dom = func->ToDominatorTree();
 
-          WriteToFile(func_cfg.ToDotFormat(), debug_dir / (file_name + ".cfg.dot"));
-          WriteToFile(func_dom.ToDotFormat(), debug_dir / (file_name + ".dom.dot"));
+          ctx->WriteToDebugFile(func_cfg.ToDotFormat(), file_name + ".cfg.dot");
+          ctx->WriteToDebugFile(func_dom.ToDotFormat(), file_name + ".dom.dot");
           if (live_ranges != nullptr) {
             const ir_info::FuncLiveRanges& func_live_ranges = live_ranges->at(func->number());
 
-            WriteToFile(func_live_ranges.ToString(),
-                        debug_dir / (file_name + ".live_range_info.txt"));
+            ctx->WriteToDebugFile(func_live_ranges.ToString(), file_name + ".live_range_info.txt");
           }
           if (interference_graphs != nullptr) {
             const ir_info::InterferenceGraph& func_interference_graph =
                 interference_graphs->at(func->number());
 
-            WriteToFile(func_interference_graph.ToString(),
-                        debug_dir / (file_name + ".interference_graph.txt"));
-            WriteToFile(func_interference_graph.ToGraph().ToDotFormat(),
-                        debug_dir / (file_name + ".interference_graph.dot"));
+            ctx->WriteToDebugFile(func_interference_graph.ToString(),
+                                  file_name + ".interference_graph.txt");
+            ctx->WriteToDebugFile(func_interference_graph.ToGraph().ToDotFormat(),
+                                  file_name + ".interference_graph.dot");
           }
         }
       };
@@ -82,7 +77,7 @@ std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, 
   if (ir_program == nullptr) {
     return kBuildErrorTranslationToIRProgramFailed;
   }
-  if (load_result.generate_debug_info) {
+  if (ctx->generate_debug_info()) {
     ir_program_debug_info_generator(ir_program.get(), "init");
   }
 
@@ -98,7 +93,7 @@ std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, 
     live_ranges.insert({func->number(), func_live_ranges});
     interference_graphs.insert({func->number(), func_interference_graph});
   }
-  if (load_result.generate_debug_info) {
+  if (ctx->generate_debug_info()) {
     ir_program_debug_info_generator(ir_program.get(), "lowered", &live_ranges,
                                     &interference_graphs);
   }
@@ -109,10 +104,10 @@ std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, 
 
   ir_to_x86_64_translator::TranslationResults translation_results =
       ir_to_x86_64_translator::Translate(ir_program.get(), live_ranges, interference_graphs,
-                                         load_result.generate_debug_info);
+                                         ctx->generate_debug_info());
 
-  if (load_result.generate_debug_info) {
-    WriteToFile(translation_results.program->ToString(), debug_dir / "x86_64.txt");
+  if (ctx->generate_debug_info()) {
+    ctx->WriteToDebugFile(translation_results.program->ToString(), "x86_64.asm.txt");
     for (auto& func : ir_program->funcs()) {
       ir::func_num_t func_num = func->number();
       std::string file_name =
@@ -122,10 +117,10 @@ std::variant<BuildResult, ErrorCode> Build(const std::vector<std::string> args, 
       const ir_info::InterferenceGraphColors& func_interference_graph_colors =
           translation_results.interference_graph_colors.at(func_num);
 
-      WriteToFile(func_interference_graph.ToGraph(&func_interference_graph_colors).ToDotFormat(),
-                  debug_dir / (file_name + ".interference_graph.dot"));
-      WriteToFile(func_interference_graph_colors.ToString(),
-                  debug_dir / (file_name + ".colors.txt"));
+      ctx->WriteToDebugFile(
+          func_interference_graph.ToGraph(&func_interference_graph_colors).ToDotFormat(),
+          file_name + ".interference_graph.dot");
+      ctx->WriteToDebugFile(func_interference_graph_colors.ToString(), file_name + ".colors.txt");
     }
   }
 

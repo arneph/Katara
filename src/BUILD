@@ -18,6 +18,8 @@ cc_binary(
     copts = COPTS,
     deps = [
         "//src/cmd",
+        "//src/cmd:context",
+        "//src/cmd:util",
     ],
 )
 

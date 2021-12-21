@@ -9,15 +9,15 @@
 #ifndef cmd_doc_h
 #define cmd_doc_h
 
-#include <ostream>
 #include <string>
 #include <vector>
 
+#include "src/cmd/context.h"
 #include "src/cmd/error_codes.h"
 
 namespace cmd {
 
-ErrorCode Doc(const std::vector<std::string> args, std::ostream& err);
+ErrorCode Doc(Context* ctx);
 
 }
 

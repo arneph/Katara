@@ -9,13 +9,13 @@
 #ifndef cmd_util_h
 #define cmd_util_h
 
-#include <filesystem>
 #include <string>
+#include <vector>
 
 namespace cmd {
 
-void WriteToFile(std::string text, std::filesystem::path out_file);
+std::vector<std::string> ConvertMainArgs(int argc, char* argv[]);
 
-}
+}  // namespace cmd
 
 #endif /* cmd_util_h */
