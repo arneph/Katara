@@ -12,21 +12,19 @@
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/types/info_util.h"
 
+namespace cmd {
 namespace {
 
 constexpr std::string_view kStdLibPath = "/Users/arne/Documents/Xcode/Katara/stdlib";
 
-}
+enum class ArgsKind {
+  kNone,
+  kMainPackageDirectory,
+  kMainPackageFiles,
+  kPackagePaths,
+};
 
-namespace cmd {
-
-std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
-  enum class ArgsKind {
-    kNone,
-    kMainPackageDirectory,
-    kMainPackageFiles,
-    kPackagePaths,
-  };
+std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
   ArgsKind args_kind = ArgsKind::kNone;
   for (std::string arg : ctx->args()) {
     std::filesystem::path path(arg);
@@ -54,7 +52,54 @@ std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
       args_kind = ArgsKind::kPackagePaths;
     }
   }
+  return args_kind;
+}
 
+ErrorCode FindIssues(std::unique_ptr<lang::packages::PackageManager>& pkg_manager, Context* ctx) {
+  bool contains_issues = !pkg_manager->issue_tracker()->issues().empty();
+  pkg_manager->issue_tracker()->PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal,
+                                            ctx->stderr());
+  for (auto pkg : pkg_manager->Packages()) {
+    pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal,
+                                     ctx->stderr());
+    if (!pkg->issue_tracker().issues().empty()) {
+      contains_issues = true;
+    }
+  }
+  if (contains_issues) {
+    return ErrorCode::kLoadErrorForPackage;
+  }
+  return ErrorCode::kNoError;
+}
+
+void GenerateDebugInfo(std::unique_ptr<lang::packages::PackageManager>& pkg_manager,
+                       lang::packages::Package* main_pkg,
+                       std::vector<lang::packages::Package*>& arg_pkgs, Context* ctx) {
+  if (!ctx->generate_debug_info()) {
+    return;
+  }
+
+  for (lang::packages::Package* pkg : arg_pkgs) {
+    for (auto [name, ast_file] : pkg->ast_package()->files()) {
+      common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager->file_set(), ast_file);
+
+      ctx->WriteToDebugFile(ast_graph.ToDotFormat(), name + ".ast.dot");
+    }
+
+    std::string type_info =
+        lang::types::InfoToText(pkg_manager->file_set(), pkg_manager->type_info());
+    ctx->WriteToDebugFile(type_info, main_pkg->name() + ".types.txt");
+  }
+}
+
+}  // namespace
+
+std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
+  std::variant<ArgsKind, ErrorCode> args_kind_or_error = FindArgsKind(ctx);
+  if (std::holds_alternative<ErrorCode>(args_kind_or_error)) {
+    return std::get<ErrorCode>(args_kind_or_error);
+  }
+  ArgsKind args_kind = std::get<ArgsKind>(args_kind_or_error);
   auto pkg_manager = std::make_unique<lang::packages::PackageManager>(
       std::string{kStdLibPath}, std::filesystem::current_path());
   lang::packages::Package* main_pkg = nullptr;
@@ -81,34 +126,11 @@ std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
   if (main_pkg != nullptr) {
     arg_pkgs.push_back(main_pkg);
   }
-
-  bool contains_issues = !pkg_manager->issue_tracker()->issues().empty();
-  pkg_manager->issue_tracker()->PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal,
-                                            ctx->stderr());
-  for (auto pkg : pkg_manager->Packages()) {
-    pkg->issue_tracker().PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal,
-                                     ctx->stderr());
-    if (!pkg->issue_tracker().issues().empty()) {
-      contains_issues = true;
-    }
+  GenerateDebugInfo(pkg_manager, main_pkg, arg_pkgs, ctx);
+  ErrorCode error_from_issues = FindIssues(pkg_manager, ctx);
+  if (error_from_issues != kNoError) {
+    return error_from_issues;
   }
-  if (ctx->generate_debug_info()) {
-    for (lang::packages::Package* pkg : arg_pkgs) {
-      for (auto [name, ast_file] : pkg->ast_package()->files()) {
-        common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager->file_set(), ast_file);
-
-        ctx->WriteToDebugFile(ast_graph.ToDotFormat(), name + ".ast.dot");
-      }
-
-      std::string type_info =
-          lang::types::InfoToText(pkg_manager->file_set(), pkg_manager->type_info());
-      ctx->WriteToDebugFile(type_info, main_pkg->name() + ".types.txt");
-    }
-  }
-  if (contains_issues) {
-    return ErrorCode::kLoadErrorForPackage;
-  }
-
   return LoadResult{
       .pkg_manager = std::move(pkg_manager),
       .arg_pkgs = arg_pkgs,
