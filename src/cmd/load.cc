@@ -83,12 +83,12 @@ void GenerateDebugInfo(std::unique_ptr<lang::packages::PackageManager>& pkg_mana
     for (auto [name, ast_file] : pkg->ast_package()->files()) {
       common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager->file_set(), ast_file);
 
-      ctx->WriteToDebugFile(ast_graph.ToDotFormat(), name + ".ast.dot");
+      ctx->WriteToDebugFile(ast_graph.ToDotFormat(), /* subdir_name= */ "", name + ".ast.dot");
     }
 
     std::string type_info =
         lang::types::InfoToText(pkg_manager->file_set(), pkg_manager->type_info());
-    ctx->WriteToDebugFile(type_info, main_pkg->name() + ".types.txt");
+    ctx->WriteToDebugFile(type_info, /* subdir_name= */ "", main_pkg->name() + ".types.txt");
   }
 }
 

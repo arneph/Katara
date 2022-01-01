@@ -35,8 +35,18 @@ Context::Context(std::vector<std::string> args) {
   }
 }
 
-void Context::WriteToDebugFile(std::string text, std::string name) const {
-  WriteToFile(text, debug_path_ / name);
+void Context::CreateDebugSubDirectory(std::string subdir_name) const {
+  CreateDirectory(debug_path_ / subdir_name);
+}
+
+void Context::WriteToDebugFile(std::string text, std::string subdir_name,
+                               std::string out_file) const {
+  if (!subdir_name.empty()) {
+    CreateDebugSubDirectory(subdir_name);
+    WriteToFile(text, debug_path_ / subdir_name / out_file);
+  } else {
+    WriteToFile(text, debug_path_ / out_file);
+  }
 }
 
 std::string RealContext::ReadFromFile(std::filesystem::path in_file) const {
@@ -49,6 +59,10 @@ std::string RealContext::ReadFromFile(std::filesystem::path in_file) const {
 void RealContext::WriteToFile(std::string text, std::filesystem::path out_file) const {
   std::ofstream out_stream(out_file, std::ios::out);
   out_stream << text;
+}
+
+void RealContext::CreateDirectory(std::filesystem::path path) const {
+  std::filesystem::create_directory(path);
 }
 
 }  // namespace cmd

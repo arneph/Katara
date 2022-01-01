@@ -47,7 +47,7 @@ ErrorCode Run(Context* ctx) {
         buffer << "\n";
       }
     }
-    ctx->WriteToDebugFile(buffer.str(), "x86_64.hex.txt");
+    ctx->WriteToDebugFile(buffer.str(), /* subdir_name= */ "", "x86_64.hex.txt");
   }
 
   x86_64::Func* x86_64_main_func = x86_64_program->DefinedFuncWithName("main");

@@ -30,7 +30,10 @@ class Context {
 
   virtual std::string ReadFromFile(std::filesystem::path in_file) const = 0;
   virtual void WriteToFile(std::string text, std::filesystem::path out_file) const = 0;
-  void WriteToDebugFile(std::string text, std::string name) const;
+  virtual void CreateDirectory(std::filesystem::path path) const = 0;
+
+  void CreateDebugSubDirectory(std::string subdir_name) const;
+  void WriteToDebugFile(std::string text, std::string subdir_name, std::string file_name) const;
 
  protected:
   Context(std::vector<std::string> args);
@@ -51,6 +54,7 @@ class RealContext : public Context {
 
   std::string ReadFromFile(std::filesystem::path in_file) const override;
   void WriteToFile(std::string text, std::filesystem::path out_file) const override;
+  void CreateDirectory(std::filesystem::path path) const override;
 };
 
 }  // namespace cmd
