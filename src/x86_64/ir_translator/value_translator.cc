@@ -17,14 +17,14 @@
 
 namespace ir_to_x86_64_translator {
 
-x86_64::Operand TranslateValue(ir::Value* value, FuncContext& ctx) {
+x86_64::Operand TranslateValue(ir::Value* value, IntNarrowing narrowing, FuncContext& ctx) {
   switch (value->kind()) {
     case ir::Value::Kind::kConstant:
       switch (static_cast<const ir::AtomicType*>(value->type())->type_kind()) {
         case ir::TypeKind::kBool:
           return TranslateBoolConstant(static_cast<ir::BoolConstant*>(value));
         case ir::TypeKind::kInt:
-          return TranslateIntConstant(static_cast<ir::IntConstant*>(value));
+          return TranslateIntConstant(static_cast<ir::IntConstant*>(value), narrowing);
         case ir::TypeKind::kPointer:
           return TranslatePointerConstant(static_cast<ir::PointerConstant*>(value));
         case ir::TypeKind::kFunc:
@@ -43,7 +43,7 @@ x86_64::Imm TranslateBoolConstant(ir::BoolConstant* constant) {
   return constant->value() ? x86_64::Imm(int8_t{1}) : x86_64::Imm(int8_t{0});
 }
 
-x86_64::Imm TranslateIntConstant(ir::IntConstant* constant) {
+x86_64::Imm TranslateIntConstant(ir::IntConstant* constant, IntNarrowing narrowing) {
   switch (constant->value().type()) {
     case common::IntType::kI8:
     case common::IntType::kU8:
@@ -56,7 +56,8 @@ x86_64::Imm TranslateIntConstant(ir::IntConstant* constant) {
       return x86_64::Imm(int32_t(constant->value().AsInt64()));
     case common::IntType::kI64: {
       common::Int value = constant->value();
-      if (value.CanConvertTo(common::IntType::kI32)) {
+      if (narrowing == IntNarrowing::k64To32BitIfPossible &&
+          value.CanConvertTo(common::IntType::kI32)) {
         return x86_64::Imm(int32_t(value.AsInt64()));
       } else {
         return x86_64::Imm(int64_t(value.AsInt64()));
@@ -64,7 +65,8 @@ x86_64::Imm TranslateIntConstant(ir::IntConstant* constant) {
     }
     case common::IntType::kU64: {
       common::Int value = constant->value();
-      if (value.CanConvertTo(common::IntType::kU32)) {
+      if (narrowing == IntNarrowing::k64To32BitIfPossible &&
+          value.CanConvertTo(common::IntType::kU32)) {
         return x86_64::Imm(int32_t(value.AsInt64()));
       } else {
         return x86_64::Imm(int64_t(value.AsInt64()));

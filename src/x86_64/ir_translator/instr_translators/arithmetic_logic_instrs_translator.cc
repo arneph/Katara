@@ -29,7 +29,7 @@ namespace ir_to_x86_64_translator {
 void TranslateBoolNotInstr(ir::BoolNotInstr* ir_bool_not_instr, BlockContext& ctx) {
   x86_64::RM x86_64_result = TranslateComputed(ir_bool_not_instr->result().get(), ctx.func_ctx());
   x86_64::Operand x86_64_operand =
-      TranslateValue(ir_bool_not_instr->operand().get(), ctx.func_ctx());
+      TranslateValue(ir_bool_not_instr->operand().get(), IntNarrowing::kNone, ctx.func_ctx());
 
   GenerateMov(x86_64_result, x86_64_operand, ir_bool_not_instr, ctx);
 
@@ -178,7 +178,8 @@ void TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_instr, BlockCo
   x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
   x86_64::RM x86_64_operand_a =
       TranslateComputed(static_cast<ir::Computed*>(ir_operand_a), ctx.func_ctx());
-  x86_64::Operand x86_64_operand_b = TranslateValue(ir_operand_b, ctx.func_ctx());
+  x86_64::Operand x86_64_operand_b =
+      TranslateValue(ir_operand_b, IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
 
   std::optional<TemporaryReg> tmp;
   if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
@@ -223,10 +224,10 @@ void TranslateIntCommutativeALInstr(ir::IntBinaryInstr* ir_int_binary_instr, Blo
   // Note: It is assumed that at least one operand is not a constant. A constant folding
   // optimization pass should ensure this.
   x86_64::RM x86_64_result = TranslateComputed(ir_int_binary_instr->result().get(), ctx.func_ctx());
-  x86_64::Operand x86_64_operand_a =
-      TranslateValue(ir_int_binary_instr->operand_a().get(), ctx.func_ctx());
-  x86_64::Operand x86_64_operand_b =
-      TranslateValue(ir_int_binary_instr->operand_b().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_a = TranslateValue(
+      ir_int_binary_instr->operand_a().get(), IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
+  x86_64::Operand x86_64_operand_b = TranslateValue(
+      ir_int_binary_instr->operand_b().get(), IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
 
   if (x86_64_operand_a.is_imm()) {
     std::swap(x86_64_operand_a, x86_64_operand_b);
@@ -270,10 +271,10 @@ void TranslateIntCommutativeALInstr(ir::IntBinaryInstr* ir_int_binary_instr, Blo
 
 void TranslateIntSubInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx) {
   x86_64::RM x86_64_result = TranslateComputed(ir_int_binary_instr->result().get(), ctx.func_ctx());
-  x86_64::Operand x86_64_operand_a =
-      TranslateValue(ir_int_binary_instr->operand_a().get(), ctx.func_ctx());
-  x86_64::Operand x86_64_operand_b =
-      TranslateValue(ir_int_binary_instr->operand_b().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_a = TranslateValue(
+      ir_int_binary_instr->operand_a().get(), IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
+  x86_64::Operand x86_64_operand_b = TranslateValue(
+      ir_int_binary_instr->operand_b().get(), IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
 
   std::optional<TemporaryReg> tmp;
   if (x86_64_result == x86_64_operand_b) {
@@ -323,7 +324,8 @@ void TranslateIntMulInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext&
   x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
   x86_64::RM x86_64_operand_a =
       TranslateComputed(static_cast<ir::Computed*>(ir_operand_a), ctx.func_ctx());
-  x86_64::Operand x86_64_operand_b = TranslateValue(ir_operand_b, ctx.func_ctx());
+  x86_64::Operand x86_64_operand_b =
+      TranslateValue(ir_operand_b, IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
 
   std::optional<TemporaryReg> tmp;
   if ((x86_64_operand_b.is_imm() && x86_64_operand_b.size() == x86_64::k64) ||
@@ -367,10 +369,10 @@ void TranslatePointerOffsetInstr(ir::PointerOffsetInstr* ir_pointer_offset_instr
   // optimization pass should ensure this.
   x86_64::RM x86_64_result =
       TranslateComputed(ir_pointer_offset_instr->result().get(), ctx.func_ctx());
-  x86_64::Operand x86_64_operand_a =
-      TranslateValue(ir_pointer_offset_instr->pointer().get(), ctx.func_ctx());
-  x86_64::Operand x86_64_operand_b =
-      TranslateValue(ir_pointer_offset_instr->offset().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_operand_a = TranslateValue(
+      ir_pointer_offset_instr->pointer().get(), IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
+  x86_64::Operand x86_64_operand_b = TranslateValue(
+      ir_pointer_offset_instr->offset().get(), IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
 
   if (x86_64_result == x86_64_operand_b) {
     x86_64_operand_b = x86_64_operand_a;

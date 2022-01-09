@@ -12,6 +12,7 @@
 
 #include "src/common/logging.h"
 #include "src/ir/representation/values.h"
+#include "src/x86_64/instrs/control_flow_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/ir_translator/context.h"
@@ -25,20 +26,36 @@ namespace ir_to_x86_64_translator {
 
 void TranslateMovInstr(ir::MovInstr* ir_mov_instr, BlockContext& ctx) {
   x86_64::RM x86_64_result = TranslateComputed(ir_mov_instr->result().get(), ctx.func_ctx());
-  x86_64::Operand x86_64_origin = TranslateValue(ir_mov_instr->origin().get(), ctx.func_ctx());
+  x86_64::Operand x86_64_origin = TranslateValue(
+      ir_mov_instr->origin().get(), IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
 
   GenerateMov(x86_64_result, x86_64_origin, ir_mov_instr, ctx);
 }
 
 void TranslateMallocInstr(ir::MallocInstr* ir_malloc_instr, BlockContext& ctx) {
-  // TODO: implement
+  ir::Value* ir_size_value = ir_malloc_instr->size().get();
+  x86_64::Operand x86_64_size_value =
+      TranslateValue(ir_size_value, IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
+  x86_64::RM x86_64_size_location = OperandForArg(0, x86_64::k64);
+  GenerateMov(x86_64_size_location, x86_64_size_value, ir_malloc_instr, ctx);
+
+  x86_64::FuncRef malloc_ref(ctx.x86_64_program()->declared_funcs().at("malloc"));
+  ctx.x86_64_block()->AddInstr<x86_64::Call>(malloc_ref);
+
+  ir::Computed* ir_result = ir_malloc_instr->result().get();
+  x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
+  x86_64::RM x86_64_result_location = OperandForResult(0, x86_64::k64);
+  GenerateMov(x86_64_result, x86_64_result_location, ir_malloc_instr, ctx);
+
+  // TODO: respect calling conventions. Consider lowering to func call instead.
 }
 
 void TranslateLoadInstr(ir::LoadInstr* ir_load_instr, BlockContext& ctx) {
   ir::Value* ir_address = ir_load_instr->address().get();
   ir::Computed* ir_result = ir_load_instr->result().get();
 
-  x86_64::Operand x86_64_address = TranslateValue(ir_address, ctx.func_ctx());
+  x86_64::Operand x86_64_address =
+      TranslateValue(ir_address, IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
   x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
   x86_64::Size x86_64_size = TranslateSizeOfType(ir_result->type());
 
@@ -80,8 +97,9 @@ void TranslateStoreInstr(ir::StoreInstr* ir_store_instr, BlockContext& ctx) {
   ir::Value* ir_address = ir_store_instr->address().get();
   ir::Value* ir_value = ir_store_instr->value().get();
 
-  x86_64::Operand x86_64_address = TranslateValue(ir_address, ctx.func_ctx());
-  x86_64::Operand x86_64_value = TranslateValue(ir_value, ctx.func_ctx());
+  x86_64::Operand x86_64_address =
+      TranslateValue(ir_address, IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
+  x86_64::Operand x86_64_value = TranslateValue(ir_value, IntNarrowing::kNone, ctx.func_ctx());
   x86_64::Size x86_64_size = TranslateSizeOfType(ir_value->type());
 
   std::optional<TemporaryReg> value_tmp;

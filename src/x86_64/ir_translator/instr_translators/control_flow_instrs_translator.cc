@@ -56,9 +56,11 @@ void TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr, BlockContext&
       auto ir_condition_computed = static_cast<ir::Computed*>(ir_condition);
       x86_64::RM x86_64_condition = TranslateComputed(ir_condition_computed, ctx.func_ctx());
 
+      // If x86_64_condition == 0x00, ZF gets set to 1.
+      // If x86_64_condition != 0x00, ZF gets set to 0.
+      // Therefore, counterintuitively x86_64_destination_true should be reached if ZF == 0.
       ctx.x86_64_block()->AddInstr<x86_64::Test>(x86_64_condition, x86_64::Imm(int8_t{-1}));
-      ctx.x86_64_block()->AddInstr<x86_64::Jcc>(x86_64::InstrCond::kNoZero,
-                                                x86_64_destination_true);
+      ctx.x86_64_block()->AddInstr<x86_64::Jcc>(x86_64::InstrCond::kZero, x86_64_destination_true);
       ctx.x86_64_block()->AddInstr<x86_64::Jmp>(x86_64_destination_false);
       return;
     }
@@ -72,7 +74,8 @@ void TranslateCallInstr(ir::CallInstr* ir_call_instr, BlockContext& ctx) {
   arg_moves.reserve(ir_call_instr->args().size());
   for (std::size_t arg_index = 0; arg_index < ir_call_instr->args().size(); arg_index++) {
     ir::Value* ir_arg_value = ir_call_instr->args().at(arg_index).get();
-    x86_64::Operand x86_64_arg_value = TranslateValue(ir_arg_value, ctx.func_ctx());
+    x86_64::Operand x86_64_arg_value =
+        TranslateValue(ir_arg_value, IntNarrowing::kNone, ctx.func_ctx());
     x86_64::Size x86_64_arg_size = TranslateSizeOfType(ir_arg_value->type());
     x86_64::RM x86_64_arg_location = OperandForArg(int(arg_index), x86_64_arg_size);
     arg_moves.push_back(MoveOperation(x86_64_arg_location, x86_64_arg_value));
@@ -80,7 +83,8 @@ void TranslateCallInstr(ir::CallInstr* ir_call_instr, BlockContext& ctx) {
   GenerateMovs(arg_moves, ir_call_instr, ctx);
 
   ir::Value* ir_called_func = ir_call_instr->func().get();
-  x86_64::Operand x86_64_called_func = TranslateValue(ir_called_func, ctx.func_ctx());
+  x86_64::Operand x86_64_called_func =
+      TranslateValue(ir_called_func, IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
   if (x86_64_called_func.is_func_ref()) {
     ctx.x86_64_block()->AddInstr<x86_64::Call>(x86_64_called_func.func_ref());
   } else if (x86_64_called_func.is_rm()) {
@@ -113,7 +117,8 @@ void TranslateReturnInstr(ir::ReturnInstr* ir_return_instr, BlockContext& ctx) {
   arg_infos.reserve(ir_return_instr->args().size());
   for (std::size_t arg_index = 0; arg_index < ir_return_instr->args().size(); arg_index++) {
     ir::Value* ir_arg_value = ir_return_instr->args().at(arg_index).get();
-    x86_64::Operand x86_64_arg_value = TranslateValue(ir_arg_value, ctx.func_ctx());
+    x86_64::Operand x86_64_arg_value =
+        TranslateValue(ir_arg_value, IntNarrowing::kNone, ctx.func_ctx());
     x86_64::Size x86_64_arg_size = TranslateSizeOfType(ir_arg_value->type());
     x86_64::RM x86_64_arg_location = OperandForResult(int(arg_index), x86_64_arg_size);
     arg_infos.push_back(ArgInfo{

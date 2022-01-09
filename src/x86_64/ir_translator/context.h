@@ -70,6 +70,9 @@ class FuncContext {
 
   ProgramContext& program_ctx() const { return program_ctx_; }
 
+  const ir::Program* ir_program() const { return program_ctx_.ir_program(); }
+  x86_64::Program* x86_64_program() const { return program_ctx_.x86_64_program(); }
+
   const ir::Func* ir_func() const { return ir_func_; }
   x86_64::Func* x86_64_func() const { return x86_64_func_; }
 
@@ -108,7 +111,11 @@ class BlockContext {
         x86_64_block_(x86_64_block),
         live_ranges_(func_ctx_.live_ranges().GetBlockLiveRanges(ir_block_->number())) {}
 
+  ProgramContext& program_ctx() const { return func_ctx_.program_ctx(); }
   FuncContext& func_ctx() const { return func_ctx_; }
+
+  const ir::Program* ir_program() const { return program_ctx().ir_program(); }
+  x86_64::Program* x86_64_program() const { return program_ctx().x86_64_program(); }
 
   const ir::Func* ir_func() const { return func_ctx_.ir_func(); }
   x86_64::Func* x86_64_func() const { return func_ctx_.x86_64_func(); }

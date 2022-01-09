@@ -16,9 +16,14 @@
 
 namespace ir_to_x86_64_translator {
 
-x86_64::Operand TranslateValue(ir::Value* value, FuncContext& ctx);
+enum class IntNarrowing {
+  kNone,
+  k64To32BitIfPossible,
+};
+
+x86_64::Operand TranslateValue(ir::Value* value, IntNarrowing narrowing, FuncContext& ctx);
 x86_64::Imm TranslateBoolConstant(ir::BoolConstant* constant);
-x86_64::Imm TranslateIntConstant(ir::IntConstant* constant);
+x86_64::Imm TranslateIntConstant(ir::IntConstant* constant, IntNarrowing narrowing);
 x86_64::Imm TranslatePointerConstant(ir::PointerConstant* constant);
 x86_64::Operand TranslateFuncConstant(ir::FuncConstant* constant, ProgramContext& ctx);
 x86_64::RM TranslateComputed(ir::Computed* computed, FuncContext& ctx);

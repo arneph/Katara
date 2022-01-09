@@ -16,6 +16,7 @@
 #include "src/x86_64/instrs/control_flow_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/ir_translator/instrs_translator.h"
+#include "src/x86_64/ir_translator/register_allocator.h"
 
 namespace ir_to_x86_64_translator {
 namespace {
@@ -59,17 +60,40 @@ void TranslateBlock(BlockContext& ctx) {
   }
 }
 
+void ForEachUsedCalleeSavedRegister(std::function<void(x86_64::Reg)> func, FuncContext& ctx) {
+  for (ir_info::color_t color : ctx.used_colors()) {
+    x86_64::RM rm = ColorAndSizeToOperand(color, x86_64::k64);
+    if (!rm.is_reg()) {
+      continue;
+    }
+    x86_64::Reg reg = rm.reg();
+    if (SavingBehaviourForReg(reg) != RegSavingBehaviour::kByCallee) {
+      continue;
+    }
+    func(reg);
+  }
+}
+
 void GenerateFuncPrologue(BlockContext& ctx) {
   std::vector<std::unique_ptr<x86_64::Instr>>::const_iterator it =
       ctx.x86_64_block()->instrs().begin();
   it = ctx.x86_64_block()->InsertInstr<x86_64::Push>(it, x86_64::rbp);
   ++it;
   it = ctx.x86_64_block()->InsertInstr<x86_64::Mov>(it, x86_64::rbp, x86_64::rsp);
+  ++it;
+  ForEachUsedCalleeSavedRegister(
+      [&it, &ctx](x86_64::Reg reg) {
+        it = ctx.x86_64_block()->InsertInstr<x86_64::Push>(it, reg);
+        ++it;
+      },
+      ctx.func_ctx());
   // TODO: reserve stack space
 }
 
 void GenerateFuncEpilogue(BlockContext& ctx) {
   // TODO: revert stack pointer
+  ForEachUsedCalleeSavedRegister(
+      [&ctx](x86_64::Reg reg) { ctx.x86_64_block()->AddInstr<x86_64::Pop>(reg); }, ctx.func_ctx());
   ctx.x86_64_block()->AddInstr<x86_64::Pop>(x86_64::rbp);
   ctx.x86_64_block()->AddInstr<x86_64::Ret>();
 }
