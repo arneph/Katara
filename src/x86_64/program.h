@@ -27,6 +27,7 @@ class Program {
 
   func_num_t DeclareFunc(std::string func_name);
   Func* DefineFunc(std::string func_name);
+  Func* DefinedFuncWithNumber(func_num_t number) const;
   Func* DefinedFuncWithName(std::string name) const;
 
   int64_t block_count() const { return block_count_; }

@@ -60,21 +60,26 @@ void GenerateIrDebugInfo(
 }
 
 void GenerateX86_64DebugInfo(
-    ir::Program* ir_program, x86_64::Program* x86_64_program, lang::packages::Package* main_pkg,
-    std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>* interference_graphs,
-    std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraphColors>*
-        interference_graph_colors,
-    Context* ctx) {
-  ctx->WriteToDebugFile(x86_64_program->ToString(), /* subdir_name= */ "", "x86_64.asm.txt");
+    ir::Program* ir_program, lang::packages::Package* main_pkg,
+    std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>& interference_graphs,
+    ir_to_x86_64_translator::TranslationResults& translation_results, Context* ctx) {
+  ctx->WriteToDebugFile(translation_results.program->ToString(), /* subdir_name= */ "",
+                        "x86_64.asm.txt");
 
   for (auto& func : ir_program->funcs()) {
     std::string subdir_name = SubdirNameForFunc(main_pkg, func.get());
 
+    const ir::func_num_t ir_func_num = func->number();
+    const x86_64::func_num_t x86_64_func_num =
+        translation_results.ir_to_x86_64_func_nums.at(ir_func_num);
+    const x86_64::Func* x86_64_func =
+        translation_results.program->DefinedFuncWithNumber(x86_64_func_num);
     const ir_info::InterferenceGraph& func_interference_graph =
-        interference_graphs->at(func->number());
+        interference_graphs.at(func->number());
     const ir_info::InterferenceGraphColors& func_interference_graph_colors =
-        interference_graph_colors->at(func->number());
+        translation_results.interference_graph_colors.at(func->number());
 
+    ctx->WriteToDebugFile(x86_64_func->ToString(), subdir_name, "x86_64.asm.txt");
     ctx->WriteToDebugFile(
         func_interference_graph.ToGraph(&func_interference_graph_colors).ToDotFormat(), subdir_name,
         "x86_64.interference_graph.dot");
@@ -135,8 +140,7 @@ std::variant<BuildResult, ErrorCode> Build(Context* ctx) {
                                          ctx->generate_debug_info());
 
   if (ctx->generate_debug_info()) {
-    GenerateX86_64DebugInfo(ir_program.get(), translation_results.program.get(), main_pkg,
-                            &interference_graphs, &translation_results.interference_graph_colors,
+    GenerateX86_64DebugInfo(ir_program.get(), main_pkg, interference_graphs, translation_results,
                             ctx);
   }
 

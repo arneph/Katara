@@ -24,6 +24,7 @@ struct TranslationResults {
   std::unique_ptr<x86_64::Program> program;
 
   // Debug info:
+  std::unordered_map<ir::func_num_t, x86_64::func_num_t> ir_to_x86_64_func_nums;
   std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraphColors>
       interference_graph_colors;
 };

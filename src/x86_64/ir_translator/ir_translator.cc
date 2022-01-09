@@ -50,6 +50,7 @@ TranslationResults Translate(
   ProgramContext program_ctx(ir_program, x86_64_program.get(), malloc_func_num, free_func_num);
   std::vector<x86_64::Func*> x86_64_funcs = PrepareFuncs(program_ctx);
 
+  std::unordered_map<ir::func_num_t, x86_64::func_num_t> ir_to_x86_64_func_nums;
   std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraphColors>
       interference_graph_colors = AllocateRegisters(ir_program, interference_graphs);
 
@@ -62,12 +63,17 @@ TranslationResults Translate(
                          interference_graphs.at(ir_func_num),
                          interference_graph_colors.at(ir_func_num));
     TranslateFunc(func_ctx);
+
+    if (generate_debug_info) {
+      ir_to_x86_64_func_nums.insert({ir_func_num, x86_64_func->func_num()});
+    }
   }
 
   TranslationResults results{
       .program = std::move(x86_64_program),
   };
   if (generate_debug_info) {
+    results.ir_to_x86_64_func_nums = std::move(ir_to_x86_64_func_nums);
     results.interference_graph_colors = std::move(interference_graph_colors);
   }
 

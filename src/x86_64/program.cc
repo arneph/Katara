@@ -23,6 +23,15 @@ Func* Program::DefineFunc(std::string func_name) {
   return defined_funcs_.emplace_back(new Func(this, func_num, func_name)).get();
 }
 
+Func* Program::DefinedFuncWithNumber(func_num_t number) const {
+  for (auto& func : defined_funcs_) {
+    if (func->func_num() == number) {
+      return func.get();
+    }
+  }
+  return nullptr;
+}
+
 Func* Program::DefinedFuncWithName(std::string name) const {
   for (auto& func : defined_funcs_) {
     if (func->name() == name) {
