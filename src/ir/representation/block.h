@@ -46,7 +46,7 @@ class Block {
   const std::unordered_set<block_num_t>& children() const { return children_; }
 
   std::string ToString() const;
-  common::Node ToVCGNode() const;
+  common::Node ToNode() const;
 
   friend class Func;
 

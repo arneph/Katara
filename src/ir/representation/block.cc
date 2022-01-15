@@ -84,7 +84,7 @@ std::string Block::ToString() const {
   return ss.str();
 }
 
-common::Node Block::ToVCGNode() const {
+common::Node Block::ToNode() const {
   std::stringstream ss;
   for (size_t i = 0; i < instrs_.size(); i++) {
     if (i > 0) ss << "\n";

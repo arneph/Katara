@@ -146,7 +146,7 @@ common::Graph Func::ToControlFlowGraph() const {
   common::Graph graph(/*is_directed=*/true);
 
   for (auto& block : blocks_) {
-    graph.nodes().push_back(block->ToVCGNode());
+    graph.nodes().push_back(block->ToNode());
 
     for (block_num_t child_num : block->children()) {
       graph.edges().push_back(common::Edge(block->number(), child_num));
@@ -160,7 +160,7 @@ common::Graph Func::ToDominatorTree() const {
   common::Graph graph(/*is_directed=*/true);
 
   for (auto& block : blocks_) {
-    graph.nodes().push_back(block->ToVCGNode());
+    graph.nodes().push_back(block->ToNode());
 
     for (block_num_t dominee_num : DomineesOf(block->number())) {
       graph.edges().push_back(common::Edge(block->number(), dominee_num));
