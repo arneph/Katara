@@ -10,11 +10,14 @@
 #define common_graph_h
 
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace common {
 
 typedef int64_t node_num_t;
+typedef int64_t subgraph_num_t;
+const subgraph_num_t kDefaultSubgraph = 0;
 
 typedef enum : int64_t {
   kWhite = 0,
@@ -28,19 +31,36 @@ typedef enum : int64_t {
 
 class Node {
  public:
-  Node(node_num_t number, std::string title, std::string text = "", Color color = kWhite)
-      : number_(number), title_(title), text_(text), color_(color) {}
-
   node_num_t number() const { return number_; }
   std::string title() const { return title_; }
   std::string text() const { return text_; }
+  subgraph_num_t subgraph() const { return subgraph_; }
   Color color() const { return color_; }
 
  private:
+  Node(node_num_t number, std::string title) : number_(number), title_(title) {}
+
   node_num_t number_;
   std::string title_;
   std::string text_;
-  Color color_;
+  subgraph_num_t subgraph_ = kDefaultSubgraph;
+  Color color_ = kWhite;
+
+  friend class NodeBuilder;
+};
+
+class NodeBuilder {
+ public:
+  NodeBuilder(node_num_t number, std::string title) : node_(number, title) {}
+
+  NodeBuilder& SetText(std::string text);
+  NodeBuilder& SetSubgraph(subgraph_num_t subgraph);
+  NodeBuilder& SetColor(Color color);
+
+  Node Build() { return node_; }
+
+ private:
+  Node node_;
 };
 
 class Edge {
@@ -63,10 +83,16 @@ class Graph {
   std::vector<Node>& nodes() { return nodes_; }
   std::vector<Edge>& edges() { return edges_; }
 
+  bool UsesSubgraphs() const;
+  std::unordered_set<subgraph_num_t> Subgraphs() const;
+
   std::string ToVCGFormat() const;
   std::string ToDotFormat() const;
 
  private:
+  std::string ToDotFormatWithoutSubgraphs() const;
+  std::string ToDotFormatWithSubgraphs() const;
+
   std::vector<Node> nodes_;
   std::vector<Edge> edges_;
   bool is_directed_;

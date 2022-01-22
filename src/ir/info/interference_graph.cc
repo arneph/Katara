@@ -121,8 +121,9 @@ common::Graph InterferenceGraph::ToGraph(const InterferenceGraphColors* colors) 
 
     value_numbers.insert({node, node_number});
 
-    vcg_graph.nodes().push_back(
-        common::Node(node_number, std::to_string(node), "", (common::Color)node_reg));
+    vcg_graph.nodes().push_back(common::NodeBuilder(node_number, std::to_string(node))
+                                    .SetColor(common::Color(node_reg))
+                                    .Build());
 
     for (ir::value_num_t neighbor : neighbors) {
       auto it = value_numbers.find(neighbor);

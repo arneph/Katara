@@ -48,7 +48,8 @@ common::Graph NodeToTree(const pos::FileSet* file_set, Node* node) {
       text = std::string(text.begin(), it) + "...";
     }
 
-    graph.nodes().push_back(common::Node(number, title, text, color));
+    graph.nodes().push_back(
+        common::NodeBuilder(number, title).SetText(text).SetColor(color).Build());
 
     if (!stack.empty()) {
       graph.edges().push_back(common::Edge(stack.back(), number));

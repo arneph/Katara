@@ -91,7 +91,7 @@ common::Node Block::ToNode() const {
     ss << instrs_.at(i)->ToString();
   }
 
-  return common::Node(number_, ReferenceString(), ss.str());
+  return common::NodeBuilder(number_, ReferenceString()).SetText(ss.str()).Build();
 }
 
 }  // namespace ir
