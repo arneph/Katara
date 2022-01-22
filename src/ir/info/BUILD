@@ -16,6 +16,24 @@ cc_library(
 )
 
 cc_library(
+    name = "func_call_graph",
+    srcs = [
+        "func_call_graph.cc",
+    ],
+    hdrs = [
+        "func_call_graph.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//src/ir:__subpackages__",
+    ],
+    deps = [
+        "//src/common:graph",
+        "//src/ir/representation",
+    ],
+)
+
+cc_library(
     name = "interference_graph",
     srcs = [
         "interference_graph.cc",
@@ -60,6 +78,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        ":func_call_graph",
         ":interference_graph",
         ":live_ranges",
         ":values",

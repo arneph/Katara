@@ -11,8 +11,10 @@
 #include <unordered_map>
 
 #include "src/cmd/load.h"
+#include "src/ir/analyzers/func_call_graph_builder.h"
 #include "src/ir/analyzers/interference_graph_builder.h"
 #include "src/ir/analyzers/live_range_analyzer.h"
+#include "src/ir/info/func_call_graph.h"
 #include "src/ir/info/func_live_ranges.h"
 #include "src/ir/info/interference_graph.h"
 #include "src/ir/processors/phi_resolver.h"
@@ -31,10 +33,15 @@ std::string SubdirNameForFunc(lang::packages::Package* main_pkg, ir::Func* func)
 
 void GenerateIrDebugInfo(
     ir::Program* program, lang::packages::Package* main_pkg, std::string iter,
+    ir_info::FuncCallGraph* func_call_graph,
     std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges>* live_ranges,
     std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>* interference_graphs,
     Context* ctx) {
   ctx->WriteToDebugFile(program->ToString(), /* subdir_name= */ "", "ir." + iter + ".txt");
+  if (func_call_graph != nullptr) {
+    ctx->WriteToDebugFile(func_call_graph->ToGraph(program).ToDotFormat(), /* subdir_name= */ "",
+                          "ir." + iter + ".fcg.dot");
+  }
 
   for (auto& func : program->funcs()) {
     std::string subdir_name = SubdirNameForFunc(main_pkg, func.get());
@@ -110,7 +117,8 @@ std::variant<BuildResult, ErrorCode> Build(Context* ctx) {
     return kBuildErrorTranslationToIRProgramFailed;
   }
   if (ctx->generate_debug_info()) {
-    GenerateIrDebugInfo(ir_program.get(), main_pkg, "init", /* live_ranges= */ nullptr,
+    ir_info::FuncCallGraph fcg = ir_analyzers::BuildFuncCallGraphForProgram(ir_program.get());
+    GenerateIrDebugInfo(ir_program.get(), main_pkg, "init", &fcg, /* live_ranges= */ nullptr,
                         /* interference_graphs= */ nullptr, ctx);
   }
 
@@ -127,8 +135,9 @@ std::variant<BuildResult, ErrorCode> Build(Context* ctx) {
     interference_graphs.insert({func->number(), func_interference_graph});
   }
   if (ctx->generate_debug_info()) {
-    GenerateIrDebugInfo(ir_program.get(), main_pkg, "lowered", &live_ranges, &interference_graphs,
-                        ctx);
+    ir_info::FuncCallGraph fcg = ir_analyzers::BuildFuncCallGraphForProgram(ir_program.get());
+    GenerateIrDebugInfo(ir_program.get(), main_pkg, "lowered", &fcg, &live_ranges,
+                        &interference_graphs, ctx);
   }
 
   for (auto& func : ir_program->funcs()) {
