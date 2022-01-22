@@ -8,16 +8,25 @@
 
 #include "run.h"
 
-#include <sys/mman.h>
-
 #include <iomanip>
 #include <sstream>
 #include <variant>
 
 #include "src/cmd/build.h"
+#include "src/common/memory.h"
 #include "src/x86_64/machine_code/linker.h"
 
 namespace cmd {
+namespace {
+
+void* MallocJump(int size) {
+  void* p = malloc(size);
+  return p;
+}
+
+void FreeJump(void* ptr) { free(ptr); }
+
+}  // namespace
 
 ErrorCode Run(Context* ctx) {
   std::variant<BuildResult, ErrorCode> build_result_or_error = Build(ctx);
@@ -28,21 +37,19 @@ ErrorCode Run(Context* ctx) {
   std::unique_ptr<x86_64::Program>& x86_64_program = build_result.x86_64_program;
 
   x86_64::Linker linker;
-  linker.AddFuncAddr(x86_64_program->declared_funcs().at("malloc"), (uint8_t*)&malloc);
-  linker.AddFuncAddr(x86_64_program->declared_funcs().at("free"), (uint8_t*)&free);
+  linker.AddFuncAddr(x86_64_program->declared_funcs().at("malloc"), (uint8_t*)&MallocJump);
+  linker.AddFuncAddr(x86_64_program->declared_funcs().at("free"), (uint8_t*)&FreeJump);
 
-  int64_t page_size = 1 << 12;
-  uint8_t* base =
-      (uint8_t*)mmap(NULL, page_size, PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-  common::DataView code(base, page_size);
-
-  int64_t program_size = x86_64_program->Encode(linker, code);
+  common::Memory memory(common::Memory::kPageSize, common::Memory::kWrite);
+  int64_t program_size = x86_64_program->Encode(linker, memory.data());
   linker.ApplyPatches();
 
+  memory.ChangePermissions(common::Memory::kRead);
   if (ctx->generate_debug_info()) {
     std::ostringstream buffer;
     for (int64_t j = 0; j < program_size; j++) {
-      buffer << std::hex << std::setfill('0') << std::setw(2) << (unsigned short)code[j] << " ";
+      buffer << std::hex << std::setfill('0') << std::setw(2) << (unsigned short)memory.data()[j]
+             << " ";
       if (j % 8 == 7 && j != program_size - 1) {
         buffer << "\n";
       }
@@ -50,6 +57,7 @@ ErrorCode Run(Context* ctx) {
     ctx->WriteToDebugFile(buffer.str(), /* subdir_name= */ "", "x86_64.hex.txt");
   }
 
+  memory.ChangePermissions(common::Memory::kExecute);
   x86_64::Func* x86_64_main_func = x86_64_program->DefinedFuncWithName("main");
   int (*main_func)(void) = (int (*)(void))(linker.func_addrs().at(x86_64_main_func->func_num()));
   return ErrorCode(main_func());
