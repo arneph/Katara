@@ -64,3 +64,27 @@ cc_library(
         "//visibility:public",
     ],
 )
+
+cc_library(
+    name = "memory",
+    srcs = ["memory.cc"],
+    hdrs = ["memory.h"],
+    copts = COPTS,
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":data_view",
+        ":logging",
+    ],
+)
+
+cc_test(
+    name = "memory_test",
+    srcs = ["memory_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":memory",
+        "@gtest//:gtest_main",
+    ],
+)
