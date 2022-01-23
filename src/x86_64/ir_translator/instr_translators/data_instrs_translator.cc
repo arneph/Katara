@@ -15,6 +15,7 @@
 #include "src/x86_64/instrs/control_flow_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/instrs/instr.h"
+#include "src/x86_64/ir_translator/call_generator.h"
 #include "src/x86_64/ir_translator/context.h"
 #include "src/x86_64/ir_translator/mov_generator.h"
 #include "src/x86_64/ir_translator/size_translator.h"
@@ -33,21 +34,9 @@ void TranslateMovInstr(ir::MovInstr* ir_mov_instr, BlockContext& ctx) {
 }
 
 void TranslateMallocInstr(ir::MallocInstr* ir_malloc_instr, BlockContext& ctx) {
-  ir::Value* ir_size_value = ir_malloc_instr->size().get();
-  x86_64::Operand x86_64_size_value =
-      TranslateValue(ir_size_value, IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
-  x86_64::RM x86_64_size_location = OperandForArg(0, x86_64::k64);
-  GenerateMov(x86_64_size_location, x86_64_size_value, ir_malloc_instr, ctx);
-
   x86_64::FuncRef malloc_ref(ctx.x86_64_program()->declared_funcs().at("malloc"));
-  ctx.x86_64_block()->AddInstr<x86_64::Call>(malloc_ref);
-
-  ir::Computed* ir_result = ir_malloc_instr->result().get();
-  x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
-  x86_64::RM x86_64_result_location = OperandForResult(0, x86_64::k64);
-  GenerateMov(x86_64_result, x86_64_result_location, ir_malloc_instr, ctx);
-
-  // TODO: respect calling conventions. Consider lowering to func call instead.
+  GenerateCall(ir_malloc_instr, malloc_ref, /*ir_results=*/{ir_malloc_instr->result().get()},
+               /*ir_args=*/{ir_malloc_instr->size().get()}, ctx);
 }
 
 void TranslateLoadInstr(ir::LoadInstr* ir_load_instr, BlockContext& ctx) {

@@ -17,7 +17,7 @@
 #include "src/x86_64/instrs/arithmetic_logic_instrs.h"
 #include "src/x86_64/instrs/control_flow_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
-#include "src/x86_64/ir_translator/mov_generator.h"
+#include "src/x86_64/ir_translator/call_generator.h"
 #include "src/x86_64/ir_translator/register_allocator.h"
 #include "src/x86_64/ir_translator/size_translator.h"
 #include "src/x86_64/ir_translator/value_translator.h"
@@ -70,42 +70,17 @@ void TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr, BlockContext&
 }
 
 void TranslateCallInstr(ir::CallInstr* ir_call_instr, BlockContext& ctx) {
-  std::vector<MoveOperation> arg_moves;
-  arg_moves.reserve(ir_call_instr->args().size());
-  for (std::size_t arg_index = 0; arg_index < ir_call_instr->args().size(); arg_index++) {
-    ir::Value* ir_arg_value = ir_call_instr->args().at(arg_index).get();
-    x86_64::Operand x86_64_arg_value =
-        TranslateValue(ir_arg_value, IntNarrowing::kNone, ctx.func_ctx());
-    x86_64::Size x86_64_arg_size = TranslateSizeOfType(ir_arg_value->type());
-    x86_64::RM x86_64_arg_location = OperandForArg(int(arg_index), x86_64_arg_size);
-    arg_moves.push_back(MoveOperation(x86_64_arg_location, x86_64_arg_value));
+  std::vector<ir::Computed*> results;
+  results.reserve(ir_call_instr->results().size());
+  for (const auto& result : ir_call_instr->results()) {
+    results.push_back(result.get());
   }
-  GenerateMovs(arg_moves, ir_call_instr, ctx);
-
-  ir::Value* ir_called_func = ir_call_instr->func().get();
-  x86_64::Operand x86_64_called_func =
-      TranslateValue(ir_called_func, IntNarrowing::k64To32BitIfPossible, ctx.func_ctx());
-  if (x86_64_called_func.is_func_ref()) {
-    ctx.x86_64_block()->AddInstr<x86_64::Call>(x86_64_called_func.func_ref());
-  } else if (x86_64_called_func.is_rm()) {
-    ctx.x86_64_block()->AddInstr<x86_64::Call>(x86_64_called_func.rm());
-  } else {
-    common::fail("unexpected func operand");
+  std::vector<ir::Value*> args;
+  args.reserve(ir_call_instr->args().size());
+  for (const auto& arg : ir_call_instr->args()) {
+    args.push_back(arg.get());
   }
-
-  std::vector<MoveOperation> result_moves;
-  result_moves.reserve(ir_call_instr->results().size());
-  for (std::size_t result_index = 0; result_index < ir_call_instr->results().size();
-       result_index++) {
-    ir::Computed* ir_result = ir_call_instr->results().at(result_index).get();
-    x86_64::RM x86_64_result = TranslateComputed(ir_result, ctx.func_ctx());
-    x86_64::Size x86_64_result_size = TranslateSizeOfType(ir_result->type());
-    x86_64::RM x86_64_result_location = OperandForResult(int(result_index), x86_64_result_size);
-    result_moves.push_back(MoveOperation(x86_64_result, x86_64_result_location));
-  }
-  GenerateMovs(result_moves, ir_call_instr, ctx);
-
-  // TODO: respect calling conventions
+  GenerateCall(ir_call_instr, ir_call_instr->func().get(), results, args, ctx);
 }
 
 void TranslateReturnInstr(ir::ReturnInstr* ir_return_instr, BlockContext& ctx) {

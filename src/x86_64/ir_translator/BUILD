@@ -139,6 +139,30 @@ cc_test(
 )
 
 cc_library(
+    name = "call_generator",
+    srcs = [
+        "call_generator.cc",
+    ],
+    hdrs = [
+        "call_generator.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//src/x86_64/ir_translator:__subpackages__",
+    ],
+    deps = [
+        ":context",
+        ":mov_generator",
+        ":register_allocator",
+        ":size_translator",
+        ":value_translator",
+        "//src/common:logging",
+        "//src/ir:ir_lib",
+        "//src/x86_64:x86_64_lib",
+    ],
+)
+
+cc_library(
     name = "instrs_translator",
     srcs = [
         "instrs_translator.cc",
