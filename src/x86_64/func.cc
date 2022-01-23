@@ -33,7 +33,7 @@ int64_t Func::Encode(Linker& linker, common::DataView code) const {
 
 std::string Func::ToString() const {
   std::stringstream ss;
-  ss << name_ << ":\n";
+  ss << name_ << ": ; <" << func_num_ << ">\n";
   for (size_t i = 0; i < blocks_.size(); i++) {
     ss << blocks_[i]->ToString();
     if (i < blocks_.size() - 1) ss << "\n";
