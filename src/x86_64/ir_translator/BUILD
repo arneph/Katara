@@ -162,6 +162,22 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "call_generator_test",
+    srcs = [
+        "call_generator_test.cc",
+    ],
+    copts = COPTS,
+    deps = [
+        ":call_generator",
+        ":context",
+        "//src/ir:ir_lib",
+        "//src/x86_64:x86_64_lib",
+        "//src/x86_64/ir_translator/testing:instr_translator_test_setup",
+        "@gtest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "instrs_translator",
     srcs = [

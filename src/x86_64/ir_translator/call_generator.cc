@@ -10,6 +10,7 @@
 
 #include "src/common/logging.h"
 #include "src/x86_64/instrs/control_flow_instrs.h"
+#include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/ir_translator/mov_generator.h"
 #include "src/x86_64/ir_translator/register_allocator.h"
 #include "src/x86_64/ir_translator/size_translator.h"
@@ -17,6 +18,44 @@
 
 namespace ir_to_x86_64_translator {
 namespace {
+
+std::vector<x86_64::Reg> GetCallerSavedRegisters(ir::Instr* instr, BlockContext& ctx) {
+  std::vector<x86_64::Reg> caller_saved_registers;
+  for (ir::value_num_t live_value : ctx.live_ranges().GetLiveSet(instr)) {
+    ir_info::color_t color = ctx.func_ctx().interference_graph_colors().GetColor(live_value);
+    x86_64::RM rm = ColorAndSizeToOperand(color, x86_64::k64);
+    if (!rm.is_reg()) {
+      continue;
+    }
+    x86_64::Reg reg = rm.reg();
+    if (SavingBehaviourForReg(reg) != RegSavingBehaviour::kByCaller) {
+      continue;
+    }
+
+    if (ctx.live_ranges().ValueDefinitionOf(live_value) == instr) {
+      continue;
+    }
+    if (ctx.live_ranges().LastValueUseOf(live_value) == instr) {
+      continue;
+    }
+    caller_saved_registers.push_back(reg);
+  }
+  std::sort(caller_saved_registers.begin(), caller_saved_registers.end(),
+            [](x86_64::Reg reg_x, x86_64::Reg reg_y) { return reg_x.reg() <= reg_y.reg(); });
+  return caller_saved_registers;
+}
+
+void GenerateCallerRegisterSaves(const std::vector<x86_64::Reg>& caller_saved_registers,
+                                 BlockContext& ctx) {
+  std::for_each(caller_saved_registers.begin(), caller_saved_registers.end(),
+                [&](x86_64::Reg reg) { ctx.x86_64_block()->AddInstr<x86_64::Push>(reg); });
+}
+
+void GenerateCallerRegisterRestores(const std::vector<x86_64::Reg>& caller_saved_registers,
+                                    BlockContext& ctx) {
+  std::for_each(caller_saved_registers.rbegin(), caller_saved_registers.rend(),
+                [&](x86_64::Reg reg) { ctx.x86_64_block()->AddInstr<x86_64::Pop>(reg); });
+}
 
 void GenerateArgMoves(ir::Instr* ir_instr, std::vector<ir::Value*> ir_args, BlockContext& ctx) {
   std::vector<MoveOperation> arg_moves;
@@ -63,21 +102,23 @@ void GenerateCallInstr(ir::Value* ir_called_func, BlockContext& ctx) {
 void GenerateCall(ir::Instr* ir_instr, ir::Value* ir_called_func,
                   std::vector<ir::Computed*> ir_results, std::vector<ir::Value*> ir_args,
                   BlockContext& ctx) {
+  std::vector<x86_64::Reg> caller_saved_registers = GetCallerSavedRegisters(ir_instr, ctx);
+  GenerateCallerRegisterSaves(caller_saved_registers, ctx);
   GenerateArgMoves(ir_instr, ir_args, ctx);
   GenerateCallInstr(ir_called_func, ctx);
   GenerateResultMoves(ir_instr, ir_results, ctx);
-
-  // TODO: respect calling conventions
+  GenerateCallerRegisterRestores(caller_saved_registers, ctx);
 }
 
 void GenerateCall(ir::Instr* ir_instr, x86_64::FuncRef x86_64_called_func,
                   std::vector<ir::Computed*> ir_results, std::vector<ir::Value*> ir_args,
                   BlockContext& ctx) {
+  std::vector<x86_64::Reg> caller_saved_registers = GetCallerSavedRegisters(ir_instr, ctx);
+  GenerateCallerRegisterSaves(caller_saved_registers, ctx);
   GenerateArgMoves(ir_instr, ir_args, ctx);
   ctx.x86_64_block()->AddInstr<x86_64::Call>(x86_64_called_func);
   GenerateResultMoves(ir_instr, ir_results, ctx);
-
-  // TODO: respect calling conventions
+  GenerateCallerRegisterRestores(caller_saved_registers, ctx);
 }
 
 }  // namespace ir_to_x86_64_translator
