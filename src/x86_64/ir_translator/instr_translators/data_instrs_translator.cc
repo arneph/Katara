@@ -126,7 +126,9 @@ void TranslateStoreInstr(ir::StoreInstr* ir_store_instr, BlockContext& ctx) {
 }
 
 void TranslateFreeInstr(ir::FreeInstr* ir_free_instr, BlockContext& ctx) {
-  // TODO: implement
+  x86_64::FuncRef free_ref(ctx.x86_64_program()->declared_funcs().at("free"));
+  GenerateCall(ir_free_instr, free_ref, /*ir_results=*/{},
+               /*ir_args=*/{ir_free_instr->address().get()}, ctx);
 }
 
 }  // namespace ir_to_x86_64_translator
