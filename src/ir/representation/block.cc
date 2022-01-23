@@ -78,7 +78,7 @@ std::string Block::ToString() const {
   std::stringstream ss;
   ss << ReferenceString();
   for (auto& instr : instrs_) {
-    ss << "\n";
+    ss << "\n\t";
     ss << instr->ToString();
   }
   return ss.str();
