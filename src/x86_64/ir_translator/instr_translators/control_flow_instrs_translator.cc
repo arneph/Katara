@@ -56,12 +56,9 @@ void TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr, BlockContext&
       auto ir_condition_computed = static_cast<ir::Computed*>(ir_condition);
       x86_64::RM x86_64_condition = TranslateComputed(ir_condition_computed, ctx.func_ctx());
 
-      // If x86_64_condition == 0x00, ZF gets set to 1.
-      // If x86_64_condition != 0x00, ZF gets set to 0.
-      // Therefore, counterintuitively x86_64_destination_true should be reached if ZF == 0.
       ctx.x86_64_block()->AddInstr<x86_64::Test>(x86_64_condition, x86_64::Imm(int8_t{-1}));
-      ctx.x86_64_block()->AddInstr<x86_64::Jcc>(x86_64::InstrCond::kZero, x86_64_destination_true);
-      ctx.x86_64_block()->AddInstr<x86_64::Jmp>(x86_64_destination_false);
+      ctx.x86_64_block()->AddInstr<x86_64::Jcc>(x86_64::InstrCond::kZero, x86_64_destination_false);
+      ctx.x86_64_block()->AddInstr<x86_64::Jmp>(x86_64_destination_true);
       return;
     }
     case ir::Value::Kind::kInherited:
