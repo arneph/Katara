@@ -7,7 +7,7 @@ cc_binary(
     srcs = ["execution_test.cc"],
     copts = COPTS,
     deps = [
-        "//src/common:data_view",
+        "//src/common/data_view",
         "//src/x86_64:x86_64_lib",
     ],
 )

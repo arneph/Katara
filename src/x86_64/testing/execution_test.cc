@@ -13,7 +13,7 @@
 #include <iostream>
 #include <memory>
 
-#include "src/common/data_view.h"
+#include "src/common/data_view/data_view.h"
 #include "src/x86_64/block.h"
 #include "src/x86_64/func.h"
 #include "src/x86_64/instrs/arithmetic_logic_instrs.h"

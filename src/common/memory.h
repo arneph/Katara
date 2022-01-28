@@ -13,7 +13,7 @@
 
 #include <cstdint>
 
-#include "src/common/data_view.h"
+#include "src/common/data_view/data_view.h"
 #include "src/common/logging.h"
 
 namespace common {

@@ -94,8 +94,8 @@ cc_library(
         ":build",
         ":context",
         ":error_codes",
-        "//src/common:data_view",
         "//src/common:memory",
+        "//src/common/data_view",
         "//src/x86_64:x86_64_lib",
     ],
 )

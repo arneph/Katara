@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "src/common/data_view.h"
+#include "src/common/data_view/data_view.h"
 #include "src/x86_64/block.h"
 #include "src/x86_64/machine_code/linker.h"
 

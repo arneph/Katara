@@ -14,7 +14,7 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
-        "//src/common:data_view",
+        "//src/common/data_view",
         "//src/x86_64:ops",
     ],
 )
@@ -32,7 +32,7 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
-        "//src/common:data_view",
+        "//src/common/data_view",
         "//src/x86_64:ops",
     ],
 )
@@ -58,7 +58,7 @@ cc_library(
     ],
     deps = [
         ":instr_encoder",
-        "//src/common:data_view",
+        "//src/common/data_view",
         "//src/x86_64:ops",
         "//src/x86_64/machine_code:linker",
     ],

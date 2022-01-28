@@ -6,7 +6,7 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#include "src/common/data_view.h"
+#include "src/common/data_view/data_view.h"
 
 #include <array>
 

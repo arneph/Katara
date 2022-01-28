@@ -12,7 +12,7 @@
 #include <memory>
 #include <optional>
 
-#include "src/common/data_view.h"
+#include "src/common/data_view/data_view.h"
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {
