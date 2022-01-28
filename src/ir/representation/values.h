@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/types.h"
 

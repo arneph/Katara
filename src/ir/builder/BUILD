@@ -19,7 +19,7 @@ cc_library(
         "//src/x86_64:__pkg__",
     ],
     deps = [
-        "//src/common:atomics",
+        "//src/common/atomics",
         "//src/ir/representation",
     ],
 )

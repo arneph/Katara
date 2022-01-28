@@ -24,7 +24,7 @@ cc_test(
     copts = COPTS,
     deps = [
         ":phi_resolver",
-        "//src/common:atomics",
+        "//src/common/atomics",
         "//src/ir/representation",
         "@gtest//:gtest_main",
     ],

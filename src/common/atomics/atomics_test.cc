@@ -6,7 +6,7 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 
 #include <array>
 #include <iostream>

@@ -32,8 +32,8 @@ cc_library(
     ],
     deps = [
         ":scanner",
-        "//src/common:atomics",
         "//src/common:logging",
+        "//src/common/atomics",
         "//src/ir/info",
         "//src/ir/representation",
     ],

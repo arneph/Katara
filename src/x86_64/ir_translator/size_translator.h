@@ -9,7 +9,7 @@
 #ifndef ir_to_x86_64_translator_size_translator_h
 #define ir_to_x86_64_translator_size_translator_h
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 #include "src/ir/representation/types.h"
 #include "src/x86_64/ops.h"
 

@@ -31,7 +31,7 @@ cc_library(
         "//src/x86_64:__pkg__",
     ],
     deps = [
-        "//src/common:atomics",
+        "//src/common/atomics",
     ],
 )
 
@@ -53,7 +53,7 @@ cc_library(
     deps = [
         ":num_types",
         ":types",
-        "//src/common:atomics",
+        "//src/common/atomics",
     ],
 )
 
@@ -75,8 +75,8 @@ cc_library(
     deps = [
         ":num_types",
         ":values",
-        "//src/common:atomics",
         "//src/common:logging",
+        "//src/common/atomics",
     ],
 )
 

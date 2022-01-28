@@ -9,7 +9,7 @@
 #include <memory>
 #include <vector>
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"

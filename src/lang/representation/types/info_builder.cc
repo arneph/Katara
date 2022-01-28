@@ -8,7 +8,7 @@
 
 #include "info_builder.h"
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 #include "src/common/logging.h"
 
 namespace lang {

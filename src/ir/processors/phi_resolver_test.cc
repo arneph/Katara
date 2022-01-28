@@ -9,7 +9,7 @@
 #include "src/ir/processors/phi_resolver.h"
 
 #include "gtest/gtest.h"
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"

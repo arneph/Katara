@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 
 namespace ir {
 

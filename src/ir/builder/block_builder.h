@@ -9,7 +9,7 @@
 #ifndef ir_block_builder_h
 #define ir_block_builder_h
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 #include "src/ir/builder/func_builder.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"

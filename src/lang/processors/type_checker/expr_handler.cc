@@ -10,7 +10,7 @@
 
 #include <optional>
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 #include "src/common/logging.h"
 #include "src/lang/processors/type_checker/type_resolver.h"
 #include "src/lang/representation/ast/ast_util.h"

@@ -13,7 +13,7 @@
 #include <string>
 #include <variant>
 
-#include "src/common/atomics.h"
+#include "src/common/atomics/atomics.h"
 #include "src/lang/representation/tokens/tokens.h"
 
 namespace lang {

@@ -72,8 +72,8 @@ cc_library(
         "//src/x86_64/ir_translator:__subpackages__",
     ],
     deps = [
-        "//src/common:atomics",
         "//src/common:logging",
+        "//src/common/atomics",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
     ],
