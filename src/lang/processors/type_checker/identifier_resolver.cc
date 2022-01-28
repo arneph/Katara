@@ -8,7 +8,7 @@
 
 #include "identifier_resolver.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/lang/representation/ast/ast_util.h"
 
 namespace lang {

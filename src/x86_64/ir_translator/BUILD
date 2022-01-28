@@ -32,7 +32,7 @@ cc_library(
         "//src/x86_64/ir_translator:__subpackages__",
     ],
     deps = [
-        "//src/common:logging",
+        "//src/common/logging",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
     ],
@@ -53,7 +53,7 @@ cc_library(
     deps = [
         ":context",
         ":register_allocator",
-        "//src/common:logging",
+        "//src/common/logging",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
     ],
@@ -72,8 +72,8 @@ cc_library(
         "//src/x86_64/ir_translator:__subpackages__",
     ],
     deps = [
-        "//src/common:logging",
         "//src/common/atomics",
+        "//src/common/logging",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
     ],
@@ -94,7 +94,7 @@ cc_library(
     deps = [
         ":context",
         ":register_allocator",
-        "//src/common:logging",
+        "//src/common/logging",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
     ],
@@ -156,7 +156,7 @@ cc_library(
         ":register_allocator",
         ":size_translator",
         ":value_translator",
-        "//src/common:logging",
+        "//src/common/logging",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
     ],
@@ -191,7 +191,7 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
-        "//src/common:logging",
+        "//src/common/logging",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
         "//src/x86_64/ir_translator/instr_translators:arithmetic_logic_instrs_translator",

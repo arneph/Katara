@@ -8,7 +8,7 @@
 
 #include "func_call_graph.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace ir_info {
 

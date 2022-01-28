@@ -8,7 +8,7 @@
 
 #include "coordinator.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/tokens/tokens.h"
 

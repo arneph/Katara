@@ -15,7 +15,7 @@ cc_library(
         "//src/x86_64:__subpackages__",
     ],
     deps = [
-        "//src/common:logging",
+        "//src/common/logging",
     ],
 )
 

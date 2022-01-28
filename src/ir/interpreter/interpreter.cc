@@ -8,7 +8,7 @@
 
 #include "interpreter.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace ir_interpreter {
 

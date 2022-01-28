@@ -8,7 +8,7 @@
 
 #include "code_generator.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace lang {
 namespace testing {

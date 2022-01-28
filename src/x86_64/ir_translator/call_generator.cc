@@ -8,7 +8,7 @@
 
 #include "call_generator.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/x86_64/instrs/control_flow_instrs.h"
 #include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/ir_translator/mov_generator.h"

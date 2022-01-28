@@ -11,7 +11,7 @@
 #include <functional>
 #include <unordered_set>
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/values.h"
 #include "src/x86_64/instrs/data_instrs.h"

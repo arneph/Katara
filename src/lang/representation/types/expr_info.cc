@@ -8,7 +8,7 @@
 
 #include "expr_info.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace lang {
 namespace types {

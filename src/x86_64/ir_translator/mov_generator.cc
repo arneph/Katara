@@ -15,7 +15,7 @@
 #include <unordered_set>
 #include <utility>
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/x86_64/instrs/data_instrs.h"
 #include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/ir_translator/size_translator.h"

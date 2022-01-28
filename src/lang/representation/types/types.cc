@@ -8,7 +8,7 @@
 
 #include "types.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/lang/representation/types/objects.h"
 
 namespace lang {

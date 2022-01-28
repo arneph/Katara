@@ -9,7 +9,7 @@
 #include "info_builder.h"
 
 #include "src/common/atomics/atomics.h"
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace lang {
 namespace types {

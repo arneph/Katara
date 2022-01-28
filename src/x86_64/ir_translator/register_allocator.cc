@@ -8,7 +8,7 @@
 
 #include "register_allocator.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/ir/analyzers/interference_graph_colorer.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"

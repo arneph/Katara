@@ -10,7 +10,7 @@
 
 #include <iomanip>
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/x86_64/instrs/instr_encoder.h"
 
 namespace x86_64 {

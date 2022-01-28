@@ -10,8 +10,8 @@ cc_library(
         "//src/lang/representation:__subpackages__",
     ],
     deps = [
-        "//src/common:logging",
         "//src/common/atomics",
+        "//src/common/logging",
         "//src/lang/representation/tokens",
     ],
 )

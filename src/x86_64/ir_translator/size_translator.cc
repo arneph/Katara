@@ -8,7 +8,7 @@
 
 #include "size_translator.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace ir_to_x86_64_translator {
 

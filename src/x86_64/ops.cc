@@ -12,7 +12,7 @@
 #include <iomanip>
 #include <sstream>
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace x86_64 {
 

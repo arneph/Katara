@@ -10,7 +10,7 @@
 
 #include <cstdint>
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/ir/info/interference_graph.h"
 #include "src/ir/representation/types.h"
 #include "src/x86_64/ir_translator/register_allocator.h"

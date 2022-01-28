@@ -8,7 +8,7 @@
 
 #include "instrs_translator.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/x86_64/ir_translator/instr_translators/arithmetic_logic_instrs_translator.h"
 #include "src/x86_64/ir_translator/instr_translators/control_flow_instrs_translator.h"
 #include "src/x86_64/ir_translator/instr_translators/data_instrs_translator.h"

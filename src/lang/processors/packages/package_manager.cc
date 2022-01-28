@@ -8,7 +8,7 @@
 
 #include "package_manager.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 #include "src/lang/processors/parser/parser.h"
 #include "src/lang/processors/type_checker/type_checker.h"
 #include "src/lang/representation/ast/ast_util.h"

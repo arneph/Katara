@@ -11,7 +11,7 @@
 #include <sstream>
 #include <type_traits>
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace common {
 

@@ -75,8 +75,8 @@ cc_library(
     deps = [
         ":num_types",
         ":values",
-        "//src/common:logging",
         "//src/common/atomics",
+        "//src/common/logging",
     ],
 )
 

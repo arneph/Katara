@@ -14,7 +14,7 @@
 #include <cstdint>
 
 #include "src/common/data_view/data_view.h"
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace common {
 

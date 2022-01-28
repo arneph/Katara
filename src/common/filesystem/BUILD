@@ -21,7 +21,7 @@ cc_library(
     ],
     deps = [
         ":filesystem",
-        "//src/common:logging",
+        "//src/common/logging",
     ],
 )
 
@@ -35,7 +35,7 @@ cc_library(
     ],
     deps = [
         ":filesystem",
-        "//src/common:logging",
+        "//src/common/logging",
     ],
 )
 

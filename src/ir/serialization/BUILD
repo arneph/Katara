@@ -14,7 +14,7 @@ cc_library(
         "//src/ir:__subpackages__",
     ],
     deps = [
-        "//src/common:logging",
+        "//src/common/logging",
     ],
 )
 
@@ -32,8 +32,8 @@ cc_library(
     ],
     deps = [
         ":scanner",
-        "//src/common:logging",
         "//src/common/atomics",
+        "//src/common/logging",
         "//src/ir/info",
         "//src/ir/representation",
     ],

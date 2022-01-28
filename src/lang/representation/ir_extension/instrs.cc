@@ -8,7 +8,7 @@
 
 #include "instrs.h"
 
-#include "src/common/logging.h"
+#include "src/common/logging/logging.h"
 
 namespace lang {
 namespace ir_ext {
