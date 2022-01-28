@@ -13,7 +13,7 @@
 #include <variant>
 
 #include "src/cmd/build.h"
-#include "src/common/memory.h"
+#include "src/common/memory/memory.h"
 #include "src/x86_64/machine_code/linker.h"
 
 namespace cmd {

@@ -6,7 +6,7 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#include "src/common/memory.h"
+#include "src/common/memory/memory.h"
 
 #include "gtest/gtest.h"
 
