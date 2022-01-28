@@ -8,7 +8,7 @@
 
 #include "load.h"
 
-#include "src/common/graph.h"
+#include "src/common/graph/graph.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/types/info_util.h"
 

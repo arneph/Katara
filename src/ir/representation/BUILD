@@ -98,7 +98,7 @@ cc_library(
     deps = [
         ":instrs",
         ":num_types",
-        "//src/common:graph",
+        "//src/common/graph",
     ],
 )
 
@@ -120,7 +120,7 @@ cc_library(
     deps = [
         ":block",
         ":num_types",
-        "//src/common:graph",
+        "//src/common/graph",
     ],
 )
 

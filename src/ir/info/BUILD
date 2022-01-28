@@ -28,7 +28,7 @@ cc_library(
         "//src/ir:__subpackages__",
     ],
     deps = [
-        "//src/common:graph",
+        "//src/common/graph",
         "//src/ir/representation",
     ],
 )
@@ -46,7 +46,7 @@ cc_library(
         "//src/ir:__subpackages__",
     ],
     deps = [
-        "//src/common:graph",
+        "//src/common/graph",
         "//src/ir/representation",
     ],
 )

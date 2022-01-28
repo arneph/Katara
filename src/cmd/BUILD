@@ -43,7 +43,7 @@ cc_library(
     deps = [
         ":context",
         ":error_codes",
-        "//src/common:graph",
+        "//src/common/graph",
         "//src/lang:lang_lib",
     ],
 )

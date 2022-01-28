@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "src/common/graph.h"
+#include "src/common/graph/graph.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/types.h"
 

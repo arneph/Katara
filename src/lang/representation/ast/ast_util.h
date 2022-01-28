@@ -11,7 +11,7 @@
 
 #include <functional>
 
-#include "src/common/graph.h"
+#include "src/common/graph/graph.h"
 #include "src/lang/representation/ast/nodes.h"
 #include "src/lang/representation/positions/positions.h"
 
