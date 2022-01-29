@@ -37,6 +37,9 @@ class Filesystem {
                         std::function<void(std::istream*)> reader) const = 0;
   virtual void WriteFile(std::filesystem::path path, std::function<void(std::ostream*)> writer) = 0;
 
+  std::string ReadContentsOfFile(std::filesystem::path path) const;
+  void WriteContentsOfFile(std::filesystem::path path, std::string contents);
+
   virtual void Remove(std::filesystem::path path) = 0;
   virtual void RemoveAll(std::filesystem::path path) = 0;
 };

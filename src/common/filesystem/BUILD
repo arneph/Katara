@@ -4,6 +4,7 @@ load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "filesystem",
+    srcs = ["filesystem.cc"],
     hdrs = ["filesystem.h"],
     copts = COPTS,
     visibility = [

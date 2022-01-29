@@ -10,6 +10,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <string>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -200,6 +201,29 @@ TEST(TestFilesystemTest, ReadingAndWritingFileWorks) {
     a_contents = std::string(std::istreambuf_iterator<char>(*is), {});
   });
   EXPECT_THAT(a_contents, "Hello world!");
+
+  fs.Remove("a");
+
+  EXPECT_THAT(CollectPathsInDirectory("/", fs), IsEmpty());
+  EXPECT_FALSE(fs.Exists("/a"));
+  EXPECT_FALSE(fs.IsDirectory("/a"));
+}
+
+TEST(TestFilesystemTest, ReadingAndWritingFileWithHelperMethodsWorks) {
+  TestFilesystem fs;
+
+  fs.WriteContentsOfFile("a", "");
+
+  EXPECT_THAT(CollectPathsInDirectory("/", fs), ElementsAre("/a"));
+  EXPECT_TRUE(fs.Exists("/a"));
+  EXPECT_FALSE(fs.IsDirectory("/a"));
+  EXPECT_THAT(fs.ReadContentsOfFile("a"), IsEmpty());
+
+  fs.WriteContentsOfFile("a", std::string("Hello world!"));
+
+  EXPECT_TRUE(fs.Exists("/a"));
+  EXPECT_FALSE(fs.IsDirectory("/a"));
+  EXPECT_EQ(fs.ReadContentsOfFile("a"), "Hello world!");
 
   fs.Remove("a");
 
