@@ -28,7 +28,7 @@ std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
   ArgsKind args_kind = ArgsKind::kNone;
   for (std::string arg : ctx->args()) {
     std::filesystem::path path(arg);
-    path = std::filesystem::absolute(path);
+    path = ctx->filesystem()->Absolute(path);
     if (path.extension() == ".kat") {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kMainPackageFiles) {
         *ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
@@ -38,7 +38,7 @@ std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
       continue;
     }
 
-    if (std::filesystem::is_directory(path)) {
+    if (ctx->filesystem()->IsDirectory(path)) {
       if (args_kind != ArgsKind::kNone) {
         *ctx->stderr() << "can only handle one main package path argument\n";
         return ErrorCode::kLoadErrorMultiplePackagePathArgs;
@@ -101,12 +101,12 @@ std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
   }
   ArgsKind args_kind = std::get<ArgsKind>(args_kind_or_error);
   auto pkg_manager = std::make_unique<lang::packages::PackageManager>(
-      std::string{kStdLibPath}, std::filesystem::current_path());
+      std::string{kStdLibPath}, ctx->filesystem()->CurrentPath());
   lang::packages::Package* main_pkg = nullptr;
   std::vector<lang::packages::Package*> arg_pkgs;
   switch (args_kind) {
     case ArgsKind::kNone:
-      main_pkg = pkg_manager->LoadMainPackage(std::filesystem::current_path());
+      main_pkg = pkg_manager->LoadMainPackage(ctx->filesystem()->CurrentPath());
       break;
     case ArgsKind::kMainPackageDirectory:
       main_pkg = pkg_manager->LoadMainPackage(ctx->args().front());
