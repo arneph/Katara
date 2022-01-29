@@ -23,23 +23,23 @@ namespace {
 constexpr std::string_view kVersion = "0.1";
 
 void PrintHelp(Context* ctx) {
-  ctx->stdout() << "Katara is a tool to work with Katara source code.\n"
-                   "\n"
-                   "Usage:\n"
-                   "\n"
-                   "\tkatara <command> [arguments]\n"
-                   "\n"
-                   "The commands are:\n"
-                   "\n"
-                   "\tbuild\tbuild Katara packages\n"
-                   "\tdoc\tgenerate documentation for Katara packages\n"
-                   "\thelp\tprint this documentation\n"
-                   "\trun\trun Katara programs\n"
-                   "\tversion\tprint Katara version\n"
-                   "\n";
+  *ctx->stdout() << "Katara is a tool to work with Katara source code.\n"
+                    "\n"
+                    "Usage:\n"
+                    "\n"
+                    "\tkatara <command> [arguments]\n"
+                    "\n"
+                    "The commands are:\n"
+                    "\n"
+                    "\tbuild\tbuild Katara packages\n"
+                    "\tdoc\tgenerate documentation for Katara packages\n"
+                    "\thelp\tprint this documentation\n"
+                    "\trun\trun Katara programs\n"
+                    "\tversion\tprint Katara version\n"
+                    "\n";
 }
 
-void PrintVersion(Context* ctx) { ctx->stdout() << "Katara version " << kVersion << "\n"; }
+void PrintVersion(Context* ctx) { *ctx->stdout() << "Katara version " << kVersion << "\n"; }
 
 }  // namespace
 

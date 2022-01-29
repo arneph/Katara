@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "src/cmd/context.h"
+#include "src/cmd/context/context.h"
 #include "src/cmd/error_codes.h"
 
 namespace cmd {

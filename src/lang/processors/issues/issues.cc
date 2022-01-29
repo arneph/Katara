@@ -77,38 +77,38 @@ void IssueTracker::Add(IssueKind kind, std::vector<pos::pos_t> positions, std::s
   issues_.push_back(Issue(kind, positions, message));
 }
 
-void IssueTracker::PrintIssues(PrintFormat format, std::ostream& out) const {
+void IssueTracker::PrintIssues(PrintFormat format, std::ostream* out) const {
   for (auto& issue : issues_) {
     switch (format) {
       case PrintFormat::kPlain:
         switch (issue.severity()) {
           case Severity::kWarning:
-            out << "Warning:";
+            *out << "Warning:";
             break;
           case Severity::kError:
           case Severity::kFatal:
-            out << "Error:";
+            *out << "Error:";
         }
         break;
       case PrintFormat::kTerminal:
         switch (issue.severity()) {
           case lang::issues::Severity::kWarning:
-            out << "\033[93;1m"
-                   "Warning:"
-                   "\033[0;0m"
-                   " ";
+            *out << "\033[93;1m"
+                    "Warning:"
+                    "\033[0;0m"
+                    " ";
             break;
           case lang::issues::Severity::kError:
           case lang::issues::Severity::kFatal:
-            out << "\033[91;1m"
-                   "Error:"
-                   "\033[0;0m"
-                   " ";
+            *out << "\033[91;1m"
+                    "Error:"
+                    "\033[0;0m"
+                    " ";
             break;
         }
         break;
     }
-    out << issue.message() << " [" << issue.kind_id() << "]\n";
+    *out << issue.message() << " [" << issue.kind_id() << "]\n";
     for (lang::pos::pos_t pos : issue.positions()) {
       lang::pos::Position position = file_set_->PositionFor(pos);
       std::string line = file_set_->FileAt(pos)->LineFor(pos);
@@ -118,13 +118,13 @@ void IssueTracker::PrintIssues(PrintFormat format, std::ostream& out) const {
           break;
         }
       }
-      std::cout << "  " << position.ToString() << ": ";
-      std::cout << line.substr(whitespace);
+      *out << "  " << position.ToString() << ": ";
+      *out << line.substr(whitespace);
       size_t pointer = 4 + position.ToString().size() + position.column_ - whitespace;
       for (size_t i = 0; i < pointer; i++) {
-        out << " ";
+        *out << " ";
       }
-      out << "^\n";
+      *out << "^\n";
     }
   }
 }

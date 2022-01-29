@@ -13,7 +13,7 @@
 #include <variant>
 #include <vector>
 
-#include "src/cmd/context.h"
+#include "src/cmd/context/context.h"
 #include "src/cmd/error_codes.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"

@@ -12,7 +12,7 @@
 #include <memory>
 #include <variant>
 
-#include "src/cmd/context.h"
+#include "src/cmd/context/context.h"
 #include "src/cmd/error_codes.h"
 #include "src/ir/representation/program.h"
 #include "src/x86_64/program.h"

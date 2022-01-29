@@ -31,7 +31,7 @@ std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
     path = std::filesystem::absolute(path);
     if (path.extension() == ".kat") {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kMainPackageFiles) {
-        ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
+        *ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
         return ErrorCode::kLoadErrorMixedSourceFileArgsWithPackagePathArgs;
       }
       args_kind = ArgsKind::kMainPackageFiles;
@@ -40,13 +40,13 @@ std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
 
     if (std::filesystem::is_directory(path)) {
       if (args_kind != ArgsKind::kNone) {
-        ctx->stderr() << "can only handle one main package path argument\n";
+        *ctx->stderr() << "can only handle one main package path argument\n";
         return ErrorCode::kLoadErrorMultiplePackagePathArgs;
       }
       args_kind = ArgsKind::kMainPackageDirectory;
     } else {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kPackagePaths) {
-        ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
+        *ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
         return ErrorCode::kLoadErrorMixedSourceFileArgsWithPackagePathArgs;
       }
       args_kind = ArgsKind::kPackagePaths;

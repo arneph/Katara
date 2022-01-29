@@ -33,9 +33,9 @@ ErrorCode Doc(Context* ctx) {
     lang::docs::PackageDoc pkg_doc = lang::docs::GenerateDocumentationForPackage(
         pkg, pkg_manager->file_set(), pkg_manager->type_info());
 
-    ctx->WriteToFile(pkg_doc.html, docs_dir / (pkg_doc.name + ".html"));
+    ctx->filesystem()->WriteContentsOfFile(docs_dir / (pkg_doc.name + ".html"), pkg_doc.html);
     for (auto file_doc : pkg_doc.docs) {
-      ctx->WriteToFile(file_doc.html, docs_dir / (file_doc.name + ".html"));
+      ctx->filesystem()->WriteContentsOfFile(docs_dir / (file_doc.name + ".html"), file_doc.html);
     }
   }
   return kNoError;

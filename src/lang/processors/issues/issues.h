@@ -255,7 +255,7 @@ class IssueTracker {
   void Add(IssueKind kind, pos::pos_t position, std::string message);
   void Add(IssueKind kind, std::vector<pos::pos_t> positions, std::string message);
 
-  void PrintIssues(PrintFormat format, std::ostream& out) const;
+  void PrintIssues(PrintFormat format, std::ostream* out) const;
 
  private:
   const pos::FileSet* file_set_;

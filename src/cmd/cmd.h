@@ -9,7 +9,7 @@
 #ifndef cmd_cmd_h
 #define cmd_cmd_h
 
-#include "src/cmd/context.h"
+#include "src/cmd/context/context.h"
 #include "src/cmd/error_codes.h"
 
 namespace cmd {
