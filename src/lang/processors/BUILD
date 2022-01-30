@@ -13,8 +13,6 @@ cc_library(
         "//src/lang/processors/ir_builder",
         "//src/lang/processors/ir_lowerers:shared_pointer_lowerer",
         "//src/lang/processors/issues",
-        "//src/lang/processors/packages:filesystem_loader",
-        "//src/lang/processors/packages:loader",
         "//src/lang/processors/packages:package",
         "//src/lang/processors/packages:package_manager",
         "//src/lang/processors/parser",

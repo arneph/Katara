@@ -2,42 +2,6 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
-    name = "loader",
-    hdrs = ["loader.h"],
-    copts = COPTS,
-    visibility = [
-        "//src/lang/processors:__subpackages__",
-    ],
-)
-
-cc_library(
-    name = "filesystem_loader",
-    srcs = ["filesystem_loader.cc"],
-    hdrs = ["filesystem_loader.h"],
-    copts = COPTS,
-    visibility = [
-        "//src/lang/processors:__subpackages__",
-    ],
-    deps = [
-        ":loader",
-    ],
-)
-
-cc_library(
-    name = "mock_loader",
-    testonly = True,
-    srcs = ["mock_loader.cc"],
-    hdrs = ["mock_loader.h"],
-    copts = COPTS,
-    visibility = [
-        "//visibility:public",
-    ],
-    deps = [
-        ":loader",
-    ],
-)
-
-cc_library(
     name = "package",
     hdrs = ["package.h"],
     copts = COPTS,
@@ -59,9 +23,8 @@ cc_library(
         "//src/lang/processors:__subpackages__",
     ],
     deps = [
-        ":filesystem_loader",
-        ":loader",
         ":package",
+        "//src/common/filesystem",
         "//src/lang/processors/issues",
         "//src/lang/processors/parser",
         "//src/lang/processors/type_checker",

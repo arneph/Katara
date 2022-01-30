@@ -6,9 +6,10 @@ cc_test(
     srcs = ["integration_test.cc"],
     copts = COPTS,
     deps = [
+        "//src/common/filesystem",
+        "//src/common/filesystem:test_filesystem",
         "//src/ir/representation",
         "//src/lang:lang_lib",
-        "//src/lang/processors/packages:mock_loader",
         "@gtest//:gtest_main",
     ],
 )

@@ -21,8 +21,9 @@ cc_test(
     copts = COPTS,
     deps = [
         ":interpreter",
+        "//src/common/filesystem",
+        "//src/common/filesystem:test_filesystem",
         "//src/lang:lang_lib",
-        "//src/lang/processors/packages:mock_loader",
         "@gtest//:gtest_main",
     ],
 )

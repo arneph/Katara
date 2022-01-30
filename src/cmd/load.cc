@@ -27,8 +27,7 @@ enum class ArgsKind {
 std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
   ArgsKind args_kind = ArgsKind::kNone;
   for (std::string arg : ctx->args()) {
-    std::filesystem::path path(arg);
-    path = ctx->filesystem()->Absolute(path);
+    std::filesystem::path path = ctx->filesystem()->Absolute(arg);
     if (path.extension() == ".kat") {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kMainPackageFiles) {
         *ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
@@ -55,7 +54,17 @@ std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
   return args_kind;
 }
 
-ErrorCode FindIssues(std::unique_ptr<lang::packages::PackageManager>& pkg_manager, Context* ctx) {
+std::vector<std::filesystem::path> ArgsToMainPackageFiles(std::vector<std::string>& args) {
+  std::vector<std::filesystem::path> main_file_paths;
+  main_file_paths.reserve(args.size());
+  for (std::string& arg : args) {
+    main_file_paths.push_back(arg);
+  }
+  return main_file_paths;
+}
+
+ErrorCode FindAndPrintIssues(std::unique_ptr<lang::packages::PackageManager>& pkg_manager,
+                             Context* ctx) {
   bool contains_issues = !pkg_manager->issue_tracker()->issues().empty();
   pkg_manager->issue_tracker()->PrintIssues(lang::issues::IssueTracker::PrintFormat::kTerminal,
                                             ctx->stderr());
@@ -101,7 +110,7 @@ std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
   }
   ArgsKind args_kind = std::get<ArgsKind>(args_kind_or_error);
   auto pkg_manager = std::make_unique<lang::packages::PackageManager>(
-      std::string{kStdLibPath}, ctx->filesystem()->CurrentPath());
+      ctx->filesystem(), kStdLibPath, ctx->filesystem()->CurrentPath());
   lang::packages::Package* main_pkg = nullptr;
   std::vector<lang::packages::Package*> arg_pkgs;
   switch (args_kind) {
@@ -112,7 +121,7 @@ std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
       main_pkg = pkg_manager->LoadMainPackage(ctx->args().front());
       break;
     case ArgsKind::kMainPackageFiles:
-      main_pkg = pkg_manager->LoadMainPackage(ctx->args());
+      main_pkg = pkg_manager->LoadMainPackage(ArgsToMainPackageFiles(ctx->args()));
       break;
     case ArgsKind::kPackagePaths:
       for (std::string& pkg_path : ctx->args()) {
@@ -127,7 +136,7 @@ std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
     arg_pkgs.push_back(main_pkg);
   }
   GenerateDebugInfo(pkg_manager, main_pkg, arg_pkgs, ctx);
-  ErrorCode error_from_issues = FindIssues(pkg_manager, ctx);
+  ErrorCode error_from_issues = FindAndPrintIssues(pkg_manager, ctx);
   if (error_from_issues != kNoError) {
     return error_from_issues;
   }

@@ -26,8 +26,7 @@ ErrorCode Doc(Context* ctx) {
   std::vector<lang::packages::Package*>& arg_pkgs = load_result.arg_pkgs;
 
   for (lang::packages::Package* pkg : arg_pkgs) {
-    std::filesystem::path pkg_dir{pkg->dir()};
-    std::filesystem::path docs_dir = pkg_dir / "doc";
+    std::filesystem::path docs_dir = pkg->directory() / "doc";
     ctx->filesystem()->CreateDirectory(docs_dir);
 
     lang::docs::PackageDoc pkg_doc = lang::docs::GenerateDocumentationForPackage(

@@ -9,11 +9,13 @@
 #include <memory>
 
 #include "gtest/gtest.h"
+#include "src/common/filesystem/filesystem.h"
+#include "src/common/filesystem/test_filesystem.h"
 #include "src/ir/representation/program.h"
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/docs/package_doc.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
-#include "src/lang/processors/packages/mock_loader.h"
+#include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/ast/ast_util.h"
@@ -132,12 +134,9 @@ func TransformedFunc(f Func, xOffset, yOffset, xScale, yScale int) Func {
    }
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
-                                     .SetCurrentDir("/")
-                                     .AddSourceFile("/", "vectors.kat", source)
-                                     .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.WriteContentsOfFile("vectors.kat", source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
   LoadMainPackagesAndBuildProgram(pkg_manager);
 }
@@ -249,12 +248,9 @@ func Test() {
     m := NewHashMap<String, List<int>>()
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
-                                     .SetCurrentDir("/")
-                                     .AddSourceFile("/", "containers.kat", source)
-                                     .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.WriteContentsOfFile("containers.kat", source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
   LoadMainPackagesAndBuildProgram(pkg_manager);
 }
@@ -299,16 +295,13 @@ func main() {
     fmt.Println("hello")
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/lang::packages::MockLoaderBuilder()
-          .SetCurrentDir("/stdlib")
-          .AddSourceFile("/stdlib/fmt", "fmt.kat", fmt_source)
-          .Build(),
-      /*src_loader=*/lang::packages::MockLoaderBuilder()
-          .SetCurrentDir("/")
-          .AddSourceFile("/", "inits.kat", main_source)
-          .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.CreateDirectory("stdlib");
+  filesystem_.CreateDirectory("stdlib/fmt");
+  filesystem_.WriteContentsOfFile("stdlib/fmt/fmt.kat", fmt_source);
+  filesystem_.WriteContentsOfFile("inits.kat", main_source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"stdlib",
+                                             /*src_path=*/"");
 
   LoadMainPackagesAndBuildProgram(pkg_manager);
 }
@@ -330,12 +323,9 @@ type TypeC<T> struct {
         y *TypeB<T>
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
-                                     .SetCurrentDir("/")
-                                     .AddSourceFile("/", "types.kat", source)
-                                     .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.WriteContentsOfFile("types.kat", source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
   LoadMainPackagesAndBuildProgram(pkg_manager);
 }
@@ -421,16 +411,13 @@ func main() {
     fmt.Println(RangeOf<Int>([]Int{2, 1, 4, 3, 5, 4, 2}).String())
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/lang::packages::MockLoaderBuilder()
-          .SetCurrentDir("/stdlib")
-          .AddSourceFile("/stdlib/fmt", "fmt.kat", fmt_source)
-          .Build(),
-      /*src_loader=*/lang::packages::MockLoaderBuilder()
-          .SetCurrentDir("/")
-          .AddSourceFile("/", "inits.kat", main_source)
-          .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.CreateDirectory("stdlib");
+  filesystem_.CreateDirectory("stdlib/fmt");
+  filesystem_.WriteContentsOfFile("stdlib/fmt/fmt.kat", fmt_source);
+  filesystem_.WriteContentsOfFile("inits.kat", main_source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"stdlib",
+                                             /*src_path=*/"");
 
   LoadMainPackagesAndBuildProgram(pkg_manager);
 }
@@ -532,18 +519,15 @@ func <Int> Sqrt(a Int) Int {
     return 0
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/lang::packages::MockLoaderBuilder()
-          .SetCurrentDir("/stdlib")
-          .AddSourceFile("/stdlib/fmt", "fmt.kat", fmt_source)
-          .Build(),
-      /*src_loader=*/lang::packages::MockLoaderBuilder()
-          .SetCurrentDir("/")
-          .AddSourceFile("/", "a.kat", a_source)
-          .AddSourceFile("/", "b.kat", b_source)
-          .AddSourceFile("/", "c.kat", c_source)
-          .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.CreateDirectory("stdlib");
+  filesystem_.CreateDirectory("stdlib/fmt");
+  filesystem_.WriteContentsOfFile("stdlib/fmt/fmt.kat", fmt_source);
+  filesystem_.WriteContentsOfFile("a.kat", a_source);
+  filesystem_.WriteContentsOfFile("b.kat", b_source);
+  filesystem_.WriteContentsOfFile("c.kat", c_source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"stdlib",
+                                             /*src_path=*/"");
 
   LoadMainPackagesAndBuildProgram(pkg_manager);
 }

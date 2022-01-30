@@ -8,6 +8,8 @@
 
 #include "package_manager.h"
 
+#include <algorithm>
+
 #include "src/common/logging/logging.h"
 #include "src/lang/processors/parser/parser.h"
 #include "src/lang/processors/type_checker/type_checker.h"
@@ -36,73 +38,70 @@ Package* PackageManager::LoadPackage(std::string pkg_path) {
   if (Package* pkg = GetPackage(pkg_path); pkg != nullptr) {
     return pkg;
   }
-  if (src_loader_->CanReadRelativeDir(pkg_path)) {
-    std::string pkg_dir = src_loader_->RelativeToAbsoluteDir(pkg_path);
-    std::vector<std::string> file_paths = src_loader_->SourceFilesInRelativeDir(pkg_path);
-    return LoadPackage(pkg_path, pkg_dir, src_loader_.get(), file_paths);
-  } else if (stdlib_loader_->CanReadRelativeDir(pkg_path)) {
-    std::string pkg_dir = stdlib_loader_->RelativeToAbsoluteDir(pkg_path);
-    std::vector<std::string> file_paths = stdlib_loader_->SourceFilesInRelativeDir(pkg_path);
-    return LoadPackage(pkg_path, pkg_dir, stdlib_loader_.get(), file_paths);
-  } else {
-    issue_tracker_.Add(issues::kPackageDirectoryNotFound, std::vector<pos::pos_t>{},
-                       "package directory not found for: " + pkg_path);
-    return nullptr;
+  if (filesystem_->IsDirectory(src_path_ / pkg_path)) {
+    return LoadPackage(pkg_path, src_path_ / pkg_path);
+  } else if (filesystem_->IsDirectory(stdlib_path_ / pkg_path)) {
+    return LoadPackage(pkg_path, stdlib_path_ / pkg_path);
   }
+  issue_tracker_.Add(issues::kPackageDirectoryNotFound, std::vector<pos::pos_t>{},
+                     "package directory not found for: " + pkg_path);
+  return nullptr;
 }
 
-Package* PackageManager::LoadMainPackage(std::string main_dir) {
+Package* PackageManager::LoadMainPackage(std::filesystem::path main_directory) {
   if (GetMainPackage() != nullptr) {
     common::fail("tried to load main package twice");
   }
-  if (!src_loader_->CanReadAbsoluteDir(main_dir)) {
+  if (!filesystem_->IsDirectory(main_directory)) {
     issue_tracker_.Add(issues::kMainPackageDirectoryUnreadable, std::vector<pos::pos_t>{},
-                       "main package directory not readable: " + main_dir);
+                       "main package directory not readable: " + main_directory.string());
     return nullptr;
   }
-  std::vector<std::string> file_paths = src_loader_->SourceFilesInAbsoluteDir(main_dir);
-  return LoadPackage("main", main_dir, src_loader_.get(), file_paths);
+  return LoadPackage("main", main_directory);
 }
 
-namespace {
-
-std::string DirFromPath(std::string file_path) {
-  size_t last_slash_index = file_path.find_last_of('/');
-  if (last_slash_index == std::string::npos) {
-    return "/";
-  } else {
-    return file_path.substr(0, last_slash_index);
-  }
-}
-
-}  // namespace
-
-Package* PackageManager::LoadMainPackage(std::vector<std::string> main_file_paths) {
+Package* PackageManager::LoadMainPackage(std::vector<std::filesystem::path> main_file_paths) {
   if (GetMainPackage() != nullptr) {
     common::fail("tried to load main package twice");
   }
-  std::string main_dir;
-  for (size_t i = 0; i < main_file_paths.size(); i++) {
-    std::string file_path = main_file_paths.at(i);
-    if (i == 0) {
-      main_dir = DirFromPath(file_path);
-    } else if (main_dir != DirFromPath(file_path)) {
-      issue_tracker_.Add(issues::kMainPackageFilesInMultipleDirectories, std::vector<pos::pos_t>{},
-                         "main package files are not in the same directory");
-      return nullptr;
-    }
-    if (!src_loader_->CanReadSourceFile(file_path)) {
-      issue_tracker_.Add(issues::kMainPackageFileUnreadable, std::vector<pos::pos_t>{},
-                         "main package file not readable: " + file_path);
-      return nullptr;
-    }
+  if (!CheckAllFilesAreInMainDirectory(main_file_paths) ||
+      !CheckAllFilesInMainPackageExist(main_file_paths)) {
+    return nullptr;
   }
-  return LoadPackage("main", main_dir, src_loader_.get(), main_file_paths);
+  return LoadPackage("main", filesystem_->Absolute(main_file_paths.front().parent_path()),
+                     main_file_paths);
+}
+
+bool PackageManager::CheckAllFilesAreInMainDirectory(
+    std::vector<std::filesystem::path>& file_paths) {
+  std::filesystem::path main_directory = filesystem_->Absolute(file_paths.front().parent_path());
+  bool all_in_main_directory =
+      std::all_of(file_paths.begin(), file_paths.end(), [&](std::filesystem::path file_path) {
+        return main_directory == filesystem_->Absolute(file_path);
+      });
+  if (!all_in_main_directory) {
+    issue_tracker_.Add(issues::kMainPackageFilesInMultipleDirectories, std::vector<pos::pos_t>{},
+                       "main package files are not all in the same directory");
+  }
+  return all_in_main_directory;
+}
+
+bool PackageManager::CheckAllFilesInMainPackageExist(
+    std::vector<std::filesystem::path>& file_paths) {
+  bool all_readable = true;
+  std::for_each(file_paths.begin(), file_paths.end(), [&](std::filesystem::path file_path) {
+    if (!filesystem_->Exists(file_path) || filesystem_->IsDirectory(file_path)) {
+      issue_tracker_.Add(issues::kMainPackageFileUnreadable, std::vector<pos::pos_t>{},
+                         "main package file not readable: " + file_path.string());
+      all_readable = false;
+    }
+  });
+  return all_readable;
 }
 
 namespace {
 
-std::string NameFromPath(std::string pkg_path) {
+std::string NameFromPackagePath(std::string pkg_path) {
   size_t last_slash_index = pkg_path.find_last_of('/');
   if (last_slash_index == std::string::npos) {
     return pkg_path;
@@ -113,8 +112,18 @@ std::string NameFromPath(std::string pkg_path) {
 
 }  // namespace
 
-Package* PackageManager::LoadPackage(std::string pkg_path, std::string pkg_dir, Loader* loader,
-                                     std::vector<std::string> file_paths) {
+Package* PackageManager::LoadPackage(std::string pkg_path, std::filesystem::path pkg_directory) {
+  std::vector<std::filesystem::path> file_paths;
+  filesystem_->ForEntriesInDirectory(pkg_directory, [&](std::filesystem::path entry) {
+    if (entry.extension() == ".kat" && !filesystem_->IsDirectory(entry)) {
+      file_paths.push_back(entry);
+    }
+  });
+  return LoadPackage(pkg_path, pkg_directory, file_paths);
+}
+
+Package* PackageManager::LoadPackage(std::string pkg_path, std::filesystem::path pkg_directory,
+                                     std::vector<std::filesystem::path> file_paths) {
   Package* pkg;
   if (auto [it, insert_ok] =
           packages_.insert({pkg_path, std::unique_ptr<Package>(new Package(&file_set_))});
@@ -123,17 +132,17 @@ Package* PackageManager::LoadPackage(std::string pkg_path, std::string pkg_dir, 
   } else {
     common::fail("tried to load package twice");
   }
-  pkg->name_ = NameFromPath(pkg_path);
+  pkg->name_ = NameFromPackagePath(pkg_path);
   pkg->path_ = pkg_path;
-  pkg->dir_ = pkg_dir;
+  pkg->directory_ = pkg_directory;
   if (file_paths.empty()) {
     pkg->issue_tracker_.Add(issues::kPackageDirectoryWithoutSourceFiles, std::vector<pos::pos_t>{},
                             "package directory does not contain source files");
     return pkg;
   }
-  for (std::string file_path : file_paths) {
-    std::string file_name = NameFromPath(file_path);
-    std::string file_contents = loader->ReadSourceFile(file_path);
+  for (std::filesystem::path file_path : file_paths) {
+    std::string file_name = file_path.filename();
+    std::string file_contents = filesystem_->ReadContentsOfFile(file_path);
     pkg->pos_files_.push_back(file_set_.AddFile(file_name, file_contents));
   }
 

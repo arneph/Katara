@@ -10,10 +10,11 @@
 #include <string>
 
 #include "gtest/gtest.h"
+#include "src/common/filesystem/filesystem.h"
+#include "src/common/filesystem/test_filesystem.h"
 #include "src/ir/interpreter/interpreter.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
 #include "src/lang/processors/ir_lowerers/shared_pointer_lowerer.h"
-#include "src/lang/processors/packages/mock_loader.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 
@@ -28,11 +29,7 @@ std::ostream& operator<<(std::ostream& os, const ConstantIntExprTestCase& test_c
   return os << "TestCase{\"" << test_case.expr << "\", " << test_case.expected_value << "}";
 }
 
-class ConstantIntExprTest : public testing::TestWithParam<ConstantIntExprTestCase> {
-  // You can implement all the usual fixture class members here.
-  // To access the test parameter, call GetParam() from class
-  // TestWithParam<T>.
-};
+class ConstantIntExprTest : public testing::TestWithParam<ConstantIntExprTestCase> {};
 
 INSTANTIATE_TEST_SUITE_P(
     ConstantIntExprTestInstance, ConstantIntExprTest,
@@ -53,12 +50,9 @@ func main() int {
                        R"kat(
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
-                                     .SetCurrentDir("/")
-                                     .AddSourceFile("/", "expr.kat", source)
-                                     .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.WriteContentsOfFile("expr.kat", source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
   // Load main package:
   lang::packages::Package* pkg = pkg_manager.LoadMainPackage("/");
@@ -92,12 +86,9 @@ func main() int {
   }
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
-                                     .SetCurrentDir("/")
-                                     .AddSourceFile("/", "test.kat", source)
-                                     .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.WriteContentsOfFile("test.kat", source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
   // Load main package:
   lang::packages::Package* pkg = pkg_manager.LoadMainPackage("/");
@@ -129,12 +120,9 @@ func main() int {
         return sum
 }
   )kat";
-
-  auto pkg_manager = lang::packages::PackageManager(
-      /*stdlib_loader=*/nullptr, /*src_loader=*/lang::packages::MockLoaderBuilder()
-                                     .SetCurrentDir("/")
-                                     .AddSourceFile("/", "test.kat", source)
-                                     .Build());
+  common::TestFilesystem filesystem_;
+  filesystem_.WriteContentsOfFile("test.kat", source);
+  lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
   // Load main package:
   lang::packages::Package* pkg = pkg_manager.LoadMainPackage("/");

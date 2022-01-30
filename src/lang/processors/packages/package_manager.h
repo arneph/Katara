@@ -9,14 +9,14 @@
 #ifndef lang_packages_package_manager_h
 #define lang_packages_package_manager_h
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
+#include "src/common/filesystem/filesystem.h"
 #include "src/lang/processors/issues/issues.h"
-#include "src/lang/processors/packages/filesystem_loader.h"
-#include "src/lang/processors/packages/loader.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/positions/positions.h"
@@ -27,13 +27,15 @@ namespace packages {
 
 class PackageManager {
  public:
-  PackageManager(std::string stdlib_dir, std::string src_dir)
-      : PackageManager(std::make_unique<FilesystemLoader>(stdlib_dir),
-                       std::make_unique<FilesystemLoader>(src_dir)) {}
-  PackageManager(std::unique_ptr<Loader> stdlib_loader, std::unique_ptr<Loader> src_loader)
-      : stdlib_loader_(std::move(stdlib_loader)),
-        src_loader_(std::move(src_loader)),
+  PackageManager(common::Filesystem* filesystem, std::filesystem::path stdlib_path,
+                 std::filesystem::path src_path)
+      : filesystem_(filesystem),
+        stdlib_path_(stdlib_path),
+        src_path_(src_path),
         issue_tracker_(&file_set_) {}
+
+  std::filesystem::path stdlib_path() const { return stdlib_path_; }
+  std::filesystem::path src_path() const { return src_path_; }
 
   const pos::FileSet* file_set() const { return &file_set_; }
   const issues::IssueTracker* issue_tracker() const { return &issue_tracker_; }
@@ -55,18 +57,23 @@ class PackageManager {
   // Loads and returns the main package in the given absolute package directory, if successful. If
   // unsuccessful, nullptr gets returned and the encourted issue gets added to the package manager's
   // issue tracker.
-  Package* LoadMainPackage(std::string main_dir);
+  Package* LoadMainPackage(std::filesystem::path main_directory);
   // Loads and returns the main package in the given absolute file paths, if successful. If
   // unsuccessful, nullptr gets returned and the encourted issue gets added to the package manager's
   // issue tracker.
-  Package* LoadMainPackage(std::vector<std::string> main_file_paths);
+  Package* LoadMainPackage(std::vector<std::filesystem::path> main_file_paths);
 
  private:
-  Package* LoadPackage(std::string pkg_path, std::string pkg_dir, Loader* loader,
-                       std::vector<std::string> file_paths);
+  bool CheckAllFilesAreInMainDirectory(std::vector<std::filesystem::path>& file_paths);
+  bool CheckAllFilesInMainPackageExist(std::vector<std::filesystem::path>& file_paths);
 
-  std::unique_ptr<Loader> stdlib_loader_;
-  std::unique_ptr<Loader> src_loader_;
+  Package* LoadPackage(std::string pkg_path, std::filesystem::path pkg_directory);
+  Package* LoadPackage(std::string pkg_path, std::filesystem::path pkg_directory,
+                       std::vector<std::filesystem::path> file_paths);
+
+  common::Filesystem* filesystem_;
+  std::filesystem::path stdlib_path_;
+  std::filesystem::path src_path_;
 
   pos::FileSet file_set_;
   issues::IssueTracker issue_tracker_;
