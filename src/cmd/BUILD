@@ -87,6 +87,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "interpret_test",
+    srcs = ["interpret_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":interpret",
+        "//src/cmd/context",
+        "//src/cmd/context:test_context",
+        "@gtest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "run",
     srcs = ["run.cc"],
@@ -103,6 +115,18 @@ cc_library(
         "//src/common/memory",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
+    ],
+)
+
+cc_test(
+    name = "run_test",
+    srcs = ["run_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":run",
+        "//src/cmd/context",
+        "//src/cmd/context:test_context",
+        "@gtest//:gtest_main",
     ],
 )
 
