@@ -72,6 +72,22 @@ cc_library(
 )
 
 cc_library(
+    name = "interpret",
+    srcs = ["interpret.cc"],
+    hdrs = ["interpret.h"],
+    copts = COPTS,
+    visibility = [
+        "//visibility:private",
+    ],
+    deps = [
+        ":build",
+        ":error_codes",
+        "//src/cmd/context",
+        "//src/ir:ir_lib",
+    ],
+)
+
+cc_library(
     name = "run",
     srcs = ["run.cc"],
     hdrs = ["run.h"],
@@ -85,6 +101,7 @@ cc_library(
         "//src/cmd/context",
         "//src/common/data_view",
         "//src/common/memory",
+        "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",
     ],
 )
@@ -101,6 +118,7 @@ cc_library(
         ":build",
         ":doc",
         ":error_codes",
+        ":interpret",
         ":run",
         "//src/cmd/context",
     ],

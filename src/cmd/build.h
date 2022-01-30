@@ -19,12 +19,7 @@
 
 namespace cmd {
 
-struct BuildResult {
-  std::unique_ptr<ir::Program> ir_program;
-  std::unique_ptr<x86_64::Program> x86_64_program;
-};
-
-std::variant<BuildResult, ErrorCode> Build(Context* ctx);
+std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(Context* ctx);
 
 }  // namespace cmd
 
