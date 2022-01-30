@@ -77,7 +77,7 @@ bool PackageManager::CheckAllFilesAreInMainDirectory(
   std::filesystem::path main_directory = filesystem_->Absolute(file_paths.front().parent_path());
   bool all_in_main_directory =
       std::all_of(file_paths.begin(), file_paths.end(), [&](std::filesystem::path file_path) {
-        return main_directory == filesystem_->Absolute(file_path);
+        return filesystem_->Equivalent(main_directory, file_path.parent_path());
       });
   if (!all_in_main_directory) {
     issue_tracker_.Add(issues::kMainPackageFilesInMultipleDirectories, std::vector<pos::pos_t>{},
