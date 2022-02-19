@@ -12,6 +12,6 @@
 #include "src/cmd/util.h"
 
 int main(int argc, char* argv[]) {
-  cmd::RealContext ctx(cmd::ConvertMainArgs(argc, argv));
-  return cmd::Execute(&ctx);
+  cmd::RealContext ctx;
+  return cmd::Execute(cmd::ConvertMainArgs(argc, argv), &ctx);
 }

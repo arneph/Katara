@@ -11,6 +11,19 @@ cc_library(
 )
 
 cc_library(
+    name = "debug",
+    srcs = ["debug.cc"],
+    hdrs = ["debug.h"],
+    copts = COPTS,
+    visibility = [
+        "//visibility:private",
+    ],
+    deps = [
+        "//src/cmd/context",
+    ],
+)
+
+cc_library(
     name = "util",
     srcs = ["util.cc"],
     hdrs = ["util.h"],
@@ -30,6 +43,7 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
+        ":debug",
         ":error_codes",
         "//src/cmd/context",
         "//src/common/graph",
@@ -46,6 +60,7 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
+        ":debug",
         ":error_codes",
         ":load",
         "//src/cmd/context",
@@ -61,6 +76,7 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
+        ":debug",
         ":error_codes",
         ":load",
         "//src/cmd/context",
@@ -81,6 +97,7 @@ cc_library(
     ],
     deps = [
         ":build",
+        ":debug",
         ":error_codes",
         "//src/cmd/context",
         "//src/ir:ir_lib",
@@ -109,6 +126,7 @@ cc_library(
     ],
     deps = [
         ":build",
+        ":debug",
         ":error_codes",
         "//src/cmd/context",
         "//src/common/data_view",
@@ -140,10 +158,12 @@ cc_library(
     ],
     deps = [
         ":build",
+        ":debug",
         ":doc",
         ":error_codes",
         ":interpret",
         ":run",
         "//src/cmd/context",
+        "//src/common/flags",
     ],
 )

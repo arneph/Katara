@@ -34,9 +34,9 @@ std::string SubdirNameForFunc(ir::Func* func) {
 void GenerateX86_64DebugInfo(
     ir::Program* ir_program,
     std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph>& interference_graphs,
-    ir_to_x86_64_translator::TranslationResults& translation_results, Context* ctx) {
-  ctx->WriteToDebugFile(translation_results.program->ToString(), /* subdir_name= */ "",
-                        "x86_64.asm.txt");
+    ir_to_x86_64_translator::TranslationResults& translation_results, DebugHandler& debug_handler) {
+  debug_handler.WriteToDebugFile(translation_results.program->ToString(), /* subdir_name= */ "",
+                                 "x86_64.asm.txt");
 
   for (auto& func : ir_program->funcs()) {
     std::string subdir_name = SubdirNameForFunc(func.get());
@@ -51,16 +51,17 @@ void GenerateX86_64DebugInfo(
     const ir_info::InterferenceGraphColors& func_interference_graph_colors =
         translation_results.interference_graph_colors.at(func->number());
 
-    ctx->WriteToDebugFile(x86_64_func->ToString(), subdir_name, "x86_64.asm.txt");
-    ctx->WriteToDebugFile(
+    debug_handler.WriteToDebugFile(x86_64_func->ToString(), subdir_name, "x86_64.asm.txt");
+    debug_handler.WriteToDebugFile(
         func_interference_graph.ToGraph(&func_interference_graph_colors).ToDotFormat(), subdir_name,
         "x86_64.interference_graph.dot");
-    ctx->WriteToDebugFile(func_interference_graph_colors.ToString(), subdir_name,
-                          "x86_64.colors.txt");
+    debug_handler.WriteToDebugFile(func_interference_graph_colors.ToString(), subdir_name,
+                                   "x86_64.colors.txt");
   }
 }
 
-std::unique_ptr<x86_64::Program> BuildX86_64Program(ir::Program* ir_program, Context* ctx) {
+std::unique_ptr<x86_64::Program> BuildX86_64Program(ir::Program* ir_program,
+                                                    DebugHandler& debug_handler) {
   std::unordered_map<ir::func_num_t, const ir_info::FuncLiveRanges> live_ranges;
   std::unordered_map<ir::func_num_t, const ir_info::InterferenceGraph> interference_graphs;
   for (auto& func : ir_program->funcs()) {
@@ -78,9 +79,9 @@ std::unique_ptr<x86_64::Program> BuildX86_64Program(ir::Program* ir_program, Con
 
   ir_to_x86_64_translator::TranslationResults translation_results =
       ir_to_x86_64_translator::Translate(ir_program, live_ranges, interference_graphs,
-                                         ctx->generate_debug_info());
-  if (ctx->generate_debug_info()) {
-    GenerateX86_64DebugInfo(ir_program, interference_graphs, translation_results, ctx);
+                                         debug_handler.GenerateDebugInfo());
+  if (debug_handler.GenerateDebugInfo()) {
+    GenerateX86_64DebugInfo(ir_program, interference_graphs, translation_results, debug_handler);
   }
   return std::move(translation_results.program);
 }
@@ -94,14 +95,17 @@ void FreeJump(void* ptr) { free(ptr); }
 
 }  // namespace
 
-ErrorCode Run(Context* ctx) {
-  std::variant<std::unique_ptr<ir::Program>, ErrorCode> ir_program_or_error = Build(ctx);
+ErrorCode Run(std::vector<std::filesystem::path>& paths, BuildOptions& options,
+              DebugHandler& debug_handler, Context* ctx) {
+  std::variant<std::unique_ptr<ir::Program>, ErrorCode> ir_program_or_error =
+      Build(paths, options, debug_handler, ctx);
   if (std::holds_alternative<ErrorCode>(ir_program_or_error)) {
     return std::get<ErrorCode>(ir_program_or_error);
   }
   std::unique_ptr<ir::Program> ir_program =
       std::get<std::unique_ptr<ir::Program>>(std::move(ir_program_or_error));
-  std::unique_ptr<x86_64::Program> x86_64_program = BuildX86_64Program(ir_program.get(), ctx);
+  std::unique_ptr<x86_64::Program> x86_64_program =
+      BuildX86_64Program(ir_program.get(), debug_handler);
 
   x86_64::Linker linker;
   linker.AddFuncAddr(x86_64_program->declared_funcs().at("malloc"), (uint8_t*)&MallocJump);
@@ -112,7 +116,7 @@ ErrorCode Run(Context* ctx) {
   linker.ApplyPatches();
 
   memory.ChangePermissions(common::Memory::kRead);
-  if (ctx->generate_debug_info()) {
+  if (debug_handler.GenerateDebugInfo()) {
     std::ostringstream buffer;
     for (int64_t j = 0; j < program_size; j++) {
       buffer << std::hex << std::setfill('0') << std::setw(2) << (unsigned short)memory.data()[j]
@@ -121,7 +125,7 @@ ErrorCode Run(Context* ctx) {
         buffer << "\n";
       }
     }
-    ctx->WriteToDebugFile(buffer.str(), /* subdir_name= */ "", "x86_64.hex.txt");
+    debug_handler.WriteToDebugFile(buffer.str(), /* subdir_name= */ "", "x86_64.hex.txt");
   }
 
   memory.ChangePermissions(common::Memory::kExecute);

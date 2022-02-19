@@ -9,17 +9,26 @@
 #ifndef cmd_build_h
 #define cmd_build_h
 
+#include <filesystem>
 #include <memory>
 #include <variant>
+#include <vector>
 
 #include "src/cmd/context/context.h"
+#include "src/cmd/debug.h"
 #include "src/cmd/error_codes.h"
 #include "src/ir/representation/program.h"
 #include "src/x86_64/program.h"
 
 namespace cmd {
 
-std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(Context* ctx);
+struct BuildOptions {
+  bool optimize_ir = true;
+};
+
+std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
+    std::vector<std::filesystem::path>& paths, BuildOptions& options, DebugHandler& debug_handler,
+    Context* ctx);
 
 }  // namespace cmd
 

@@ -9,15 +9,16 @@
 #ifndef cmd_doc_h
 #define cmd_doc_h
 
-#include <string>
+#include <filesystem>
 #include <vector>
 
 #include "src/cmd/context/context.h"
+#include "src/cmd/debug.h"
 #include "src/cmd/error_codes.h"
 
 namespace cmd {
 
-ErrorCode Doc(Context* ctx);
+ErrorCode Doc(std::vector<std::filesystem::path>& paths, DebugHandler& debug_handler, Context* ctx);
 
 }
 

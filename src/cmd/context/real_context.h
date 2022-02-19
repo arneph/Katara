@@ -22,8 +22,6 @@ namespace cmd {
 
 class RealContext : public Context {
  public:
-  RealContext(std::vector<std::string> args) : Context(args) {}
-
   common::Filesystem* filesystem() override { return &filesystem_; }
   std::istream* stdin() override { return &std::cin; }
   std::ostream* stdout() override { return &std::cout; }

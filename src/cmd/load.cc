@@ -24,10 +24,11 @@ enum class ArgsKind {
   kPackagePaths,
 };
 
-std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
+std::variant<ArgsKind, ErrorCode> FindArgsKind(std::vector<std::filesystem::path>& paths,
+                                               Context* ctx) {
   ArgsKind args_kind = ArgsKind::kNone;
-  for (std::string arg : ctx->args()) {
-    std::filesystem::path path = ctx->filesystem()->Absolute(arg);
+  for (std::filesystem::path path : paths) {
+    path = ctx->filesystem()->Absolute(path);
     if (path.extension() == ".kat") {
       if (args_kind != ArgsKind::kNone && args_kind != ArgsKind::kMainPackageFiles) {
         *ctx->stderr() << "source file arguments can not be mixed with package path arguments\n";
@@ -54,15 +55,6 @@ std::variant<ArgsKind, ErrorCode> FindArgsKind(Context* ctx) {
   return args_kind;
 }
 
-std::vector<std::filesystem::path> ArgsToMainPackageFiles(std::vector<std::string>& args) {
-  std::vector<std::filesystem::path> main_file_paths;
-  main_file_paths.reserve(args.size());
-  for (std::string& arg : args) {
-    main_file_paths.push_back(arg);
-  }
-  return main_file_paths;
-}
-
 ErrorCode FindAndPrintIssues(std::unique_ptr<lang::packages::PackageManager>& pkg_manager,
                              Context* ctx) {
   bool contains_issues = !pkg_manager->issue_tracker()->issues().empty();
@@ -83,8 +75,9 @@ ErrorCode FindAndPrintIssues(std::unique_ptr<lang::packages::PackageManager>& pk
 
 void GenerateDebugInfo(std::unique_ptr<lang::packages::PackageManager>& pkg_manager,
                        lang::packages::Package* main_pkg,
-                       std::vector<lang::packages::Package*>& arg_pkgs, Context* ctx) {
-  if (!ctx->generate_debug_info()) {
+                       std::vector<lang::packages::Package*>& arg_pkgs,
+                       DebugHandler& debug_handler) {
+  if (!debug_handler.GenerateDebugInfo()) {
     return;
   }
 
@@ -92,19 +85,22 @@ void GenerateDebugInfo(std::unique_ptr<lang::packages::PackageManager>& pkg_mana
     for (auto [name, ast_file] : pkg->ast_package()->files()) {
       common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager->file_set(), ast_file);
 
-      ctx->WriteToDebugFile(ast_graph.ToDotFormat(), /* subdir_name= */ "", name + ".ast.dot");
+      debug_handler.WriteToDebugFile(ast_graph.ToDotFormat(), /* subdir_name= */ "",
+                                     name + ".ast.dot");
     }
 
     std::string type_info =
         lang::types::InfoToText(pkg_manager->file_set(), pkg_manager->type_info());
-    ctx->WriteToDebugFile(type_info, /* subdir_name= */ "", main_pkg->name() + ".types.txt");
+    debug_handler.WriteToDebugFile(type_info, /* subdir_name= */ "",
+                                   main_pkg->name() + ".types.txt");
   }
 }
 
 }  // namespace
 
-std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
-  std::variant<ArgsKind, ErrorCode> args_kind_or_error = FindArgsKind(ctx);
+std::variant<LoadResult, ErrorCode> Load(std::vector<std::filesystem::path>& paths,
+                                         DebugHandler& debug_handler, Context* ctx) {
+  std::variant<ArgsKind, ErrorCode> args_kind_or_error = FindArgsKind(paths, ctx);
   if (std::holds_alternative<ErrorCode>(args_kind_or_error)) {
     return std::get<ErrorCode>(args_kind_or_error);
   }
@@ -118,13 +114,13 @@ std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
       main_pkg = pkg_manager->LoadMainPackage(ctx->filesystem()->CurrentPath());
       break;
     case ArgsKind::kMainPackageDirectory:
-      main_pkg = pkg_manager->LoadMainPackage(ctx->args().front());
+      main_pkg = pkg_manager->LoadMainPackage(paths.front());
       break;
     case ArgsKind::kMainPackageFiles:
-      main_pkg = pkg_manager->LoadMainPackage(ArgsToMainPackageFiles(ctx->args()));
+      main_pkg = pkg_manager->LoadMainPackage(paths);
       break;
     case ArgsKind::kPackagePaths:
-      for (std::string& pkg_path : ctx->args()) {
+      for (std::filesystem::path& pkg_path : paths) {
         lang::packages::Package* pkg = pkg_manager->LoadPackage(pkg_path);
         if (pkg != nullptr) {
           arg_pkgs.push_back(pkg);
@@ -135,7 +131,7 @@ std::variant<LoadResult, ErrorCode> Load(Context* ctx) {
   if (main_pkg != nullptr) {
     arg_pkgs.push_back(main_pkg);
   }
-  GenerateDebugInfo(pkg_manager, main_pkg, arg_pkgs, ctx);
+  GenerateDebugInfo(pkg_manager, main_pkg, arg_pkgs, debug_handler);
   ErrorCode error_from_issues = FindAndPrintIssues(pkg_manager, ctx);
   if (error_from_issues != kNoError) {
     return error_from_issues;

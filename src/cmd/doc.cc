@@ -16,8 +16,9 @@
 
 namespace cmd {
 
-ErrorCode Doc(Context* ctx) {
-  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(ctx);
+ErrorCode Doc(std::vector<std::filesystem::path>& paths, DebugHandler& debug_handler,
+              Context* ctx) {
+  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(paths, debug_handler, ctx);
   if (std::holds_alternative<ErrorCode>(load_result_or_error)) {
     return std::get<ErrorCode>(load_result_or_error);
   }

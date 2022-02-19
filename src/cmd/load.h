@@ -9,11 +9,12 @@
 #ifndef cmd_load_h
 #define cmd_load_h
 
-#include <string>
+#include <filesystem>
 #include <variant>
 #include <vector>
 
 #include "src/cmd/context/context.h"
+#include "src/cmd/debug.h"
 #include "src/cmd/error_codes.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
@@ -25,7 +26,8 @@ struct LoadResult {
   std::vector<lang::packages::Package*> arg_pkgs;
 };
 
-std::variant<LoadResult, ErrorCode> Load(Context* ctx);
+std::variant<LoadResult, ErrorCode> Load(std::vector<std::filesystem::path>& paths,
+                                         DebugHandler& debug_handler, Context* ctx);
 
 }  // namespace cmd
 

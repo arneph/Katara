@@ -14,8 +14,10 @@
 
 namespace cmd {
 
-ErrorCode Interpret(Context* ctx) {
-  std::variant<std::unique_ptr<ir::Program>, ErrorCode> ir_program_or_error = Build(ctx);
+ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& options,
+                    DebugHandler& debug_handler, Context* ctx) {
+  std::variant<std::unique_ptr<ir::Program>, ErrorCode> ir_program_or_error =
+      Build(paths, options, debug_handler, ctx);
   if (std::holds_alternative<ErrorCode>(ir_program_or_error)) {
     return std::get<ErrorCode>(ir_program_or_error);
   }

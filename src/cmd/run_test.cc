@@ -14,8 +14,19 @@
 
 namespace cmd {
 
-TEST(RunTest, RunsSmallProgramCorrectly) {
-  TestContext ctx({"test.kat"}, "");
+class RunTest : public testing::TestWithParam<BuildOptions> {};
+
+INSTANTIATE_TEST_SUITE_P(RunTestInstance, RunTest,
+                         testing::Values(
+                             BuildOptions{
+                                 .optimize_ir = false,
+                             },
+                             BuildOptions{
+                                 .optimize_ir = true,
+                             }));
+
+TEST_P(RunTest, RunsSmallProgramCorrectly) {
+  TestContext ctx;
   ctx.filesystem()->WriteContentsOfFile("test.kat", R"kat(
 package main
 
@@ -28,7 +39,9 @@ func main() int {
 }
   )kat");
 
-  ErrorCode result = ::cmd::Run(&ctx);
+  std::vector<std::filesystem::path> paths{"test.kat"};
+  BuildOptions build_options = GetParam();
+  ErrorCode result = ::cmd::Run(paths, build_options, DebugHandler::WithDebuggingDisabled(), &ctx);
 
   EXPECT_EQ(result, 45);
 }

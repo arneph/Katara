@@ -3,7 +3,6 @@ load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "context",
-    srcs = ["context.cc"],
     hdrs = ["context.h"],
     copts = COPTS,
     visibility = [

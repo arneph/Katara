@@ -23,7 +23,7 @@ namespace cmd {
 
 class TestContext : public Context {
  public:
-  TestContext(std::vector<std::string> args, std::string input) : Context(args) { stdin_ << input; }
+  TestContext(std::string input = "") { stdin_ << input; }
 
   common::Filesystem* filesystem() override { return &filesystem_; }
   std::istream* stdin() override { return &stdin_; }

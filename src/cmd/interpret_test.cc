@@ -14,8 +14,19 @@
 
 namespace cmd {
 
-TEST(InterpretTest, InterpretsSmallProgramCorrectly) {
-  TestContext ctx({"test.kat"}, "");
+class InterpretTest : public testing::TestWithParam<BuildOptions> {};
+
+INSTANTIATE_TEST_SUITE_P(InterpretTestInstance, InterpretTest,
+                         testing::Values(
+                             BuildOptions{
+                                 .optimize_ir = false,
+                             },
+                             BuildOptions{
+                                 .optimize_ir = true,
+                             }));
+
+TEST_P(InterpretTest, InterpretsSmallProgramCorrectly) {
+  TestContext ctx;
   ctx.filesystem()->WriteContentsOfFile("test.kat", R"kat(
 package main
 
@@ -28,7 +39,9 @@ func main() int {
 }
   )kat");
 
-  ErrorCode result = Interpret(&ctx);
+  std::vector<std::filesystem::path> paths{"test.kat"};
+  BuildOptions build_options;
+  ErrorCode result = Interpret(paths, build_options, DebugHandler::WithDebuggingDisabled(), &ctx);
 
   EXPECT_EQ(result, 45);
 }

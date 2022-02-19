@@ -32,37 +32,39 @@ std::string SubdirNameForFunc(ir::Func* func) {
   return "@" + std::to_string(func->number()) + "_" + func->name();
 }
 
-void GenerateIrDebugInfo(ir::Program* program, std::string iter, Context* ctx) {
-  ctx->WriteToDebugFile(program->ToString(), /* subdir_name= */ "", "ir." + iter + ".txt");
+void GenerateIrDebugInfo(ir::Program* program, std::string iter, DebugHandler& debug_handler) {
+  debug_handler.WriteToDebugFile(program->ToString(), /* subdir_name= */ "", "ir." + iter + ".txt");
 
   const ir_info::FuncCallGraph fcg = ir_analyzers::BuildFuncCallGraphForProgram(program);
-  ctx->WriteToDebugFile(fcg.ToGraph(program).ToDotFormat(), /* subdir_name= */ "",
-                        "ir." + iter + ".fcg.dot");
+  debug_handler.WriteToDebugFile(fcg.ToGraph(program).ToDotFormat(), /* subdir_name= */ "",
+                                 "ir." + iter + ".fcg.dot");
 
   for (auto& func : program->funcs()) {
     std::string subdir_name = SubdirNameForFunc(func.get());
     std::string file_name = iter;
 
     common::Graph func_cfg = func->ToControlFlowGraph();
-    ctx->WriteToDebugFile(func_cfg.ToDotFormat(), subdir_name, file_name + ".cfg.dot");
+    debug_handler.WriteToDebugFile(func_cfg.ToDotFormat(), subdir_name, file_name + ".cfg.dot");
 
     common::Graph func_dom = func->ToDominatorTree();
-    ctx->WriteToDebugFile(func_dom.ToDotFormat(), subdir_name, file_name + ".dom.dot");
+    debug_handler.WriteToDebugFile(func_dom.ToDotFormat(), subdir_name, file_name + ".dom.dot");
 
     const ir_info::FuncLiveRanges live_ranges = ir_analyzers::FindLiveRangesForFunc(func.get());
-    ctx->WriteToDebugFile(live_ranges.ToString(), subdir_name, file_name + ".live_range_info.txt");
+    debug_handler.WriteToDebugFile(live_ranges.ToString(), subdir_name,
+                                   file_name + ".live_range_info.txt");
 
     const ir_info::InterferenceGraph interference_graph =
         ir_analyzers::BuildInterferenceGraphForFunc(func.get(), live_ranges);
-    ctx->WriteToDebugFile(interference_graph.ToString(), subdir_name,
-                          file_name + ".interference_graph.txt");
-    ctx->WriteToDebugFile(interference_graph.ToGraph().ToDotFormat(), subdir_name,
-                          file_name + ".interference_graph.dot");
+    debug_handler.WriteToDebugFile(interference_graph.ToString(), subdir_name,
+                                   file_name + ".interference_graph.txt");
+    debug_handler.WriteToDebugFile(interference_graph.ToGraph().ToDotFormat(), subdir_name,
+                                   file_name + ".interference_graph.dot");
   }
 }
 
-std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(Context* ctx) {
-  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(ctx);
+std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
+    std::vector<std::filesystem::path>& paths, DebugHandler& debug_handler, Context* ctx) {
+  std::variant<LoadResult, ErrorCode> load_result_or_error = Load(paths, debug_handler, ctx);
   if (std::holds_alternative<ErrorCode>(load_result_or_error)) {
     return std::get<ErrorCode>(load_result_or_error);
   }
@@ -80,38 +82,43 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(Context* ct
   if (program == nullptr) {
     return kBuildErrorTranslationToIRProgramFailed;
   }
-  if (ctx->generate_debug_info()) {
-    GenerateIrDebugInfo(program.get(), "init", ctx);
+  if (debug_handler.GenerateDebugInfo()) {
+    GenerateIrDebugInfo(program.get(), "init", debug_handler);
   }
 
   return program;
 }
 
-void LowerIrProgram(ir::Program* program, Context* ctx) {
+void LowerIrProgram(ir::Program* program, DebugHandler& debug_handler) {
   lang::ir_lowerers::LowerSharedPointersInProgram(program);
-  if (ctx->generate_debug_info()) {
-    GenerateIrDebugInfo(program, "lowered", ctx);
+  if (debug_handler.GenerateDebugInfo()) {
+    GenerateIrDebugInfo(program, "lowered", debug_handler);
   }
 }
 
-void OptimizeIrProgram(ir::Program* program, Context* ctx) {
+void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler) {
   ir_optimizers::RemoveUnusedFunctions(program);
-  if (ctx->generate_debug_info()) {
-    GenerateIrDebugInfo(program, "optimized", ctx);
+  if (debug_handler.GenerateDebugInfo()) {
+    GenerateIrDebugInfo(program, "optimized", debug_handler);
   }
 }
 
 }  // namespace
 
-std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(Context* ctx) {
-  std::variant<std::unique_ptr<ir::Program>, ErrorCode> program_or_error = BuildIrProgram(ctx);
+std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
+    std::vector<std::filesystem::path>& paths, BuildOptions& options, DebugHandler& debug_handler,
+    Context* ctx) {
+  std::variant<std::unique_ptr<ir::Program>, ErrorCode> program_or_error =
+      BuildIrProgram(paths, debug_handler, ctx);
   if (std::holds_alternative<ErrorCode>(program_or_error)) {
     return std::get<ErrorCode>(program_or_error);
   }
   auto ir_program = std::get<std::unique_ptr<ir::Program>>(std::move(program_or_error));
 
-  LowerIrProgram(ir_program.get(), ctx);
-  OptimizeIrProgram(ir_program.get(), ctx);
+  LowerIrProgram(ir_program.get(), debug_handler);
+  if (options.optimize_ir) {
+    OptimizeIrProgram(ir_program.get(), debug_handler);
+  }
 
   return std::move(ir_program);
 }
