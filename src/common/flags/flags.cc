@@ -82,7 +82,14 @@ bool FlagSet::Parse(std::vector<std::string>& args, std::ostream* error_stream) 
 }
 
 void FlagSet::PrintDefaults(std::ostream* output_stream) const {
-  for (auto [name, flag] : flag_lookup_) {
+  std::map<std::string, AbstractFlag*> flags_to_print = flag_lookup_;
+  FlagSet* ancestor = parent_;
+  while (ancestor != nullptr) {
+    flags_to_print.insert(ancestor->flag_lookup_.begin(), ancestor->flag_lookup_.end());
+    ancestor = ancestor->parent_;
+  }
+
+  for (auto [name, flag] : flags_to_print) {
     *output_stream << "  -" << flag->name();
     if (flag->name().size() > 1) {
       *output_stream << "\n      ";

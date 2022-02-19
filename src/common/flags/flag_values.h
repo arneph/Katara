@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <filesystem>
 #include <optional>
 #include <string>
 
@@ -84,6 +85,22 @@ inline std::string FlagValueToString<std::string>(std::string value) {
 
 template <>
 inline std::string ZeroFlagValue<std::string>() {
+  return "";
+}
+
+template <>
+inline std::optional<std::filesystem::path> ParseFlagValue<std::filesystem::path>(
+    std::string value_string) {
+  return value_string;
+}
+
+template <>
+inline std::string FlagValueToString<std::filesystem::path>(std::filesystem::path value) {
+  return value;
+}
+
+template <>
+inline std::filesystem::path ZeroFlagValue<std::filesystem::path>() {
   return "";
 }
 

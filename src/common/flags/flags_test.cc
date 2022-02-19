@@ -201,9 +201,9 @@ TEST(FlagsParseTest, NoDefinedFlagsHandlesDoubleDashWithoutNameAndEqualsAtEndOfA
 
 TEST(FlagsParseTest, BoolFlagHandlesNoAssignment) {
   std::vector<std::string> args;
-  bool test_flag = false;
+  bool test_flag = true;
   FlagSet flags;
-  flags.Add<bool>("test", "some usage", true, test_flag);
+  flags.Add<bool>("test", "some usage", test_flag);
   EXPECT_TRUE(test_flag);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -212,9 +212,9 @@ TEST(FlagsParseTest, BoolFlagHandlesNoAssignment) {
 
 TEST(FlagsParseTest, BoolFlagHandlesAssignmentWithoutValue) {
   std::vector<std::string> args = {"--test"};
-  bool test_flag = true;
+  bool test_flag = false;
   FlagSet flags;
-  flags.Add<bool>("test", "some usage", false, test_flag);
+  flags.Add<bool>("test", "some usage", test_flag);
   EXPECT_FALSE(test_flag);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -225,9 +225,9 @@ TEST(FlagsParseTest, BoolFlagHandlesFalseAssignment) {
   for (std::string false_string :
        std::vector<std::string>{"0", "f", "F", "false", "False", "FALSE"}) {
     std::vector<std::string> args = {"--test=" + false_string};
-    bool test_flag = false;
+    bool test_flag = true;
     FlagSet flags;
-    flags.Add<bool>("test", "some usage", true, test_flag);
+    flags.Add<bool>("test", "some usage", test_flag);
     EXPECT_TRUE(test_flag);
     EXPECT_TRUE(flags.Parse(args, nullptr));
     EXPECT_THAT(args, IsEmpty());
@@ -238,9 +238,9 @@ TEST(FlagsParseTest, BoolFlagHandlesFalseAssignment) {
 TEST(FlagsParseTest, BoolFlagHandlesTrueAssignment) {
   for (std::string true_string : std::vector<std::string>{"1", "t", "T", "true", "True", "TRUE"}) {
     std::vector<std::string> args = {"--test=" + true_string};
-    bool test_flag = true;
+    bool test_flag = false;
     FlagSet flags;
-    flags.Add<bool>("test", "some usage", false, test_flag);
+    flags.Add<bool>("test", "some usage", test_flag);
     EXPECT_FALSE(test_flag);
     EXPECT_TRUE(flags.Parse(args, nullptr));
     EXPECT_THAT(args, IsEmpty());
@@ -252,9 +252,9 @@ TEST(FlagsParseTest, BoolFlagRejectsWrongAssignment) {
   for (std::string value_string : std::vector<std::string>{"2", "a", "A", "tRuE", "hihi", ""}) {
     std::vector<std::string> args = {"--test=" + value_string};
     std::stringstream ss;
-    bool test_flag = true;
+    bool test_flag = false;
     FlagSet flags;
-    flags.Add<bool>("test", "some usage", false, test_flag);
+    flags.Add<bool>("test", "some usage", test_flag);
     EXPECT_FALSE(test_flag);
     EXPECT_FALSE(flags.Parse(args, &ss));
     EXPECT_THAT(args, IsEmpty());
@@ -264,9 +264,9 @@ TEST(FlagsParseTest, BoolFlagRejectsWrongAssignment) {
 
 TEST(FlagsParseTest, IntFlagHandlesNoAssignment) {
   std::vector<std::string> args;
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -276,9 +276,9 @@ TEST(FlagsParseTest, IntFlagHandlesNoAssignment) {
 TEST(FlagsParseTest, IntFlagRejectsAssignmentWithoutValue) {
   std::vector<std::string> args = {"--test"};
   std::stringstream ss;
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_FALSE(flags.Parse(args, &ss));
   EXPECT_THAT(args, IsEmpty());
@@ -289,9 +289,9 @@ TEST(FlagsParseTest, IntFlagRejectsAssignmentWithoutValue) {
 TEST(FlagsParseTest, IntFlagRejectsAssignmentWithEqualsWithoutValue) {
   std::vector<std::string> args = {"--test="};
   std::stringstream ss;
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_FALSE(flags.Parse(args, &ss));
   EXPECT_THAT(args, IsEmpty());
@@ -301,9 +301,9 @@ TEST(FlagsParseTest, IntFlagRejectsAssignmentWithEqualsWithoutValue) {
 
 TEST(FlagsParseTest, IntFlagAcceptsBasicAssignment) {
   std::vector<std::string> args = {"--test", "789"};
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -312,9 +312,9 @@ TEST(FlagsParseTest, IntFlagAcceptsBasicAssignment) {
 
 TEST(FlagsParseTest, IntFlagAcceptsBasicAssignmentWithEquals) {
   std::vector<std::string> args = {"--test=789"};
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -323,9 +323,9 @@ TEST(FlagsParseTest, IntFlagAcceptsBasicAssignmentWithEquals) {
 
 TEST(FlagsParseTest, IntFlagAcceptsAssignmentOfZero) {
   std::vector<std::string> args = {"--test", "0"};
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -334,9 +334,9 @@ TEST(FlagsParseTest, IntFlagAcceptsAssignmentOfZero) {
 
 TEST(FlagsParseTest, IntFlagAcceptsAssignmentOfZeroWithEquals) {
   std::vector<std::string> args = {"--test=0"};
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -345,9 +345,9 @@ TEST(FlagsParseTest, IntFlagAcceptsAssignmentOfZeroWithEquals) {
 
 TEST(FlagsParseTest, IntFlagAcceptsAssignmentOfNegativeNumber) {
   std::vector<std::string> args = {"--test", "-7"};
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -356,9 +356,9 @@ TEST(FlagsParseTest, IntFlagAcceptsAssignmentOfNegativeNumber) {
 
 TEST(FlagsParseTest, IntFlagAcceptsAssignmentOfNegativeNumberWithEquals) {
   std::vector<std::string> args = {"--test=-7"};
-  int64_t test_flag = 42;
+  int64_t test_flag = 123;
   FlagSet flags;
-  flags.Add<int64_t>("test", "some usage", 123, test_flag);
+  flags.Add<int64_t>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, 123);
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -367,9 +367,9 @@ TEST(FlagsParseTest, IntFlagAcceptsAssignmentOfNegativeNumberWithEquals) {
 
 TEST(FlagsParseTest, StringFlagHandlesNoAssignment) {
   std::vector<std::string> args;
-  std::string test_flag = "initial value";
+  std::string test_flag = "default value";
   FlagSet flags;
-  flags.Add<std::string>("test", "some usage", "default value", test_flag);
+  flags.Add<std::string>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, "default value");
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -378,9 +378,9 @@ TEST(FlagsParseTest, StringFlagHandlesNoAssignment) {
 
 TEST(FlagsParseTest, StringFlagHandlesAssignmentWithoutValue) {
   std::vector<std::string> args = {"--test"};
-  std::string test_flag = "initial value";
+  std::string test_flag = "default value";
   FlagSet flags;
-  flags.Add<std::string>("test", "some usage", "default value", test_flag);
+  flags.Add<std::string>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, "default value");
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -389,9 +389,9 @@ TEST(FlagsParseTest, StringFlagHandlesAssignmentWithoutValue) {
 
 TEST(FlagsParseTest, StringFlagHandlesAssignmentWithEqualsWithoutValue) {
   std::vector<std::string> args = {"--test="};
-  std::string test_flag = "initial value";
+  std::string test_flag = "default value";
   FlagSet flags;
-  flags.Add<std::string>("test", "some usage", "default value", test_flag);
+  flags.Add<std::string>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, "default value");
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -400,9 +400,9 @@ TEST(FlagsParseTest, StringFlagHandlesAssignmentWithEqualsWithoutValue) {
 
 TEST(FlagsParseTest, StringFlagHandlesAssignment) {
   std::vector<std::string> args = {"--test", "hello"};
-  std::string test_flag = "initial value";
+  std::string test_flag = "default value";
   FlagSet flags;
-  flags.Add<std::string>("test", "some usage", "default value", test_flag);
+  flags.Add<std::string>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, "default value");
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -411,9 +411,9 @@ TEST(FlagsParseTest, StringFlagHandlesAssignment) {
 
 TEST(FlagsParseTest, StringFlagHandlesAssignmentWithEquals) {
   std::vector<std::string> args = {"--test=hello"};
-  std::string test_flag = "initial value";
+  std::string test_flag = "default value";
   FlagSet flags;
-  flags.Add<std::string>("test", "some usage", "default value", test_flag);
+  flags.Add<std::string>("test", "some usage", test_flag);
   EXPECT_EQ(test_flag, "default value");
   EXPECT_TRUE(flags.Parse(args, nullptr));
   EXPECT_THAT(args, IsEmpty());
@@ -460,19 +460,19 @@ TEST(FlagsParseTest, HandlesCombinationOfFlags) {
   std::stringstream ss;
 
   bool bool_flag_a = false;
-  bool bool_flag_b = true;
-  int64_t int_flag_a = 1234;
-  int64_t int_flag_b = 6789;
-  std::string string_flag_a = "yo";
-  std::string string_flag_b = "hey";
+  bool bool_flag_b = false;
+  int64_t int_flag_a = 111;
+  int64_t int_flag_b = 999;
+  std::string string_flag_a = "sup";
+  std::string string_flag_b = "hi";
 
   FlagSet flags;
-  flags.Add<bool>("bool_flag_a", "bool_flag_a usage", false, bool_flag_a);
-  flags.Add<bool>("bool_flag_b", "bool_flag_b usage", false, bool_flag_b);
-  flags.Add<int64_t>("int_flag_a", "int_flag_a usage", 111, int_flag_a);
-  flags.Add<int64_t>("int_flag_b", "int_flag_b usage", 999, int_flag_b);
-  flags.Add<std::string>("string_flag_a", "string_flag_a usage", "sup", string_flag_a);
-  flags.Add<std::string>("string_flag_b", "string_flag_b usage", "hi", string_flag_b);
+  flags.Add<bool>("bool_flag_a", "bool_flag_a usage", bool_flag_a);
+  flags.Add<bool>("bool_flag_b", "bool_flag_b usage", bool_flag_b);
+  flags.Add<int64_t>("int_flag_a", "int_flag_a usage", int_flag_a);
+  flags.Add<int64_t>("int_flag_b", "int_flag_b usage", int_flag_b);
+  flags.Add<std::string>("string_flag_a", "string_flag_a usage", string_flag_a);
+  flags.Add<std::string>("string_flag_b", "string_flag_b usage", string_flag_b);
 
   EXPECT_FALSE(bool_flag_a);
   EXPECT_FALSE(bool_flag_b);
@@ -537,20 +537,20 @@ TEST(FlagsParseTest, HandlesCombinationOfFlagsInNestedFlagSets) {
   std::stringstream ss;
 
   bool bool_flag_a = false;
-  bool bool_flag_b = true;
-  int64_t int_flag_a = 1234;
-  int64_t int_flag_b = 6789;
-  std::string string_flag_a = "yo";
-  std::string string_flag_b = "hey";
+  bool bool_flag_b = false;
+  int64_t int_flag_a = 111;
+  int64_t int_flag_b = 999;
+  std::string string_flag_a = "sup";
+  std::string string_flag_b = "hi";
 
   FlagSet parent_flags;
   FlagSet child_flags = parent_flags.CreateChild();
-  parent_flags.Add<bool>("bool_flag_a", "bool_flag_a usage", false, bool_flag_a);
-  child_flags.Add<bool>("bool_flag_b", "bool_flag_b usage", false, bool_flag_b);
-  child_flags.Add<int64_t>("int_flag_a", "int_flag_a usage", 111, int_flag_a);
-  parent_flags.Add<int64_t>("int_flag_b", "int_flag_b usage", 999, int_flag_b);
-  parent_flags.Add<std::string>("string_flag_a", "string_flag_a usage", "sup", string_flag_a);
-  child_flags.Add<std::string>("string_flag_b", "string_flag_b usage", "hi", string_flag_b);
+  parent_flags.Add<bool>("bool_flag_a", "bool_flag_a usage", bool_flag_a);
+  child_flags.Add<bool>("bool_flag_b", "bool_flag_b usage", bool_flag_b);
+  child_flags.Add<int64_t>("int_flag_a", "int_flag_a usage", int_flag_a);
+  parent_flags.Add<int64_t>("int_flag_b", "int_flag_b usage", int_flag_b);
+  parent_flags.Add<std::string>("string_flag_a", "string_flag_a usage", string_flag_a);
+  child_flags.Add<std::string>("string_flag_b", "string_flag_b usage", string_flag_b);
 
   EXPECT_FALSE(bool_flag_a);
   EXPECT_FALSE(bool_flag_b);
@@ -576,20 +576,20 @@ TEST(FlagsParseTest, HandlesCombinationOfFlagsInNestedFlagSets) {
 }
 
 TEST(FlagsTest, PrintsDefaults) {
-  bool bool_flag_a;
-  bool bool_flag_b;
-  int64_t int_flag_a;
-  int64_t int_flag_b;
-  std::string string_flag_a;
-  std::string string_flag_b;
+  bool bool_flag_a = false;
+  bool bool_flag_b = true;
+  int64_t int_flag_a = 111;
+  int64_t int_flag_b = 0;
+  std::string string_flag_a = "";
+  std::string string_flag_b = "hi";
 
   FlagSet flags;
-  flags.Add<bool>("a", "bool_flag_a usage", false, bool_flag_a);
-  flags.Add<bool>("bool_flag_b", "bool_flag_b usage\non multiple\nlines", true, bool_flag_b);
-  flags.Add<int64_t>("int_flag_a", "int_flag_a usage", 111, int_flag_a);
-  flags.Add<int64_t>("x", "int_flag_b usage", 0, int_flag_b);
-  flags.Add<std::string>("string_flag_a", "string_flag_a usage", "", string_flag_a);
-  flags.Add<std::string>("string_flag_b", "string_flag_b usage", "hi", string_flag_b);
+  flags.Add<bool>("a", "bool_flag_a usage", bool_flag_a);
+  flags.Add<bool>("bool_flag_b", "bool_flag_b usage\non multiple\nlines", bool_flag_b);
+  flags.Add<int64_t>("int_flag_a", "int_flag_a usage", int_flag_a);
+  flags.Add<int64_t>("x", "int_flag_b usage", int_flag_b);
+  flags.Add<std::string>("string_flag_a", "string_flag_a usage", string_flag_a);
+  flags.Add<std::string>("string_flag_b", "string_flag_b usage", string_flag_b);
 
   std::stringstream ss;
   flags.PrintDefaults(&ss);

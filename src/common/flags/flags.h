@@ -45,8 +45,8 @@ class AbstractFlag {
 template <typename ValueT>
 class Flag : public AbstractFlag {
  public:
-  Flag(std::string name, std::string usage, ValueT default_value, ValueT& current_value)
-      : AbstractFlag(name, usage), default_value_(default_value), current_value_(current_value) {
+  Flag(std::string name, std::string usage, ValueT& current_value)
+      : AbstractFlag(name, usage), default_value_(current_value), current_value_(current_value) {
     current_value_ = default_value_;
   }
 
@@ -85,9 +85,8 @@ class FlagSet {
   AbstractFlag* FlagWithName(std::string name) const;
 
   template <typename ValueT>
-  void Add(std::string name, std::string usage, ValueT default_value, ValueT& current_value) {
-    auto& flag = flags_.emplace_back(
-        std::make_unique<Flag<ValueT>>(name, usage, default_value, current_value));
+  void Add(std::string name, std::string usage, ValueT& current_value) {
+    auto& flag = flags_.emplace_back(std::make_unique<Flag<ValueT>>(name, usage, current_value));
     flag_lookup_.insert({name, flag.get()});
   }
 
