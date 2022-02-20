@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "src/common/atomics/atomics.h"
+#include "src/ir/representation/object.h"
 
 namespace ir {
 
@@ -33,12 +34,12 @@ enum class TypeKind {
 
 bool IsAtomicType(TypeKind type_kind);
 
-class Type {
+class Type : public Object {
  public:
   constexpr virtual ~Type() {}
 
+  constexpr Object::Kind object_kind() const final { return Object::Kind::kType; }
   constexpr virtual TypeKind type_kind() const = 0;
-  virtual std::string ToString() const = 0;
 };
 
 class AtomicType : public Type {

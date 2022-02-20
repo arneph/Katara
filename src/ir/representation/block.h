@@ -18,12 +18,15 @@
 #include "src/common/graph/graph.h"
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/num_types.h"
+#include "src/ir/representation/object.h"
 
 namespace ir {
 
-class Block {
+class Block : public Object {
  public:
   Block(block_num_t bnum) : number_(bnum) {}
+
+  constexpr Object::Kind object_kind() const final { return Object::Kind::kBlock; }
 
   block_num_t number() const { return number_; }
   std::string name() const { return name_; }
@@ -45,7 +48,7 @@ class Block {
   const std::unordered_set<block_num_t>& parents() const { return parents_; }
   const std::unordered_set<block_num_t>& children() const { return children_; }
 
-  std::string ToString() const;
+  std::string ToString() const override;
   common::Node ToNode() const;
 
   friend class Func;

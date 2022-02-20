@@ -14,11 +14,12 @@
 
 #include "src/common/atomics/atomics.h"
 #include "src/ir/representation/num_types.h"
+#include "src/ir/representation/object.h"
 #include "src/ir/representation/types.h"
 
 namespace ir {
 
-class Value {
+class Value : public Object {
  public:
   enum class Kind {
     kConstant,
@@ -28,10 +29,10 @@ class Value {
 
   constexpr virtual ~Value() {}
 
+  constexpr Object::Kind object_kind() const final { return Object::Kind::kValue; }
   constexpr virtual const Type* type() const = 0;
   constexpr virtual Kind kind() const = 0;
 
-  virtual std::string ToString() const = 0;
   virtual std::string ToStringWithType() const { return ToString() + ":" + type()->ToString(); }
 };
 

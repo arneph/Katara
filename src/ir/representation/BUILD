@@ -16,6 +16,20 @@ cc_library(
 )
 
 cc_library(
+    name = "object",
+    hdrs = [
+        "object.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//src:__pkg__",
+        "//src/ir:__subpackages__",
+        "//src/lang:__subpackages__",
+        "//src/x86_64:__pkg__",
+    ],
+)
+
+cc_library(
     name = "types",
     srcs = [
         "types.cc",
@@ -31,6 +45,7 @@ cc_library(
         "//src/x86_64:__pkg__",
     ],
     deps = [
+        ":object",
         "//src/common/atomics",
     ],
 )
@@ -52,6 +67,7 @@ cc_library(
     ],
     deps = [
         ":num_types",
+        ":object",
         ":types",
         "//src/common/atomics",
     ],
@@ -74,6 +90,7 @@ cc_library(
     ],
     deps = [
         ":num_types",
+        ":object",
         ":values",
         "//src/common/atomics",
         "//src/common/logging",
@@ -98,6 +115,7 @@ cc_library(
     deps = [
         ":instrs",
         ":num_types",
+        ":object",
         "//src/common/graph",
     ],
 )
@@ -120,6 +138,7 @@ cc_library(
     deps = [
         ":block",
         ":num_types",
+        ":object",
         "//src/common/graph",
     ],
 )
@@ -141,6 +160,7 @@ cc_library(
     ],
     deps = [
         ":func",
+        ":object",
     ],
 )
 
@@ -155,6 +175,7 @@ cc_library(
         ":func",
         ":instrs",
         ":num_types",
+        ":object",
         ":program",
         ":types",
         ":values",

@@ -15,13 +15,16 @@
 
 #include "src/common/graph/graph.h"
 #include "src/ir/representation/func.h"
+#include "src/ir/representation/object.h"
 #include "src/ir/representation/types.h"
 
 namespace ir {
 
-class Program {
+class Program : public Object {
  public:
-  Program() : func_count_(0), entry_func_num_(kNoFuncNum) {}
+  Program() : func_count_(0) {}
+
+  constexpr Object::Kind object_kind() const final { return Object::Kind::kProgram; }
 
   const std::vector<std::unique_ptr<Func>>& funcs() const { return funcs_; }
 
@@ -37,13 +40,13 @@ class Program {
   const TypeTable& type_table() const { return type_table_; }
   TypeTable& type_table() { return type_table_; }
 
-  std::string ToString() const;
+  std::string ToString() const override;
 
  private:
   int64_t func_count_;
   std::vector<std::unique_ptr<Func>> funcs_;
 
-  func_num_t entry_func_num_;
+  func_num_t entry_func_num_ = kNoFuncNum;
 
   TypeTable type_table_;
 };

@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "src/common/atomics/atomics.h"
+#include "src/ir/representation/object.h"
 #include "src/ir/representation/values.h"
 
 namespace ir {
@@ -49,17 +50,16 @@ enum class InstrKind {
   kLangStringConcat,
 };
 
-class Instr {
+class Instr : public Object {
  public:
   virtual ~Instr() {}
 
   virtual std::vector<std::shared_ptr<Computed>> DefinedValues() const = 0;
   virtual std::vector<std::shared_ptr<Value>> UsedValues() const = 0;
 
-  virtual InstrKind instr_kind() const = 0;
+  constexpr Object::Kind object_kind() const final { return Object::Kind::kInstr; }
+  constexpr virtual InstrKind instr_kind() const = 0;
   bool IsControlFlowInstr() const;
-
-  virtual std::string ToString() const = 0;
 };
 
 class Computation : public Instr {

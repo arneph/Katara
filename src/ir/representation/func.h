@@ -19,17 +19,15 @@
 #include "src/common/graph/graph.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/num_types.h"
+#include "src/ir/representation/object.h"
 
 namespace ir {
 
-class Func {
+class Func : public Object {
  public:
-  Func(func_num_t fnum)
-      : number_(fnum),
-        block_count_(0),
-        entry_block_num_(kNoBlockNum),
-        dominator_tree_ok_(false),
-        computed_count_(0) {}
+  Func(func_num_t fnum) : number_(fnum) {}
+
+  constexpr Object::Kind object_kind() const final { return Object::Kind::kFunc; }
 
   func_num_t number() const { return number_; }
   std::string name() const { return name_; }
@@ -64,7 +62,7 @@ class Func {
   int64_t computed_count() const { return computed_count_; }
   value_num_t next_computed_number() { return computed_count_++; }
 
-  std::string ToString() const;
+  std::string ToString() const override;
   common::Graph ToControlFlowGraph() const;
   common::Graph ToDominatorTree() const;
 
@@ -96,16 +94,16 @@ class Func {
   std::vector<std::shared_ptr<Computed>> args_;
   std::vector<const Type*> result_types_;
 
-  int64_t block_count_;
+  int64_t block_count_ = 0;
   std::vector<std::unique_ptr<Block>> blocks_;
 
-  block_num_t entry_block_num_;
+  block_num_t entry_block_num_ = kNoBlockNum;
 
-  mutable bool dominator_tree_ok_;
+  mutable bool dominator_tree_ok_ = false;
   mutable std::unordered_map<block_num_t, block_num_t> dominators_;
   mutable std::unordered_map<block_num_t, std::unordered_set<block_num_t>> dominees_;
 
-  int64_t computed_count_;
+  int64_t computed_count_ = 0;
 };
 
 }  // namespace ir
