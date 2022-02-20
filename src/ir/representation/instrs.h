@@ -65,6 +65,7 @@ class Instr : public Object {
 class Computation : public Instr {
  public:
   std::shared_ptr<Computed> result() const { return result_; }
+  void set_result(std::shared_ptr<Computed> result) { result_ = result; }
 
   std::vector<std::shared_ptr<Computed>> DefinedValues() const override {
     return std::vector<std::shared_ptr<Computed>>{result_};
@@ -82,6 +83,7 @@ class MovInstr : public Computation {
   MovInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> origin);
 
   std::shared_ptr<Value> origin() const { return origin_; }
+  void set_origin(std::shared_ptr<Value> origin) { origin_ = origin; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override {
     return std::vector<std::shared_ptr<Value>>{origin_};
@@ -101,6 +103,7 @@ class PhiInstr : public Computation {
   PhiInstr(std::shared_ptr<Computed> result, std::vector<std::shared_ptr<InheritedValue>> args);
 
   const std::vector<std::shared_ptr<InheritedValue>>& args() const { return args_; }
+  std::vector<std::shared_ptr<InheritedValue>>& args() { return args_; }
 
   std::shared_ptr<Value> ValueInheritedFromBlock(block_num_t bnum) const;
 
@@ -118,6 +121,7 @@ class Conversion : public Computation {
   Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand);
 
   std::shared_ptr<Value> operand() const { return operand_; }
+  void set_operand(std::shared_ptr<Value> operand) { operand_ = operand; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
@@ -133,6 +137,7 @@ class BoolNotInstr : public Computation {
   BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand);
 
   std::shared_ptr<Value> operand() const { return operand_; }
+  void set_operand(std::shared_ptr<Value> operand) { operand_ = operand; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
@@ -149,8 +154,13 @@ class BoolBinaryInstr : public Computation {
                   std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
 
   common::Bool::BinaryOp operation() const { return operation_; }
+  void set_operation(common::Bool::BinaryOp operation) { operation_ = operation; }
+
   std::shared_ptr<Value> operand_a() const { return operand_a_; }
+  void set_operand_a(std::shared_ptr<Value> operand_a) { operand_a_ = operand_a; }
+
   std::shared_ptr<Value> operand_b() const { return operand_b_; }
+  void set_operand_b(std::shared_ptr<Value> operand_b) { operand_b_ = operand_b; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override {
     return {operand_a_, operand_b_};
@@ -171,7 +181,10 @@ class IntUnaryInstr : public Computation {
                 std::shared_ptr<Value> operand);
 
   common::Int::UnaryOp operation() const { return operation_; }
+  void set_operation(common::Int::UnaryOp operation) { operation_ = operation; }
+
   std::shared_ptr<Value> operand() const { return operand_; }
+  void set_operand(std::shared_ptr<Value> operand) { operand_ = operand; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
@@ -189,8 +202,13 @@ class IntCompareInstr : public Computation {
                   std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
 
   common::Int::CompareOp operation() const { return operation_; }
+  void set_operation(common::Int::CompareOp operation) { operation_ = operation; }
+
   std::shared_ptr<Value> operand_a() const { return operand_a_; }
+  void set_operand_a(std::shared_ptr<Value> operand_a) { operand_a_ = operand_a; }
+
   std::shared_ptr<Value> operand_b() const { return operand_b_; }
+  void set_operand_b(std::shared_ptr<Value> operand_b) { operand_b_ = operand_b; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override {
     return {operand_a_, operand_b_};
@@ -211,8 +229,13 @@ class IntBinaryInstr : public Computation {
                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
 
   common::Int::BinaryOp operation() const { return operation_; }
+  void set_operation(common::Int::BinaryOp operation) { operation_ = operation; }
+
   std::shared_ptr<Value> operand_a() const { return operand_a_; }
+  void set_operand_a(std::shared_ptr<Value> operand_a) { operand_a_ = operand_a; }
+
   std::shared_ptr<Value> operand_b() const { return operand_b_; }
+  void set_operand_b(std::shared_ptr<Value> operand_b) { operand_b_ = operand_b; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override {
     return {operand_a_, operand_b_};
@@ -233,8 +256,13 @@ class IntShiftInstr : public Computation {
                 std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset);
 
   common::Int::ShiftOp operation() const { return operation_; }
+  void set_operation(common::Int::ShiftOp operation) { operation_ = operation; }
+
   std::shared_ptr<Value> shifted() const { return shifted_; }
+  void set_shifted(std::shared_ptr<Value> shifted) { shifted_ = shifted; }
+
   std::shared_ptr<Value> offset() const { return offset_; }
+  void set_offset(std::shared_ptr<Value> offset) { offset_ = offset; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {shifted_, offset_}; }
 
@@ -253,7 +281,10 @@ class PointerOffsetInstr : public Computation {
                      std::shared_ptr<Value> offset);
 
   std::shared_ptr<Computed> pointer() const { return pointer_; }
+  void set_pointer(std::shared_ptr<Computed> pointer) { pointer_ = pointer; }
+
   std::shared_ptr<Value> offset() const { return offset_; }
+  void set_offset(std::shared_ptr<Value> offset) { offset_ = offset; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {pointer_, offset_}; }
 
@@ -270,6 +301,7 @@ class NilTestInstr : public Computation {
   NilTestInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> tested);
 
   std::shared_ptr<Value> tested() const { return tested_; }
+  void set_tested(std::shared_ptr<Value> tested) { tested_ = tested; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {tested_}; }
 
@@ -288,6 +320,7 @@ class MallocInstr : public Computation {
       : Computation(result), size_(size) {}
 
   std::shared_ptr<Value> size() const { return size_; }
+  void set_size(std::shared_ptr<Value> size) { size_ = size; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {size_}; }
 
@@ -306,6 +339,7 @@ class LoadInstr : public Computation {
       : Computation(result), address_(address) {}
 
   std::shared_ptr<Value> address() const { return address_; }
+  void set_address(std::shared_ptr<Value> address) { address_ = address; }
 
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_}; }
 
@@ -324,7 +358,10 @@ class StoreInstr : public Instr {
       : address_(address), value_(value) {}
 
   std::shared_ptr<Value> address() const { return address_; }
+  void set_address(std::shared_ptr<Value> address) { address_ = address; }
+
   std::shared_ptr<Value> value() const { return value_; }
+  void set_value(std::shared_ptr<Value> value) { value_ = value; }
 
   std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_, value_}; }
@@ -344,6 +381,7 @@ class FreeInstr : public Instr {
   FreeInstr(std::shared_ptr<Value> address) : address_(address) {}
 
   std::shared_ptr<Value> address() const { return address_; }
+  void set_address(std::shared_ptr<Value> address) { address_ = address; }
 
   std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_}; }
@@ -360,6 +398,7 @@ class JumpInstr : public Instr {
   JumpInstr(block_num_t destination) : destination_(destination) {}
 
   block_num_t destination() const { return destination_; }
+  void set_destination(block_num_t destination) { destination_ = destination; }
 
   std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {}; }
@@ -380,8 +419,15 @@ class JumpCondInstr : public Instr {
         destination_false_(destination_false) {}
 
   std::shared_ptr<Value> condition() const { return condition_; }
+  void set_condition(std::shared_ptr<Value> condition) { condition_ = condition; }
+
   block_num_t destination_true() const { return destination_true_; }
+  void set_destination_true(block_num_t destination_true) { destination_true_ = destination_true; }
+
   block_num_t destination_false() const { return destination_false_; }
+  void set_destination_false(block_num_t destination_false) {
+    destination_false_ = destination_false;
+  }
 
   std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {condition_}; }
@@ -402,8 +448,13 @@ class CallInstr : public Instr {
       : func_(func), results_(results), args_(args) {}
 
   std::shared_ptr<Value> func() const { return func_; }
+  void set_func(std::shared_ptr<Value> func) { func_ = func; }
+
   const std::vector<std::shared_ptr<Computed>>& results() const { return results_; }
+  std::vector<std::shared_ptr<Computed>>& results() { return results_; }
+
   const std::vector<std::shared_ptr<Value>>& args() const { return args_; }
+  std::vector<std::shared_ptr<Value>>& args() { return args_; }
 
   std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return results_; }
   std::vector<std::shared_ptr<Value>> UsedValues() const override;
@@ -422,6 +473,7 @@ class ReturnInstr : public Instr {
   ReturnInstr(std::vector<std::shared_ptr<Value>> args = {}) : args_(args) {}
 
   const std::vector<std::shared_ptr<Value>>& args() const { return args_; }
+  std::vector<std::shared_ptr<Value>>& args() { return args_; }
 
   std::vector<std::shared_ptr<Computed>> DefinedValues() const override { return {}; }
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return args_; }
