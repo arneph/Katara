@@ -205,7 +205,7 @@ void Func::UpdateDominatorTree() const {
     block_num_t dominee_num = ctx.tree_order_.at(i);
     block_num_t dominator_num = ctx.idom_.at(dominee_num);
 
-    dominators_.insert({dominee_num, dominator_num});
+    dominators_.insert_or_assign(dominee_num, dominator_num);
     dominees_.at(dominator_num).insert(dominee_num);
   }
 

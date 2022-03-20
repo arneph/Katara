@@ -143,6 +143,18 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "func_test",
+    srcs = ["func_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":block",
+        ":func",
+        ":num_types",
+        "@gtest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "program",
     srcs = [
