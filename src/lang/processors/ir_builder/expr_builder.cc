@@ -34,7 +34,7 @@ std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfExpr(ast::Expr* expr, A
     case ast::NodeKind::kIndexExpr:
       return BuildAddressOfIndexExpr(static_cast<ast::IndexExpr*>(expr), ast_ctx, ir_ctx);
     case ast::NodeKind::kIdent:
-      return BuildAddressOfIdent(static_cast<ast::Ident*>(expr), ast_ctx, ir_ctx);
+      return BuildAddressOfIdent(static_cast<ast::Ident*>(expr), ast_ctx);
     default:
       common::fail("unexpected addressable expr");
   }
@@ -545,8 +545,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBasicLit(ast::BasicLit* basi
 }
 
 std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfIdent(ast::Ident* ident,
-                                                               ASTContext& ast_ctx,
-                                                               IRContext& ir_ctx) {
+                                                               ASTContext& ast_ctx) {
   types::Object* object = type_info_->ObjectOf(ident);
   types::Variable* var = static_cast<types::Variable*>(object);
   return ast_ctx.LookupAddressOfVar(var);

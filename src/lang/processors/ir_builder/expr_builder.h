@@ -124,8 +124,7 @@ class ExprBuilder {
                                                       IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfBasicLit(ast::BasicLit* basic_lit);
 
-  std::shared_ptr<ir::Computed> BuildAddressOfIdent(ast::Ident* ident, ASTContext& ast_ctx,
-                                                    IRContext& ir_ctx);
+  std::shared_ptr<ir::Computed> BuildAddressOfIdent(ast::Ident* ident, ASTContext& ast_ctx);
   std::shared_ptr<ir::Value> BuildValueOfIdent(ast::Ident* ident, ASTContext& ast_ctx,
                                                IRContext& ir_ctx);
 
