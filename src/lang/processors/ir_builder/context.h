@@ -78,6 +78,8 @@ class IRContext {
   ir::Block* block() const { return block_; }
   void set_block(ir::Block* ir_block) { block_ = ir_block; }
 
+  bool Completed() const { return block_ == nullptr || block_->HasControlFlowInstr(); }
+
   IRContext ChildContextFor(ir::Block* block) const;
 
  private:

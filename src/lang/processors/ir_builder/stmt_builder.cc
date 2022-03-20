@@ -19,7 +19,7 @@ void StmtBuilder::BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx
   for (auto stmt : block_stmt->stmts()) {
     BuildStmt(stmt, child_ast_ctx, ir_ctx);
   }
-  if (!ir_ctx.block()->HasControlFlowInstr()) {
+  if (!ir_ctx.Completed()) {
     BuildVarDeletionsForASTContext(&child_ast_ctx, ir_ctx);
   }
 }
@@ -333,19 +333,26 @@ void StmtBuilder::BuildIfStmt(ast::IfStmt* if_stmt, ASTContext& ast_ctx, IRConte
     else_exit_block = else_ir_ctx->block();
   }
 
-  ir::Block* merge_block = ir_ctx.func()->AddBlock();
-  ir_ctx.set_block(merge_block);
+  bool needs_merge_block = !has_else || !if_ir_ctx.Completed() || !else_ir_ctx->Completed();
+  ir::Block* merge_block = nullptr;
+  if (needs_merge_block) {
+    merge_block = ir_ctx.func()->AddBlock();
+    ir_ctx.set_block(merge_block);
+  } else {
+    ir_ctx.set_block(nullptr);
+  }
 
   ir::block_num_t destination_true = if_entry_block->number();
   ir::block_num_t destination_false =
       (has_else) ? else_entry_block->number() : merge_block->number();
   start_block->instrs().push_back(
       std::make_unique<ir::JumpCondInstr>(condition, destination_true, destination_false));
-  if (!if_exit_block->HasControlFlowInstr()) {
+
+  if (!if_ir_ctx.Completed()) {
     if_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
     ir_ctx.func()->AddControlFlow(if_exit_block->number(), merge_block->number());
   }
-  if (has_else && !else_exit_block->HasControlFlowInstr()) {
+  if (has_else && !else_ir_ctx->Completed()) {
     else_exit_block->instrs().push_back(std::make_unique<ir::JumpInstr>(merge_block->number()));
     ir_ctx.func()->AddControlFlow(else_exit_block->number(), merge_block->number());
   }
@@ -404,7 +411,7 @@ void StmtBuilder::BuildForStmt(std::string label, ast::ForStmt* for_stmt, ASTCon
   IRContext body_ir_ctx = ir_ctx.ChildContextFor(body_entry_block);
   BuildBlockStmt(for_stmt->body(), body_ast_ctx, body_ir_ctx);
   ir::Block* body_exit_block = body_ir_ctx.block();
-  if (!body_exit_block->HasControlFlowInstr()) {
+  if (!body_ir_ctx.Completed()) {
     body_exit_block->instrs().push_back(
         std::make_unique<ir::JumpInstr>(continue_entry_block->number()));
     func->AddControlFlow(body_exit_block->number(), continue_entry_block->number());
