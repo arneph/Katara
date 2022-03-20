@@ -684,7 +684,7 @@ ExprHandler::CheckSelectionExprResult ExprHandler::CheckNamedTypeMethodSelection
                  "expression is not a type or value");
     return CheckSelectionExprResult::kCheckFailed;
   }
-  types::Selection selection(types::Selection::Kind::kMethodExpr, named_type, signature, method);
+  types::Selection selection(selection_kind, named_type, signature, method);
   info_builder().SetSelection(selection_expr, selection);
   info_builder().SetExprInfo(selection_expr,
                              types::ExprInfo(types::ExprInfo::Kind::kValue, signature));
