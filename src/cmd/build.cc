@@ -14,6 +14,7 @@
 #include "src/ir/analyzers/func_call_graph_builder.h"
 #include "src/ir/analyzers/interference_graph_builder.h"
 #include "src/ir/analyzers/live_range_analyzer.h"
+#include "src/ir/checker/checker.h"
 #include "src/ir/info/func_call_graph.h"
 #include "src/ir/info/func_live_ranges.h"
 #include "src/ir/info/interference_graph.h"
@@ -85,6 +86,9 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
   if (debug_handler.GenerateDebugInfo()) {
     GenerateIrDebugInfo(program.get(), "init", debug_handler);
   }
+  if (debug_handler.CheckIr()) {
+    ir_checker::AssertProgramIsOkay(program.get());
+  }
 
   return program;
 }
@@ -94,12 +98,18 @@ void LowerIrProgram(ir::Program* program, DebugHandler& debug_handler) {
   if (debug_handler.GenerateDebugInfo()) {
     GenerateIrDebugInfo(program, "lowered", debug_handler);
   }
+  if (debug_handler.CheckIr()) {
+    ir_checker::AssertProgramIsOkay(program);
+  }
 }
 
 void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler) {
   ir_optimizers::RemoveUnusedFunctions(program);
   if (debug_handler.GenerateDebugInfo()) {
     GenerateIrDebugInfo(program, "optimized", debug_handler);
+  }
+  if (debug_handler.CheckIr()) {
+    ir_checker::AssertProgramIsOkay(program);
   }
 }
 

@@ -60,13 +60,16 @@ struct FlagSets {
 };
 
 void GenerateFlagSets(DebugConfig& debug_config, BuildOptions& build_options, FlagSets& flag_sets) {
-  flag_sets.debug_flags.Add<bool>(
-      "debug",
-      "If true, debug information will be written in the directory specified with --debug_path.",
-      debug_config.generate_debug_info);
+  flag_sets.debug_flags.Add<bool>("debug_output",
+                                  "If true, debug information will be written in the directory "
+                                  "specified with -debug_output_path.",
+                                  debug_config.generate_debug_info);
   flag_sets.debug_flags.Add<std::filesystem::path>(
-      "debug_path", "The directory where debug information will be written to (if enabled).",
+      "debug_output_path", "The directory where debug information will be written to (if enabled).",
       debug_config.debug_path);
+  flag_sets.debug_flags.Add<bool>(
+      "debug_check_ir", "If true, runs the ir_checker over the IR between each transformation.",
+      debug_config.check_ir);
 
   flag_sets.build_flags = flag_sets.debug_flags.CreateChild();
   flag_sets.build_flags.Add<bool>(

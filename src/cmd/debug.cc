@@ -10,8 +10,8 @@
 
 namespace cmd {
 
-DebugHandler& DebugHandler::WithDebuggingDisabled() {
-  static DebugHandler handler = DebugHandler(DebugConfig(), /*ctx=*/nullptr);
+DebugHandler& DebugHandler::WithDebugEnabledButOutputDisabled() {
+  static DebugHandler handler = DebugHandler(DebugConfig{.check_ir = true}, /*ctx=*/nullptr);
   return handler;
 }
 

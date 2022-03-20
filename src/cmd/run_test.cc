@@ -41,7 +41,8 @@ func main() int {
 
   std::vector<std::filesystem::path> paths{"test.kat"};
   BuildOptions build_options = GetParam();
-  ErrorCode result = ::cmd::Run(paths, build_options, DebugHandler::WithDebuggingDisabled(), &ctx);
+  ErrorCode result =
+      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
 
   EXPECT_EQ(result, 45);
 }

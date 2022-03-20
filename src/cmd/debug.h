@@ -18,16 +18,18 @@ namespace cmd {
 struct DebugConfig {
   bool generate_debug_info = false;
   std::filesystem::path debug_path = "debug";
+  bool check_ir = false;
 };
 
 class DebugHandler {
  public:
-  static DebugHandler& WithDebuggingDisabled();
+  static DebugHandler& WithDebugEnabledButOutputDisabled();
 
   DebugHandler(DebugConfig config, Context* ctx) : config_(config), ctx_(ctx) {}
 
   bool GenerateDebugInfo() const { return config_.generate_debug_info; }
   std::filesystem::path DebugPath() const { return config_.debug_path; }
+  bool CheckIr() const { return config_.check_ir; }
 
   void CreateDebugDirectory();
   void CreateDebugSubDirectory(std::string subdir_name);
