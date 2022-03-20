@@ -17,6 +17,7 @@ bool Instr::IsControlFlowInstr() const {
     case InstrKind::kJump:
     case InstrKind::kJumpCond:
     case InstrKind::kReturn:
+    case InstrKind::kLangPanic:
       return true;
     default:
       return false;
