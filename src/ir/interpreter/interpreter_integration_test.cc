@@ -12,6 +12,7 @@
 #include "gtest/gtest.h"
 #include "src/common/filesystem/filesystem.h"
 #include "src/common/filesystem/test_filesystem.h"
+#include "src/ir/checker/checker.h"
 #include "src/ir/interpreter/interpreter.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
 #include "src/lang/processors/ir_lowerers/shared_pointer_lowerer.h"
@@ -64,6 +65,7 @@ func main() int {
   std::unique_ptr<ir::Program> program =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
+  ir_checker::AssertProgramIsOkay(program.get());
 
   // Interpret IR:
   ir_interpreter::Interpreter interpreter(program.get());
@@ -100,6 +102,7 @@ func main() int {
   std::unique_ptr<ir::Program> program =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
+  ir_checker::AssertProgramIsOkay(program.get());
 
   // Interpret IR:
   ir_interpreter::Interpreter interpreter(program.get());
@@ -134,6 +137,7 @@ func main() int {
   std::unique_ptr<ir::Program> program =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
+  ir_checker::AssertProgramIsOkay(program.get());
 
   // Lower IR:
   lang::ir_lowerers::LowerSharedPointersInProgram(program.get());
