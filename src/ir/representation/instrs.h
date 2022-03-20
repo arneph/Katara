@@ -80,7 +80,8 @@ class Computation : public Instr {
 
 class MovInstr : public Computation {
  public:
-  MovInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> origin);
+  MovInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> origin)
+      : Computation(result), origin_(origin) {}
 
   std::shared_ptr<Value> origin() const { return origin_; }
   void set_origin(std::shared_ptr<Value> origin) { origin_ = origin; }
@@ -100,7 +101,8 @@ class MovInstr : public Computation {
 
 class PhiInstr : public Computation {
  public:
-  PhiInstr(std::shared_ptr<Computed> result, std::vector<std::shared_ptr<InheritedValue>> args);
+  PhiInstr(std::shared_ptr<Computed> result, std::vector<std::shared_ptr<InheritedValue>> args)
+      : Computation(result), args_(args) {}
 
   const std::vector<std::shared_ptr<InheritedValue>>& args() const { return args_; }
   std::vector<std::shared_ptr<InheritedValue>>& args() { return args_; }
@@ -118,7 +120,8 @@ class PhiInstr : public Computation {
 
 class Conversion : public Computation {
  public:
-  Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand);
+  Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
+      : Computation(result), operand_(operand) {}
 
   std::shared_ptr<Value> operand() const { return operand_; }
   void set_operand(std::shared_ptr<Value> operand) { operand_ = operand; }
@@ -134,7 +137,8 @@ class Conversion : public Computation {
 
 class BoolNotInstr : public Computation {
  public:
-  BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand);
+  BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
+      : Computation(result), operand_(operand) {}
 
   std::shared_ptr<Value> operand() const { return operand_; }
   void set_operand(std::shared_ptr<Value> operand) { operand_ = operand; }
@@ -151,7 +155,8 @@ class BoolNotInstr : public Computation {
 class BoolBinaryInstr : public Computation {
  public:
   BoolBinaryInstr(std::shared_ptr<Computed> result, common::Bool::BinaryOp operation,
-                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
+                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
+      : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
 
   common::Bool::BinaryOp operation() const { return operation_; }
   void set_operation(common::Bool::BinaryOp operation) { operation_ = operation; }
@@ -178,7 +183,8 @@ class BoolBinaryInstr : public Computation {
 class IntUnaryInstr : public Computation {
  public:
   IntUnaryInstr(std::shared_ptr<Computed> result, common::Int::UnaryOp operation,
-                std::shared_ptr<Value> operand);
+                std::shared_ptr<Value> operand)
+      : Computation(result), operation_(operation), operand_(operand) {}
 
   common::Int::UnaryOp operation() const { return operation_; }
   void set_operation(common::Int::UnaryOp operation) { operation_ = operation; }
@@ -199,7 +205,8 @@ class IntUnaryInstr : public Computation {
 class IntCompareInstr : public Computation {
  public:
   IntCompareInstr(std::shared_ptr<Computed> result, common::Int::CompareOp operation,
-                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
+                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
+      : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
 
   common::Int::CompareOp operation() const { return operation_; }
   void set_operation(common::Int::CompareOp operation) { operation_ = operation; }
@@ -226,7 +233,8 @@ class IntCompareInstr : public Computation {
 class IntBinaryInstr : public Computation {
  public:
   IntBinaryInstr(std::shared_ptr<Computed> result, common::Int::BinaryOp operation,
-                 std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b);
+                 std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
+      : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
 
   common::Int::BinaryOp operation() const { return operation_; }
   void set_operation(common::Int::BinaryOp operation) { operation_ = operation; }
@@ -253,7 +261,8 @@ class IntBinaryInstr : public Computation {
 class IntShiftInstr : public Computation {
  public:
   IntShiftInstr(std::shared_ptr<Computed> result, common::Int::ShiftOp operation,
-                std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset);
+                std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset)
+      : Computation(result), operation_(operation), shifted_(shifted), offset_(offset) {}
 
   common::Int::ShiftOp operation() const { return operation_; }
   void set_operation(common::Int::ShiftOp operation) { operation_ = operation; }
@@ -278,7 +287,8 @@ class IntShiftInstr : public Computation {
 class PointerOffsetInstr : public Computation {
  public:
   PointerOffsetInstr(std::shared_ptr<Computed> result, std::shared_ptr<Computed> pointer,
-                     std::shared_ptr<Value> offset);
+                     std::shared_ptr<Value> offset)
+      : Computation(result), pointer_(pointer), offset_(offset) {}
 
   std::shared_ptr<Computed> pointer() const { return pointer_; }
   void set_pointer(std::shared_ptr<Computed> pointer) { pointer_ = pointer; }
@@ -298,7 +308,8 @@ class PointerOffsetInstr : public Computation {
 
 class NilTestInstr : public Computation {
  public:
-  NilTestInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> tested);
+  NilTestInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> tested)
+      : Computation(result), tested_(tested) {}
 
   std::shared_ptr<Value> tested() const { return tested_; }
   void set_tested(std::shared_ptr<Value> tested) { tested_ = tested; }

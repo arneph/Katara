@@ -23,23 +23,6 @@ bool Instr::IsControlFlowInstr() const {
   }
 }
 
-MovInstr::MovInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> origin)
-    : Computation(result), origin_(origin) {
-  if (result->type() != origin->type()) {
-    common::fail("attempted to create mov instr with mismatched origin type");
-  }
-}
-
-PhiInstr::PhiInstr(std::shared_ptr<Computed> result,
-                   std::vector<std::shared_ptr<InheritedValue>> args)
-    : Computation(result), args_(args) {
-  for (auto arg : args) {
-    if (result->type() != arg->type()) {
-      common::fail("attempted to create phi instr with mismatched arg type");
-    }
-  }
-}
-
 std::shared_ptr<Value> PhiInstr::ValueInheritedFromBlock(block_num_t bnum) const {
   for (auto arg : args_) {
     if (arg->origin() == bnum) {
@@ -66,53 +49,12 @@ std::string PhiInstr::ToString() const {
   return str;
 }
 
-Conversion::Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
-    : Computation(result), operand_(operand) {
-  switch (result->type()->type_kind()) {
-    case TypeKind::kBool:
-    case TypeKind::kInt:
-    case TypeKind::kPointer:
-    case TypeKind::kFunc:
-      break;
-    default:
-      common::fail("result of conversion instr does not have expected type");
-  }
-  switch (operand->type()->type_kind()) {
-    case TypeKind::kBool:
-    case TypeKind::kInt:
-    case TypeKind::kPointer:
-    case TypeKind::kFunc:
-      break;
-    default:
-      common::fail("operand of conversion instr does not have expected type");
-  }
-}
-
 std::string Conversion::ToString() const {
   return result()->ToStringWithType() + " = conv " + operand_->ToStringWithType();
 }
 
-BoolNotInstr::BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
-    : Computation(result), operand_(operand) {
-  if (result->type() != bool_type()) {
-    common::fail("result of bool not instr is not of type bool");
-  } else if (operand->type() != bool_type()) {
-    common::fail("operand of bool not instr is not of type bool");
-  }
-}
-
 std::string BoolNotInstr::ToString() const {
   return result()->ToStringWithType() + " = bnot " + operand_->ToString();
-}
-
-BoolBinaryInstr::BoolBinaryInstr(std::shared_ptr<Computed> result, common::Bool::BinaryOp operation,
-                                 std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
-    : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
-  if (result->type() != bool_type()) {
-    common::fail("result of bool binary instr is not of type bool");
-  } else if (operand_a->type() != bool_type() || operand_b->type() != bool_type()) {
-    common::fail("operand of bool binary instr is not of type bool");
-  }
 }
 
 std::string BoolBinaryInstr::ToString() const {
@@ -120,34 +62,9 @@ std::string BoolBinaryInstr::ToString() const {
          operand_a_->ToString() + ", " + operand_b_->ToString();
 }
 
-IntUnaryInstr::IntUnaryInstr(std::shared_ptr<Computed> result, common::Int::UnaryOp operation,
-                             std::shared_ptr<Value> operand)
-    : Computation(result), operation_(operation), operand_(operand) {
-  if (result->type()->type_kind() != TypeKind::kInt) {
-    common::fail("result of int unary instr is not of type int");
-  } else if (operand->type()->type_kind() != TypeKind::kInt) {
-    common::fail("operand of int unary instr is not of type int");
-  } else if (result->type() != operand->type()) {
-    common::fail("result and operand of int unary instr have different types");
-  }
-}
-
 std::string IntUnaryInstr::ToString() const {
   return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
          operand_->ToString();
-}
-
-IntCompareInstr::IntCompareInstr(std::shared_ptr<Computed> result, common::Int::CompareOp operation,
-                                 std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
-    : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
-  if (result->type() != bool_type()) {
-    common::fail("result of int compare instr is not of type bool");
-  } else if (operand_a->type()->type_kind() != TypeKind::kInt ||
-             operand_b->type()->type_kind() != TypeKind::kInt) {
-    common::fail("operand of int compare instr is not of type int");
-  } else if (operand_a->type() != operand_b->type()) {
-    common::fail("operands of int compare instr have different types");
-  }
 }
 
 std::string IntCompareInstr::ToString() const {
@@ -155,35 +72,9 @@ std::string IntCompareInstr::ToString() const {
          operand_a_->ToString() + ", " + operand_b_->ToString();
 }
 
-IntBinaryInstr::IntBinaryInstr(std::shared_ptr<Computed> result, common::Int::BinaryOp operation,
-                               std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
-    : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {
-  if (result->type()->type_kind() != TypeKind::kInt) {
-    common::fail("result of int binary instr is not of type int");
-  } else if (operand_a->type()->type_kind() != TypeKind::kInt ||
-             operand_b->type()->type_kind() != TypeKind::kInt) {
-    common::fail("operand of int binary instr is not of type int");
-  } else if (result->type() != operand_a->type() || result->type() != operand_b->type()) {
-    common::fail("result and operands of int binary instr have different types");
-  }
-}
-
 std::string IntBinaryInstr::ToString() const {
   return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
          operand_a_->ToString() + ", " + operand_b_->ToString();
-}
-
-IntShiftInstr::IntShiftInstr(std::shared_ptr<Computed> result, common::Int::ShiftOp operation,
-                             std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset)
-    : Computation(result), operation_(operation), shifted_(shifted), offset_(offset) {
-  if (result->type()->type_kind() != TypeKind::kInt) {
-    common::fail("result of int shift instr is not of type int");
-  } else if (shifted->type()->type_kind() != TypeKind::kInt ||
-             offset->type()->type_kind() != TypeKind::kInt) {
-    common::fail("operand of int shift instr is not of type int");
-  } else if (result->type() != shifted->type()) {
-    common::fail("result and shifted operand of int binary instr have different types");
-  }
 }
 
 std::string IntShiftInstr::ToString() const {
@@ -191,28 +82,9 @@ std::string IntShiftInstr::ToString() const {
          shifted_->ToString() + ", " + offset_->ToString();
 }
 
-PointerOffsetInstr::PointerOffsetInstr(std::shared_ptr<Computed> result,
-                                       std::shared_ptr<Computed> pointer,
-                                       std::shared_ptr<Value> offset)
-    : Computation(result), pointer_(pointer), offset_(offset) {
-  if (offset->type() != i64()) {
-    common::fail("offset argument of pointer offset instr is not of type I64");
-  }
-}
-
 std::string PointerOffsetInstr::ToString() const {
   return result()->ToStringWithType() + " = poff " + pointer_->ToString() + ", " +
          offset_->ToString();
-}
-
-NilTestInstr::NilTestInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> tested)
-    : Computation(result), tested_(tested) {
-  if (result->type() != bool_type()) {
-    common::fail("result of nil test instr is not of type bool");
-  } else if (tested->type()->type_kind() != TypeKind::kPointer &&
-             tested->type()->type_kind() != TypeKind::kFunc) {
-    common::fail("operand of nil test instr is not of type pointer or func");
-  }
 }
 
 std::string JumpCondInstr::ToString() const {
