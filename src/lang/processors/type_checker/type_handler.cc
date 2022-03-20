@@ -19,12 +19,10 @@ namespace type_checker {
 std::vector<types::Type*> TypeHandler::EvaluateTypeExprs(const std::vector<ast::Expr*>& exprs) {
   std::vector<types::Type*> types;
   types.reserve(exprs.size());
-  bool ok = true;
   for (ast::Expr* expr : exprs) {
     types::Type* type = EvaluateTypeExpr(expr);
     if (type == nullptr) {
-      ok = false;
-      types.clear();
+      return {};
     } else {
       types.push_back(type);
     }
