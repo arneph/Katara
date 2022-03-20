@@ -46,18 +46,42 @@ void AssertProgramIsOkay(const ir::Program* program) {
 void Checker::CheckInstr(const ir::Instr* instr, const ir::Block* block, const ir::Func* func) {
   switch (instr->instr_kind()) {
     case ir::InstrKind::kLangPanic:
+      break;
     case ir::InstrKind::kLangMakeSharedPointer:
+      CheckMakeSharedPointerInstr(static_cast<const MakeSharedPointerInstr*>(instr));
+      break;
     case ir::InstrKind::kLangCopySharedPointer:
+      CheckCopySharedPointerInstr(static_cast<const CopySharedPointerInstr*>(instr));
+      break;
     case ir::InstrKind::kLangDeleteSharedPointer:
+      CheckDeleteSharedPointerInstr(static_cast<const DeleteSharedPointerInstr*>(instr));
+      break;
     case ir::InstrKind::kLangStringIndex:
+      CheckStringIndexInstr(static_cast<const StringIndexInstr*>(instr));
+      break;
     case ir::InstrKind::kLangStringConcat:
-      // TODO: implement checks
-      return;
+      CheckStringConcatInstr(static_cast<const StringConcatInstr*>(instr));
+      break;
     default:
       ::ir_checker::Checker::CheckInstr(instr, block, func);
       return;
   }
 }
+
+void Checker::CheckMakeSharedPointerInstr(const MakeSharedPointerInstr* make_shared_pointer_instr) {
+
+}
+
+void Checker::CheckCopySharedPointerInstr(const CopySharedPointerInstr* copy_shared_pointer_instr) {
+
+}
+
+void Checker::CheckDeleteSharedPointerInstr(
+    const DeleteSharedPointerInstr* delete_shared_pointer_instr) {}
+
+void Checker::CheckStringIndexInstr(const StringIndexInstr* string_index_instr) {}
+
+void Checker::CheckStringConcatInstr(const StringConcatInstr* string_concat_instr) {}
 
 void Checker::CheckLoadInstr(const ir::LoadInstr* load_instr) {
   if (load_instr->address() == nullptr || load_instr->address()->type() == nullptr ||

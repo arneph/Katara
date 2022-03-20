@@ -37,6 +37,11 @@ class Checker : public ::ir_checker::Checker {
   ~Checker() {}
 
   void CheckInstr(const ir::Instr* instr, const ir::Block* block, const ir::Func* func) final;
+  void CheckMakeSharedPointerInstr(const MakeSharedPointerInstr* make_shared_pointer_instr);
+  void CheckCopySharedPointerInstr(const CopySharedPointerInstr* copy_shared_pointer_instr);
+  void CheckDeleteSharedPointerInstr(const DeleteSharedPointerInstr* delete_shared_pointer_instr);
+  void CheckStringIndexInstr(const StringIndexInstr* string_index_instr);
+  void CheckStringConcatInstr(const StringConcatInstr* string_concat_instr);
   void CheckLoadInstr(const ir::LoadInstr* load_instr) final;
   void CheckStoreInstr(const ir::StoreInstr* store_instr) final;
 
