@@ -74,17 +74,17 @@ void ConstantExpressionsToText(const pos::FileSet* file_set, Info* info, std::st
   size_t max_pos = 0;
   size_t max_expr = 0;
   size_t max_value = 0;
-  for (auto& [expr, info] : info->expr_infos()) {
-    if (!info.is_constant()) {
+  for (auto& [expr, expr_info] : info->expr_infos()) {
+    if (!expr_info.is_constant()) {
       continue;
     }
     pos::Position pos = file_set->PositionFor(expr->start());
     max_pos = std::max(max_pos, pos.ToString().size());
     max_expr = std::max(max_expr, size_t(expr->end() - expr->start() + 1));
-    max_value = std::max(max_value, info.constant_value().ToString().size());
+    max_value = std::max(max_value, expr_info.constant_value().ToString().size());
   }
-  for (auto& [expr, info] : info->expr_infos()) {
-    if (!info.is_constant()) {
+  for (auto& [expr, expr_info] : info->expr_infos()) {
+    if (!expr_info.is_constant()) {
       continue;
     }
     pos::Position pos = file_set->PositionFor(expr->start());
@@ -93,7 +93,7 @@ void ConstantExpressionsToText(const pos::FileSet* file_set, Info* info, std::st
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
     ss << std::setw(int(max_expr)) << std::left << file->contents(expr->start(), expr->end())
        << " ";
-    ss << std::setw(int(max_value)) << std::left << info.constant_value().ToString() << "\n";
+    ss << std::setw(int(max_value)) << std::left << expr_info.constant_value().ToString() << "\n";
   }
   ss << "\n";
 }
