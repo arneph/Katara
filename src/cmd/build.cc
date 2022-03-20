@@ -25,6 +25,7 @@
 #include "src/lang/processors/ir_lowerers/shared_pointer_lowerer.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
+#include "src/lang/representation/ir_extension/checker.h"
 
 namespace cmd {
 namespace {
@@ -87,7 +88,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
     GenerateIrDebugInfo(program.get(), "init", debug_handler);
   }
   if (debug_handler.CheckIr()) {
-    ir_checker::AssertProgramIsOkay(program.get());
+    ::lang::ir_ext::AssertProgramIsOkay(program.get());
   }
 
   return program;
@@ -99,7 +100,9 @@ void LowerIrProgram(ir::Program* program, DebugHandler& debug_handler) {
     GenerateIrDebugInfo(program, "lowered", debug_handler);
   }
   if (debug_handler.CheckIr()) {
-    ir_checker::AssertProgramIsOkay(program);
+    // TODO: implement lowering for panic and other instructions, then revert to using plain IR
+    // checker here.
+    ::lang::ir_ext::AssertProgramIsOkay(program);
   }
 }
 
@@ -109,7 +112,7 @@ void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler) {
     GenerateIrDebugInfo(program, "optimized", debug_handler);
   }
   if (debug_handler.CheckIr()) {
-    ir_checker::AssertProgramIsOkay(program);
+    ::ir_checker::AssertProgramIsOkay(program);
   }
 }
 
