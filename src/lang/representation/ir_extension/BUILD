@@ -24,3 +24,23 @@ cc_library(
         "//src/lang/representation/constants",
     ],
 )
+
+cc_library(
+    name = "checker",
+    srcs = [
+        "checker.cc",
+    ],
+    hdrs = [
+        "checker.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":ir_extension",
+        "//src/common/logging",
+        "//src/ir/checker",
+        "//src/ir/representation",
+    ],
+)

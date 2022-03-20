@@ -13,6 +13,7 @@ cc_library(
         "//src/lang/representation/ast:nodes",
         "//src/lang/representation/constants",
         "//src/lang/representation/ir_extension",
+        "//src/lang/representation/ir_extension:checker",
         "//src/lang/representation/positions",
         "//src/lang/representation/tokens",
         "//src/lang/representation/types:base",

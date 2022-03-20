@@ -24,6 +24,7 @@ class Issue {
     kValueHasNullptrType,
 
     // Instr issues:
+    kUnknownInstrKind,
     kInstrDefinesNullptrValue,
     kInstrUsesNullptrValue,
     kNonPhiInstrUsesInheritedValue,
@@ -88,6 +89,10 @@ class Issue {
     kComputedValueHasNoDefinition,
     kComputedValueHasMultipleDefinitions,
     kComputedValueDefinitionDoesNotDominateUse,
+
+    // Lang issues:
+    kLangLoadFromSharedPointerHasMismatchedElementType,
+    kLangStoreToSharedPointerHasMismatchedElementType,
   };
 
   Issue(const ir::Object* scope_object, Kind kind, std::string message)
