@@ -10,6 +10,9 @@ cc_library(
     visibility = [
         "//visibility:public",
     ],
+    deps = [
+        "//src/common/logging",
+    ],
 )
 
 cc_test(

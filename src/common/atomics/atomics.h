@@ -9,6 +9,7 @@
 #ifndef common_atomics_h
 #define common_atomics_h
 
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -61,6 +62,7 @@ std::string ToString(Bool::BinaryOp op);
 
 class Int {
  public:
+  typedef uint8_t Base;
   enum class UnaryOp {
     kNeg,
     kNot,
@@ -139,7 +141,7 @@ class Int {
 
   constexpr static Int Shift(Int a, ShiftOp op, Int b);
 
-  std::string ToString() const;
+  std::string ToString(Base base = 10) const;
 
  private:
   typedef std::variant<int8_t, int16_t, int32_t, int64_t, uint8_t, uint16_t, uint32_t, uint64_t>
@@ -147,6 +149,9 @@ class Int {
 
   int_t value_;
 };
+
+std::optional<Int> ToI64(std::string_view str, Int::Base base = 0);
+std::optional<Int> ToU64(std::string_view str, Int::Base base = 0);
 
 constexpr Int::CompareOp Flipped(Int::CompareOp op);
 

@@ -8,6 +8,13 @@
 
 #include "atomics.h"
 
+#include <errno.h>
+
+#include <iomanip>
+#include <sstream>
+
+#include "src/common/logging/logging.h"
+
 namespace common {
 
 std::optional<IntType> ToIntType(std::string_view str) {
@@ -82,8 +89,45 @@ std::string ToString(Bool::BinaryOp op) {
   }
 }
 
-std::string Int::ToString() const {
-  return std::visit([](auto&& value) { return std::to_string(value); }, value_);
+std::string Int::ToString(Base base) const {
+  std::stringstream ss;
+  ss << std::setbase(base);
+  std::visit([&ss](auto&& value) { ss << value; }, value_);
+  return ss.str();
+}
+
+std::optional<Int> ToI64(std::string_view str, Int::Base base) {
+  if (base == 1 || base > 36) {
+    fail("unsupported integer base");
+  } else if (str.length() == 0 || std::isspace(str.front())) {
+    return std::nullopt;
+  }
+  const char* start = str.data();
+  char* end;
+  errno = 0;
+  int64_t result = std::strtoll(start, &end, base);
+  if (errno != 0 || end != start + str.length()) {
+    errno = 0;
+    return std::nullopt;
+  }
+  return common::Int(result);
+}
+
+std::optional<Int> ToU64(std::string_view str, Int::Base base) {
+  if (base == 1 || base > 36) {
+    fail("unsupported integer base");
+  } else if (str.length() == 0 || std::isspace(str.front()) || str.front() == '-') {
+    return std::nullopt;
+  }
+  const char* start = str.data();
+  char* end;
+  errno = 0;
+  uint64_t result = std::strtoull(start, &end, base);
+  if (errno != 0 || end != start + str.length()) {
+    errno = 0;
+    return std::nullopt;
+  }
+  return common::Int(result);
 }
 
 std::optional<Int::UnaryOp> ToIntUnaryOp(std::string_view str) {

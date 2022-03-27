@@ -11,9 +11,14 @@
 #include <array>
 #include <iostream>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace common {
+
+using ::testing::AllOf;
+using ::testing::Optional;
+using ::testing::Property;
 
 TEST(IntTest, Type) {
   EXPECT_EQ(IntType::kI8, Int(int8_t{42}).type());
@@ -664,6 +669,190 @@ TEST(IntTest, HandlesComparisons) {
       EXPECT_TRUE(Int::Compare(Int(uint64_t(num_b)), op, Int(uint64_t(num_a))));
     }
   }
+}
+
+TEST(ToI64Test, RejectsEmpty) { EXPECT_EQ(ToI64(""), std::nullopt); }
+
+TEST(ToI64Test, RejectsWhitespace) {
+  EXPECT_EQ(ToI64("\t"), std::nullopt);
+  EXPECT_EQ(ToI64("\n"), std::nullopt);
+  EXPECT_EQ(ToI64(" "), std::nullopt);
+  EXPECT_EQ(ToI64(" \t \t"), std::nullopt);
+  EXPECT_EQ(ToI64("\t \n\t"), std::nullopt);
+}
+
+TEST(ToI64Test, RejectsInvalidStrings) {
+  EXPECT_EQ(ToI64("abc"), std::nullopt);
+  EXPECT_EQ(ToI64("+-0"), std::nullopt);
+  EXPECT_EQ(ToI64("x17"), std::nullopt);
+  EXPECT_EQ(ToI64("----"), std::nullopt);
+  EXPECT_EQ(ToI64("X22"), std::nullopt);
+  EXPECT_EQ(ToI64("&"), std::nullopt);
+  EXPECT_EQ(ToI64("&42"), std::nullopt);
+  EXPECT_EQ(ToI64("*"), std::nullopt);
+  EXPECT_EQ(ToI64("*123"), std::nullopt);
+}
+
+TEST(ToI64Test, HandlesValidStrings) {
+  EXPECT_THAT(ToI64("0"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 0))));
+  EXPECT_THAT(ToI64("0000"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 0))));
+  EXPECT_THAT(ToI64("0x0"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 0))));
+  EXPECT_THAT(ToI64("+0"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 0))));
+  EXPECT_THAT(ToI64("-0"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 0))));
+  EXPECT_THAT(ToI64("1"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 1))));
+  EXPECT_THAT(ToI64("00001"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 1))));
+  EXPECT_THAT(ToI64("0x0001"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 1))));
+  EXPECT_THAT(ToI64("+1"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 1))));
+  EXPECT_THAT(ToI64("+0x1"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 1))));
+  EXPECT_THAT(ToI64("-1"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, -1))));
+  EXPECT_THAT(ToI64("-0x1"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, -1))));
+  EXPECT_THAT(ToI64("-00001"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, -1))));
+  EXPECT_THAT(ToI64("42"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 42))));
+  EXPECT_THAT(ToI64("+42"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 42))));
+  EXPECT_THAT(ToI64("-42"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, -42))));
+  EXPECT_THAT(ToI64("042"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 34))));
+  EXPECT_THAT(ToI64("+042"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 34))));
+  EXPECT_THAT(ToI64("-042"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, -34))));
+  EXPECT_THAT(ToI64("0x42"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 66))));
+  EXPECT_THAT(ToI64("+0x42"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 66))));
+  EXPECT_THAT(ToI64("-0x42"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, -66))));
+  EXPECT_THAT(ToI64("9223372036854775807"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64),
+                             Property(&Int::AsInt64, 9223372036854775807))));
+  EXPECT_THAT(ToI64("+9223372036854775807"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64),
+                             Property(&Int::AsInt64, 9223372036854775807))));
+  EXPECT_THAT(ToI64("-9223372036854775808"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64),
+                             Property(&Int::AsInt64, -9223372036854775808))));
+  EXPECT_THAT(ToI64("0x7fffffffffffffff"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64),
+                             Property(&Int::AsInt64, 9223372036854775807))));
+  EXPECT_THAT(ToI64("+0x7fffffffffffffff"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64),
+                             Property(&Int::AsInt64, 9223372036854775807))));
+  EXPECT_THAT(ToI64("-0x8000000000000000"),
+              Optional(AllOf(Property(&Int::type, IntType::kI64),
+                             Property(&Int::AsInt64, -9223372036854775808))));
+}
+
+TEST(ToI64Test, RejectsOverflow) {
+  EXPECT_EQ(ToI64("9223372036854775808"), std::nullopt);
+  EXPECT_EQ(ToI64("+9223372036854775808"), std::nullopt);
+  EXPECT_EQ(ToI64("-9223372036854775809"), std::nullopt);
+
+  EXPECT_EQ(ToI64("0x8000000000000000"), std::nullopt);
+  EXPECT_EQ(ToI64("+0x8000000000000000"), std::nullopt);
+  EXPECT_EQ(ToI64("-0x8000000000000001"), std::nullopt);
+}
+
+TEST(ToU64Test, RejectsEmpty) { EXPECT_EQ(ToU64(""), std::nullopt); }
+
+TEST(ToU64Test, RejectsWhitespace) {
+  EXPECT_EQ(ToU64("\t"), std::nullopt);
+  EXPECT_EQ(ToU64("\n"), std::nullopt);
+  EXPECT_EQ(ToU64(" "), std::nullopt);
+  EXPECT_EQ(ToU64(" \t \t"), std::nullopt);
+  EXPECT_EQ(ToU64("\t \n\t"), std::nullopt);
+}
+
+TEST(ToU64Test, RejectsInvalidStrings) {
+  EXPECT_EQ(ToU64("abc"), std::nullopt);
+  EXPECT_EQ(ToU64("+-0"), std::nullopt);
+  EXPECT_EQ(ToU64("x17"), std::nullopt);
+  EXPECT_EQ(ToU64("----"), std::nullopt);
+  EXPECT_EQ(ToU64("X22"), std::nullopt);
+  EXPECT_EQ(ToU64("&"), std::nullopt);
+  EXPECT_EQ(ToU64("&42"), std::nullopt);
+  EXPECT_EQ(ToU64("*"), std::nullopt);
+  EXPECT_EQ(ToU64("*123"), std::nullopt);
+}
+
+TEST(ToU64Test, HandlesValidStrings) {
+  EXPECT_THAT(ToU64("0"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 0))));
+  EXPECT_THAT(ToU64("0000"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 0))));
+  EXPECT_THAT(ToU64("0x0"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 0))));
+  EXPECT_THAT(ToU64("+0"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 0))));
+  EXPECT_THAT(ToU64("1"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 1))));
+  EXPECT_THAT(ToU64("00001"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 1))));
+  EXPECT_THAT(ToU64("0x0001"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 1))));
+  EXPECT_THAT(ToU64("+1"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 1))));
+  EXPECT_THAT(ToU64("+0x1"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 1))));
+  EXPECT_THAT(ToU64("42"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 42))));
+  EXPECT_THAT(ToU64("+42"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 42))));
+  EXPECT_THAT(ToU64("042"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 34))));
+  EXPECT_THAT(ToU64("+042"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 34))));
+  EXPECT_THAT(ToU64("0x42"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 66))));
+  EXPECT_THAT(ToU64("+0x42"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 66))));
+  EXPECT_THAT(ToU64("18446744073709551615"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64),
+                             Property(&Int::AsUint64, 18446744073709551615))));
+  EXPECT_THAT(ToU64("+18446744073709551615"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64),
+                             Property(&Int::AsUint64, 18446744073709551615))));
+  EXPECT_THAT(ToU64("0xffffffffffffffff"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64),
+                             Property(&Int::AsUint64, 18446744073709551615))));
+  EXPECT_THAT(ToU64("+0xffffffffffffffff"),
+              Optional(AllOf(Property(&Int::type, IntType::kU64),
+                             Property(&Int::AsUint64, 18446744073709551615))));
+}
+
+TEST(ToU64Test, RejectsNegativeNumbers) {
+  EXPECT_EQ(ToU64("-0"), std::nullopt);
+  EXPECT_EQ(ToU64("-1"), std::nullopt);
+  EXPECT_EQ(ToU64("-42"), std::nullopt);
+  EXPECT_EQ(ToU64("-00"), std::nullopt);
+  EXPECT_EQ(ToU64("-01"), std::nullopt);
+  EXPECT_EQ(ToU64("-042"), std::nullopt);
+  EXPECT_EQ(ToU64("-0x0"), std::nullopt);
+  EXPECT_EQ(ToU64("-0x1"), std::nullopt);
+  EXPECT_EQ(ToU64("-0x42"), std::nullopt);
+}
+
+TEST(ToU64Test, RejectsOverflow) {
+  EXPECT_EQ(ToU64("18446744073709551616"), std::nullopt);
+  EXPECT_EQ(ToU64("+18446744073709551616"), std::nullopt);
+
+  EXPECT_EQ(ToU64("0x10000000000000000"), std::nullopt);
+  EXPECT_EQ(ToU64("+0x10000000000000000"), std::nullopt);
 }
 
 }  // namespace common
