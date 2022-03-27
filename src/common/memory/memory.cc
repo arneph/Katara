@@ -9,6 +9,7 @@
 #include "memory.h"
 
 #include <sys/mman.h>
+#include <utility>
 
 namespace common {
 namespace {
