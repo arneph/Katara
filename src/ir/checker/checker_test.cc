@@ -1741,4 +1741,56 @@ TEST(CheckerTest, CatchesComputedValueDefinitionDoesNotDominateUse) {
                                                      block_c->instrs().front().get())))));
 }
 
+TEST(CheckerTest, FindsNoComputedValueDefinitionDoesNotDominateUseForCorrectInheritedValues) {
+  // Constructs a loop that sums numbers from 1 to 10. This ensures that the loop header block B can
+  // inherit the values computed in the loop body block C, which does not dominate B, and requires
+  // that the checker correctly handles phi instrs and inherited values.
+  ir::Program program;
+  ir::Func* func = program.AddFunc();
+  func->result_types().push_back(ir::i64());
+  ir::Block* block_a = func->AddBlock();
+  ir::Block* block_b = func->AddBlock();
+  ir::Block* block_c = func->AddBlock();
+  ir::Block* block_d = func->AddBlock();
+
+  func->set_entry_block_num(block_a->number());
+  func->AddControlFlow(block_a->number(), block_b->number());
+  func->AddControlFlow(block_b->number(), block_c->number());
+  func->AddControlFlow(block_b->number(), block_d->number());
+  func->AddControlFlow(block_c->number(), block_b->number());
+
+  auto value_a = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
+  auto value_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
+  auto value_c = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
+  auto value_d = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/3);
+  auto value_e = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/4);
+
+  block_a->instrs().push_back(std::make_unique<ir::JumpInstr>(block_b->number()));
+
+  auto inherited_a = std::make_shared<ir::InheritedValue>(ir::I64One(), block_a->number());
+  auto inherited_b = std::make_shared<ir::InheritedValue>(value_e, block_c->number());
+  block_b->instrs().push_back(std::make_unique<ir::PhiInstr>(
+      value_a, std::vector<std::shared_ptr<ir::InheritedValue>>{inherited_a, inherited_b}));
+  auto inherited_c = std::make_shared<ir::InheritedValue>(ir::I64Zero(), block_a->number());
+  auto inherited_d = std::make_shared<ir::InheritedValue>(value_d, block_c->number());
+  block_b->instrs().push_back(std::make_unique<ir::PhiInstr>(
+      value_b, std::vector<std::shared_ptr<ir::InheritedValue>>{inherited_c, inherited_d}));
+  block_b->instrs().push_back(std::make_unique<ir::IntCompareInstr>(
+      value_c, common::Int::CompareOp::kLeq, value_a, ir::ToIntConstant(common::Int(int64_t{10}))));
+  block_b->instrs().push_back(
+      std::make_unique<ir::JumpCondInstr>(value_c, block_c->number(), block_d->number()));
+
+  block_c->instrs().push_back(
+      std::make_unique<ir::IntBinaryInstr>(value_d, common::Int::BinaryOp::kAdd, value_b, value_a));
+  block_c->instrs().push_back(std::make_unique<ir::IntBinaryInstr>(
+      value_e, common::Int::BinaryOp::kAdd, value_a, ir::I64One()));
+  block_c->instrs().push_back(std::make_unique<ir::JumpInstr>(block_b->number()));
+
+  block_d->instrs().push_back(
+      std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value_b}));
+
+  EXPECT_THAT(CheckProgram(&program), IsEmpty());
+  ir_checker::AssertProgramIsOkay(&program);
+}
+
 }  // namespace

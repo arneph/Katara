@@ -188,9 +188,9 @@ void Checker::CheckValuesInFunc(const ir::Func* func) {
           continue;
         }
         const ir::InheritedValue* inherited_value = nullptr;
-        if (used_value->kind() == ir::Value::Kind::kInherited) {
-          inherited_value = static_cast<const ir::InheritedValue*>(used_value);
-          used_value = inherited_value->value().get();
+        if (instr->instr_kind() == ir::InstrKind::kPhi) {
+          inherited_value =
+              static_cast<const ir::PhiInstr*>(instr)->args().at(used_value_index).get();
         }
         if (used_value->kind() != ir::Value::Kind::kComputed) {
           CheckValue(used_value);
