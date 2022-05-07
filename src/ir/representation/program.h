@@ -40,7 +40,7 @@ class Program : public Object {
   const TypeTable& type_table() const { return type_table_; }
   TypeTable& type_table() { return type_table_; }
 
-  std::string ToString() const override;
+  void WriteRefString(std::ostream&) const override {}
 
  private:
   int64_t func_count_;

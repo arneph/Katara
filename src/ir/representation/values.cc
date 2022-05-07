@@ -8,9 +8,22 @@
 
 #include "values.h"
 
+#include <iomanip>
 #include <sstream>
 
 namespace ir {
+
+void Value::WriteRefStringWithType(std::ostream& os) const {
+  WriteRefString(os);
+  os << ":";
+  type()->WriteRefString(os);
+}
+
+std::string Value::RefStringWithType() const {
+  std::stringstream ss;
+  WriteRefStringWithType(ss);
+  return ss.str();
+}
 
 std::shared_ptr<BoolConstant> False() {
   static auto kFalse = std::shared_ptr<BoolConstant>(new BoolConstant(false));
@@ -116,10 +129,12 @@ std::shared_ptr<IntConstant> ToIntConstant(common::Int value) {
   return MakeIntConstant(value);
 }
 
-std::string PointerConstant::ToString() const {
-  std::stringstream sstream;
-  sstream << "0x" << std::hex << value_;
-  return sstream.str();
+void PointerConstant::WriteRefString(std::ostream& os) const {
+  if (value_ == 0) {
+    os << "nil";
+  } else {
+    os << std::hex << std::showbase << value_ << std::resetiosflags(0);
+  }
 }
 
 std::shared_ptr<PointerConstant> MakePointerConstant(int64_t value) {
@@ -152,6 +167,11 @@ std::shared_ptr<FuncConstant> ToFuncConstant(func_num_t value) {
     return NilFunc();
   }
   return MakeFuncConstant(value);
+}
+
+void InheritedValue::WriteRefString(std::ostream& os) const {
+  value_->WriteRefString(os);
+  os << "{" << origin_ << "}";
 }
 
 }  // namespace ir

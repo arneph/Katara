@@ -95,7 +95,7 @@ std::vector<Interpreter::RuntimeConstant> Interpreter::CallFunc(ir::Func* func,
           return Evaluate(return_instr->args(), ctx);
         }
         default:
-          common::fail("interpreter does not support instruction: " + instr->ToString());
+          common::fail("interpreter does not support instruction: " + instr->RefString());
       }
       if (exit_instr_loop) {
         break;

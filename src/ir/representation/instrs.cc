@@ -8,6 +8,9 @@
 
 #include "instrs.h"
 
+#include <array>
+#include <utility>
+
 #include "src/common/logging/logging.h"
 
 namespace ir {
@@ -21,6 +24,36 @@ bool Instr::IsControlFlowInstr() const {
       return true;
     default:
       return false;
+  }
+}
+
+void Instr::WriteRefString(std::ostream& os) const {
+  bool wrote_first_defined_value = false;
+  for (std::shared_ptr<Computed>& defined_value : DefinedValues()) {
+    if (wrote_first_defined_value) {
+      os << ", ";
+    } else {
+      wrote_first_defined_value = true;
+    }
+    defined_value->WriteRefStringWithType(os);
+  }
+  if (wrote_first_defined_value) {
+    os << " = ";
+  }
+  os << OperationString();
+  bool wrote_first_used_value = false;
+  for (std::shared_ptr<Value>& used_value : UsedValues()) {
+    if (wrote_first_used_value) {
+      os << ", ";
+    } else {
+      os << " ";
+      wrote_first_used_value = true;
+    }
+    if (used_value->kind() == Value::Kind::kConstant) {
+      used_value->WriteRefStringWithType(os);
+    } else {
+      used_value->WriteRefString(os);
+    }
   }
 }
 
@@ -41,88 +74,29 @@ std::vector<std::shared_ptr<Value>> PhiInstr::UsedValues() const {
   return used_values;
 }
 
-std::string PhiInstr::ToString() const {
-  std::string str = result()->ToStringWithType() + " = phi ";
+void PhiInstr::WriteRefString(std::ostream& os) const {
+  result()->WriteRefString(os);
+  os << " = " << OperationString() << " ";
   for (size_t i = 0; i < args_.size(); i++) {
-    if (i > 0) str += ", ";
-    str += args_.at(i)->ToString();
+    if (i > 0) os << ", ";
+    args_.at(i)->WriteRefString(os);
   }
-  return str;
 }
 
-std::string Conversion::ToString() const {
-  return result()->ToStringWithType() + " = conv " + operand_->ToStringWithType();
+void JumpInstr::WriteRefString(std::ostream& os) const {
+  os << OperationString() << " "
+     << "{" << destination_ << "}";
 }
 
-std::string BoolNotInstr::ToString() const {
-  return result()->ToStringWithType() + " = bnot " + operand_->ToString();
-}
-
-std::string BoolBinaryInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
-         operand_a_->ToString() + ", " + operand_b_->ToString();
-}
-
-std::string IntUnaryInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
-         operand_->ToString();
-}
-
-std::string IntCompareInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
-         operand_a_->ToString() + ", " + operand_b_->ToString();
-}
-
-std::string IntBinaryInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
-         operand_a_->ToString() + ", " + operand_b_->ToString();
-}
-
-std::string IntShiftInstr::ToString() const {
-  return result()->ToStringWithType() + " = " + common::ToString(operation_) + " " +
-         shifted_->ToString() + ", " + offset_->ToString();
-}
-
-std::string PointerOffsetInstr::ToString() const {
-  return result()->ToStringWithType() + " = poff " + pointer_->ToString() + ", " +
-         offset_->ToString();
-}
-
-std::string JumpCondInstr::ToString() const {
-  return "jcc " + condition_->ToString() + ", {" + std::to_string(destination_true_) + "}, {" +
-         std::to_string(destination_false_) + "}";
+void JumpCondInstr::WriteRefString(std::ostream& os) const {
+  os << OperationString() << " "
+     << "{" << destination_true_ << "}, {" << destination_false_ << "}";
 }
 
 std::vector<std::shared_ptr<Value>> CallInstr::UsedValues() const {
   std::vector<std::shared_ptr<Value>> used_values{func_};
   used_values.insert(used_values.end(), args_.begin(), args_.end());
   return used_values;
-}
-
-std::string CallInstr::ToString() const {
-  std::string str = "";
-  for (size_t i = 0; i < results_.size(); i++) {
-    if (i > 0) str += ", ";
-    str += results_.at(i)->ToStringWithType();
-  }
-  if (results_.size() > 0) str += " = ";
-  str += "call " + func_->ToString();
-  for (size_t i = 0; i < args_.size(); i++) {
-    str += ", " + args_.at(i)->ToString();
-  }
-  return str;
-}
-
-std::string ReturnInstr::ToString() const {
-  std::string str = "ret";
-  for (size_t i = 0; i < args_.size(); i++) {
-    if (i == 0)
-      str += " ";
-    else
-      str += ", ";
-    str += args_.at(i)->ToStringWithType();
-  }
-  return str;
 }
 
 }  // namespace ir

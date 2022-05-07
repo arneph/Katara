@@ -17,6 +17,9 @@ cc_library(
 
 cc_library(
     name = "object",
+    srcs = [
+        "object.cc",
+    ],
     hdrs = [
         "object.h",
     ],

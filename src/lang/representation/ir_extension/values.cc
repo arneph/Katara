@@ -9,5 +9,15 @@
 #include "values.h"
 
 namespace lang {
-namespace ir_ext {}
+namespace ir_ext {
+
+void StringConstant::WriteRefString(std::ostream& os) const {
+  if (value_.length() > 3) {
+    os << "\"...\"";
+  } else {
+    os << "\"" << value_ << "\"";
+  }
+}
+
+}  // namespace ir_ext
 }  // namespace lang

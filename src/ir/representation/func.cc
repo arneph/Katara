@@ -14,12 +14,6 @@
 
 namespace ir {
 
-std::string Func::ReferenceString() const {
-  std::string title = "@" + std::to_string(number_);
-  if (!name_.empty()) title += " " + name_;
-  return title;
-}
-
 Block* Func::GetBlock(block_num_t bnum) const {
   auto it = std::find_if(blocks_.begin(), blocks_.end(),
                          [=](auto& block) { return block->number() == bnum; });
@@ -115,31 +109,11 @@ void Func::ForBlocksInDominanceOrder(std::function<void(Block*)> f) const {
   }
 }
 
-std::string Func::ToString() const {
-  std::stringstream ss;
-  ss << ReferenceString() << " ";
-  ss << "(";
-  for (size_t i = 0; i < args_.size(); i++) {
-    if (i > 0) ss << ", ";
-    ss << args_.at(i)->ToStringWithType();
+void Func::WriteRefString(std::ostream& os) const {
+  os << "@" << number_;
+  if (!name_.empty()) {
+    os << " " << name_;
   }
-  ss << ") => (";
-  for (size_t i = 0; i < result_types_.size(); i++) {
-    if (i > 0) ss << ", ";
-    ss << result_types_.at(i)->ToString();
-  }
-  ss << ") {";
-  std::vector<block_num_t> bnums;
-  bnums.reserve(blocks_.size());
-  for (auto& block : blocks_) {
-    bnums.push_back(block->number());
-  }
-  std::sort(bnums.begin(), bnums.end());
-  for (block_num_t bnum : bnums) {
-    ss << "\n" << GetBlock(bnum)->ToString();
-  }
-  ss << "\n}";
-  return ss.str();
 }
 
 common::Graph Func::ToControlFlowGraph() const {

@@ -11,6 +11,7 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "src/common/atomics/atomics.h"
@@ -60,6 +61,9 @@ class Instr : public Object {
   constexpr Object::Kind object_kind() const final { return Object::Kind::kInstr; }
   constexpr virtual InstrKind instr_kind() const = 0;
   bool IsControlFlowInstr() const;
+
+  virtual std::string OperationString() const = 0;
+  virtual void WriteRefString(std::ostream& os) const override;
 };
 
 class Computation : public Instr {
@@ -91,9 +95,7 @@ class MovInstr : public Computation {
   }
 
   InstrKind instr_kind() const override { return InstrKind::kMov; }
-  std::string ToString() const override {
-    return result()->ToStringWithType() + " = mov " + origin()->ToString();
-  }
+  std::string OperationString() const override { return "mov"; }
 
  private:
   std::shared_ptr<Value> origin_;
@@ -112,7 +114,8 @@ class PhiInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override;
 
   InstrKind instr_kind() const override { return InstrKind::kPhi; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "phi"; }
+  void WriteRefString(std::ostream& os) const override;
 
  private:
   std::vector<std::shared_ptr<InheritedValue>> args_;
@@ -129,7 +132,7 @@ class Conversion : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kConversion; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "conv"; }
 
  private:
   std::shared_ptr<Value> operand_;
@@ -146,7 +149,7 @@ class BoolNotInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kBoolNot; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "bnot"; }
 
  private:
   std::shared_ptr<Value> operand_;
@@ -172,7 +175,7 @@ class BoolBinaryInstr : public Computation {
   }
 
   InstrKind instr_kind() const override { return InstrKind::kBoolBinary; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return common::ToString(operation_); }
 
  private:
   common::Bool::BinaryOp operation_;
@@ -195,7 +198,7 @@ class IntUnaryInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kIntUnary; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return common::ToString(operation_); }
 
  private:
   common::Int::UnaryOp operation_;
@@ -222,7 +225,7 @@ class IntCompareInstr : public Computation {
   }
 
   InstrKind instr_kind() const override { return InstrKind::kIntCompare; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return common::ToString(operation_); }
 
  private:
   common::Int::CompareOp operation_;
@@ -250,7 +253,7 @@ class IntBinaryInstr : public Computation {
   }
 
   InstrKind instr_kind() const override { return InstrKind::kIntBinary; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return common::ToString(operation_); }
 
  private:
   common::Int::BinaryOp operation_;
@@ -276,7 +279,7 @@ class IntShiftInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {shifted_, offset_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kIntShift; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return common::ToString(operation_); }
 
  private:
   common::Int::ShiftOp operation_;
@@ -299,7 +302,7 @@ class PointerOffsetInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {pointer_, offset_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kPointerOffset; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "poff"; }
 
  private:
   std::shared_ptr<Computed> pointer_;
@@ -317,9 +320,7 @@ class NilTestInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {tested_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kNilTest; }
-  std::string ToString() const override {
-    return result()->ToStringWithType() + " = niltest " + tested_->ToString();
-  }
+  std::string OperationString() const override { return "niltest"; }
 
  private:
   std::shared_ptr<Value> tested_;
@@ -336,9 +337,7 @@ class MallocInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {size_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kMalloc; }
-  std::string ToString() const override {
-    return result()->ToStringWithType() + " = malloc " + size_->ToString();
-  }
+  std::string OperationString() const override { return "malloc"; }
 
  private:
   std::shared_ptr<Value> size_;
@@ -355,9 +354,7 @@ class LoadInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kLoad; }
-  std::string ToString() const override {
-    return result()->ToStringWithType() + " = load " + address_->ToString();
-  }
+  std::string OperationString() const override { return "load"; }
 
  private:
   std::shared_ptr<Value> address_;
@@ -378,9 +375,7 @@ class StoreInstr : public Instr {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_, value_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kStore; }
-  std::string ToString() const override {
-    return "store " + address_->ToString() + ", " + value_->ToString();
-  }
+  std::string OperationString() const override { return "store"; }
 
  private:
   std::shared_ptr<Value> address_;
@@ -398,7 +393,7 @@ class FreeInstr : public Instr {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {address_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kFree; }
-  std::string ToString() const override { return "free " + address_->ToString(); }
+  std::string OperationString() const override { return "free"; }
 
  private:
   std::shared_ptr<Value> address_;
@@ -415,7 +410,8 @@ class JumpInstr : public Instr {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {}; }
 
   InstrKind instr_kind() const override { return InstrKind::kJump; }
-  std::string ToString() const override { return "jmp {" + std::to_string(destination_) + "}"; }
+  std::string OperationString() const override { return "jmp"; }
+  void WriteRefString(std::ostream& os) const override;
 
  private:
   block_num_t destination_;
@@ -444,7 +440,8 @@ class JumpCondInstr : public Instr {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {condition_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kJumpCond; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "jcc"; }
+  void WriteRefString(std::ostream& os) const override;
 
  private:
   std::shared_ptr<Value> condition_;
@@ -471,7 +468,7 @@ class CallInstr : public Instr {
   std::vector<std::shared_ptr<Value>> UsedValues() const override;
 
   InstrKind instr_kind() const override { return InstrKind::kCall; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "call"; }
 
  private:
   std::shared_ptr<Value> func_;
@@ -490,7 +487,7 @@ class ReturnInstr : public Instr {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return args_; }
 
   InstrKind instr_kind() const override { return InstrKind::kReturn; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "ret"; }
 
  private:
   std::vector<std::shared_ptr<Value>> args_;

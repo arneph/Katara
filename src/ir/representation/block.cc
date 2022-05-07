@@ -13,12 +13,6 @@
 
 namespace ir {
 
-std::string Block::ReferenceString() const {
-  std::string title = "{" + std::to_string(number_) + "}";
-  if (!name_.empty()) title += " " + name_;
-  return title;
-}
-
 Instr* Block::ControlFlowInstr() const {
   if (instrs_.empty()) {
     return nullptr;
@@ -74,24 +68,21 @@ void Block::ForEachNonPhiInstrReverse(std::function<void(Instr*)> f) const {
   }
 }
 
-std::string Block::ToString() const {
-  std::stringstream ss;
-  ss << ReferenceString();
-  for (auto& instr : instrs_) {
-    ss << "\n\t";
-    ss << instr->ToString();
+void Block::WriteRefString(std::ostream& os) const {
+  os << "{" << number_ << "}";
+  if (!name_.empty()) {
+    os << " " << name_;
   }
-  return ss.str();
 }
 
 common::Node Block::ToNode() const {
   std::stringstream ss;
   for (size_t i = 0; i < instrs_.size(); i++) {
     if (i > 0) ss << "\n";
-    ss << instrs_.at(i)->ToString();
+    instrs_.at(i)->WriteRefString(ss);
   }
 
-  return common::NodeBuilder(number_, ReferenceString()).SetText(ss.str()).Build();
+  return common::NodeBuilder(number_, RefString()).SetText(ss.str()).Build();
 }
 
 }  // namespace ir

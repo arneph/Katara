@@ -33,8 +33,6 @@ class Func : public Object {
   std::string name() const { return name_; }
   void set_name(std::string name) { name_ = name; }
 
-  std::string ReferenceString() const;
-
   std::vector<std::shared_ptr<Computed>>& args() { return args_; }
   const std::vector<std::shared_ptr<Computed>>& args() const { return args_; }
   std::vector<const Type*>& result_types() { return result_types_; }
@@ -61,8 +59,12 @@ class Func : public Object {
 
   int64_t computed_count() const { return computed_count_; }
   value_num_t next_computed_number() { return computed_count_++; }
+  void register_computed_number(value_num_t vnum) {
+    computed_count_ = std::max(computed_count_, vnum + 1);
+  }
 
-  std::string ToString() const override;
+  void WriteRefString(std::ostream& os) const override;
+
   common::Graph ToControlFlowGraph() const;
   common::Graph ToDominatorTree() const;
 

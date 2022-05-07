@@ -30,7 +30,8 @@ class PanicInstr : public ir::Instr {
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangPanic; };
 
-  std::string ToString() const override { return "panic \"" + reason_ + "\""; }
+  std::string OperationString() const override { return "panic"; }
+  void WriteRefString(std::ostream& os) const override { os << "panic \"" << reason_ << "\""; }
 
  private:
   std::string reason_;
@@ -46,7 +47,7 @@ class MakeSharedPointerInstr : public ir::Computation {
   std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {}; }
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangMakeSharedPointer; }
-  std::string ToString() const override { return result()->ToStringWithType() + " = make_shared"; }
+  std::string OperationString() const override { return "make_shared"; }
 };
 
 class CopySharedPointerInstr : public ir::Computation {
@@ -67,7 +68,7 @@ class CopySharedPointerInstr : public ir::Computation {
   }
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangCopySharedPointer; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "copy_shared"; }
 
  private:
   std::shared_ptr<ir::Computed> copied_shared_pointer_;
@@ -89,7 +90,7 @@ class DeleteSharedPointerInstr : public ir::Instr {
   }
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangDeleteSharedPointer; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "delete_shared"; }
 
  private:
   std::shared_ptr<ir::Computed> deleted_shared_pointer_;
@@ -109,7 +110,7 @@ class StringIndexInstr : public ir::Computation {
   }
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangStringIndex; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "str_index"; }
 
  private:
   std::shared_ptr<ir::Value> string_operand_;
@@ -127,7 +128,7 @@ class StringConcatInstr : public ir::Computation {
   std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return operands_; }
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangStringConcat; }
-  std::string ToString() const override;
+  std::string OperationString() const override { return "str_cat"; }
 
  private:
   std::vector<std::shared_ptr<ir::Value>> operands_;

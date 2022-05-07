@@ -42,21 +42,4 @@ void Program::RemoveFunc(func_num_t fnum) {
   funcs_.erase(it);
 }
 
-std::string Program::ToString() const {
-  std::vector<func_num_t> fnums;
-  fnums.reserve(funcs_.size());
-  for (auto& func : funcs_) {
-    fnums.push_back(func->number());
-  }
-  std::sort(fnums.begin(), fnums.end());
-  std::stringstream ss;
-  bool first = true;
-  for (func_num_t fnum : fnums) {
-    if (!first) ss << "\n\n";
-    ss << GetFunc(fnum)->ToString();
-    first = false;
-  }
-  return ss.str();
-}
-
 }  // namespace ir

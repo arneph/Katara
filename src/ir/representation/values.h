@@ -10,6 +10,7 @@
 #define ir_values_h
 
 #include <memory>
+#include <ostream>
 #include <string>
 
 #include "src/common/atomics/atomics.h"
@@ -33,7 +34,8 @@ class Value : public Object {
   constexpr virtual const Type* type() const = 0;
   constexpr virtual Kind kind() const = 0;
 
-  virtual std::string ToStringWithType() const { return ToString() + ":" + type()->ToString(); }
+  virtual void WriteRefStringWithType(std::ostream& os) const;
+  std::string RefStringWithType() const;
 };
 
 class Constant : public Value {
@@ -48,8 +50,8 @@ class BoolConstant : public Constant {
   bool value() const { return value_; }
   const Type* type() const override { return bool_type(); }
 
-  std::string ToString() const override { return value_ ? "#t" : "#f"; }
-  std::string ToStringWithType() const override { return ToString(); }
+  void WriteRefString(std::ostream& os) const override { os << (value_ ? "#t" : "#f"); }
+  void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }
 
  private:
   BoolConstant(bool value) : value_(value) {}
@@ -70,7 +72,7 @@ class IntConstant : public Constant {
   common::IntType int_type() const { return value_.type(); }
   const Type* type() const override { return IntTypeFor(value_.type()); }
 
-  std::string ToString() const override { return "#" + value().ToString(); }
+  void WriteRefString(std::ostream& os) const override { os << "#" << value().ToString(); }
 
  private:
   IntConstant(common::Int value) : value_(value) {}
@@ -100,8 +102,8 @@ class PointerConstant : public Constant {
   int64_t value() const { return value_; }
   const Type* type() const override { return pointer_type(); }
 
-  std::string ToString() const override;
-  std::string ToStringWithType() const override { return ToString(); }
+  void WriteRefString(std::ostream& os) const override;
+  void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }
 
  private:
   PointerConstant(int64_t value) : value_(value) {}
@@ -119,8 +121,8 @@ class FuncConstant : public Constant {
   func_num_t value() const { return value_; }
   const Type* type() const override { return func_type(); }
 
-  std::string ToString() const override { return "@" + std::to_string(value()); }
-  std::string ToStringWithType() const override { return ToString(); }
+  void WriteRefString(std::ostream& os) const override { os << "@" << value(); }
+  void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }
 
  private:
   FuncConstant(func_num_t value) : value_(value) {}
@@ -142,7 +144,7 @@ class Computed : public Value {
 
   constexpr Value::Kind kind() const final { return Value::Kind::kComputed; }
 
-  std::string ToString() const override { return "%" + std::to_string(number_); }
+  void WriteRefString(std::ostream& os) const override { os << "%" << number_; }
 
  private:
   const Type* type_;
@@ -160,9 +162,7 @@ class InheritedValue : public Value {
 
   constexpr Value::Kind kind() const final { return Value::Kind::kInherited; }
 
-  std::string ToString() const override {
-    return value_->ToString() + "{" + std::to_string(origin_) + "}";
-  }
+  void WriteRefString(std::ostream& os) const override;
 
  private:
   std::shared_ptr<Value> value_;

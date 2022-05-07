@@ -28,7 +28,7 @@ BlockLiveRanges& FuncLiveRanges::GetBlockLiveRanges(ir::block_num_t bnum) {
 
 std::string FuncLiveRanges::ToString() const {
   std::stringstream ss;
-  ss << "live ranges for " << func_->ReferenceString() << ":";
+  ss << "live ranges for " << func_->RefString() << ":";
   for (auto& [bnum, block_info] : block_live_ranges_) {
     ss << "\n" << block_info.ToString();
   }

@@ -72,7 +72,7 @@ void TranslateInstr(ir::Instr* ir_instr, BlockContext& ctx) {
       // TODO: add lowering pass
       break;
     default:
-      common::fail("unexpected instr: " + ir_instr->ToString());
+      common::fail("unexpected instr: " + ir_instr->RefString());
   }
 }
 

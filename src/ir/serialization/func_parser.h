@@ -1,13 +1,13 @@
 //
-//  parser.h
+//  func_parser.h
 //  Katara
 //
 //  Created by Arne Philipeit on 12/29/19.
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_serialization_parser_h
-#define ir_serialization_parser_h
+#ifndef ir_serialization_func_parser_h
+#define ir_serialization_func_parser_h
 
 #include <iostream>
 #include <memory>
@@ -18,29 +18,28 @@
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/num_types.h"
+#include "src/ir/representation/object.h"
 #include "src/ir/representation/program.h"
+#include "src/ir/representation/types.h"
 #include "src/ir/representation/values.h"
 #include "src/ir/serialization/scanner.h"
 
 namespace ir_serialization {
 
-class Parser {
+class FuncParser {
  public:
-  static std::unique_ptr<ir::Program> Parse(std::istream& in_stream);
-  static std::unique_ptr<ir::Program> Parse(Scanner& scanner);
+  static ir::Func* Parse(Scanner& scanner, ir::Program* program);
 
  private:
-  Parser(Scanner& scanner);
-
-  void ParseProgram();
+  FuncParser(Scanner& scanner, ir::Program* program) : scanner_(scanner), program_(program) {}
 
   void ParseFunc();
-  void ParseFuncArgs(ir::Func* func);
-  void ParseFuncResultTypes(ir::Func* func);
-  void ParseFuncBody(ir::Func* func);
-  void ConnectBlocks(ir::Func* func);
+  void ParseFuncArgs();
+  void ParseFuncResultTypes();
+  void ParseFuncBody();
+  void ConnectBlocks();
 
-  void ParseBlock(ir::Func* func);
+  void ParseBlock();
 
   std::unique_ptr<ir::Instr> ParseInstr();
   std::unique_ptr<ir::MovInstr> ParseMovInstr(std::shared_ptr<ir::Computed> result);
@@ -57,6 +56,13 @@ class Parser {
                                                           common::Int::BinaryOp op);
   std::unique_ptr<ir::IntShiftInstr> ParseIntShiftInstr(std::shared_ptr<ir::Computed> result,
                                                         common::Int::ShiftOp op);
+  std::unique_ptr<ir::PointerOffsetInstr> ParsePointerOffsetInstr(
+      std::shared_ptr<ir::Computed> result);
+  std::unique_ptr<ir::NilTestInstr> ParseNilTestInstr(std::shared_ptr<ir::Computed> result);
+  std::unique_ptr<ir::MallocInstr> ParseMallocInstr(std::shared_ptr<ir::Computed> result);
+  std::unique_ptr<ir::LoadInstr> ParseLoadInstr(std::shared_ptr<ir::Computed> result);
+  std::unique_ptr<ir::StoreInstr> ParseStoreInstr();
+  std::unique_ptr<ir::FreeInstr> ParseFreeInstr();
   std::unique_ptr<ir::JumpInstr> ParseJumpInstr();
   std::unique_ptr<ir::JumpCondInstr> ParseJumpCondInstr();
   std::unique_ptr<ir::CallInstr> ParseCallInstr(std::vector<std::shared_ptr<ir::Computed>> results);
@@ -71,10 +77,19 @@ class Parser {
   ir::block_num_t ParseBlockValue();
   const ir::AtomicType* ParseType();
 
+  int64_t ConsumeInt64();
+  std::string ConsumeIdentifier();
+  void ConsumeToken(Scanner::Token token);
+
+  void FailForUnexpectedToken(std::vector<Scanner::Token> expected_tokens);
+
   Scanner& scanner_;
-  std::unique_ptr<ir::Program> program_;
+  ir::Program* program_;
+  ir::Func* func_;
+
+  std::unordered_map<ir::value_num_t, std::shared_ptr<ir::Computed>> computed_values_;
 };
 
 }  // namespace ir_serialization
 
-#endif /* ir_serialization_parser_h */
+#endif /* ir_serialization_func_parser_h */

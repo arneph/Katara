@@ -18,7 +18,8 @@
 #include "src/ir/processors/phi_resolver.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/program.h"
-#include "src/ir/serialization/parser.h"
+#include "src/ir/serialization/parse.h"
+#include "src/ir/serialization/print.h"
 #include "src/ir/serialization/scanner.h"
 #include "src/x86_64/ir_translator/ir_translator.h"
 #include "src/x86_64/program.h"
@@ -42,10 +43,10 @@ void run_ir_test(std::filesystem::path test_dir) {
   }
 
   std::ifstream in_stream(in_file, std::ios::in);
-  ir_serialization::Scanner scanner(in_stream);
-  std::unique_ptr<ir::Program> ir_program = ir_serialization::Parser::Parse(scanner);
+  std::unique_ptr<ir::Program> ir_program = ir_serialization::ParseProgram(in_stream);
 
-  std::cout << ir_program->ToString() << "\n";
+  ir_serialization::Print(ir_program.get(), std::cout);
+  std::cout << "\n";
 
   for (auto& func : ir_program->funcs()) {
     common::Graph cfg = func->ToControlFlowGraph();

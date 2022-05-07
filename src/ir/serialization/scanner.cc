@@ -14,36 +14,76 @@
 
 namespace ir_serialization {
 
-Scanner::Scanner(std::istream& in_stream) : in_stream_(in_stream) { token_ = kUnknown; }
-
-Scanner::Token Scanner::token() const { return token_; }
-
-std::string Scanner::string() const {
-  if (token_ == kUnknown || token_ == kEoF) common::fail("token has no associated string");
-
-  return string_;
+std::string Scanner::TokenToString(Token token) {
+  switch (token) {
+    case kUnknown:
+      return "unknown";
+    case kIdentifier:
+      return "identifier";
+    case kNumber:
+      return "number";
+    case kAddress:
+      return "address";
+    case kArrow:
+      return "'=>'";
+    case kEoF:
+      return "end of file";
+    case kNewLine:
+      return "new line";
+    default:
+      return "'" + std::string(1, token) + "'";
+  }
 }
 
-int64_t Scanner::sign() const {
-  if (token_ != kNumber) common::fail("token has no associated sign");
-
-  return sign_;
+std::string Scanner::PositionString() const {
+  return std::to_string(line_) + ":" + std::to_string(column_);
 }
 
-uint64_t Scanner::number() const {
-  if (token_ != kNumber) common::fail("token has no associated number");
+std::string Scanner::token_text() const {
+  if (token_ == kUnknown || token_ == kEoF) {
+    common::fail("token has no associated string");
+  }
+  return token_text_;
+}
 
-  return number_;
+common::Int Scanner::token_number() const {
+  if (token_ != kNumber) {
+    common::fail("token has no associated number");
+  }
+  std::optional<common::Int> number = common::ToI64(token_text_);
+  if (number.has_value()) {
+    return *number;
+  }
+  number = common::ToU64(token_text_);
+  if (number.has_value()) {
+    return *number;
+  }
+  common::fail("number can not be represented");
+}
+
+common::Int Scanner::token_address() const {
+  if (token_ != kAddress) {
+    common::fail("token has no associated address");
+  }
+  std::optional<common::Int> address = common::ToU64(token_text_, /*base=*/16);
+  if (!address.has_value()) {
+    common::fail("address can not be represented");
+  }
+  return *address;
 }
 
 void Scanner::Next() {
-  if (token_ == kEoF) common::fail("can not advance Scanner at EoF");
-
-  int c = in_stream_.get();
-  while (c == ' ' || c == '\t') {
-    c = in_stream_.get();
+  if (token_ == kEoF) {
+    common::fail("can not advance Scanner at EoF");
+  } else if (token_ == kNewLine) {
+    line_++;
+    column_ = 1;
+  } else {
+    column_ += token_text_.size();
   }
+  SkipWhitespace();
 
+  char c = in_stream_.peek();
   switch (c) {
     case EOF:
       token_ = kEoF;
@@ -58,55 +98,56 @@ void Scanner::Next() {
     case ',':
     case '(':
     case ')':
+      in_stream_.get();
       token_ = (Token)c;
-      string_ = std::string(1, c);
+      token_text_ = std::string(1, c);
       return;
     case '=':
+      in_stream_.get();
       token_ = kEqualSign;
-      string_ = "=";
+      token_text_ = "=";
       if (in_stream_.peek() == '>') {
         in_stream_.get();
         token_ = kArrow;
-        string_ = "=>";
+        token_text_ = "=>";
       }
       return;
     default:
       break;
   }
-
-  string_ = std::string(1, c);
   if (std::isalpha(c)) {
-    token_ = kIdentifier;
-
-    c = in_stream_.get();
-    while (std::isalnum(c) || c == '_') {
-      string_ += std::string(1, c);
-      c = in_stream_.get();
-    }
-    in_stream_.putback(c);
+    NextIdentifier();
   } else if (c == '+' || c == '-' || std::isdigit(c)) {
-    token_ = kNumber;
-    if (c == '+') {
-      sign_ = +1;
-      number_ = 0;
-    } else if (c == '-') {
-      sign_ = -1;
-      number_ = 0;
-    } else {
-      sign_ = +1;
-      number_ = c - '0';
-    }
-
-    c = in_stream_.get();
-    while (std::isdigit(c)) {
-      string_ += std::string(1, c);
-      number_ *= 10;
-      number_ += c - '0';
-      c = in_stream_.get();
-    }
-    in_stream_.putback(c);
+    NextNumberOrAddress();
   } else {
+    in_stream_.get();
     token_ = kUnknown;
+  }
+}
+
+void Scanner::SkipWhitespace() {
+  for (char c = in_stream_.peek(); c != '\n' && std::isspace(c); c = in_stream_.peek()) {
+    in_stream_.get();
+    column_++;
+  }
+}
+
+void Scanner::NextIdentifier() {
+  token_ = kIdentifier;
+  token_text_ = std::string(1, in_stream_.get());
+  for (char c = in_stream_.peek(); std::isalnum(c) || c == '_'; c = in_stream_.peek()) {
+    token_text_ += std::string(1, in_stream_.get());
+  }
+}
+
+void Scanner::NextNumberOrAddress() {
+  token_ = kNumber;
+  token_text_ = std::string(1, in_stream_.get());
+  for (char c = in_stream_.peek(); std::isalnum(c); c = in_stream_.peek()) {
+    token_text_ += std::string(1, in_stream_.get());
+  }
+  if (token_text_.starts_with("0x") || token_text_.starts_with("0X")) {
+    token_ = kAddress;
   }
 }
 

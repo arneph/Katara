@@ -32,11 +32,11 @@ void AssertProgramIsOkay(const ir::Program* program) {
   buf << "IR checker found issues:\n";
   for (const Issue& issue : issues) {
     buf << "[" << int64_t(issue.kind()) << "] " << issue.message() << "\n";
-    buf << "\tScope: " << issue.scope_object()->ToString() << "\n";
+    buf << "\tScope: " << issue.scope_object()->RefString() << "\n";
     if (!issue.involved_objects().empty()) {
       buf << "\tInvolved Objects:\n";
       for (const ir::Object* object : issue.involved_objects()) {
-        buf << "\t\t" << object->ToString() << "\n";
+        buf << "\t\t" << object->RefString() << "\n";
       }
     }
   }

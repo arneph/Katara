@@ -32,8 +32,6 @@ class Block : public Object {
   std::string name() const { return name_; }
   void set_name(std::string name) { name_ = name; }
 
-  std::string ReferenceString() const;
-
   const std::vector<std::unique_ptr<Instr>>& instrs() const { return instrs_; }
   std::vector<std::unique_ptr<Instr>>& instrs() { return instrs_; }
 
@@ -48,7 +46,8 @@ class Block : public Object {
   const std::unordered_set<block_num_t>& parents() const { return parents_; }
   const std::unordered_set<block_num_t>& children() const { return children_; }
 
-  std::string ToString() const override;
+  void WriteRefString(std::ostream& os) const override;
+
   common::Node ToNode() const;
 
   friend class Func;

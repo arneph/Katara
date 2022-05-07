@@ -9,6 +9,7 @@
 #ifndef ir_object_h
 #define ir_object_h
 
+#include <ostream>
 #include <string>
 
 namespace ir {
@@ -27,9 +28,8 @@ class Object {
   constexpr virtual ~Object() {}
 
   constexpr virtual Kind object_kind() const = 0;
-  virtual std::string ToString() const = 0;
-
-  // TODO: define writing to output stream over all objects
+  virtual void WriteRefString(std::ostream& os) const = 0;
+  std::string RefString() const;
 };
 
 }  // namespace ir

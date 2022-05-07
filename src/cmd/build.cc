@@ -21,6 +21,7 @@
 #include "src/ir/optimizers/func_call_graph_optimizer.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/num_types.h"
+#include "src/ir/serialization/print.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
 #include "src/lang/processors/ir_lowerers/shared_pointer_lowerer.h"
 #include "src/lang/processors/packages/package.h"
@@ -35,7 +36,8 @@ std::string SubdirNameForFunc(ir::Func* func) {
 }
 
 void GenerateIrDebugInfo(ir::Program* program, std::string iter, DebugHandler& debug_handler) {
-  debug_handler.WriteToDebugFile(program->ToString(), /* subdir_name= */ "", "ir." + iter + ".txt");
+  debug_handler.WriteToDebugFile(ir_serialization::Print(program), /* subdir_name= */ "",
+                                 "ir." + iter + ".txt");
 
   const ir_info::FuncCallGraph fcg = ir_analyzers::BuildFuncCallGraphForProgram(program);
   debug_handler.WriteToDebugFile(fcg.ToGraph(program).ToDotFormat(), /* subdir_name= */ "",

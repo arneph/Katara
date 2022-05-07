@@ -10,6 +10,7 @@
 #define ir_types_h
 
 #include <memory>
+#include <ostream>
 #include <string>
 #include <vector>
 
@@ -53,7 +54,7 @@ class BoolType : public AtomicType {
  public:
   constexpr int8_t bit_size() const override { return 8; }
   constexpr TypeKind type_kind() const override { return TypeKind::kBool; }
-  std::string ToString() const override { return "b"; }
+  void WriteRefString(std::ostream& os) const override { os << "b"; }
 };
 
 const BoolType* bool_type();
@@ -65,7 +66,7 @@ class IntType : public AtomicType {
   constexpr int8_t bit_size() const override { return common::BitSizeOf(type_); }
   constexpr common::IntType int_type() const { return type_; }
   constexpr TypeKind type_kind() const override { return TypeKind::kInt; }
-  std::string ToString() const override { return common::ToString(type_); }
+  void WriteRefString(std::ostream& os) const override { os << common::ToString(type_); }
 
  private:
   const common::IntType type_;
@@ -85,7 +86,7 @@ class PointerType : public AtomicType {
  public:
   constexpr int8_t bit_size() const override { return 64; }
   constexpr TypeKind type_kind() const override { return TypeKind::kPointer; }
-  std::string ToString() const override { return "ptr"; }
+  void WriteRefString(std::ostream& os) const override { os << "ptr"; }
 };
 
 const PointerType* pointer_type();
@@ -94,7 +95,7 @@ class FuncType : public AtomicType {
  public:
   constexpr int8_t bit_size() const override { return 64; }
   constexpr TypeKind type_kind() const override { return TypeKind::kFunc; }
-  std::string ToString() const override { return "func"; }
+  void WriteRefString(std::ostream& os) const override { os << "func"; }
 };
 
 const FuncType* func_type();

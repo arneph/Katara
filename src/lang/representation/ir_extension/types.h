@@ -10,6 +10,7 @@
 #define lang_ir_ext_types_h
 
 #include <memory>
+#include <ostream>
 #include <string>
 
 #include "src/ir/representation/types.h"
@@ -26,7 +27,7 @@ class SharedPointer : public ir::Type {
   const ir::Type* element() const { return element_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSharedPointer; }
-  std::string ToString() const override { return "lptr"; }
+  void WriteRefString(std::ostream& os) const override { os << "lptr"; }
 
  private:
   bool is_strong_;
@@ -36,7 +37,7 @@ class SharedPointer : public ir::Type {
 class StringType : public ir::Type {
  public:
   constexpr ir::TypeKind type_kind() const override { return ir::TypeKind::kLangString; }
-  std::string ToString() const override { return "lstr"; }
+  void WriteRefString(std::ostream& os) const override { os << "lstr"; }
 };
 
 extern const StringType kString;
@@ -50,7 +51,7 @@ class Array : public ir::Type {
   int64_t size() const { return size_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangArray; }
-  std::string ToString() const override { return "larray"; }
+  void WriteRefString(std::ostream& os) const override { os << "larray"; }
 
  private:
   Array() : element_(nullptr), size_(kDynamicArraySize) {}
@@ -80,7 +81,7 @@ class Struct : public ir::Type {
   const std::vector<std::pair<std::string, const ir::Type*>>& fields() const { return fields_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangStruct; }
-  std::string ToString() const override { return "lstruct"; }
+  void WriteRefString(std::ostream& os) const override { os << "lstruct"; }
 
  private:
   Struct() {}
@@ -110,7 +111,7 @@ class Interface : public ir::Type {
   const std::vector<std::string>& methods() const { return methods_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangInterface; }
-  std::string ToString() const override { return "linterface"; }
+  void WriteRefString(std::ostream& os) const override { os << "linterface"; }
 
  private:
   std::vector<std::string> methods_;
@@ -121,7 +122,7 @@ class TypeID : public ir::Type {
   TypeID() {}
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangTypeID; }
-  std::string ToString() const override { return "ltypeid"; }
+  void WriteRefString(std::ostream& os) const override { os << "ltypeid"; }
 };
 
 }  // namespace ir_ext

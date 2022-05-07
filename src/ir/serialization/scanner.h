@@ -13,6 +13,8 @@
 #include <memory>
 #include <string>
 
+#include "src/common/atomics/atomics.h"
+
 namespace ir_serialization {
 
 class Scanner {
@@ -21,7 +23,8 @@ class Scanner {
     kUnknown = 0,
     kIdentifier = 1,
     kNumber = 2,
-    kArrow = 3,
+    kAddress = 3,
+    kArrow = 4,
     kEoF = EOF,
     kNewLine = '\n',
     kHashSign = '#',
@@ -32,26 +35,36 @@ class Scanner {
     kAtSign = '@',
     kComma = ',',
     kEqualSign = '=',
-    kRoundBracketOpen = '(',
-    kRoundBracketClose = ')'
+    kParenOpen = '(',
+    kParenClose = ')'
   } Token;
 
-  Scanner(std::istream& in_stream);
+  static std::string TokenToString(Token token);
 
-  Token token() const;
-  std::string string() const;
-  int64_t sign() const;
-  uint64_t number() const;
+  Scanner(std::istream& in_stream) : in_stream_(in_stream) {}
+
+  int64_t line() const { return line_; }
+  int64_t column() const { return column_; }
+  std::string PositionString() const;
+
+  Token token() const { return token_; }
+  std::string token_text() const;
+  common::Int token_number() const;
+  common::Int token_address() const;
 
   void Next();
 
  private:
+  void SkipWhitespace();
+  void NextIdentifier();
+  void NextNumberOrAddress();
+
   std::istream& in_stream_;
 
-  Token token_;
-  std::string string_;
-  int64_t sign_;
-  uint64_t number_;
+  int64_t line_ = 1;
+  int64_t column_ = 1;
+  Token token_ = kUnknown;
+  std::string token_text_;
 };
 
 }  // namespace ir_serialization

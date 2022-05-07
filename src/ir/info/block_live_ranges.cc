@@ -134,7 +134,7 @@ bool BlockLiveRanges::InstrIsInRange(const ir::Instr* needle_instr, const ValueR
 std::string BlockLiveRanges::ToString() const {
   std::stringstream ss;
 
-  ss << std::setw(5) << std::setfill(' ') << block_->ReferenceString() << " - live ranges:\n";
+  ss << std::setw(5) << std::setfill(' ') << block_->RefString() << " - live ranges:\n";
   for (auto& [value, range] : value_ranges_) {
     if (range.start_instr_ == nullptr) {
       ss << '<';

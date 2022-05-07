@@ -24,10 +24,8 @@ class StringConstant : public ir::Constant {
   std::string value() const { return value_; }
   constexpr const ir::Type* type() const override { return &kString; }
 
-  std::string ToString() const override {
-    return (value_.length() > 3) ? "\"...\"" : "\"" + value_ + "\"";
-  }
-  std::string ToStringWithType() const override { return ToString(); }
+  void WriteRefString(std::ostream& os) const override;
+  void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }
 
  private:
   std::string value_;
