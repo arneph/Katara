@@ -38,6 +38,24 @@ cc_library(
 )
 
 cc_library(
+    name = "func_values_builder",
+    srcs = [
+        "func_values_builder.cc",
+    ],
+    hdrs = [
+        "func_values_builder.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//src/ir:__subpackages__",
+    ],
+    deps = [
+        "//src/ir/info",
+        "//src/ir/representation",
+    ],
+)
+
+cc_library(
     name = "interference_graph_builder",
     srcs = [
         "interference_graph_builder.cc",
@@ -81,6 +99,7 @@ cc_library(
     ],
     deps = [
         ":func_call_graph_builder",
+        ":func_values_builder",
         ":interference_graph_builder",
         ":interference_graph_colorer",
         ":live_range_analyzer",

@@ -2,9 +2,12 @@ load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
-    name = "values",
+    name = "func_values",
+    srcs = [
+        "func_values.cc",
+    ],
     hdrs = [
-        "values.h",
+        "func_values.h",
     ],
     copts = COPTS,
     visibility = [
@@ -79,8 +82,8 @@ cc_library(
     ],
     deps = [
         ":func_call_graph",
+        ":func_values",
         ":interference_graph",
         ":live_ranges",
-        ":values",
     ],
 )
