@@ -39,7 +39,7 @@ class PanicInstr : public ir::Instr {
 
 class MakeSharedPointerInstr : public ir::Computation {
  public:
-  MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result);
+  explicit MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result);
 
   const ir::Type* element_type() const { return pointer_type()->element(); }
   const ir_ext::SharedPointer* pointer_type() const;
@@ -77,7 +77,7 @@ class CopySharedPointerInstr : public ir::Computation {
 
 class DeleteSharedPointerInstr : public ir::Instr {
  public:
-  DeleteSharedPointerInstr(std::shared_ptr<ir::Computed> deleted_shared_pointer);
+  explicit DeleteSharedPointerInstr(std::shared_ptr<ir::Computed> deleted_shared_pointer);
 
   const ir::Type* element_type() const { return pointer_type()->element(); }
   const ir_ext::SharedPointer* pointer_type() const;
@@ -94,6 +94,40 @@ class DeleteSharedPointerInstr : public ir::Instr {
 
  private:
   std::shared_ptr<ir::Computed> deleted_shared_pointer_;
+};
+
+class MakeUniquePointerInstr : public ir::Computation {
+ public:
+  explicit MakeUniquePointerInstr(std::shared_ptr<ir::Computed> result);
+
+  const ir::Type* element_type() const { return pointer_type()->element(); }
+  const ir_ext::UniquePointer* pointer_type() const;
+
+  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {}; }
+
+  ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangMakeUniquePointer; }
+  std::string OperationString() const override { return "make_unique"; }
+};
+
+class DeleteUniquePointerInstr : public ir::Instr {
+ public:
+  explicit DeleteUniquePointerInstr(std::shared_ptr<ir::Computed> deleted_unique_pointer);
+
+  const ir::Type* element_type() const { return pointer_type()->element(); }
+  const ir_ext::UniquePointer* pointer_type() const;
+
+  std::shared_ptr<ir::Computed> deleted_unique_pointer() const { return deleted_unique_pointer_; }
+
+  std::vector<std::shared_ptr<ir::Computed>> DefinedValues() const override { return {}; }
+  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override {
+    return {deleted_unique_pointer_};
+  }
+
+  ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangDeleteUniquePointer; }
+  std::string OperationString() const override { return "delete_unique"; }
+
+ private:
+  std::shared_ptr<ir::Computed> deleted_unique_pointer_;
 };
 
 class StringIndexInstr : public ir::Computation {

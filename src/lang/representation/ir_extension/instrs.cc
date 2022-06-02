@@ -70,5 +70,32 @@ const ir_ext::SharedPointer* DeleteSharedPointerInstr::pointer_type() const {
   return static_cast<const ir_ext::SharedPointer*>(deleted_shared_pointer_->type());
 }
 
+MakeUniquePointerInstr::MakeUniquePointerInstr(std::shared_ptr<ir::Computed> result)
+    : ir::Computation(result) {
+  if (result->type()->type_kind() != ir::TypeKind::kLangUniquePointer) {
+    common::fail(
+        "attempted to create make unique pointer instr with non-unique pointer "
+        "result");
+  }
+}
+
+const ir_ext::UniquePointer* MakeUniquePointerInstr::pointer_type() const {
+  return static_cast<const ir_ext::UniquePointer*>(result()->type());
+}
+
+DeleteUniquePointerInstr::DeleteUniquePointerInstr(
+    std::shared_ptr<ir::Computed> deleted_unique_pointer)
+    : deleted_unique_pointer_(deleted_unique_pointer) {
+  if (deleted_unique_pointer_->type()->type_kind() != ir::TypeKind::kLangUniquePointer) {
+    common::fail(
+        "attempted to create delete unique pointer instr with non-unique pointer "
+        "argument");
+  }
+}
+
+const ir_ext::UniquePointer* DeleteUniquePointerInstr::pointer_type() const {
+  return static_cast<const ir_ext::UniquePointer*>(deleted_unique_pointer_->type());
+}
+
 }  // namespace ir_ext
 }  // namespace lang

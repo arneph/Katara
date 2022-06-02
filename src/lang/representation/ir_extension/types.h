@@ -27,10 +27,23 @@ class SharedPointer : public ir::Type {
   const ir::Type* element() const { return element_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSharedPointer; }
-  void WriteRefString(std::ostream& os) const override { os << "lptr"; }
+  void WriteRefString(std::ostream& os) const override { os << "lshared_ptr"; }
 
  private:
   bool is_strong_;
+  const ir::Type* element_;
+};
+
+class UniquePointer : public ir::Type {
+ public:
+  explicit UniquePointer(const ir::Type* element) : element_(element) {}
+
+  const ir::Type* element() const { return element_; }
+
+  ir::TypeKind type_kind() const override { return ir::TypeKind::kLangUniquePointer; }
+  void WriteRefString(std::ostream& os) const override { os << "lunique_ptr"; }
+
+ private:
   const ir::Type* element_;
 };
 
