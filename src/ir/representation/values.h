@@ -140,6 +140,7 @@ class Computed : public Value {
   constexpr Computed(const Type* type, value_num_t vnum) : type_(type), number_(vnum) {}
 
   constexpr const Type* type() const override { return type_; }
+  constexpr void set_type(const Type* type) { type_ = type; }
   constexpr value_num_t number() const { return number_; }
 
   constexpr Value::Kind kind() const final { return Value::Kind::kComputed; }
