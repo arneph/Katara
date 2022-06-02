@@ -47,6 +47,8 @@ enum class InstrKind {
   kLangMakeSharedPointer,
   kLangCopySharedPointer,
   kLangDeleteSharedPointer,
+  kLangMakeUniquePointer,
+  kLangDeleteUniquePointer,
   kLangStringIndex,
   kLangStringConcat,
 };
