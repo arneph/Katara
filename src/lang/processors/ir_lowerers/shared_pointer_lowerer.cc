@@ -63,6 +63,7 @@ std::unique_ptr<ir::CallInstr> CallMakeSharedFunc(ir::func_num_t make_shared_fun
       std::vector<std::shared_ptr<ir::Computed>>{decomposed_result.control_block_pointer,
                                                  decomposed_result.underlying_pointer},
       std::vector<std::shared_ptr<ir::Value>>{ir::I64Eight(), ir::NilFunc()});
+  // TODO: use actual size and destructor of element type
 }
 
 ir::func_num_t BuildCopySharedFunc(ir::Program* program, bool copy_is_strong) {

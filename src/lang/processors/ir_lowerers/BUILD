@@ -14,3 +14,17 @@ cc_library(
         "//src/lang/representation",
     ],
 )
+
+cc_library(
+    name = "unique_pointer_lowerer",
+    srcs = ["unique_pointer_lowerer.cc"],
+    hdrs = ["unique_pointer_lowerer.h"],
+    copts = COPTS,
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//src/ir:ir_lib",
+        "//src/lang/representation",
+    ],
+)
