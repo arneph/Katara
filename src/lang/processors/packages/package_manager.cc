@@ -38,9 +38,10 @@ Package* PackageManager::LoadPackage(std::string pkg_path) {
   if (Package* pkg = GetPackage(pkg_path); pkg != nullptr) {
     return pkg;
   }
-  if (filesystem_->IsDirectory(src_path_ / pkg_path)) {
+  if (filesystem_->Exists(src_path_ / pkg_path) && filesystem_->IsDirectory(src_path_ / pkg_path)) {
     return LoadPackage(pkg_path, src_path_ / pkg_path);
-  } else if (filesystem_->IsDirectory(stdlib_path_ / pkg_path)) {
+  } else if (filesystem_->Exists(stdlib_path_ / pkg_path) &&
+             filesystem_->IsDirectory(stdlib_path_ / pkg_path)) {
     return LoadPackage(pkg_path, stdlib_path_ / pkg_path);
   }
   issue_tracker_.Add(issues::kPackageDirectoryNotFound, std::vector<pos::pos_t>{},
@@ -136,8 +137,9 @@ Package* PackageManager::LoadPackage(std::string pkg_path, std::filesystem::path
   pkg->path_ = pkg_path;
   pkg->directory_ = pkg_directory;
   if (file_paths.empty()) {
-    pkg->issue_tracker_.Add(issues::kPackageDirectoryWithoutSourceFiles, std::vector<pos::pos_t>{},
-                            "package directory does not contain source files");
+    pkg->issue_tracker_.Add(
+        issues::kPackageDirectoryWithoutSourceFiles, std::vector<pos::pos_t>{},
+        "package directory does not contain source files: " + pkg_directory.string());
     return pkg;
   }
   for (std::filesystem::path file_path : file_paths) {
