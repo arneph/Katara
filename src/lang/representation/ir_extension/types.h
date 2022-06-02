@@ -18,33 +18,36 @@
 namespace lang {
 namespace ir_ext {
 
-class SharedPointer : public ir::Type {
+class SmartPointer : public ir::Type {
+ public:
+  SmartPointer(const ir::Type* element) : element_(element) {}
+
+  const ir::Type* element() const { return element_; }
+
+ private:
+  const ir::Type* element_;
+};
+
+class SharedPointer : public SmartPointer {
  public:
   SharedPointer(bool is_strong, const ir::Type* element)
-      : is_strong_(is_strong), element_(element) {}
+      : SmartPointer(element), is_strong_(is_strong) {}
 
   bool is_strong() const { return is_strong_; }
-  const ir::Type* element() const { return element_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSharedPointer; }
   void WriteRefString(std::ostream& os) const override { os << "lshared_ptr"; }
 
  private:
   bool is_strong_;
-  const ir::Type* element_;
 };
 
-class UniquePointer : public ir::Type {
+class UniquePointer : public SmartPointer {
  public:
-  explicit UniquePointer(const ir::Type* element) : element_(element) {}
-
-  const ir::Type* element() const { return element_; }
+  explicit UniquePointer(const ir::Type* element) : SmartPointer(element) {}
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangUniquePointer; }
   void WriteRefString(std::ostream& os) const override { os << "lunique_ptr"; }
-
- private:
-  const ir::Type* element_;
 };
 
 class StringType : public ir::Type {
