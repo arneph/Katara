@@ -23,6 +23,7 @@
 namespace cmd {
 
 struct BuildOptions {
+  bool optimize_ir_ext = true;
   bool optimize_ir = true;
 };
 

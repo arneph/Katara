@@ -72,6 +72,10 @@ void GenerateFlagSets(DebugConfig& debug_config, BuildOptions& build_options, Fl
       debug_config.check_ir);
 
   flag_sets.build_flags = flag_sets.debug_flags.CreateChild();
+  flag_sets.build_flags.Add<bool>("optimize_ir_ext",
+                                  "If true, optimizes the program based on the intermediate "
+                                  "representation of the language extension.",
+                                  build_options.optimize_ir_ext);
   flag_sets.build_flags.Add<bool>(
       "optimize_ir", "If true, optimizes the program based on the intermediate representation.",
       build_options.optimize_ir);

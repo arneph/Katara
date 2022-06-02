@@ -24,6 +24,8 @@
 #include "src/ir/serialization/print.h"
 #include "src/lang/processors/ir_builder/ir_builder.h"
 #include "src/lang/processors/ir_lowerers/shared_pointer_lowerer.h"
+#include "src/lang/processors/ir_lowerers/unique_pointer_lowerer.h"
+#include "src/lang/processors/ir_optimizers/shared_to_unique_pointer_optimizer.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 #include "src/lang/representation/ir_extension/checker.h"
@@ -96,8 +98,21 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
   return program;
 }
 
-void LowerIrProgram(ir::Program* program, DebugHandler& debug_handler) {
+void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
+  lang::ir_optimizers::ConvertSharedToUniquePointersInProgram(program);
+  if (debug_handler.GenerateDebugInfo()) {
+    GenerateIrDebugInfo(program, "ext_optimized", debug_handler);
+  }
+  if (debug_handler.CheckIr()) {
+    // TODO: implement lowering for panic and other instructions, then revert to using plain IR
+    // checker here.
+    ::lang::ir_ext::AssertProgramIsOkay(program);
+  }
+}
+
+void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
   lang::ir_lowerers::LowerSharedPointersInProgram(program);
+  lang::ir_lowerers::LowerUniquePointersInProgram(program);
   if (debug_handler.GenerateDebugInfo()) {
     GenerateIrDebugInfo(program, "lowered", debug_handler);
   }
@@ -130,7 +145,8 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
   }
   auto ir_program = std::get<std::unique_ptr<ir::Program>>(std::move(program_or_error));
 
-  LowerIrProgram(ir_program.get(), debug_handler);
+  OptimizeIrExtProgram(ir_program.get(), debug_handler);
+  LowerIrExtProgram(ir_program.get(), debug_handler);
   if (options.optimize_ir) {
     OptimizeIrProgram(ir_program.get(), debug_handler);
   }
