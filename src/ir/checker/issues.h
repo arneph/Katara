@@ -91,8 +91,8 @@ class Issue {
     kComputedValueDefinitionDoesNotDominateUse,
 
     // Lang issues:
-    kLangLoadFromSharedPointerHasMismatchedElementType,
-    kLangStoreToSharedPointerHasMismatchedElementType,
+    kLangLoadFromSmartPointerHasMismatchedElementType,
+    kLangStoreToSmartPointerHasMismatchedElementType,
   };
 
   Issue(const ir::Object* scope_object, Kind kind, std::string message)

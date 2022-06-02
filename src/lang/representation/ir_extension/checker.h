@@ -40,6 +40,8 @@ class Checker : public ::ir_checker::Checker {
   void CheckMakeSharedPointerInstr(const MakeSharedPointerInstr* make_shared_pointer_instr);
   void CheckCopySharedPointerInstr(const CopySharedPointerInstr* copy_shared_pointer_instr);
   void CheckDeleteSharedPointerInstr(const DeleteSharedPointerInstr* delete_shared_pointer_instr);
+  void CheckMakeUniquePointerInstr(const MakeUniquePointerInstr* make_unique_pointer_instr);
+  void CheckDeleteUniquePointerInstr(const DeleteUniquePointerInstr* delete_unique_pointer_instr);
   void CheckStringIndexInstr(const StringIndexInstr* string_index_instr);
   void CheckStringConcatInstr(const StringConcatInstr* string_concat_instr);
   void CheckLoadInstr(const ir::LoadInstr* load_instr) final;

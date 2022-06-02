@@ -56,6 +56,12 @@ void Checker::CheckInstr(const ir::Instr* instr, const ir::Block* block, const i
     case ir::InstrKind::kLangDeleteSharedPointer:
       CheckDeleteSharedPointerInstr(static_cast<const DeleteSharedPointerInstr*>(instr));
       break;
+    case ir::InstrKind::kLangMakeUniquePointer:
+      CheckMakeUniquePointerInstr(static_cast<const MakeUniquePointerInstr*>(instr));
+      break;
+    case ir::InstrKind::kLangDeleteUniquePointer:
+      CheckDeleteUniquePointerInstr(static_cast<const DeleteUniquePointerInstr*>(instr));
+      break;
     case ir::InstrKind::kLangStringIndex:
       CheckStringIndexInstr(static_cast<const StringIndexInstr*>(instr));
       break;
@@ -69,15 +75,19 @@ void Checker::CheckInstr(const ir::Instr* instr, const ir::Block* block, const i
 }
 
 void Checker::CheckMakeSharedPointerInstr(const MakeSharedPointerInstr* make_shared_pointer_instr) {
-
 }
 
 void Checker::CheckCopySharedPointerInstr(const CopySharedPointerInstr* copy_shared_pointer_instr) {
-
 }
 
 void Checker::CheckDeleteSharedPointerInstr(
     const DeleteSharedPointerInstr* delete_shared_pointer_instr) {}
+
+void Checker::CheckMakeUniquePointerInstr(const MakeUniquePointerInstr* make_unique_pointer_instr) {
+}
+
+void Checker::CheckDeleteUniquePointerInstr(
+    const DeleteUniquePointerInstr* delete_unique_pointer_instr) {}
 
 void Checker::CheckStringIndexInstr(const StringIndexInstr* string_index_instr) {}
 
@@ -85,29 +95,31 @@ void Checker::CheckStringConcatInstr(const StringConcatInstr* string_concat_inst
 
 void Checker::CheckLoadInstr(const ir::LoadInstr* load_instr) {
   if (load_instr->address() == nullptr || load_instr->address()->type() == nullptr ||
-      load_instr->address()->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+      (load_instr->address()->type()->type_kind() != ir::TypeKind::kLangSharedPointer &&
+       load_instr->address()->type()->type_kind() != ir::TypeKind::kLangUniquePointer)) {
     ::ir_checker::Checker::CheckLoadInstr(load_instr);
     return;
   }
-  auto shared_ptr = static_cast<const SharedPointer*>(load_instr->address()->type());
-  if (load_instr->result()->type() != shared_ptr->element()) {
+  auto smart_ptr = static_cast<const SmartPointer*>(load_instr->address()->type());
+  if (load_instr->result()->type() != smart_ptr->element()) {
     AddIssue(Issue(load_instr, {load_instr->address().get(), load_instr->result().get()},
-                   Issue::Kind::kLangLoadFromSharedPointerHasMismatchedElementType,
-                   "ir::LoadInstr lang::ir_ext::SharedPointer does not match result type"));
+                   Issue::Kind::kLangLoadFromSmartPointerHasMismatchedElementType,
+                   "ir::LoadInstr lang::ir_ext::SmartPointer does not match result type"));
   }
 }
 
 void Checker::CheckStoreInstr(const ir::StoreInstr* store_instr) {
   if (store_instr->address() == nullptr || store_instr->address()->type() == nullptr ||
-      store_instr->address()->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+      (store_instr->address()->type()->type_kind() != ir::TypeKind::kLangSharedPointer &&
+       store_instr->address()->type()->type_kind() != ir::TypeKind::kLangUniquePointer)) {
     ::ir_checker::Checker::CheckStoreInstr(store_instr);
     return;
   }
-  auto shared_ptr = static_cast<const SharedPointer*>(store_instr->address()->type());
-  if (store_instr->value()->type() != shared_ptr->element()) {
+  auto smart_ptr = static_cast<const SmartPointer*>(store_instr->address()->type());
+  if (store_instr->value()->type() != smart_ptr->element()) {
     AddIssue(Issue(store_instr, {store_instr->address().get(), store_instr->value().get()},
-                   Issue::Kind::kLangStoreToSharedPointerHasMismatchedElementType,
-                   "ir::StoreInstr lang::ir_ext::SharedPointer does not match result type"));
+                   Issue::Kind::kLangStoreToSmartPointerHasMismatchedElementType,
+                   "ir::StoreInstr lang::ir_ext::SmartPointer does not match result type"));
   }
 }
 
