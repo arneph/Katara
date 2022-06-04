@@ -36,7 +36,7 @@ class SharedPointer : public SmartPointer {
   bool is_strong() const { return is_strong_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSharedPointer; }
-  void WriteRefString(std::ostream& os) const override { os << "lshared_ptr"; }
+  void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
 
@@ -49,7 +49,7 @@ class UniquePointer : public SmartPointer {
   explicit UniquePointer(const ir::Type* element) : SmartPointer(element) {}
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangUniquePointer; }
-  void WriteRefString(std::ostream& os) const override { os << "lunique_ptr"; }
+  void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
 };
@@ -73,7 +73,7 @@ class Array : public ir::Type {
   int64_t size() const { return size_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangArray; }
-  void WriteRefString(std::ostream& os) const override { os << "larray"; }
+  void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
 
@@ -112,7 +112,7 @@ class Struct : public ir::Type {
   const std::vector<Field>& fields() const { return fields_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangStruct; }
-  void WriteRefString(std::ostream& os) const override { os << "lstruct"; }
+  void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
 
@@ -152,7 +152,7 @@ class Interface : public ir::Type {
   const std::vector<Method>& methods() const { return methods_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangInterface; }
-  void WriteRefString(std::ostream& os) const override { os << "linterface"; }
+  void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
 

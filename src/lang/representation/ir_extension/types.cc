@@ -19,11 +19,23 @@ const TypeID kTypeId;
 
 }  // namespace
 
+void SharedPointer::WriteRefString(std::ostream& os) const {
+  os << "lshared_ptr<";
+  element()->WriteRefString(os);
+  os << ">";
+}
+
 bool SharedPointer::operator==(const ir::Type& that_type) const {
   if (that_type.type_kind() != ir::TypeKind::kLangSharedPointer) return false;
   auto that = static_cast<const SharedPointer&>(that_type);
   if (is_strong() != that.is_strong()) return false;
   return ir::IsEqual(element(), that.element());
+}
+
+void UniquePointer::WriteRefString(std::ostream& os) const {
+  os << "lunique_ptr<";
+  element()->WriteRefString(os);
+  os << ">";
 }
 
 bool UniquePointer::operator==(const ir::Type& that_type) const {
@@ -34,6 +46,12 @@ bool UniquePointer::operator==(const ir::Type& that_type) const {
 
 const StringType* string() { return &kString; }
 
+void Array::WriteRefString(std::ostream& os) const {
+  os << "larray<";
+  element()->WriteRefString(os);
+  os << ", " << size_ << ">";
+}
+
 bool Array::operator==(const ir::Type& that_type) const {
   if (that_type.type_kind() != ir::TypeKind::kLangArray) return false;
   auto that = static_cast<const Array&>(that_type);
@@ -42,6 +60,20 @@ bool Array::operator==(const ir::Type& that_type) const {
 }
 
 ArrayBuilder::ArrayBuilder() { array_ = std::unique_ptr<Array>(new Array()); }
+
+void Struct::WriteRefString(std::ostream& os) const {
+  if (fields_.empty()) {
+    os << "lstruct";
+    return;
+  }
+  os << "lstruct<";
+  for (std::size_t i = 0; i < fields_.size(); i++) {
+    if (i > 0) os << ", ";
+    os << fields_.at(i).name << ": ";
+    fields_.at(i).type->WriteRefString(os);
+  }
+  os << ">";
+}
 
 bool Struct::operator==(const ir::Type& that_type) const {
   if (that_type.type_kind() != ir::TypeKind::kLangStruct) return false;
@@ -63,6 +95,29 @@ void StructBuilder::AddField(std::string name, const ir::Type* field_type) {
 }
 
 const Struct* empty_struct() { return &kEmptyStruct; }
+
+void Interface::WriteRefString(std::ostream& os) const {
+  if (methods_.empty()) {
+    os << "linterface";
+    return;
+  }
+  os << "linterface<";
+  for (std::size_t i = 0; i < methods_.size(); i++) {
+    if (i > 0) os << ", ";
+    os << methods_.at(i).name << ": (";
+    for (std::size_t j = 0; methods_.at(i).parameters.size(); j++) {
+      if (j > 0) os << ", ";
+      methods_.at(i).parameters.at(j)->WriteRefString(os);
+    }
+    os << ") => (";
+    for (std::size_t j = 0; methods_.at(i).results.size(); j++) {
+      if (j > 0) os << ", ";
+      methods_.at(i).results.at(j)->WriteRefString(os);
+    }
+    os << ")";
+  }
+  os << ">";
+}
 
 bool Interface::operator==(const ir::Type& that_type) const {
   if (that_type.type_kind() != ir::TypeKind::kLangInterface) return false;
