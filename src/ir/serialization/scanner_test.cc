@@ -81,6 +81,20 @@ TEST(ScannerTest, ScansAddress) {
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
 }
 
+TEST(ScannerTest, ScansString) {
+  std::stringstream ss;
+  ss << "\"\\\"hello\\\" \\--\\\\-- \\\"world\\\"\"";
+  ir_serialization::Scanner scanner(ss);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kString);
+  EXPECT_EQ(scanner.token_text(), "\"\\\"hello\\\" \\--\\\\-- \\\"world\\\"\"");
+  EXPECT_EQ(scanner.token_string(), "\"hello\" --\\-- \"world\"");
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+}
+
 TEST(ScannerTest, ScansCharacterTokens) {
   std::stringstream ss;
   ss << ")(,@}{:%#\n==>=";

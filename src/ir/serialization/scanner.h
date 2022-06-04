@@ -24,7 +24,8 @@ class Scanner {
     kIdentifier = 1,
     kNumber = 2,
     kAddress = 3,
-    kArrow = 4,
+    kString = 4,
+    kArrow = 5,
     kEoF = EOF,
     kNewLine = '\n',
     kHashSign = '#',
@@ -51,6 +52,7 @@ class Scanner {
   std::string token_text() const;
   common::Int token_number() const;
   common::Int token_address() const;
+  std::string token_string() const;
 
   void Next();
 
@@ -58,6 +60,7 @@ class Scanner {
   void SkipWhitespace();
   void NextIdentifier();
   void NextNumberOrAddress();
+  void NextString();
 
   std::istream& in_stream_;
 

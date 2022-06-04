@@ -72,6 +72,21 @@ common::Int Scanner::token_address() const {
   return *address;
 }
 
+std::string Scanner::token_string() const {
+  if (token_ != kString) {
+    common::fail("token has no associated string");
+  }
+  std::string str;
+  for (std::size_t i = 1; i < token_text_.length() - 1; i++) {
+    char c = token_text_.at(i);
+    if (c == '\\') {
+      c = token_text_.at(++i);
+    }
+    str += std::string(1, c);
+  }
+  return str;
+}
+
 void Scanner::Next() {
   if (token_ == kEoF) {
     common::fail("can not advance Scanner at EoF");
@@ -112,6 +127,9 @@ void Scanner::Next() {
         token_text_ = "=>";
       }
       return;
+    case '"':
+      NextString();
+      return;
     default:
       break;
   }
@@ -149,6 +167,18 @@ void Scanner::NextNumberOrAddress() {
   if (token_text_.starts_with("0x") || token_text_.starts_with("0X")) {
     token_ = kAddress;
   }
+}
+
+void Scanner::NextString() {
+  token_ = kString;
+  token_text_ = std::string(1, in_stream_.get());
+  for (char c = in_stream_.get(); c != '"'; c = in_stream_.get()) {
+    token_text_ += std::string(1, c);
+    if (c == '\\') {
+      token_text_ += std::string(1, in_stream_.get());
+    }
+  }
+  token_text_ += std::string(1, '"');
 }
 
 }  // namespace ir_serialization
