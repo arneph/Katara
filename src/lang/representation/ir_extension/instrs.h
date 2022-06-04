@@ -21,9 +21,9 @@ namespace ir_ext {
 
 class PanicInstr : public ir::Instr {
  public:
-  PanicInstr(std::string reason) : reason_(reason) {}
+  PanicInstr(std::shared_ptr<ir::Value> reason) : reason_(reason) {}
 
-  std::string reason() const { return reason_; }
+  std::shared_ptr<ir::Value> reason() const { return reason_; }
 
   std::vector<std::shared_ptr<ir::Computed>> DefinedValues() const override { return {}; };
   std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {}; };
@@ -36,7 +36,7 @@ class PanicInstr : public ir::Instr {
   bool operator==(const ir::Instr& that) const override;
 
  private:
-  std::string reason_;
+  std::shared_ptr<ir::Value> reason_;
 };
 
 class MakeSharedPointerInstr : public ir::Computation {

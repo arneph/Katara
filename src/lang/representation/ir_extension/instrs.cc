@@ -16,7 +16,7 @@ namespace ir_ext {
 bool PanicInstr::operator==(const ir::Instr& that_instr) const {
   if (that_instr.instr_kind() != ir::InstrKind::kLangPanic) return false;
   auto that = static_cast<const PanicInstr&>(that_instr);
-  if (reason() != that.reason()) return false;
+  if (!ir::IsEqual(reason().get(), that.reason().get())) return false;
   return true;
 }
 

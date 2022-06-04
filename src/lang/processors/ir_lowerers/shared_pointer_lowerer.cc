@@ -205,7 +205,8 @@ ir::func_num_t BuildValidateWeakSharedFunc(ir::Program* program) {
 
   ok_bb.Return();
 
-  panic_bb.AddInstr<ir_ext::PanicInstr>("attempted to access deleted weak pointer");
+  panic_bb.AddInstr<ir_ext::PanicInstr>(
+      std::make_shared<ir_ext::StringConstant>("attempted to access deleted weak pointer"));
 
   return fb.func_number();
 }
