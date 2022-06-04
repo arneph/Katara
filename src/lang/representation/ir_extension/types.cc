@@ -22,7 +22,7 @@ const TypeID kTypeId;
 void SharedPointer::WriteRefString(std::ostream& os) const {
   os << "lshared_ptr<";
   element()->WriteRefString(os);
-  os << ">";
+  os << ", " << (is_strong_ ? "s" : "w") << ">";
 }
 
 bool SharedPointer::operator==(const ir::Type& that_type) const {
