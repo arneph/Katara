@@ -22,7 +22,7 @@ class StringConstant : public ir::Constant {
   StringConstant(std::string value) : value_(value) {}
 
   std::string value() const { return value_; }
-  constexpr const ir::Type* type() const override { return &kString; }
+  const ir::Type* type() const override { return string(); }
 
   void WriteRefString(std::ostream& os) const override;
   void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }

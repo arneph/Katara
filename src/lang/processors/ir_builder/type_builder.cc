@@ -14,14 +14,7 @@ namespace lang {
 namespace ir_builder {
 
 TypeBuilder::TypeBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program)
-    : type_info_(type_info), program_(program) {
-  ir_empty_struct_ =
-      static_cast<ir_ext::Struct*>(program_->type_table().AddType(ir_ext::StructBuilder().Build()));
-  ir_empty_interface_ = static_cast<ir_ext::Interface*>(program_->type_table().AddType(
-      std::make_unique<ir_ext::Interface>(std::vector<ir_ext::Interface::Method>{})));
-  ir_type_id_ = static_cast<ir_ext::TypeID*>(
-      program_->type_table().AddType(std::make_unique<ir_ext::TypeID>()));
-}
+    : type_info_(type_info), program_(program) {}
 
 const ir::Type* TypeBuilder::BuildType(types::Type* types_type) {
   switch (types_type->type_kind()) {
@@ -80,7 +73,7 @@ const ir::Type* TypeBuilder::BuildTypeForBasic(types::Basic* types_basic) {
       return ir::u64();
     case types::Basic::kString:
     case types::Basic::kUntypedString:
-      return &ir_ext::kString;
+      return ir_ext::string();
     case types::Basic::kUntypedNil:
       return ir::pointer_type();
     default:
@@ -156,7 +149,7 @@ const ir_ext::Array* TypeBuilder::BuildTypeForContainer(types::Container* types_
 
 const ir_ext::Struct* TypeBuilder::BuildTypeForStruct(types::Struct* types_struct) {
   if (types_struct->is_empty()) {
-    return ir_empty_struct_;
+    return ir_ext::empty_struct();
   }
   if (auto it = types_struct_to_ir_struct_lookup_.find(types_struct);
       it != types_struct_to_ir_struct_lookup_.end()) {
@@ -178,7 +171,7 @@ const ir_ext::Struct* TypeBuilder::BuildTypeForStruct(types::Struct* types_struc
 
 const ir_ext::Interface* TypeBuilder::BuildTypeForInterface(types::Interface* types_interface) {
   if (types_interface->is_empty()) {
-    return ir_empty_interface_;
+    return ir_ext::empty_interface();
   }
   if (auto it = types_interface_to_ir_interface_lookup_.find(types_interface);
       it != types_interface_to_ir_interface_lookup_.end()) {

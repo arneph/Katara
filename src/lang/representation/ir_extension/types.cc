@@ -10,8 +10,14 @@
 
 namespace lang {
 namespace ir_ext {
+namespace {
 
 const StringType kString;
+const Struct kEmptyStruct = Struct::EmptyStruct();
+const Interface kEmptyInterface = Interface(std::vector<Interface::Method>{});
+const TypeID kTypeId;
+
+}  // namespace
 
 bool SharedPointer::operator==(const ir::Type& that_type) const {
   if (that_type.type_kind() != ir::TypeKind::kLangSharedPointer) return false;
@@ -26,12 +32,16 @@ bool UniquePointer::operator==(const ir::Type& that_type) const {
   return ir::IsEqual(element(), that.element());
 }
 
+const StringType* string() { return &kString; }
+
 bool Array::operator==(const ir::Type& that_type) const {
   if (that_type.type_kind() != ir::TypeKind::kLangArray) return false;
   auto that = static_cast<const Array&>(that_type);
   if (size() != that.size()) return false;
   return ir::IsEqual(element(), that.element());
 }
+
+ArrayBuilder::ArrayBuilder() { array_ = std::unique_ptr<Array>(new Array()); }
 
 bool Struct::operator==(const ir::Type& that_type) const {
   if (that_type.type_kind() != ir::TypeKind::kLangStruct) return false;
@@ -45,6 +55,14 @@ bool Struct::operator==(const ir::Type& that_type) const {
   }
   return true;
 }
+
+StructBuilder::StructBuilder() { struct_ = std::unique_ptr<Struct>(new Struct()); }
+
+void StructBuilder::AddField(std::string name, const ir::Type* field_type) {
+  struct_->fields_.push_back(Struct::Field{.name = name, .type = field_type});
+}
+
+const Struct* empty_struct() { return &kEmptyStruct; }
 
 bool Interface::operator==(const ir::Type& that_type) const {
   if (that_type.type_kind() != ir::TypeKind::kLangInterface) return false;
@@ -66,13 +84,8 @@ bool Interface::operator==(const ir::Type& that_type) const {
   return true;
 }
 
-ArrayBuilder::ArrayBuilder() { array_ = std::unique_ptr<Array>(new Array()); }
-
-StructBuilder::StructBuilder() { struct_ = std::unique_ptr<Struct>(new Struct()); }
-
-void StructBuilder::AddField(std::string name, const ir::Type* field_type) {
-  struct_->fields_.push_back(Struct::Field{.name = name, .type = field_type});
-}
+const Interface* empty_interface() { return &kEmptyInterface; }
+const TypeID* type_id() { return &kTypeId; }
 
 }  // namespace ir_ext
 }  // namespace lang

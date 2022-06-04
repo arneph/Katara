@@ -62,7 +62,7 @@ class StringType : public ir::Type {
   bool operator==(const ir::Type& that) const override { return type_kind() == that.type_kind(); }
 };
 
-extern const StringType kString;
+const StringType* string();
 
 constexpr int64_t kDynamicArraySize = -1;
 
@@ -107,6 +107,8 @@ class Struct : public ir::Type {
     const ir::Type* type;
   };
 
+  static Struct EmptyStruct() { return Struct(); }
+
   const std::vector<Field>& fields() const { return fields_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangStruct; }
@@ -135,6 +137,8 @@ class StructBuilder {
   std::unique_ptr<Struct> struct_;
 };
 
+const Struct* empty_struct();
+
 class Interface : public ir::Type {
  public:
   struct Method {
@@ -156,6 +160,8 @@ class Interface : public ir::Type {
   std::vector<Method> methods_;
 };
 
+const Interface* empty_interface();
+
 class TypeID : public ir::Type {
  public:
   TypeID() {}
@@ -165,6 +171,8 @@ class TypeID : public ir::Type {
 
   bool operator==(const ir::Type& that) const override { return type_kind() == that.type_kind(); }
 };
+
+const TypeID* type_id();
 
 }  // namespace ir_ext
 }  // namespace lang

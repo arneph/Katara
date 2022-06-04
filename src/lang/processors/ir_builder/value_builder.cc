@@ -74,7 +74,7 @@ std::shared_ptr<ir::Computed> ValueBuilder::BuildStringConcat(std::shared_ptr<ir
                                                               std::shared_ptr<ir::Value> y,
                                                               IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(&ir_ext::kString, ir_ctx.func()->next_computed_number());
+      std::make_shared<ir::Computed>(ir_ext::string(), ir_ctx.func()->next_computed_number());
   ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::StringConcatInstr>(
       result, std::vector<std::shared_ptr<ir::Value>>{x, y}));
   return result;

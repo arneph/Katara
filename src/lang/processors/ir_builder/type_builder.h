@@ -31,10 +31,6 @@ class TypeBuilder {
  public:
   TypeBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program);
 
-  const ir_ext::Struct* ir_empty_struct() const { return ir_empty_struct_; }
-  const ir_ext::Interface* ir_empty_interface() const { return ir_empty_interface_; }
-  const ir_ext::TypeID* ir_type_id() const { return ir_type_id_; }
-
   const ir::Type* BuildType(types::Type* types_type);
   const ir::Type* BuildTypeForBasic(types::Basic* types_basic);
   const ir_ext::SharedPointer* BuildTypeForPointer(types::Pointer* types_pointer);
@@ -47,10 +43,6 @@ class TypeBuilder {
  private:
   types::Info* type_info_;
   std::unique_ptr<ir::Program>& program_;
-
-  ir_ext::Struct* ir_empty_struct_;
-  ir_ext::Interface* ir_empty_interface_;
-  ir_ext::TypeID* ir_type_id_;
 
   std::unordered_map<const ir::Type*, const ir_ext::SharedPointer*>
       ir_element_type_to_ir_strong_pointer_lookup_;
