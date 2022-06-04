@@ -27,6 +27,8 @@ class StringConstant : public ir::Constant {
   void WriteRefString(std::ostream& os) const override;
   void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }
 
+  bool operator==(const ir::Value& that) const override;
+
  private:
   std::string value_;
 };

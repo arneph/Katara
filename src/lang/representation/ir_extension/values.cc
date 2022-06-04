@@ -19,5 +19,11 @@ void StringConstant::WriteRefString(std::ostream& os) const {
   }
 }
 
+bool StringConstant::operator==(const Value& that) const {
+  if (that.kind() != ir::Value::Kind::kConstant) return false;
+  if (that.type()->type_kind() != ir::TypeKind::kLangString) return false;
+  return value() == static_cast<const StringConstant&>(that).value();
+}
+
 }  // namespace ir_ext
 }  // namespace lang

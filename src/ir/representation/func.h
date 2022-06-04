@@ -68,6 +68,8 @@ class Func : public Object {
   common::Graph ToControlFlowGraph() const;
   common::Graph ToDominatorTree() const;
 
+  bool operator==(const Func& that) const;
+
  private:
   struct DomTreeContext {
     DomTreeContext(int64_t block_count);
@@ -107,6 +109,12 @@ class Func : public Object {
 
   int64_t computed_count_ = 0;
 };
+
+constexpr bool IsEqual(const Func* func_a, const Func* func_b) {
+  if (func_a == func_b) return true;
+  if (func_a == nullptr || func_b == nullptr) return false;
+  return *func_a == *func_b;
+}
 
 }  // namespace ir
 

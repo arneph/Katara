@@ -85,4 +85,18 @@ common::Node Block::ToNode() const {
   return common::NodeBuilder(number_, RefString()).SetText(ss.str()).Build();
 }
 
+bool Block::operator==(const Block& that) const {
+  if (number() != that.number()) return false;
+  if (name() != that.name()) return false;
+  if (instrs().size() != that.instrs().size()) return false;
+  for (std::size_t i = 0; i < instrs().size(); i++) {
+    const ir::Instr* instr_a = instrs().at(i).get();
+    const ir::Instr* instr_b = that.instrs().at(i).get();
+    if (!IsEqual(instr_a, instr_b)) return false;
+  }
+  if (parents() != that.parents()) return false;
+  if (children() != that.children()) return false;
+  return true;
+}
+
 }  // namespace ir

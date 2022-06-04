@@ -33,6 +33,8 @@ class PanicInstr : public ir::Instr {
   std::string OperationString() const override { return "panic"; }
   void WriteRefString(std::ostream& os) const override { os << "panic \"" << reason_ << "\""; }
 
+  bool operator==(const ir::Instr& that) const override;
+
  private:
   std::string reason_;
 };
@@ -48,6 +50,8 @@ class MakeSharedPointerInstr : public ir::Computation {
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangMakeSharedPointer; }
   std::string OperationString() const override { return "make_shared"; }
+
+  bool operator==(const ir::Instr& that) const override;
 };
 
 class CopySharedPointerInstr : public ir::Computation {
@@ -69,6 +73,8 @@ class CopySharedPointerInstr : public ir::Computation {
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangCopySharedPointer; }
   std::string OperationString() const override { return "copy_shared"; }
+
+  bool operator==(const ir::Instr& that) const override;
 
  private:
   std::shared_ptr<ir::Computed> copied_shared_pointer_;
@@ -92,6 +98,8 @@ class DeleteSharedPointerInstr : public ir::Instr {
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangDeleteSharedPointer; }
   std::string OperationString() const override { return "delete_shared"; }
 
+  bool operator==(const ir::Instr& that) const override;
+
  private:
   std::shared_ptr<ir::Computed> deleted_shared_pointer_;
 };
@@ -107,6 +115,8 @@ class MakeUniquePointerInstr : public ir::Computation {
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangMakeUniquePointer; }
   std::string OperationString() const override { return "make_unique"; }
+
+  bool operator==(const ir::Instr& that) const override;
 };
 
 class DeleteUniquePointerInstr : public ir::Instr {
@@ -125,6 +135,8 @@ class DeleteUniquePointerInstr : public ir::Instr {
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangDeleteUniquePointer; }
   std::string OperationString() const override { return "delete_unique"; }
+
+  bool operator==(const ir::Instr& that) const override;
 
  private:
   std::shared_ptr<ir::Computed> deleted_unique_pointer_;
@@ -146,6 +158,8 @@ class StringIndexInstr : public ir::Computation {
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangStringIndex; }
   std::string OperationString() const override { return "str_index"; }
 
+  bool operator==(const ir::Instr& that) const override;
+
  private:
   std::shared_ptr<ir::Value> string_operand_;
   std::shared_ptr<ir::Value> index_operand_;
@@ -163,6 +177,8 @@ class StringConcatInstr : public ir::Computation {
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangStringConcat; }
   std::string OperationString() const override { return "str_cat"; }
+
+  bool operator==(const ir::Instr& that) const override;
 
  private:
   std::vector<std::shared_ptr<ir::Value>> operands_;

@@ -36,7 +36,15 @@ class Value : public Object {
 
   virtual void WriteRefStringWithType(std::ostream& os) const;
   std::string RefStringWithType() const;
+
+  constexpr virtual bool operator==(const Value& that) const = 0;
 };
+
+constexpr bool IsEqual(const Value* value_a, const Value* value_b) {
+  if (value_a == value_b) return true;
+  if (value_a == nullptr || value_b == nullptr) return false;
+  return *value_a == *value_b;
+}
 
 class Constant : public Value {
  public:
@@ -52,6 +60,8 @@ class BoolConstant : public Constant {
 
   void WriteRefString(std::ostream& os) const override { os << (value_ ? "#t" : "#f"); }
   void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }
+
+  bool operator==(const Value& that) const override;
 
  private:
   BoolConstant(bool value) : value_(value) {}
@@ -73,6 +83,8 @@ class IntConstant : public Constant {
   const Type* type() const override { return IntTypeFor(value_.type()); }
 
   void WriteRefString(std::ostream& os) const override { os << "#" << value().ToString(); }
+
+  bool operator==(const Value& that) const override;
 
  private:
   IntConstant(common::Int value) : value_(value) {}
@@ -105,6 +117,8 @@ class PointerConstant : public Constant {
   void WriteRefString(std::ostream& os) const override;
   void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }
 
+  bool operator==(const Value& that) const override;
+
  private:
   PointerConstant(int64_t value) : value_(value) {}
 
@@ -123,6 +137,8 @@ class FuncConstant : public Constant {
 
   void WriteRefString(std::ostream& os) const override { os << "@" << value(); }
   void WriteRefStringWithType(std::ostream& os) const override { WriteRefString(os); }
+
+  bool operator==(const Value& that) const override;
 
  private:
   FuncConstant(func_num_t value) : value_(value) {}
@@ -147,6 +163,8 @@ class Computed : public Value {
 
   void WriteRefString(std::ostream& os) const override { os << "%" << number_; }
 
+  bool operator==(const Value& that) const override;
+
  private:
   const Type* type_;
   value_num_t number_;
@@ -164,6 +182,8 @@ class InheritedValue : public Value {
   constexpr Value::Kind kind() const final { return Value::Kind::kInherited; }
 
   void WriteRefString(std::ostream& os) const override;
+
+  bool operator==(const Value& that) const override;
 
  private:
   std::shared_ptr<Value> value_;

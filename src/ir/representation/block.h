@@ -50,6 +50,8 @@ class Block : public Object {
 
   common::Node ToNode() const;
 
+  bool operator==(const Block& that) const;
+
   friend class Func;
 
  private:
@@ -61,6 +63,12 @@ class Block : public Object {
   std::unordered_set<block_num_t> parents_;
   std::unordered_set<block_num_t> children_;
 };
+
+constexpr bool IsEqual(const Block* block_a, const Block* block_b) {
+  if (block_a == block_b) return true;
+  if (block_a == nullptr || block_b == nullptr) return false;
+  return *block_a == *block_b;
+}
 
 }  // namespace ir
 

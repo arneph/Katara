@@ -42,13 +42,24 @@ class Type : public Object {
 
   constexpr Object::Kind object_kind() const final { return Object::Kind::kType; }
   constexpr virtual TypeKind type_kind() const = 0;
+
+  constexpr virtual bool operator==(const Type& that) const = 0;
 };
+
+constexpr bool IsEqual(const Type* type_a, const Type* type_b) {
+  if (type_a == type_b) return true;
+  if (type_a == nullptr || type_b == nullptr) return false;
+  return *type_a == *type_b;
+}
 
 class AtomicType : public Type {
  public:
   constexpr virtual ~AtomicType() {}
 
   constexpr virtual int8_t bit_size() const = 0;
+  constexpr bool operator==(const Type& that) const override {
+    return type_kind() == that.type_kind();
+  }
 };
 
 class BoolType : public AtomicType {

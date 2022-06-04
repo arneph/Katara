@@ -66,7 +66,15 @@ class Instr : public Object {
 
   virtual std::string OperationString() const = 0;
   virtual void WriteRefString(std::ostream& os) const override;
+
+  constexpr virtual bool operator==(const Instr& that) const = 0;
 };
+
+constexpr bool IsEqual(const Instr* instr_a, const Instr* instr_b) {
+  if (instr_a == instr_b) return true;
+  if (instr_a == nullptr || instr_b == nullptr) return false;
+  return *instr_a == *instr_b;
+}
 
 class Computation : public Instr {
  public:
@@ -99,6 +107,8 @@ class MovInstr : public Computation {
   InstrKind instr_kind() const override { return InstrKind::kMov; }
   std::string OperationString() const override { return "mov"; }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Value> origin_;
 };
@@ -119,6 +129,8 @@ class PhiInstr : public Computation {
   std::string OperationString() const override { return "phi"; }
   void WriteRefString(std::ostream& os) const override;
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::vector<std::shared_ptr<InheritedValue>> args_;
 };
@@ -136,6 +148,8 @@ class Conversion : public Computation {
   InstrKind instr_kind() const override { return InstrKind::kConversion; }
   std::string OperationString() const override { return "conv"; }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Value> operand_;
 };
@@ -152,6 +166,8 @@ class BoolNotInstr : public Computation {
 
   InstrKind instr_kind() const override { return InstrKind::kBoolNot; }
   std::string OperationString() const override { return "bnot"; }
+
+  bool operator==(const Instr& that) const override;
 
  private:
   std::shared_ptr<Value> operand_;
@@ -179,6 +195,8 @@ class BoolBinaryInstr : public Computation {
   InstrKind instr_kind() const override { return InstrKind::kBoolBinary; }
   std::string OperationString() const override { return common::ToString(operation_); }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   common::Bool::BinaryOp operation_;
   std::shared_ptr<Value> operand_a_;
@@ -201,6 +219,8 @@ class IntUnaryInstr : public Computation {
 
   InstrKind instr_kind() const override { return InstrKind::kIntUnary; }
   std::string OperationString() const override { return common::ToString(operation_); }
+
+  bool operator==(const Instr& that) const override;
 
  private:
   common::Int::UnaryOp operation_;
@@ -228,6 +248,8 @@ class IntCompareInstr : public Computation {
 
   InstrKind instr_kind() const override { return InstrKind::kIntCompare; }
   std::string OperationString() const override { return common::ToString(operation_); }
+
+  bool operator==(const Instr& that) const override;
 
  private:
   common::Int::CompareOp operation_;
@@ -257,6 +279,8 @@ class IntBinaryInstr : public Computation {
   InstrKind instr_kind() const override { return InstrKind::kIntBinary; }
   std::string OperationString() const override { return common::ToString(operation_); }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   common::Int::BinaryOp operation_;
   std::shared_ptr<Value> operand_a_;
@@ -283,6 +307,8 @@ class IntShiftInstr : public Computation {
   InstrKind instr_kind() const override { return InstrKind::kIntShift; }
   std::string OperationString() const override { return common::ToString(operation_); }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   common::Int::ShiftOp operation_;
   std::shared_ptr<Value> shifted_;
@@ -306,6 +332,8 @@ class PointerOffsetInstr : public Computation {
   InstrKind instr_kind() const override { return InstrKind::kPointerOffset; }
   std::string OperationString() const override { return "poff"; }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Computed> pointer_;
   std::shared_ptr<Value> offset_;
@@ -324,6 +352,8 @@ class NilTestInstr : public Computation {
   InstrKind instr_kind() const override { return InstrKind::kNilTest; }
   std::string OperationString() const override { return "niltest"; }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Value> tested_;
 };
@@ -341,6 +371,8 @@ class MallocInstr : public Computation {
   InstrKind instr_kind() const override { return InstrKind::kMalloc; }
   std::string OperationString() const override { return "malloc"; }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Value> size_;
 };
@@ -357,6 +389,8 @@ class LoadInstr : public Computation {
 
   InstrKind instr_kind() const override { return InstrKind::kLoad; }
   std::string OperationString() const override { return "load"; }
+
+  bool operator==(const Instr& that) const override;
 
  private:
   std::shared_ptr<Value> address_;
@@ -379,6 +413,8 @@ class StoreInstr : public Instr {
   InstrKind instr_kind() const override { return InstrKind::kStore; }
   std::string OperationString() const override { return "store"; }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Value> address_;
   std::shared_ptr<Value> value_;
@@ -397,6 +433,8 @@ class FreeInstr : public Instr {
   InstrKind instr_kind() const override { return InstrKind::kFree; }
   std::string OperationString() const override { return "free"; }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Value> address_;
 };
@@ -414,6 +452,8 @@ class JumpInstr : public Instr {
   InstrKind instr_kind() const override { return InstrKind::kJump; }
   std::string OperationString() const override { return "jmp"; }
   void WriteRefString(std::ostream& os) const override;
+
+  bool operator==(const Instr& that) const override;
 
  private:
   block_num_t destination_;
@@ -445,6 +485,8 @@ class JumpCondInstr : public Instr {
   std::string OperationString() const override { return "jcc"; }
   void WriteRefString(std::ostream& os) const override;
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Value> condition_;
   block_num_t destination_true_;
@@ -472,6 +514,8 @@ class CallInstr : public Instr {
   InstrKind instr_kind() const override { return InstrKind::kCall; }
   std::string OperationString() const override { return "call"; }
 
+  bool operator==(const Instr& that) const override;
+
  private:
   std::shared_ptr<Value> func_;
   std::vector<std::shared_ptr<Computed>> results_;
@@ -490,6 +534,8 @@ class ReturnInstr : public Instr {
 
   InstrKind instr_kind() const override { return InstrKind::kReturn; }
   std::string OperationString() const override { return "ret"; }
+
+  bool operator==(const Instr& that) const override;
 
  private:
   std::vector<std::shared_ptr<Value>> args_;

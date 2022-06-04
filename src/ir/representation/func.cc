@@ -144,6 +144,31 @@ common::Graph Func::ToDominatorTree() const {
   return graph;
 }
 
+bool Func::operator==(const Func& that) const {
+  if (number() != that.number()) return false;
+  if (name() != that.name()) return false;
+  if (args().size() != that.args().size()) return false;
+  if (result_types().size() != that.result_types().size()) return false;
+  if (entry_block_num() != that.entry_block_num()) return false;
+  if (blocks().size() != that.blocks().size()) return false;
+  for (std::size_t i = 0; i < args().size(); i++) {
+    const Computed* arg_a = args().at(i).get();
+    const Computed* arg_b = that.args().at(i).get();
+    if (!IsEqual(arg_a, arg_b)) return false;
+  }
+  for (std::size_t i = 0; i < result_types().size(); i++) {
+    const Type* result_a = result_types().at(i);
+    const Type* result_b = that.result_types().at(i);
+    if (!IsEqual(result_a, result_b)) return false;
+  }
+  for (std::size_t i = 0; i < blocks().size(); i++) {
+    const Block* block_a = blocks().at(i).get();
+    const Block* block_b = that.blocks().at(i).get();
+    if (!IsEqual(block_a, block_b)) return false;
+  }
+  return true;
+}
+
 Func::DomTreeContext::DomTreeContext(int64_t block_count) {
   tree_order_ = std::vector<block_num_t>();
   tree_order_.reserve(block_count);

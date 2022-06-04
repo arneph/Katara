@@ -42,6 +42,8 @@ class Program : public Object {
 
   void WriteRefString(std::ostream&) const override {}
 
+  bool operator==(const Program& that) const;
+
  private:
   int64_t func_count_;
   std::vector<std::unique_ptr<Func>> funcs_;
@@ -50,6 +52,12 @@ class Program : public Object {
 
   TypeTable type_table_;
 };
+
+constexpr bool IsEqual(const Program* program_a, const Program* program_b) {
+  if (program_a == program_b) return true;
+  if (program_a == nullptr || program_b == nullptr) return false;
+  return *program_a == *program_b;
+}
 
 }  // namespace ir
 

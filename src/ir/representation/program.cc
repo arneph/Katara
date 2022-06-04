@@ -42,4 +42,15 @@ void Program::RemoveFunc(func_num_t fnum) {
   funcs_.erase(it);
 }
 
+bool Program::operator==(const Program& that) const {
+  if (entry_func_num() != that.entry_func_num()) return false;
+  if (funcs().size() != that.funcs().size()) return false;
+  for (std::size_t i = 0; i < funcs().size(); i++) {
+    const Func* func_a = funcs().at(i).get();
+    const Func* func_b = that.funcs().at(i).get();
+    if (!IsEqual(func_a, func_b)) return false;
+  }
+  return true;
+}
+
 }  // namespace ir

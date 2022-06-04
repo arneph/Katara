@@ -18,7 +18,7 @@ TypeBuilder::TypeBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& p
   ir_empty_struct_ =
       static_cast<ir_ext::Struct*>(program_->type_table().AddType(ir_ext::StructBuilder().Build()));
   ir_empty_interface_ = static_cast<ir_ext::Interface*>(program_->type_table().AddType(
-      std::make_unique<ir_ext::Interface>(std::vector<std::string>{})));
+      std::make_unique<ir_ext::Interface>(std::vector<ir_ext::Interface::Method>{})));
   ir_type_id_ = static_cast<ir_ext::TypeID*>(
       program_->type_table().AddType(std::make_unique<ir_ext::TypeID>()));
 }
@@ -184,9 +184,13 @@ const ir_ext::Interface* TypeBuilder::BuildTypeForInterface(types::Interface* ty
       it != types_interface_to_ir_interface_lookup_.end()) {
     return it->second;
   }
-  std::vector<std::string> methods;
+  std::vector<ir_ext::Interface::Method> methods;
   for (types::Func* types_method : types_interface->methods()) {
-    methods.push_back(types_method->name());
+    methods.push_back(ir_ext::Interface::Method{
+        .name = types_method->name(),
+        .parameters = {},
+        .results = {},
+    });
   }
   return static_cast<ir_ext::Interface*>(
       program_->type_table().AddType(std::make_unique<ir_ext::Interface>(methods)));

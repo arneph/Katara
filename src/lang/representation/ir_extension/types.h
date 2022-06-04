@@ -38,6 +38,8 @@ class SharedPointer : public SmartPointer {
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSharedPointer; }
   void WriteRefString(std::ostream& os) const override { os << "lshared_ptr"; }
 
+  bool operator==(const ir::Type& that) const override;
+
  private:
   bool is_strong_;
 };
@@ -48,12 +50,16 @@ class UniquePointer : public SmartPointer {
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangUniquePointer; }
   void WriteRefString(std::ostream& os) const override { os << "lunique_ptr"; }
+
+  bool operator==(const ir::Type& that) const override;
 };
 
 class StringType : public ir::Type {
  public:
   constexpr ir::TypeKind type_kind() const override { return ir::TypeKind::kLangString; }
   void WriteRefString(std::ostream& os) const override { os << "lstr"; }
+
+  bool operator==(const ir::Type& that) const override { return type_kind() == that.type_kind(); }
 };
 
 extern const StringType kString;
@@ -68,6 +74,8 @@ class Array : public ir::Type {
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangArray; }
   void WriteRefString(std::ostream& os) const override { os << "larray"; }
+
+  bool operator==(const ir::Type& that) const override;
 
  private:
   Array() : element_(nullptr), size_(kDynamicArraySize) {}
@@ -94,15 +102,22 @@ class ArrayBuilder {
 
 class Struct : public ir::Type {
  public:
-  const std::vector<std::pair<std::string, const ir::Type*>>& fields() const { return fields_; }
+  struct Field {
+    std::string name;
+    const ir::Type* type;
+  };
+
+  const std::vector<Field>& fields() const { return fields_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangStruct; }
   void WriteRefString(std::ostream& os) const override { os << "lstruct"; }
 
+  bool operator==(const ir::Type& that) const override;
+
  private:
   Struct() {}
 
-  std::vector<std::pair<std::string, const ir::Type*>> fields_;
+  std::vector<Field> fields_;
 
   friend class StructBuilder;
 };
@@ -122,15 +137,23 @@ class StructBuilder {
 
 class Interface : public ir::Type {
  public:
-  Interface(std::vector<std::string> methods) : methods_(methods) {}
+  struct Method {
+    std::string name;
+    std::vector<const ir::Type*> parameters;
+    std::vector<const ir::Type*> results;
+  };
 
-  const std::vector<std::string>& methods() const { return methods_; }
+  Interface(std::vector<Method> methods) : methods_(methods) {}
+
+  const std::vector<Method>& methods() const { return methods_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangInterface; }
   void WriteRefString(std::ostream& os) const override { os << "linterface"; }
 
+  bool operator==(const ir::Type& that) const override;
+
  private:
-  std::vector<std::string> methods_;
+  std::vector<Method> methods_;
 };
 
 class TypeID : public ir::Type {
@@ -139,6 +162,8 @@ class TypeID : public ir::Type {
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangTypeID; }
   void WriteRefString(std::ostream& os) const override { os << "ltypeid"; }
+
+  bool operator==(const ir::Type& that) const override { return type_kind() == that.type_kind(); }
 };
 
 }  // namespace ir_ext
