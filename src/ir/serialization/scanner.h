@@ -37,7 +37,9 @@ class Scanner {
     kComma = ',',
     kEqualSign = '=',
     kParenOpen = '(',
-    kParenClose = ')'
+    kParenClose = ')',
+    kAngleOpen = '<',
+    kAngleClose = '>',
   } Token;
 
   static std::string TokenToString(Token token);

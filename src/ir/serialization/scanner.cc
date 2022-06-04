@@ -113,6 +113,8 @@ void Scanner::Next() {
     case ',':
     case '(':
     case ')':
+    case '<':
+    case '>':
       in_stream_.get();
       token_ = (Token)c;
       token_text_ = std::string(1, c);

@@ -97,7 +97,7 @@ TEST(ScannerTest, ScansString) {
 
 TEST(ScannerTest, ScansCharacterTokens) {
   std::stringstream ss;
-  ss << ")(,@}{:%#\n==>=";
+  ss << ")(,@}{:%#\n==>><=";
   ir_serialization::Scanner scanner(ss);
 
   scanner.Next();
@@ -147,6 +147,14 @@ TEST(ScannerTest, ScansCharacterTokens) {
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kArrow);
   EXPECT_EQ(scanner.token_text(), "=>");
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAngleClose);
+  EXPECT_EQ(scanner.token_text(), ">");
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAngleOpen);
+  EXPECT_EQ(scanner.token_text(), "<");
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEqualSign);
