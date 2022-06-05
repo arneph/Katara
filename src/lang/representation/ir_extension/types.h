@@ -147,7 +147,7 @@ class Interface : public ir::Type {
     std::vector<const ir::Type*> results;
   };
 
-  Interface(std::vector<Method> methods) : methods_(methods) {}
+  static Interface EmptyInterface() { return Interface(); }
 
   const std::vector<Method>& methods() const { return methods_; }
 
@@ -157,7 +157,25 @@ class Interface : public ir::Type {
   bool operator==(const ir::Type& that) const override;
 
  private:
+  Interface() {}
+
   std::vector<Method> methods_;
+
+  friend class InterfaceBuilder;
+};
+
+class InterfaceBuilder {
+ public:
+  InterfaceBuilder();
+
+  void AddMethod(std::string name, std::vector<const ir::Type*> parameters,
+                 std::vector<const ir::Type*> results);
+
+  Interface* Get() { return interface_.get(); }
+  std::unique_ptr<Interface> Build() { return std::move(interface_); }
+
+ private:
+  std::unique_ptr<Interface> interface_;
 };
 
 const Interface* empty_interface();

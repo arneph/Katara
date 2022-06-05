@@ -177,16 +177,16 @@ const ir_ext::Interface* TypeBuilder::BuildTypeForInterface(types::Interface* ty
       it != types_interface_to_ir_interface_lookup_.end()) {
     return it->second;
   }
-  std::vector<ir_ext::Interface::Method> methods;
+
+  ir_ext::InterfaceBuilder ir_interface_builder;
+  ir_ext::Interface* ir_interface = ir_interface_builder.Get();
+  types_interface_to_ir_interface_lookup_.insert({types_interface, ir_interface});
+
   for (types::Func* types_method : types_interface->methods()) {
-    methods.push_back(ir_ext::Interface::Method{
-        .name = types_method->name(),
-        .parameters = {},
-        .results = {},
-    });
+    ir_interface_builder.AddMethod(types_method->name(), {}, {});
   }
-  return static_cast<ir_ext::Interface*>(
-      program_->type_table().AddType(std::make_unique<ir_ext::Interface>(methods)));
+  program_->type_table().AddType(ir_interface_builder.Build());
+  return ir_interface;
 }
 
 }  // namespace ir_builder

@@ -14,7 +14,7 @@ namespace {
 
 const StringType kString;
 const Struct kEmptyStruct = Struct::EmptyStruct();
-const Interface kEmptyInterface = Interface(std::vector<Interface::Method>{});
+const Interface kEmptyInterface = Interface::EmptyInterface();
 const TypeID kTypeId;
 
 }  // namespace
@@ -137,6 +137,14 @@ bool Interface::operator==(const ir::Type& that_type) const {
     }
   }
   return true;
+}
+
+InterfaceBuilder::InterfaceBuilder() { interface_ = std::unique_ptr<Interface>(new Interface()); }
+
+void InterfaceBuilder::AddMethod(std::string name, std::vector<const ir::Type*> parameters,
+                                 std::vector<const ir::Type*> results) {
+  interface_->methods_.push_back(
+      Interface::Method{.name = name, .parameters = parameters, .results = results});
 }
 
 const Interface* empty_interface() { return &kEmptyInterface; }
