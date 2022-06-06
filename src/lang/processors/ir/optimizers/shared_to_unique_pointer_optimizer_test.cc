@@ -6,7 +6,7 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#include "src/lang/processors/ir_optimizers/shared_to_unique_pointer_optimizer.h"
+#include "src/lang/processors/ir/optimizers/shared_to_unique_pointer_optimizer.h"
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

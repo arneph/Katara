@@ -14,7 +14,7 @@
 #include "src/ir/representation/program.h"
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/docs/package_doc.h"
-#include "src/lang/processors/ir_builder/ir_builder.h"
+#include "src/lang/processors/ir/builder/ir_builder.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 #include "src/lang/representation/ast/ast.h"

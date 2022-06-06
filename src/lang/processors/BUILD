@@ -10,10 +10,7 @@ cc_library(
     deps = [
         "//src/lang/processors/docs:file_doc",
         "//src/lang/processors/docs:package_doc",
-        "//src/lang/processors/ir_builder",
-        "//src/lang/processors/ir_lowerers:shared_pointer_lowerer",
-        "//src/lang/processors/ir_lowerers:unique_pointer_lowerer",
-        "//src/lang/processors/ir_optimizers:shared_to_unique_pointer_optimizer",
+        "//src/lang/processors/ir",
         "//src/lang/processors/issues",
         "//src/lang/processors/packages:package",
         "//src/lang/processors/packages:package_manager",
