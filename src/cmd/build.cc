@@ -23,12 +23,12 @@
 #include "src/ir/representation/num_types.h"
 #include "src/ir/serialization/print.h"
 #include "src/lang/processors/ir/builder/ir_builder.h"
+#include "src/lang/processors/ir/checker/checker.h"
 #include "src/lang/processors/ir/lowerers/shared_pointer_lowerer.h"
 #include "src/lang/processors/ir/lowerers/unique_pointer_lowerer.h"
 #include "src/lang/processors/ir/optimizers/shared_to_unique_pointer_optimizer.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
-#include "src/lang/representation/ir_extension/checker.h"
 
 namespace cmd {
 namespace {
@@ -92,7 +92,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
     GenerateIrDebugInfo(program.get(), "init", debug_handler);
   }
   if (debug_handler.CheckIr()) {
-    ::lang::ir_ext::AssertProgramIsOkay(program.get());
+    ::lang::ir_checker::AssertProgramIsOkay(program.get());
   }
 
   return program;
@@ -106,7 +106,7 @@ void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
   if (debug_handler.CheckIr()) {
     // TODO: implement lowering for panic and other instructions, then revert to using plain IR
     // checker here.
-    ::lang::ir_ext::AssertProgramIsOkay(program);
+    ::lang::ir_checker::AssertProgramIsOkay(program);
   }
 }
 
@@ -119,7 +119,7 @@ void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
   if (debug_handler.CheckIr()) {
     // TODO: implement lowering for panic and other instructions, then revert to using plain IR
     // checker here.
-    ::lang::ir_ext::AssertProgramIsOkay(program);
+    ::lang::ir_checker::AssertProgramIsOkay(program);
   }
 }
 

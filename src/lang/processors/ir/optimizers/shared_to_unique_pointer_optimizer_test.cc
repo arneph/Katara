@@ -12,12 +12,12 @@
 #include "gtest/gtest.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/parse.h"
-#include "src/lang/representation/ir_extension/checker.h"
-#include "src/lang/representation/ir_extension/func_parser.h"
+#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/serialization/func_parser.h"
 
 TEST(SharedToUniquePointerOptimizerTest, OptimizesSmallProgram) {
   std::unique_ptr<ir::Program> optimized_program =
-      ir_serialization::ParseProgram<lang::ir_ext::FuncParser>(R"ir(
+      ir_serialization::ParseProgram<lang::ir_serialization::FuncParser>(R"ir(
 @0 main() => (i64) {
   {0}
     %0:lshared_ptr<i64, s> = make_shared
@@ -48,7 +48,7 @@ TEST(SharedToUniquePointerOptimizerTest, OptimizesSmallProgram) {
 }
 )ir");
   std::unique_ptr<ir::Program> expected_program =
-      ir_serialization::ParseProgram<lang::ir_ext::FuncParser>(R"ir(
+      ir_serialization::ParseProgram<lang::ir_serialization::FuncParser>(R"ir(
 @0 main() => (i64) {
   {0}
     %0:lunique_ptr<i64> = make_unique
@@ -77,11 +77,11 @@ TEST(SharedToUniquePointerOptimizerTest, OptimizesSmallProgram) {
     store %0, %8
     jmp {2}
 }
-)ir");
-  lang::ir_ext::AssertProgramIsOkay(optimized_program.get());
-  lang::ir_ext::AssertProgramIsOkay(expected_program.get());
+  )ir");
+  lang::ir_checker::AssertProgramIsOkay(optimized_program.get());
+  lang::ir_checker::AssertProgramIsOkay(expected_program.get());
 
   lang::ir_optimizers::ConvertSharedToUniquePointersInProgram(optimized_program.get());
-  lang::ir_ext::AssertProgramIsOkay(optimized_program.get());
+  lang::ir_checker::AssertProgramIsOkay(optimized_program.get());
   EXPECT_TRUE(ir::IsEqual(optimized_program.get(), expected_program.get()));
 }

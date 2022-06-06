@@ -23,6 +23,7 @@ cc_test(
         ":shared_to_unique_pointer_optimizer",
         "//src/ir/representation",
         "//src/ir/serialization",
+        "//src/lang/processors",
         "//src/lang/representation",
         "@gtest//:gtest_main",
     ],
