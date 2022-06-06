@@ -12,6 +12,7 @@
 #include <istream>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "src/common/atomics/atomics.h"
 
@@ -57,6 +58,12 @@ class Scanner {
   std::string token_string() const;
 
   void Next();
+
+  int64_t ConsumeInt64();
+  std::string ConsumeIdentifier();
+  void ConsumeToken(Token token);
+
+  void FailForUnexpectedToken(std::vector<Token> expected_tokens);
 
  private:
   void SkipWhitespace();

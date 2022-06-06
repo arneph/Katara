@@ -12,89 +12,58 @@
 
 namespace ir_serialization {
 
-ir::Func* FuncParser::Parse(Scanner& scanner, ir::Program* program) {
-  FuncParser func_parser(scanner, program);
-  func_parser.ParseFunc();
-  return func_parser.func_;
-}
-
 // Func ::= '@' Number Identifier? FuncArgs '=>' FuncResultTypes FuncBody
-void FuncParser::ParseFunc() {
-  ConsumeToken(Scanner::kAtSign);
+ir::Func* FuncParser::ParseFunc() {
+  scanner().ConsumeToken(Scanner::kAtSign);
 
-  func_ = program_->AddFunc(ConsumeInt64());
+  func_ = program()->AddFunc(scanner().ConsumeInt64());
 
-  if (scanner_.token() == Scanner::kIdentifier) {
-    func_->set_name(ConsumeIdentifier());
+  if (scanner().token() == Scanner::kIdentifier) {
+    func_->set_name(scanner().ConsumeIdentifier());
   }
 
   ParseFuncArgs();
-  ConsumeToken(Scanner::kArrow);
+  scanner().ConsumeToken(Scanner::kArrow);
   ParseFuncResultTypes();
   ParseFuncBody();
+  return func_;
 }
 
 // FuncArgs ::= '(' (Computed (',' Computed)*)? ')'
 void FuncParser::ParseFuncArgs() {
-  ConsumeToken(Scanner::kParenOpen);
-
-  if (scanner_.token() == Scanner::kParenClose) {
-    ConsumeToken(Scanner::kParenClose);
-  } else {
-    for (;;) {
-      func_->args().push_back(ParseComputed(/*expected_type=*/nullptr));
-
-      if (scanner_.token() == Scanner::kParenClose) {
-        ConsumeToken(Scanner::kParenClose);
-        break;
-      } else if (scanner_.token() == Scanner::kComma) {
-        ConsumeToken(Scanner::kComma);
-      } else {
-        FailForUnexpectedToken({Scanner::kParenClose, Scanner::kComma});
-      }
-    }
+  scanner().ConsumeToken(Scanner::kParenOpen);
+  if (scanner().token() != Scanner::kParenClose) {
+    func_->args() = ParseComputeds(/*expected_type=*/nullptr);
   }
+  scanner().ConsumeToken(Scanner::kParenClose);
 }
 
 // FuncResultTypes ::= '(' (Type (',' Type)*)? ')'
 void FuncParser::ParseFuncResultTypes() {
-  ConsumeToken(Scanner::kParenOpen);
-
-  if (scanner_.token() == Scanner::kParenClose) {
-    ConsumeToken(Scanner::kParenClose);
-  } else {
-    for (;;) {
-      func_->result_types().push_back(ParseType());
-
-      if (scanner_.token() == Scanner::kParenClose) {
-        ConsumeToken(Scanner::kParenClose);
-        break;
-      } else if (scanner_.token() == Scanner::kComma) {
-        ConsumeToken(Scanner::kComma);
-      } else {
-        FailForUnexpectedToken({Scanner::kParenClose, Scanner::kComma});
-      }
-    }
+  scanner().ConsumeToken(Scanner::kParenOpen);
+  if (scanner().token() != Scanner::kParenClose) {
+    func_->result_types() = ParseTypes();
   }
+  scanner().ConsumeToken(Scanner::kParenClose);
 }
 
 // FuncBody ::= '{' NL (NL | Block)* '}' NL
 void FuncParser::ParseFuncBody() {
-  ConsumeToken(Scanner::kCurlyBracketOpen);
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kCurlyBracketOpen);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   for (;;) {
-    if (scanner_.token() == Scanner::kCurlyBracketClose) {
-      ConsumeToken(Scanner::kCurlyBracketClose);
+    if (scanner().token() == Scanner::kCurlyBracketClose) {
+      scanner().ConsumeToken(Scanner::kCurlyBracketClose);
       break;
-    } else if (scanner_.token() == Scanner::kNewLine) {
-      ConsumeToken(Scanner::kNewLine);
+    } else if (scanner().token() == Scanner::kNewLine) {
+      scanner().ConsumeToken(Scanner::kNewLine);
     } else {
       ParseBlock();
     }
   }
 
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
   ConnectBlocks();
 }
 
@@ -121,25 +90,25 @@ void FuncParser::ConnectBlocks() {
 
 // Block ::= '{' Number '}' Identifier? NL Instr*
 void FuncParser::ParseBlock() {
-  ConsumeToken(Scanner::kCurlyBracketOpen);
+  scanner().ConsumeToken(Scanner::kCurlyBracketOpen);
 
-  int64_t bnum = ConsumeInt64();
+  int64_t bnum = scanner().ConsumeInt64();
 
-  ConsumeToken(Scanner::kCurlyBracketClose);
+  scanner().ConsumeToken(Scanner::kCurlyBracketClose);
 
   ir::Block* block = func_->AddBlock(bnum);
   if (func_->entry_block() == nullptr) {
     func_->set_entry_block_num(bnum);
   }
-  if (scanner_.token() == Scanner::kIdentifier) {
-    block->set_name(ConsumeIdentifier());
+  if (scanner().token() == Scanner::kIdentifier) {
+    block->set_name(scanner().ConsumeIdentifier());
   }
 
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   for (;;) {
-    if (scanner_.token() == Scanner::kCurlyBracketOpen ||
-        scanner_.token() == Scanner::kCurlyBracketClose) {
+    if (scanner().token() == Scanner::kCurlyBracketOpen ||
+        scanner().token() == Scanner::kCurlyBracketClose) {
       break;
     } else {
       block->instrs().push_back(ParseInstr());
@@ -150,108 +119,115 @@ void FuncParser::ParseBlock() {
 // Instr ::= InstrResults '=' Idenifier (Value (',' Value)*)? NL
 std::unique_ptr<ir::Instr> FuncParser::ParseInstr() {
   std::vector<std::shared_ptr<ir::Computed>> results = ParseInstrResults();
-  std::string instr_name = ConsumeIdentifier();
+  std::string instr_name = scanner().ConsumeIdentifier();
+  return ParseInstrWithResults(results, instr_name);
+}
 
+// InstrWithResults ::= (Value (',' Value)*)? NL
+std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
+    std::vector<std::shared_ptr<ir::Computed>> results, std::string instr_name) {
   if (instr_name == "mov") {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for mov instruction");
+      common::fail(scanner().PositionString() + ": expected one result for mov instruction");
     }
     return ParseMovInstr(results.front());
 
   } else if (instr_name == "phi") {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for phi instruction");
+      common::fail(scanner().PositionString() + ": expected one result for phi instruction");
     }
     return ParsePhiInstr(results.front());
 
   } else if (instr_name == "conv") {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for conv instruction");
+      common::fail(scanner().PositionString() + ": expected one result for conv instruction");
     }
     return ParseConversionInstr(results.front());
 
   } else if (instr_name == "bnot") {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for bool not instruction");
+      common::fail(scanner().PositionString() + ": expected one result for bool not instruction");
     }
     return ParseBoolNotInstr(results.front());
 
   } else if (auto bool_binary_op = common::ToBoolBinaryOp(instr_name); bool_binary_op) {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for bool binary instruction");
+      common::fail(scanner().PositionString() +
+                   ": expected one result for bool binary instruction");
     }
     return ParseBoolBinaryInstr(results.front(), bool_binary_op.value());
 
   } else if (auto int_unary_op = common::ToIntUnaryOp(instr_name); int_unary_op) {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for int unary instruction");
+      common::fail(scanner().PositionString() + ": expected one result for int unary instruction");
     }
     return ParseIntUnaryInstr(results.front(), int_unary_op.value());
 
   } else if (auto int_compare_op = common::ToIntCompareOp(instr_name); int_compare_op) {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for int compare instruction");
+      common::fail(scanner().PositionString() +
+                   ": expected one result for int compare instruction");
     }
     return ParseIntCompareInstr(results.front(), int_compare_op.value());
 
   } else if (auto int_binary_op = common::ToIntBinaryOp(instr_name); int_binary_op) {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for int binary instruction");
+      common::fail(scanner().PositionString() + ": expected one result for int binary instruction");
     }
     return ParseIntBinaryInstr(results.front(), int_binary_op.value());
 
   } else if (auto int_shift_op = common::ToIntShiftOp(instr_name); int_shift_op) {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for int shift instruction");
+      common::fail(scanner().PositionString() + ": expected one result for int shift instruction");
     }
     return ParseIntShiftInstr(results.front(), int_shift_op.value());
 
   } else if (instr_name == "poff") {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() +
+      common::fail(scanner().PositionString() +
                    ": expected one result for pointer offset instruction");
     }
     return ParsePointerOffsetInstr(results.front());
 
   } else if (instr_name == "niltest") {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for nil test instruction");
+      common::fail(scanner().PositionString() + ": expected one result for nil test instruction");
     }
     return ParseNilTestInstr(results.front());
 
   } else if (instr_name == "malloc") {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for malloc instruction");
+      common::fail(scanner().PositionString() + ": expected one result for malloc instruction");
     }
     return ParseMallocInstr(results.front());
 
   } else if (instr_name == "load") {
     if (results.size() != 1) {
-      common::fail(scanner_.PositionString() + ": expected one result for load instruction");
+      common::fail(scanner().PositionString() + ": expected one result for load instruction");
     }
     return ParseLoadInstr(results.front());
 
   } else if (instr_name == "store") {
     if (results.size() != 0) {
-      common::fail(scanner_.PositionString() + ": did not expect results for store instruction");
+      common::fail(scanner().PositionString() + ": did not expect results for store instruction");
     }
     return ParseStoreInstr();
 
   } else if (instr_name == "free") {
     if (results.size() != 0) {
-      common::fail(scanner_.PositionString() + ": did not expect results for free instruction");
+      common::fail(scanner().PositionString() + ": did not expect results for free instruction");
     }
     return ParseFreeInstr();
 
   } else if (instr_name == "jmp") {
     if (results.size() != 0) {
-      common::fail(scanner_.PositionString() + ": did not expect results for jump instruction");
+      common::fail(scanner().PositionString() + ": did not expect results for jump instruction");
     }
     return ParseJumpInstr();
 
   } else if (instr_name == "jcc") {
     if (results.size() != 0) {
-      common::fail(scanner_.PositionString() +
+      common::fail(scanner().PositionString() +
                    ": did not expect results for jump conditional  instruction");
     }
     return ParseJumpCondInstr();
@@ -261,12 +237,12 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstr() {
 
   } else if (instr_name == "ret") {
     if (results.size() != 0) {
-      common::fail(scanner_.PositionString() + ": did not expect results for return instruction");
+      common::fail(scanner().PositionString() + ": did not expect results for return instruction");
     }
     return ParseReturnInstr();
 
   } else {
-    common::fail(scanner_.PositionString() + ": unknown operation: " + instr_name);
+    common::fail(scanner().PositionString() + ": unknown operation: " + instr_name);
   }
 }
 
@@ -274,7 +250,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstr() {
 std::unique_ptr<ir::MovInstr> FuncParser::ParseMovInstr(std::shared_ptr<ir::Computed> result) {
   std::shared_ptr<ir::Value> arg = ParseValue(result->type());
 
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::MovInstr>(result, arg);
 }
@@ -286,21 +262,21 @@ std::unique_ptr<ir::PhiInstr> FuncParser::ParsePhiInstr(std::shared_ptr<ir::Comp
   args.push_back(ParseInheritedValue(result->type()));
 
   for (;;) {
-    if (scanner_.token() == Scanner::kNewLine) {
-      ConsumeToken(Scanner::kNewLine);
+    if (scanner().token() == Scanner::kNewLine) {
+      scanner().ConsumeToken(Scanner::kNewLine);
       break;
-    } else if (scanner_.token() == Scanner::kComma) {
-      ConsumeToken(Scanner::kComma);
+    } else if (scanner().token() == Scanner::kComma) {
+      scanner().ConsumeToken(Scanner::kComma);
 
       args.push_back(ParseInheritedValue(result->type()));
 
     } else {
-      FailForUnexpectedToken({Scanner::kNewLine, Scanner::kComma});
+      scanner().FailForUnexpectedToken({Scanner::kNewLine, Scanner::kComma});
     }
   }
 
   if (args.size() < 2) {
-    common::fail(scanner_.PositionString() +
+    common::fail(scanner().PositionString() +
                  ": expected at least two arguments for phi instruction");
   }
 
@@ -311,7 +287,7 @@ std::unique_ptr<ir::PhiInstr> FuncParser::ParsePhiInstr(std::shared_ptr<ir::Comp
 std::unique_ptr<ir::Conversion> FuncParser::ParseConversionInstr(
     std::shared_ptr<ir::Computed> result) {
   std::shared_ptr<ir::Value> arg = ParseValue(/*expected_type=*/nullptr);
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::Conversion>(result, arg);
 }
@@ -321,7 +297,7 @@ std::unique_ptr<ir::BoolNotInstr> FuncParser::ParseBoolNotInstr(
     std::shared_ptr<ir::Computed> result) {
   std::shared_ptr<ir::Value> operand = ParseValue(ir::bool_type());
 
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::BoolNotInstr>(result, operand);
 }
@@ -330,10 +306,10 @@ std::unique_ptr<ir::BoolNotInstr> FuncParser::ParseBoolNotInstr(
 std::unique_ptr<ir::BoolBinaryInstr> FuncParser::ParseBoolBinaryInstr(
     std::shared_ptr<ir::Computed> result, common::Bool::BinaryOp op) {
   std::shared_ptr<ir::Value> operand_a = ParseValue(result->type());
-  ConsumeToken(Scanner::kComma);
+  scanner().ConsumeToken(Scanner::kComma);
 
   std::shared_ptr<ir::Value> operand_b = ParseValue(result->type());
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::BoolBinaryInstr>(result, op, operand_a, operand_b);
 }
@@ -342,7 +318,7 @@ std::unique_ptr<ir::BoolBinaryInstr> FuncParser::ParseBoolBinaryInstr(
 std::unique_ptr<ir::IntUnaryInstr> FuncParser::ParseIntUnaryInstr(
     std::shared_ptr<ir::Computed> result, common::Int::UnaryOp op) {
   std::shared_ptr<ir::Value> operand = ParseValue(result->type());
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::IntUnaryInstr>(result, op, operand);
 }
@@ -351,10 +327,10 @@ std::unique_ptr<ir::IntUnaryInstr> FuncParser::ParseIntUnaryInstr(
 std::unique_ptr<ir::IntCompareInstr> FuncParser::ParseIntCompareInstr(
     std::shared_ptr<ir::Computed> result, common::Int::CompareOp op) {
   std::shared_ptr<ir::Value> operand_a = ParseValue(/*expected_type=*/nullptr);
-  ConsumeToken(Scanner::kComma);
+  scanner().ConsumeToken(Scanner::kComma);
 
   std::shared_ptr<ir::Value> operand_b = ParseValue(operand_a->type());
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::IntCompareInstr>(result, op, operand_a, operand_b);
 }
@@ -363,10 +339,10 @@ std::unique_ptr<ir::IntCompareInstr> FuncParser::ParseIntCompareInstr(
 std::unique_ptr<ir::IntBinaryInstr> FuncParser::ParseIntBinaryInstr(
     std::shared_ptr<ir::Computed> result, common::Int::BinaryOp op) {
   std::shared_ptr<ir::Value> operand_a = ParseValue(result->type());
-  ConsumeToken(Scanner::kComma);
+  scanner().ConsumeToken(Scanner::kComma);
 
   std::shared_ptr<ir::Value> operand_b = ParseValue(result->type());
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::IntBinaryInstr>(result, op, operand_a, operand_b);
 }
@@ -375,10 +351,10 @@ std::unique_ptr<ir::IntBinaryInstr> FuncParser::ParseIntBinaryInstr(
 std::unique_ptr<ir::IntShiftInstr> FuncParser::ParseIntShiftInstr(
     std::shared_ptr<ir::Computed> result, common::Int::ShiftOp op) {
   std::shared_ptr<ir::Value> operand_a = ParseValue(/*expected_type=*/nullptr);
-  ConsumeToken(Scanner::kComma);
+  scanner().ConsumeToken(Scanner::kComma);
 
   std::shared_ptr<ir::Value> operand_b = ParseValue(/*expected_type=*/nullptr);
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::IntShiftInstr>(result, op, operand_a, operand_b);
 }
@@ -387,10 +363,10 @@ std::unique_ptr<ir::IntShiftInstr> FuncParser::ParseIntShiftInstr(
 std::unique_ptr<ir::PointerOffsetInstr> FuncParser::ParsePointerOffsetInstr(
     std::shared_ptr<ir::Computed> result) {
   std::shared_ptr<ir::Computed> pointer = ParseComputed(ir::pointer_type());
-  ConsumeToken(Scanner::kComma);
+  scanner().ConsumeToken(Scanner::kComma);
 
   std::shared_ptr<ir::Value> offset = ParseValue(ir::i64());
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset);
 }
@@ -399,7 +375,7 @@ std::unique_ptr<ir::PointerOffsetInstr> FuncParser::ParsePointerOffsetInstr(
 std::unique_ptr<ir::NilTestInstr> FuncParser::ParseNilTestInstr(
     std::shared_ptr<ir::Computed> result) {
   std::shared_ptr<ir::Value> tested = ParseValue(/*expected_type=*/nullptr);
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::NilTestInstr>(result, tested);
 }
@@ -408,7 +384,7 @@ std::unique_ptr<ir::NilTestInstr> FuncParser::ParseNilTestInstr(
 std::unique_ptr<ir::MallocInstr> FuncParser::ParseMallocInstr(
     std::shared_ptr<ir::Computed> result) {
   std::shared_ptr<ir::Value> size = ParseValue(ir::i64());
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::MallocInstr>(result, size);
 }
@@ -416,7 +392,7 @@ std::unique_ptr<ir::MallocInstr> FuncParser::ParseMallocInstr(
 // LoadInstr ::= Computed '=' 'load' Value NL
 std::unique_ptr<ir::LoadInstr> FuncParser::ParseLoadInstr(std::shared_ptr<ir::Computed> result) {
   std::shared_ptr<ir::Value> address = ParseValue(ir::pointer_type());
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::LoadInstr>(result, address);
 }
@@ -424,10 +400,10 @@ std::unique_ptr<ir::LoadInstr> FuncParser::ParseLoadInstr(std::shared_ptr<ir::Co
 // StoreInstr ::= 'store' Value ',' Value NL
 std::unique_ptr<ir::StoreInstr> FuncParser::ParseStoreInstr() {
   std::shared_ptr<ir::Value> address = ParseValue(ir::pointer_type());
-  ConsumeToken(Scanner::kComma);
+  scanner().ConsumeToken(Scanner::kComma);
 
   std::shared_ptr<ir::Value> value = ParseValue(/*expected_type=*/nullptr);
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::StoreInstr>(address, value);
 }
@@ -435,7 +411,7 @@ std::unique_ptr<ir::StoreInstr> FuncParser::ParseStoreInstr() {
 // FreeInstr ::= 'free' Value NL
 std::unique_ptr<ir::FreeInstr> FuncParser::ParseFreeInstr() {
   std::shared_ptr<ir::Value> address = ParseValue(ir::pointer_type());
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::FreeInstr>(address);
 }
@@ -443,7 +419,7 @@ std::unique_ptr<ir::FreeInstr> FuncParser::ParseFreeInstr() {
 // JumpInstr ::= 'jmp' BlockValue NL
 std::unique_ptr<ir::JumpInstr> FuncParser::ParseJumpInstr() {
   ir::block_num_t destination = ParseBlockValue();
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::JumpInstr>(destination);
 }
@@ -451,13 +427,13 @@ std::unique_ptr<ir::JumpInstr> FuncParser::ParseJumpInstr() {
 // JumpCondInstr ::= 'jcc' Value ',' BlockValue ',' BlockValue NL
 std::unique_ptr<ir::JumpCondInstr> FuncParser::ParseJumpCondInstr() {
   std::shared_ptr<ir::Value> condition = ParseValue(ir::bool_type());
-  ConsumeToken(Scanner::kComma);
+  scanner().ConsumeToken(Scanner::kComma);
 
   ir::block_num_t destination_true = ParseBlockValue();
-  ConsumeToken(Scanner::kComma);
+  scanner().ConsumeToken(Scanner::kComma);
 
   ir::block_num_t destination_false = ParseBlockValue();
-  ConsumeToken(Scanner::kNewLine);
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::JumpCondInstr>(condition, destination_true, destination_false);
 }
@@ -468,72 +444,32 @@ std::unique_ptr<ir::CallInstr> FuncParser::ParseCallInstr(
     std::vector<std::shared_ptr<ir::Computed>> results) {
   std::shared_ptr<ir::Value> func = ParseValue(ir::func_type());
   std::vector<std::shared_ptr<ir::Value>> args;
-
-  for (;;) {
-    if (scanner_.token() == Scanner::kNewLine) {
-      ConsumeToken(Scanner::kNewLine);
-      break;
-    } else if (scanner_.token() == Scanner::kComma) {
-      ConsumeToken(Scanner::kComma);
-
-      args.push_back(ParseValue(/*expected_type=*/nullptr));
-
-    } else {
-      FailForUnexpectedToken({Scanner::kNewLine, Scanner::kComma});
-    }
+  if (scanner().token() == Scanner::kComma) {
+    scanner().ConsumeToken(Scanner::kComma);
+    args = ParseValues(/*expected_type=*/nullptr);
   }
+  scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::CallInstr>(func, results, args);
 }
 
 std::unique_ptr<ir::ReturnInstr> FuncParser::ParseReturnInstr() {
-  std::vector<std::shared_ptr<ir::Value>> args;
-
-  if (scanner_.token() == Scanner::kNewLine) {
-    ConsumeToken(Scanner::kNewLine);
-
-    return std::make_unique<ir::ReturnInstr>(args);
+  if (scanner().token() == Scanner::kNewLine) {
+    scanner().ConsumeToken(Scanner::kNewLine);
+    return std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{});
   }
-
-  args.push_back(ParseValue(/*expected_type=*/nullptr));
-
-  for (;;) {
-    if (scanner_.token() == Scanner::kNewLine) {
-      ConsumeToken(Scanner::kNewLine);
-      break;
-
-    } else if (scanner_.token() == Scanner::kComma) {
-      ConsumeToken(Scanner::kComma);
-
-      args.push_back(ParseValue(/*expected_type=*/nullptr));
-
-    } else {
-      FailForUnexpectedToken({Scanner::kNewLine, Scanner::kComma});
-    }
-  }
-
+  std::vector<std::shared_ptr<ir::Value>> args = ParseValues(/*expected_type=*/nullptr);
+  scanner().ConsumeToken(Scanner::kNewLine);
   return std::make_unique<ir::ReturnInstr>(args);
 }
 
 // InstrResults ::= (Computed (',' Computed)* '=')?
 std::vector<std::shared_ptr<ir::Computed>> FuncParser::ParseInstrResults() {
   std::vector<std::shared_ptr<ir::Computed>> results;
-
-  if (scanner_.token() == Scanner::kPercentSign) {
-    for (;;) {
-      results.push_back(ParseComputed(/*expected_type=*/nullptr));
-
-      if (scanner_.token() == Scanner::kEqualSign) {
-        ConsumeToken(Scanner::kEqualSign);
-        break;
-      } else if (scanner_.token() == Scanner::kComma) {
-        ConsumeToken(Scanner::kComma);
-      } else {
-        FailForUnexpectedToken({Scanner::kEqualSign, Scanner::kComma});
-      }
-    }
+  if (scanner().token() == Scanner::kPercentSign) {
+    results = ParseComputeds(/*expected_type=*/nullptr);
+    scanner().ConsumeToken(Scanner::kEqualSign);
   }
-
   return results;
 }
 
@@ -545,89 +481,101 @@ std::shared_ptr<ir::InheritedValue> FuncParser::ParseInheritedValue(const ir::Ty
   return std::make_shared<ir::InheritedValue>(value, origin);
 }
 
-// Value ::= (Constant | Computed | BlockValue)
+// Values ::= Value (',' Value)*
+std::vector<std::shared_ptr<ir::Value>> FuncParser::ParseValues(const ir::Type* expected_type) {
+  std::vector<std::shared_ptr<ir::Value>> values{ParseValue(expected_type)};
+  while (scanner().token() == Scanner::kComma) {
+    scanner().ConsumeToken(Scanner::kComma);
+    values.push_back(ParseValue(expected_type));
+  }
+  return values;
+}
+
+// Value ::= (Constant | Computed)
 std::shared_ptr<ir::Value> FuncParser::ParseValue(const ir::Type* expected_type) {
-  switch (scanner_.token()) {
-    case Scanner::kAtSign:
-    case Scanner::kHashSign:
-    case Scanner::kCurlyBracketOpen:
-    case Scanner::kNumber:
+  if (scanner().token() == Scanner::kPercentSign) {
+    return ParseComputed(expected_type);
+  } else {
+    return ParseConstant(expected_type);
+  }
+}
+
+std::shared_ptr<ir::Constant> FuncParser::ParseConstant(const ir::Type* expected_type) {
+  switch (scanner().token()) {
     case Scanner::kAddress:
-      return ParseConstant(expected_type);
-    case Scanner::kPercentSign:
-      return ParseComputed(expected_type);
+      if (expected_type != nullptr && expected_type != ir::pointer_type()) {
+        common::fail(scanner().PositionString() + ": unexpected '0x'");
+      }
+      return ParsePointerConstant();
+    case Scanner::kAtSign:
+      if (expected_type != nullptr && expected_type != ir::func_type()) {
+        common::fail(scanner().PositionString() + ": unexpected '@'");
+      }
+      return ParseFuncConstant();
+    case Scanner::kHashSign:
+      return ParseBoolOrIntConstant(expected_type);
     default:
-      FailForUnexpectedToken({Scanner::kAtSign, Scanner::kHashSign, Scanner::kCurlyBracketOpen,
-                              Scanner::kNumber, Scanner::kAddress, Scanner::kPercentSign});
+      scanner().FailForUnexpectedToken({Scanner::kAtSign, Scanner::kHashSign, Scanner::kAddress});
       return nullptr;
   }
 }
 
-// Constant ::= '@' Number
-//              | '#t' | '#f'
-//              | '#' Number (':' Type)?
-//              | '0x' Number
-std::shared_ptr<ir::Constant> FuncParser::ParseConstant(const ir::Type* expected_type) {
-  if (scanner_.token() == Scanner::kAddress) {
-    if (expected_type != nullptr && expected_type != ir::pointer_type()) {
-      common::fail(scanner_.PositionString() + ": unexpected '0x'");
-    }
-    uint64_t number = scanner_.token_address().AsUint64();
-    scanner_.Next();
+// PointerConstant ::= '0x' Number
+std::shared_ptr<ir::PointerConstant> FuncParser::ParsePointerConstant() {
+  uint64_t number = scanner().token_address().AsUint64();
+  scanner().Next();
 
-    return ir::ToPointerConstant(number);
+  return ir::ToPointerConstant(number);
+}
 
-  } else if (scanner_.token() == Scanner::kAtSign) {
-    if (expected_type != nullptr && expected_type != ir::func_type())
-      common::fail(scanner_.PositionString() + ": unexpected '@'");
-    ConsumeToken(Scanner::kAtSign);
-    ir::func_num_t number = ConsumeInt64();
+// FuncConstant ::= '@' Number
+std::shared_ptr<ir::FuncConstant> FuncParser::ParseFuncConstant() {
+  scanner().ConsumeToken(Scanner::kAtSign);
+  ir::func_num_t number = scanner().ConsumeInt64();
 
-    return ir::ToFuncConstant(number);
-  }
+  return ir::ToFuncConstant(number);
+}
 
-  if (scanner_.token() != Scanner::kHashSign) {
-    FailForUnexpectedToken({Scanner::kAddress, Scanner::kAtSign, Scanner::kHashSign});
-    return nullptr;
-  }
-  scanner_.Next();
+// Constant ::= '#t' | '#f' | '#' Number (':' Type)?
+std::shared_ptr<ir::Constant> FuncParser::ParseBoolOrIntConstant(const ir::Type* expected_type) {
+  scanner().ConsumeToken(Scanner::kHashSign);
 
-  if (scanner_.token() == Scanner::kIdentifier) {
-    std::string str = ConsumeIdentifier();
+  if (scanner().token() == Scanner::kIdentifier) {
+    std::string str = scanner().ConsumeIdentifier();
     if (str == "f" || str == "t") {
       if (expected_type != nullptr && expected_type != ir::bool_type()) {
-        common::fail(scanner_.PositionString() + ": unexpected 'f' or 't'");
+        common::fail(scanner().PositionString() + ": unexpected 'f' or 't'");
       }
 
       return (str == "f") ? ir::False() : ir::True();
     } else {
-      common::fail(scanner_.PositionString() + ": expected number, 't' or 'f'");
+      common::fail(scanner().PositionString() + ": expected number, 't' or 'f'");
     }
   }
 
-  if (scanner_.token() != Scanner::kNumber) {
-    common::fail(scanner_.PositionString() + ": expected number, 't' or 'f'");
+  if (scanner().token() != Scanner::kNumber) {
+    common::fail(scanner().PositionString() + ": expected number, 't' or 'f'");
   }
-  common::Int value = scanner_.token_number();
-  scanner_.Next();
+  common::Int value = scanner().token_number();
+  scanner().Next();
 
   common::IntType int_type;
-  if (scanner_.token() == Scanner::kColon) {
-    ConsumeToken(Scanner::kColon);
+  if (scanner().token() == Scanner::kColon) {
+    scanner().ConsumeToken(Scanner::kColon);
     auto type = ParseType();
     if (type->type_kind() != ir::TypeKind::kInt) {
-      common::fail(scanner_.PositionString() + ": expected int type");
+      common::fail(scanner().PositionString() + ": expected int type");
     } else if (expected_type != nullptr && expected_type != type) {
-      common::fail(scanner_.PositionString() + ": expected '" + expected_type->RefString() +
+      common::fail(scanner().PositionString() + ": expected '" + expected_type->RefString() +
                    "'; got '" + type->RefString() + "'");
     }
     int_type = static_cast<const ir::IntType*>(type)->int_type();
 
   } else {
     if (expected_type == nullptr) {
-      FailForUnexpectedToken({Scanner::kColon});
+      scanner().FailForUnexpectedToken({Scanner::kColon});
     } else if (expected_type->type_kind() != ir::TypeKind::kInt) {
-      common::fail(scanner_.PositionString() + ": expected '" + expected_type->RefString() + "'");
+      common::fail(scanner().PositionString() + ": expected '" + expected_type->RefString() + "'");
     }
 
     int_type = static_cast<const ir::IntType*>(expected_type)->int_type();
@@ -636,29 +584,41 @@ std::shared_ptr<ir::Constant> FuncParser::ParseConstant(const ir::Type* expected
   return ir::ToIntConstant(value);
 }
 
+// Computeds ::= Computed (',' Computed)*
+std::vector<std::shared_ptr<ir::Computed>> FuncParser::ParseComputeds(
+    const ir::Type* expected_type) {
+  std::vector<std::shared_ptr<ir::Computed>> computeds{ParseComputed(expected_type)};
+  while (scanner().token() == Scanner::kComma) {
+    scanner().ConsumeToken(Scanner::kComma);
+    computeds.push_back(ParseComputed(expected_type));
+  }
+  return computeds;
+}
+
 // Computed ::= '%' Identifier (':' Type)?
 std::shared_ptr<ir::Computed> FuncParser::ParseComputed(const ir::Type* expected_type) {
-  ConsumeToken(Scanner::kPercentSign);
-  ir::value_num_t number = ConsumeInt64();
+  scanner().ConsumeToken(Scanner::kPercentSign);
+  ir::value_num_t number = scanner().ConsumeInt64();
+  bool known = computed_values_.contains(number);
 
   const ir::Type* type;
-  if (scanner_.token() == Scanner::kColon) {
-    ConsumeToken(Scanner::kColon);
+  if (scanner().token() == Scanner::kColon) {
+    scanner().ConsumeToken(Scanner::kColon);
     type = ParseType();
 
     if (expected_type != nullptr && expected_type != type) {
-      common::fail(scanner_.PositionString() + ": expected '" + expected_type->RefString() +
+      common::fail(scanner().PositionString() + ": expected '" + expected_type->RefString() +
                    "'; got '" + type->RefString() + "'");
     }
   } else {
-    if (expected_type == nullptr) {
-      FailForUnexpectedToken({Scanner::kColon});
+    if (expected_type == nullptr && !known) {
+      scanner().FailForUnexpectedToken({Scanner::kColon});
     }
     type = expected_type;
   }
 
   std::shared_ptr<ir::Computed> computed;
-  if (computed_values_.contains(number)) {
+  if (known) {
     computed = computed_values_.at(number);
   } else {
     computed = std::make_shared<ir::Computed>(type, number);
@@ -670,15 +630,25 @@ std::shared_ptr<ir::Computed> FuncParser::ParseComputed(const ir::Type* expected
 
 // BlockValue ::= '{' Number '}'
 ir::block_num_t FuncParser::ParseBlockValue() {
-  ConsumeToken(Scanner::kCurlyBracketOpen);
-  ir::block_num_t number = ConsumeInt64();
-  ConsumeToken(Scanner::kCurlyBracketClose);
+  scanner().ConsumeToken(Scanner::kCurlyBracketOpen);
+  ir::block_num_t number = scanner().ConsumeInt64();
+  scanner().ConsumeToken(Scanner::kCurlyBracketClose);
   return number;
 }
 
+// Types ::= Type (',' Type)?
+std::vector<const ir::Type*> FuncParser::ParseTypes() {
+  std::vector<const ir::Type*> types{ParseType()};
+  while (scanner().token() == Scanner::kComma) {
+    scanner().ConsumeToken(Scanner::kComma);
+    types.push_back(ParseType());
+  }
+  return types;
+}
+
 // Type ::= Identifier
-const ir::AtomicType* FuncParser::ParseType() {
-  std::string name = ConsumeIdentifier();
+const ir::Type* FuncParser::ParseType() {
+  std::string name = scanner().ConsumeIdentifier();
 
   if (name == "b") {
     return ir::bool_type();
@@ -689,49 +659,8 @@ const ir::AtomicType* FuncParser::ParseType() {
   } else if (name == "func") {
     return ir::func_type();
   } else {
-    common::fail(scanner_.PositionString() + ": unexpected type");
+    common::fail(scanner().PositionString() + ": unexpected type");
   }
-}
-
-int64_t FuncParser::ConsumeInt64() {
-  if (scanner_.token() != Scanner::kNumber) {
-    FailForUnexpectedToken({Scanner::kNumber});
-  }
-  int64_t number = scanner_.token_number().AsInt64();
-  scanner_.Next();
-  return number;
-}
-
-std::string FuncParser::ConsumeIdentifier() {
-  if (scanner_.token() != Scanner::kIdentifier) {
-    FailForUnexpectedToken({Scanner::kIdentifier});
-  }
-  std::string identifier = scanner_.token_text();
-  scanner_.Next();
-  return identifier;
-}
-
-void FuncParser::ConsumeToken(Scanner::Token token) {
-  if (scanner_.token() != token) {
-    FailForUnexpectedToken({token});
-  }
-  scanner_.Next();
-}
-
-void FuncParser::FailForUnexpectedToken(std::vector<Scanner::Token> expected_tokens) {
-  std::string error = scanner_.PositionString() + ": expected ";
-  for (std::size_t i = 0; i < expected_tokens.size(); i++) {
-    Scanner::Token expected_token = expected_tokens.at(i);
-    if (i > 0) {
-      error += ", ";
-      if (i == expected_tokens.size() - 1) {
-        error += "or ";
-      }
-    }
-    error += Scanner::TokenToString(expected_token);
-  }
-  error += "; got '" + scanner_.token_text() + "'";
-  common::fail(error);
 }
 
 }  // namespace ir_serialization

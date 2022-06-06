@@ -26,6 +26,26 @@ cc_library(
 )
 
 cc_library(
+    name = "func_parser",
+    srcs = [
+        "func_parser.cc",
+    ],
+    hdrs = [
+        "func_parser.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//src/lang/representation:__subpackages__",
+    ],
+    deps = [
+        ":ir_extension",
+        "//src/common/logging",
+        "//src/ir/representation",
+        "//src/ir/serialization:serialization_specialization",
+    ],
+)
+
+cc_library(
     name = "checker",
     srcs = [
         "checker.cc",

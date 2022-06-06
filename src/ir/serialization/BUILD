@@ -96,6 +96,18 @@ cc_library(
 )
 
 cc_library(
+    name = "serialization_specialization",
+    copts = COPTS,
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":func_parser",
+        ":scanner",
+    ],
+)
+
+cc_library(
     name = "serialization",
     copts = COPTS,
     visibility = [

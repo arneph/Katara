@@ -183,4 +183,45 @@ void Scanner::NextString() {
   token_text_ += std::string(1, '"');
 }
 
+int64_t Scanner::ConsumeInt64() {
+  if (token_ != Scanner::kNumber) {
+    FailForUnexpectedToken({kNumber});
+  }
+  int64_t number = token_number().AsInt64();
+  Next();
+  return number;
+}
+
+std::string Scanner::ConsumeIdentifier() {
+  if (token_ != Scanner::kIdentifier) {
+    FailForUnexpectedToken({kIdentifier});
+  }
+  std::string identifier = token_text();
+  Next();
+  return identifier;
+}
+
+void Scanner::ConsumeToken(Scanner::Token token) {
+  if (token_ != token) {
+    FailForUnexpectedToken({token});
+  }
+  Next();
+}
+
+void Scanner::FailForUnexpectedToken(std::vector<Token> expected_tokens) {
+  std::string error = PositionString() + ": expected ";
+  for (std::size_t i = 0; i < expected_tokens.size(); i++) {
+    Scanner::Token expected_token = expected_tokens.at(i);
+    if (i > 0) {
+      error += ", ";
+      if (i == expected_tokens.size() - 1) {
+        error += "or ";
+      }
+    }
+    error += Scanner::TokenToString(expected_token);
+  }
+  error += "; got '" + token_text() + "'";
+  common::fail(error);
+}
+
 }  // namespace ir_serialization

@@ -28,12 +28,27 @@ namespace ir_serialization {
 
 class FuncParser {
  public:
-  static ir::Func* Parse(Scanner& scanner, ir::Program* program);
+  FuncParser(Scanner& scanner, ir::Program* program) : scanner_(scanner), program_(program) {}
+  virtual ~FuncParser() = default;
+
+  ir::Func* ParseFunc();
+
+ protected:
+  virtual std::unique_ptr<ir::Instr> ParseInstrWithResults(
+      std::vector<std::shared_ptr<ir::Computed>> results, std::string instr_name);
+  virtual std::shared_ptr<ir::Constant> ParseConstant(const ir::Type* expected_type);
+  virtual const ir::Type* ParseType();
+
+  std::vector<std::shared_ptr<ir::Value>> ParseValues(const ir::Type* expected_type);
+  std::shared_ptr<ir::Value> ParseValue(const ir::Type* expected_type);
+  std::vector<std::shared_ptr<ir::Computed>> ParseComputeds(const ir::Type* expected_type);
+  std::shared_ptr<ir::Computed> ParseComputed(const ir::Type* expected_type);
+  std::vector<const ir::Type*> ParseTypes();
+
+  Scanner& scanner() { return scanner_; }
+  ir::Program* program() { return program_; }
 
  private:
-  FuncParser(Scanner& scanner, ir::Program* program) : scanner_(scanner), program_(program) {}
-
-  void ParseFunc();
   void ParseFuncArgs();
   void ParseFuncResultTypes();
   void ParseFuncBody();
@@ -71,17 +86,10 @@ class FuncParser {
   std::vector<std::shared_ptr<ir::Computed>> ParseInstrResults();
 
   std::shared_ptr<ir::InheritedValue> ParseInheritedValue(const ir::Type* expected_type);
-  std::shared_ptr<ir::Value> ParseValue(const ir::Type* expected_type);
-  std::shared_ptr<ir::Constant> ParseConstant(const ir::Type* expected_type);
-  std::shared_ptr<ir::Computed> ParseComputed(const ir::Type* expected_type);
+  std::shared_ptr<ir::PointerConstant> ParsePointerConstant();
+  std::shared_ptr<ir::FuncConstant> ParseFuncConstant();
+  std::shared_ptr<ir::Constant> ParseBoolOrIntConstant(const ir::Type* expected_type);
   ir::block_num_t ParseBlockValue();
-  const ir::AtomicType* ParseType();
-
-  int64_t ConsumeInt64();
-  std::string ConsumeIdentifier();
-  void ConsumeToken(Scanner::Token token);
-
-  void FailForUnexpectedToken(std::vector<Scanner::Token> expected_tokens);
 
   Scanner& scanner_;
   ir::Program* program_;
