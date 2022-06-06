@@ -230,8 +230,9 @@ bool JumpInstr::operator==(const Instr& that_instr) const {
 }
 
 void JumpCondInstr::WriteRefString(std::ostream& os) const {
-  os << OperationString() << " "
-     << "{" << destination_true_ << "}, {" << destination_false_ << "}";
+  os << OperationString() << " ";
+  condition_->WriteRefString(os);
+  os << "{" << destination_true_ << "}, {" << destination_false_ << "}";
 }
 
 bool JumpCondInstr::operator==(const Instr& that_instr) const {
