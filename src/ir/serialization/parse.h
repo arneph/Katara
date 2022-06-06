@@ -16,23 +16,28 @@
 
 #include "src/common/logging/logging.h"
 #include "src/ir/representation/program.h"
+#include "src/ir/serialization/constant_parser.h"
 #include "src/ir/serialization/func_parser.h"
 #include "src/ir/serialization/scanner.h"
+#include "src/ir/serialization/type_parser.h"
 
 namespace ir_serialization {
 
-template <typename FuncParser = FuncParser>
+template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
+          typename FuncParser = FuncParser>
 std::unique_ptr<ir::Program> ParseProgram(std::istream& in_stream) {
   Scanner scanner(in_stream);
   scanner.Next();
 
   // Program ::= (Func | NL)*
   auto program = std::make_unique<ir::Program>();
+  TypeParser type_parser(scanner, program.get());
+  ConstantParser constant_parser(scanner, &type_parser, program.get());
   for (;;) {
     if (scanner.token() == Scanner::kNewLine) {
       scanner.Next();
     } else if (scanner.token() == Scanner::kAtSign) {
-      FuncParser func_parser(scanner, program.get());
+      FuncParser func_parser(scanner, &type_parser, &constant_parser, program.get());
       func_parser.ParseFunc();
     } else if (scanner.token() == Scanner::kEoF) {
       break;
@@ -44,27 +49,32 @@ std::unique_ptr<ir::Program> ParseProgram(std::istream& in_stream) {
   return program;
 }
 
-template <typename FuncParser = FuncParser>
+template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
+          typename FuncParser = FuncParser>
 std::unique_ptr<ir::Program> ParseProgram(std::string text) {
   std::stringstream ss;
   ss << text;
-  return ParseProgram<FuncParser>(ss);
+  return ParseProgram<TypeParser, ConstantParser, FuncParser>(ss);
 }
 
-template <typename FuncParser = FuncParser>
+template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
+          typename FuncParser = FuncParser>
 ir::Func* ParseFunc(ir::Program* program, std::istream& in_stream) {
   Scanner scanner(in_stream);
   scanner.Next();
 
-  FuncParser func_parser(scanner, program);
+  TypeParser type_parser(scanner, program);
+  ConstantParser constant_parser(scanner, &type_parser, program);
+  FuncParser func_parser(scanner, &type_parser, &constant_parser, program);
   return func_parser.ParseFunc();
 }
 
-template <typename FuncParser = FuncParser>
+template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
+          typename FuncParser = FuncParser>
 ir::Func* ParseFunc(ir::Program* program, std::string text) {
   std::stringstream ss;
   ss << text;
-  return ParseFunc<FuncParser>(program, ss);
+  return ParseFunc<TypeParser, ConstantParser, FuncParser>(program, ss);
 }
 
 }  // namespace ir_serialization

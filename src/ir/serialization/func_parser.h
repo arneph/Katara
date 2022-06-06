@@ -9,11 +9,10 @@
 #ifndef ir_serialization_func_parser_h
 #define ir_serialization_func_parser_h
 
-#include <iostream>
 #include <memory>
-#include <optional>
+#include <unordered_map>
+#include <vector>
 
-#include "src/common/atomics/atomics.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -22,13 +21,20 @@
 #include "src/ir/representation/program.h"
 #include "src/ir/representation/types.h"
 #include "src/ir/representation/values.h"
+#include "src/ir/serialization/constant_parser.h"
 #include "src/ir/serialization/scanner.h"
+#include "src/ir/serialization/type_parser.h"
 
 namespace ir_serialization {
 
 class FuncParser {
  public:
-  FuncParser(Scanner& scanner, ir::Program* program) : scanner_(scanner), program_(program) {}
+  FuncParser(Scanner& scanner, TypeParser* type_parser, ConstantParser* constant_parser,
+             ir::Program* program)
+      : scanner_(scanner),
+        type_parser_(type_parser),
+        constant_parser_(constant_parser),
+        program_(program) {}
   virtual ~FuncParser() = default;
 
   ir::Func* ParseFunc();
@@ -36,16 +42,15 @@ class FuncParser {
  protected:
   virtual std::unique_ptr<ir::Instr> ParseInstrWithResults(
       std::vector<std::shared_ptr<ir::Computed>> results, std::string instr_name);
-  virtual std::shared_ptr<ir::Constant> ParseConstant(const ir::Type* expected_type);
-  virtual const ir::Type* ParseType();
 
   std::vector<std::shared_ptr<ir::Value>> ParseValues(const ir::Type* expected_type);
   std::shared_ptr<ir::Value> ParseValue(const ir::Type* expected_type);
-  std::vector<std::shared_ptr<ir::Computed>> ParseComputeds(const ir::Type* expected_type);
-  std::shared_ptr<ir::Computed> ParseComputed(const ir::Type* expected_type);
-  std::vector<const ir::Type*> ParseTypes();
+  std::vector<std::shared_ptr<ir::Computed>> ParseComputedValues(const ir::Type* expected_type);
+  std::shared_ptr<ir::Computed> ParseComputedValue(const ir::Type* expected_type);
 
   Scanner& scanner() { return scanner_; }
+  TypeParser* type_parser() { return type_parser_; }
+  ConstantParser* constant_parser() { return constant_parser_; }
   ir::Program* program() { return program_; }
 
  private:
@@ -53,7 +58,6 @@ class FuncParser {
   void ParseFuncResultTypes();
   void ParseFuncBody();
   void ConnectBlocks();
-
   void ParseBlock();
 
   std::unique_ptr<ir::Instr> ParseInstr();
@@ -84,17 +88,14 @@ class FuncParser {
   std::unique_ptr<ir::ReturnInstr> ParseReturnInstr();
 
   std::vector<std::shared_ptr<ir::Computed>> ParseInstrResults();
-
   std::shared_ptr<ir::InheritedValue> ParseInheritedValue(const ir::Type* expected_type);
-  std::shared_ptr<ir::PointerConstant> ParsePointerConstant();
-  std::shared_ptr<ir::FuncConstant> ParseFuncConstant();
-  std::shared_ptr<ir::Constant> ParseBoolOrIntConstant(const ir::Type* expected_type);
   ir::block_num_t ParseBlockValue();
 
   Scanner& scanner_;
+  TypeParser* type_parser_;
+  ConstantParser* constant_parser_;
   ir::Program* program_;
   ir::Func* func_;
-
   std::unordered_map<ir::value_num_t, std::shared_ptr<ir::Computed>> computed_values_;
 };
 

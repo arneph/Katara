@@ -11,13 +11,11 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "src/ir/representation/program.h"
-#include "src/ir/serialization/parse.h"
 #include "src/lang/processors/ir/checker/checker.h"
-#include "src/lang/processors/ir/serialization/func_parser.h"
+#include "src/lang/processors/ir/serialization/parse.h"
 
 TEST(SharedToUniquePointerOptimizerTest, OptimizesSmallProgram) {
-  std::unique_ptr<ir::Program> optimized_program =
-      ir_serialization::ParseProgram<lang::ir_serialization::FuncParser>(R"ir(
+  std::unique_ptr<ir::Program> optimized_program = lang::ir_serialization::ParseProgram(R"ir(
 @0 main() => (i64) {
   {0}
     %0:lshared_ptr<i64, s> = make_shared
@@ -47,8 +45,7 @@ TEST(SharedToUniquePointerOptimizerTest, OptimizesSmallProgram) {
     jmp {2}
 }
 )ir");
-  std::unique_ptr<ir::Program> expected_program =
-      ir_serialization::ParseProgram<lang::ir_serialization::FuncParser>(R"ir(
+  std::unique_ptr<ir::Program> expected_program = lang::ir_serialization::ParseProgram(R"ir(
 @0 main() => (i64) {
   {0}
     %0:lunique_ptr<i64> = make_unique

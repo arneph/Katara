@@ -1,28 +1,28 @@
 //
-//  func_parser.hpp
+//  func_parser.h
 //  Katara
 //
 //  Created by Arne Philipeit on 6/4/22.
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#ifndef lang_ir_ext_func_parser_h
-#define lang_ir_ext_func_parser_h
+#ifndef lang_ir_serialization_func_parser_h
+#define lang_ir_serialization_func_parser_h
 
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "src/ir/representation/block.h"
-#include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/object.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/representation/types.h"
 #include "src/ir/representation/values.h"
+#include "src/ir/serialization/constant_parser.h"
 #include "src/ir/serialization/func_parser.h"
 #include "src/ir/serialization/scanner.h"
+#include "src/ir/serialization/type_parser.h"
 #include "src/lang/representation/ir_extension/instrs.h"
 #include "src/lang/representation/ir_extension/types.h"
 #include "src/lang/representation/ir_extension/values.h"
@@ -32,8 +32,9 @@ namespace ir_serialization {
 
 class FuncParser : public ::ir_serialization::FuncParser {
  public:
-  FuncParser(::ir_serialization::Scanner& scanner, ir::Program* program)
-      : ::ir_serialization::FuncParser(scanner, program) {}
+  FuncParser(::ir_serialization::Scanner& scanner, ::ir_serialization::TypeParser* type_parser,
+             ::ir_serialization::ConstantParser* constant_parser, ir::Program* program)
+      : ::ir_serialization::FuncParser(scanner, type_parser, constant_parser, program) {}
 
  private:
   std::unique_ptr<ir::Instr> ParseInstrWithResults(
@@ -51,21 +52,9 @@ class FuncParser : public ::ir_serialization::FuncParser {
       std::shared_ptr<ir::Computed> result);
   std::unique_ptr<ir_ext::StringConcatInstr> ParseStringConcatInstr(
       std::shared_ptr<ir::Computed> result);
-
-  std::shared_ptr<ir::Constant> ParseConstant(const ir::Type* expected_type) override;
-  std::shared_ptr<ir_ext::StringConstant> ParseStringConstant();
-
-  const ir::Type* ParseType() override;
-  const ir_ext::SharedPointer* ParseSharedPointer();
-  const ir_ext::UniquePointer* ParseUniquePointer();
-  const ir_ext::Array* ParseArray();
-  const ir_ext::Struct* ParseStruct();
-  void ParseStructField(ir_ext::StructBuilder& builder);
-  const ir_ext::Interface* ParseInterface();
-  void ParseInterfaceMethod(ir_ext::InterfaceBuilder& builder);
 };
 
 }  // namespace ir_serialization
 }  // namespace lang
 
-#endif /* lang_ir_ext_func_parser_h */
+#endif /* lang_ir_serialization_func_parser_h */

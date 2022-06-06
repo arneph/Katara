@@ -30,6 +30,46 @@ cc_test(
 )
 
 cc_library(
+    name = "type_parser",
+    srcs = [
+        "type_parser.cc",
+    ],
+    hdrs = [
+        "type_parser.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//visibility:private",
+    ],
+    deps = [
+        ":scanner",
+        "//src/common/logging",
+        "//src/ir/representation",
+    ],
+)
+
+cc_library(
+    name = "constant_parser",
+    srcs = [
+        "constant_parser.cc",
+    ],
+    hdrs = [
+        "constant_parser.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//visibility:private",
+    ],
+    deps = [
+        ":scanner",
+        ":type_parser",
+        "//src/common/atomics",
+        "//src/common/logging",
+        "//src/ir/representation",
+    ],
+)
+
+cc_library(
     name = "func_parser",
     srcs = [
         "func_parser.cc",
@@ -42,7 +82,9 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
+        ":constant_parser",
         ":scanner",
+        ":type_parser",
         "//src/common/atomics",
         "//src/common/logging",
         "//src/ir/representation",
@@ -51,9 +93,6 @@ cc_library(
 
 cc_library(
     name = "parse",
-    srcs = [
-        "parse.cc",
-    ],
     hdrs = [
         "parse.h",
     ],
