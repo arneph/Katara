@@ -11,6 +11,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "src/ir/representation/program.h"
+#include "src/ir/serialization/print.h"
 #include "src/lang/processors/ir/checker/checker.h"
 #include "src/lang/processors/ir/serialization/parse.h"
 
@@ -80,5 +81,8 @@ TEST(SharedToUniquePointerOptimizerTest, OptimizesSmallProgram) {
 
   lang::ir_optimizers::ConvertSharedToUniquePointersInProgram(optimized_program.get());
   lang::ir_checker::AssertProgramIsOkay(optimized_program.get());
-  EXPECT_TRUE(ir::IsEqual(optimized_program.get(), expected_program.get()));
+  EXPECT_TRUE(ir::IsEqual(optimized_program.get(), expected_program.get()))
+      << "Expected different optimized program, got:\n"
+      << ir_serialization::Print(optimized_program.get()) << "\nexpected:\n"
+      << ir_serialization::Print(expected_program.get());
 }
