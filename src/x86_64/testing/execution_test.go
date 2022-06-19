@@ -11,7 +11,7 @@ func TestExecution(t *testing.T) {
 	var stdout strings.Builder
 	var stderr strings.Builder
 	var cmd = exec.Command("./execution_test_executable")
-	cmd.Stdin = strings.NewReader("")
+	cmd.Stdin = strings.NewReader(programInput)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
@@ -28,12 +28,16 @@ func TestExecution(t *testing.T) {
 	if gottenOutput.programOutput != expectedProgramOutput {
 		t.Errorf("wrong program output:\n%sexpected:\n%s", gottenOutput.programOutput, expectedProgramOutput)
 	}
+	if gottenOutput.readBuffer != programInput {
+		t.Errorf("wrong read buffer:\n%s\nexpected:\n%s", gottenOutput.readBuffer, programInput)
+	}
 }
 
 type ParsedOutput struct {
 	assembly      string
 	machineCode   string
 	programOutput string
+	readBuffer    string
 }
 
 func ParseOutput(output string) (ParsedOutput, error) {
@@ -49,10 +53,15 @@ func ParseOutput(output string) (ParsedOutput, error) {
 	if err != nil {
 		return ParsedOutput{}, err
 	}
+	readBuffer, err := FindBlock(output, "read buffer")
+	if err != nil {
+		return ParsedOutput{}, err
+	}
 	return ParsedOutput{
 		assembly:      assembly,
 		machineCode:   machineCode,
 		programOutput: programOutput,
+		readBuffer:    readBuffer,
 	}, nil
 }
 
@@ -71,6 +80,8 @@ func FindBlock(output, blockName string) (string, error) {
 	}
 	return output[beginIndex+len(beginString) : endIndex], nil
 }
+
+var programInput = "yankee"
 
 var expectedProgramOutput = `1
 1

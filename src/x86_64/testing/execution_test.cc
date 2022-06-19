@@ -39,6 +39,10 @@ int main() {
   const char* str = "Hello world!\n";
   x86_64::Imm str_c((int64_t(str)));
 
+  const int64_t buffer_size = 100;
+  char buffer[buffer_size];
+  x86_64::Imm buffer_c((int64_t(buffer)));
+
   x86_64::Program program;
   x86_64::Func* main_func = program.DefineFunc("main");
 
@@ -70,13 +74,24 @@ int main() {
     loop_block->AddInstr<x86_64::Jcc>(x86_64::InstrCond::kAbove, loop_block->GetBlockRef());
   }
 
-  // Hello world (Syscall test):
+  // Write syscall test:
   {
     x86_64::Block* hello_block = main_func->AddBlock();
     hello_block->AddInstr<x86_64::Mov>(x86_64::rax, x86_64::Imm(int64_t{0x2000004}));  // write
     hello_block->AddInstr<x86_64::Mov>(x86_64::rdi, x86_64::Imm(int32_t{1}));          // stdout
     hello_block->AddInstr<x86_64::Mov>(x86_64::rsi, str_c);                            // const char
     hello_block->AddInstr<x86_64::Mov>(x86_64::rdx, x86_64::Imm(int32_t{13}));         // size
+    hello_block->AddInstr<x86_64::Syscall>();
+    // hello_block->AddInstr(std::make_unique<x86_64::Jmp>(hello_block.block()->GetBlockRef()));
+  }
+
+  // Read syscall test:
+  {
+    x86_64::Block* hello_block = main_func->AddBlock();
+    hello_block->AddInstr<x86_64::Mov>(x86_64::rax, x86_64::Imm(int64_t{0x2000003}));  // read
+    hello_block->AddInstr<x86_64::Mov>(x86_64::rdi, x86_64::Imm(int32_t{0}));          // stdin
+    hello_block->AddInstr<x86_64::Mov>(x86_64::rsi, buffer_c);                         // const char
+    hello_block->AddInstr<x86_64::Mov>(x86_64::rdx, x86_64::Imm(int32_t{buffer_size - 1}));  // size
     hello_block->AddInstr<x86_64::Syscall>();
     // hello_block->AddInstr(std::make_unique<x86_64::Jmp>(hello_block.block()->GetBlockRef()));
   }
@@ -131,6 +146,10 @@ int main() {
   void (*func)(void) = (void (*)(void))base;
   func();
   std::cout << "END program output\n" << std::flush;
+
+  std::cout << "BEGIN read buffer\n" << std::flush;
+  std::cout << buffer;
+  std::cout << "END read buffer\n" << std::flush;
 
   std::cout << "completed x86_64 execution test\n";
 
