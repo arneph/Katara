@@ -104,6 +104,39 @@ TEST(CheckerTest, CatchesInstrUsesNullptrValue) {
                   Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
 }
 
+TEST(CheckerTest, CatchesInstrUsesNullptrValueForInheritedValue) {
+  ir::Program program;
+  ir::Func* func = program.AddFunc();
+  auto arg_a = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/0);
+  auto arg_b = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/1);
+  func->args().push_back(arg_a);
+  func->args().push_back(arg_b);
+  func->result_types().push_back(ir::i8());
+  ir::Block* block_a = func->AddBlock();
+  ir::Block* block_b = func->AddBlock();
+  ir::Block* block_c = func->AddBlock();
+  func->set_entry_block_num(block_a->number());
+  func->AddControlFlow(block_a->number(), block_b->number());
+  func->AddControlFlow(block_a->number(), block_c->number());
+  func->AddControlFlow(block_b->number(), block_c->number());
+  block_a->instrs().push_back(
+      std::make_unique<ir::JumpCondInstr>(arg_a, block_b->number(), block_c->number()));
+  block_b->instrs().push_back(std::make_unique<ir::JumpInstr>(block_c->number()));
+  auto inherited_a = std::make_shared<ir::InheritedValue>(arg_b, block_a->number());
+  auto inherited_b = std::make_shared<ir::InheritedValue>(nullptr, block_b->number());
+  auto arg_c = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/2);
+  block_c->instrs().push_back(std::make_unique<ir::PhiInstr>(
+      arg_c, std::vector<std::shared_ptr<ir::InheritedValue>>{inherited_a, inherited_b}));
+  block_c->instrs().push_back(
+      std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{arg_c}));
+
+  EXPECT_THAT(CheckProgram(&program),
+              ElementsAre(AllOf(
+                  Property("kind", &Issue::kind, Issue::Kind::kInstrUsesNullptrValue),
+                  Property("scope_object", &Issue::scope_object, block_c->instrs().front().get()),
+                  Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+}
+
 TEST(CheckerTest, CatchesNonPhiInstrUsesInheritedValue) {
   ir::Program program;
   ir::Func* func = program.AddFunc();

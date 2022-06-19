@@ -271,7 +271,7 @@ void Checker::CheckBlock(const ir::Block* block, const ir::Func* func) {
 void Checker::CheckInstr(const ir::Instr* instr, const ir::Block* block, const ir::Func* func) {
   for (const std::shared_ptr<ir::Value>& used_value : instr->UsedValues()) {
     if (used_value == nullptr) {
-      continue;
+      return;
     }
     if (instr->instr_kind() != ir::InstrKind::kPhi &&
         used_value->kind() == ir::Value::Kind::kInherited) {
