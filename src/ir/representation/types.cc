@@ -22,6 +22,13 @@ bool IsAtomicType(TypeKind type_kind) {
   }
 }
 
+bool IntType::operator==(const Type& that) const {
+  if (that.type_kind() != TypeKind::kInt) {
+    return false;
+  }
+  return int_type() == static_cast<const IntType&>(that).int_type();
+}
+
 namespace {
 
 const BoolType kBool;

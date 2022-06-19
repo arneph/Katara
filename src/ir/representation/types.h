@@ -78,6 +78,7 @@ class IntType : public AtomicType {
   constexpr int8_t bit_size() const override { return common::BitSizeOf(type_); }
   constexpr common::IntType int_type() const { return type_; }
   constexpr TypeKind type_kind() const override { return TypeKind::kInt; }
+  bool operator==(const Type& that) const override;
   void WriteRefString(std::ostream& os) const override { os << common::ToString(type_); }
 
  private:

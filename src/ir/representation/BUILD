@@ -53,6 +53,16 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "types_test",
+    srcs = ["types_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":types",
+        "@gtest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "values",
     srcs = [
