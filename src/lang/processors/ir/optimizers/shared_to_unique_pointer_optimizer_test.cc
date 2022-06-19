@@ -21,10 +21,28 @@ class SharedToUniquePointerOptimizationImpossibleTest : public testing::TestWith
 INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationImpossibleTestInstance,
                          SharedToUniquePointerOptimizationImpossibleTest,
                          testing::Values(R"ir(
+@0 main() => () {
+  {0}
+    %0:lunique_ptr<i8> = make_unique
+    delete_unique %0
+    ret
+}
+)ir",
+                                         R"ir(
+@0 main() => () {
+  {0}
+    %0:lshared_ptr<i8, s> = make_shared
+    %1:lshared_ptr<i8, s> = copy_shared %0, #0:i64
+    delete_shared %0
+    delete_shared %1
+    ret
+}
+)ir",
+                                         R"ir(
  @0 main(%0:lshared_ptr<i8, s>) => () {
    {0}
-     delete_shared %0
-     ret
+    delete_shared %0
+    ret
  }
 )ir",
                                          R"ir(
@@ -79,8 +97,27 @@ class SharedToUniquePointerOptimizationPossibleTest
 
 INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationPossibleTestInstance,
                          SharedToUniquePointerOptimizationPossibleTest,
-                         testing::Values(PossibleOptimizationTestParams{
-                             .input_program = R"ir(
+                         testing::Values(
+                             PossibleOptimizationTestParams{
+                                 .input_program = R"ir(
+@0 main() => () {
+  {0}
+    %0:lshared_ptr<i8, s> = make_shared
+    delete_shared %0
+    ret
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 main() => () {
+  {0}
+    %0:lunique_ptr<i8> = make_unique
+    delete_unique %0
+    ret
+}
+)ir",
+                             },
+                             PossibleOptimizationTestParams{
+                                 .input_program = R"ir(
 @0 main() => (i64) {
   {0}
     %0:lshared_ptr<i64, s> = make_shared
@@ -110,7 +147,7 @@ INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationPossibleTestInstance,
     jmp {2}
 }
 )ir",
-                             .expected_program = R"ir(
+                                 .expected_program = R"ir(
   @0 main() => (i64) {
     {0}
       %0:lunique_ptr<i64> = make_unique
@@ -140,7 +177,7 @@ INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationPossibleTestInstance,
       jmp {2}
   }
     )ir",
-                         }));
+                             }));
 
 TEST_P(SharedToUniquePointerOptimizationPossibleTest, OptimizesProgram) {
   std::unique_ptr<ir::Program> optimized_program =
