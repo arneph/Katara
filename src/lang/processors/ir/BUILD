@@ -13,6 +13,7 @@ cc_library(
         "//src/lang/processors/ir/lowerers:shared_pointer_lowerer",
         "//src/lang/processors/ir/lowerers:unique_pointer_lowerer",
         "//src/lang/processors/ir/optimizers:shared_to_unique_pointer_optimizer",
+        "//src/lang/processors/ir/optimizers:unique_pointer_to_local_value_optimizer",
         "//src/lang/processors/ir/serialization:parse",
     ],
 )
