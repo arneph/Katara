@@ -843,4 +843,61 @@ TEST(ParseTest, ParsesMultipleFuncs) {
   }
 }
 
+TEST(ParseTest, ParsesSyscall) {
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+@0 (%0:i64, %1:i64) => (i64) {
+{0}
+  %2:i64 = syscall #42:i64, %1, #123, %0
+  ret %2
+}
+)ir");
+
+  ir_checker::AssertProgramIsOkay(program.get());
+
+  ASSERT_THAT(program->funcs(), SizeIs(1));
+  EXPECT_THAT(program->entry_func(), IsNull());
+  EXPECT_EQ(program->entry_func_num(), ir::kNoFuncNum);
+
+  ir::Func* func = program->funcs().front().get();
+  ASSERT_THAT(func->args(), SizeIs(2));
+  ASSERT_THAT(func->result_types(), SizeIs(1));
+  ASSERT_EQ(func->computed_count(), 3);
+  ASSERT_THAT(func->blocks(), SizeIs(1));
+  ASSERT_THAT(func->blocks().front(), Not(IsNull()));
+  ASSERT_TRUE(func->HasBlock(0));
+
+  ir::Computed* arg_a = func->args().at(0).get();
+  ir::Computed* arg_b = func->args().at(1).get();
+
+  ir::Block* block = func->GetBlock(0);
+  ASSERT_THAT(block->instrs(), SizeIs(2));
+  ASSERT_THAT(block->instrs().front(), Not(IsNull()));
+  ASSERT_THAT(block->instrs().back(), Not(IsNull()));
+
+  ir::Instr* instr_a = block->instrs().at(0).get();
+  ir::Instr* instr_b = block->instrs().at(1).get();
+  ASSERT_EQ(instr_a->instr_kind(), ir::InstrKind::kSyscall);
+  ASSERT_EQ(instr_b->instr_kind(), ir::InstrKind::kReturn);
+
+  auto syscall_instr = static_cast<ir::SyscallInstr*>(instr_a);
+  ASSERT_EQ(syscall_instr->syscall_num()->kind(), ir::Value::Kind::kConstant);
+  ASSERT_EQ(syscall_instr->syscall_num()->type(), ir::i64());
+  auto c1 = static_cast<ir::IntConstant*>(syscall_instr->syscall_num().get());
+  EXPECT_EQ(c1->int_type(), common::IntType::kI64);
+  EXPECT_EQ(c1->value().AsInt64(), 42);
+
+  ASSERT_THAT(syscall_instr->args(), SizeIs(3));
+  EXPECT_EQ(syscall_instr->args().at(0).get(), arg_b);
+  EXPECT_EQ(syscall_instr->args().at(2).get(), arg_a);
+  ASSERT_EQ(syscall_instr->args().at(1)->kind(), ir::Value::Kind::kConstant);
+  ASSERT_EQ(syscall_instr->args().at(1)->type(), ir::i64());
+  auto c2 = static_cast<ir::IntConstant*>(syscall_instr->args().at(1).get());
+  EXPECT_EQ(c2->int_type(), common::IntType::kI64);
+  EXPECT_EQ(c2->value().AsInt64(), 123);
+
+  auto return_instr = static_cast<ir::ReturnInstr*>(instr_b);
+  EXPECT_THAT(return_instr->args(), SizeIs(1));
+  EXPECT_THAT(return_instr->args().front().get(), syscall_instr->result().get());
+}
+
 }  // namespace

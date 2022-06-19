@@ -232,6 +232,12 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
     }
     return ParseJumpCondInstr();
 
+  } else if (instr_name == "syscall") {
+    if (results.size() != 1) {
+      common::fail(scanner().PositionString() + ": expected one result for syscall instruction");
+    }
+    return ParseSyscallInstr(results.front());
+
   } else if (instr_name == "call") {
     return ParseCallInstr(results);
 
@@ -436,6 +442,20 @@ std::unique_ptr<ir::JumpCondInstr> FuncParser::ParseJumpCondInstr() {
   scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::JumpCondInstr>(condition, destination_true, destination_false);
+}
+
+// SyscallInstr ::= Computed '=' 'syscall' Value (',' Value)* NL
+std::unique_ptr<ir::SyscallInstr> FuncParser::ParseSyscallInstr(
+    std::shared_ptr<ir::Computed> result) {
+  std::shared_ptr<ir::Value> syscall_num = ParseValue(ir::i64());
+  std::vector<std::shared_ptr<ir::Value>> args;
+  if (scanner().token() == Scanner::kComma) {
+    scanner().ConsumeToken(Scanner::kComma);
+    args = ParseValues(/*expected_type=*/ir::i64());
+  }
+  scanner().ConsumeToken(Scanner::kNewLine);
+
+  return std::make_unique<ir::SyscallInstr>(result, syscall_num, args);
 }
 
 // CallInstr ::= (Computed (',' Computed)* '=')?

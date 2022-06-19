@@ -84,6 +84,7 @@ class FuncParser {
   std::unique_ptr<ir::FreeInstr> ParseFreeInstr();
   std::unique_ptr<ir::JumpInstr> ParseJumpInstr();
   std::unique_ptr<ir::JumpCondInstr> ParseJumpCondInstr();
+  std::unique_ptr<ir::SyscallInstr> ParseSyscallInstr(std::shared_ptr<ir::Computed> result);
   std::unique_ptr<ir::CallInstr> ParseCallInstr(std::vector<std::shared_ptr<ir::Computed>> results);
   std::unique_ptr<ir::ReturnInstr> ParseReturnInstr();
 

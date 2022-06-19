@@ -909,6 +909,65 @@ TEST(CheckerTest, CatchesJumpCondInstrDestinationIsNotChildBlock) {
                                          ElementsAre(block_a->instrs().front().get())))));
 }
 
+TEST(CheckerTest, CatchesSyscallInstrResultDoesNotHaveI64Type) {
+  ir::Program program;
+  ir::Func* func = program.AddFunc();
+  auto result = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
+  ir::Block* block = func->AddBlock();
+  func->set_entry_block_num(block->number());
+  block->instrs().push_back(std::make_unique<ir::SyscallInstr>(
+      result, /*syscall_num=*/ir::I64Zero(), /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
+  block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
+
+  EXPECT_THAT(
+      CheckProgram(&program),
+      ElementsAre(AllOf(
+          Property("kind", &Issue::kind, Issue::Kind::kSyscallInstrResultDoesNotHaveI64Type),
+          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
+          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+}
+
+TEST(CheckerTest, CatchesSyscallInstrSyscallNumDoesNotHaveI64Type) {
+  ir::Program program;
+  ir::Func* func = program.AddFunc();
+  auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
+  auto syscall_num = ir::U64Zero();
+  ir::Block* block = func->AddBlock();
+  func->set_entry_block_num(block->number());
+  block->instrs().push_back(std::make_unique<ir::SyscallInstr>(
+      result, syscall_num, /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
+  block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
+
+  EXPECT_THAT(
+      CheckProgram(&program),
+      ElementsAre(AllOf(
+          Property("kind", &Issue::kind, Issue::Kind::kSyscallInstrSyscallNumberDoesNotHaveI64Type),
+          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
+          Property("involved_objects", &Issue::involved_objects, ElementsAre(syscall_num.get())))));
+}
+
+TEST(CheckerTest, CatchesSyscallInstrArgDoesNotHaveI64Type) {
+  ir::Program program;
+  ir::Func* func = program.AddFunc();
+  auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
+  auto syscall_num = ir::I64Zero();
+  auto arg_a = ir::I64Zero();
+  auto arg_b = ir::U64Zero();
+  auto arg_c = ir::I64Zero();
+  ir::Block* block = func->AddBlock();
+  func->set_entry_block_num(block->number());
+  block->instrs().push_back(std::make_unique<ir::SyscallInstr>(
+      result, syscall_num, /*args=*/std::vector<std::shared_ptr<ir::Value>>{arg_a, arg_b, arg_c}));
+  block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
+
+  EXPECT_THAT(
+      CheckProgram(&program),
+      ElementsAre(
+          AllOf(Property("kind", &Issue::kind, Issue::Kind::kSyscallInstrArgDoesNotHaveI64Type),
+                Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
+                Property("involved_objects", &Issue::involved_objects, ElementsAre(arg_b.get())))));
+}
+
 TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForConstant) {
   ir::Program program;
   ir::Func* func = program.AddFunc();

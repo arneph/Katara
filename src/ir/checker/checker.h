@@ -86,6 +86,7 @@ class Checker {
   void CheckFreeInstr(const ir::FreeInstr* free_instr);
   void CheckJumpInstr(const ir::JumpInstr* jump_instr, const ir::Block* block);
   void CheckJumpCondInstr(const ir::JumpCondInstr* jump_cond_instr, const ir::Block* block);
+  void CheckSyscallInstr(const ir::SyscallInstr* syscall_instr);
   void CheckCallInstr(const ir::CallInstr* call_instr);
   void CheckReturnInstr(const ir::ReturnInstr* return_instr, const ir::Block* block,
                         const ir::Func* func);

@@ -40,6 +40,7 @@ enum class InstrKind {
 
   kJump,
   kJumpCond,
+  kSyscall,
   kCall,
   kReturn,
 
@@ -491,6 +492,30 @@ class JumpCondInstr : public Instr {
   std::shared_ptr<Value> condition_;
   block_num_t destination_true_;
   block_num_t destination_false_;
+};
+
+class SyscallInstr : public Computation {
+ public:
+  SyscallInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> syscall_num,
+               std::vector<std::shared_ptr<Value>> args)
+      : Computation(result), syscall_num_(syscall_num), args_(args) {}
+
+  std::shared_ptr<Value> syscall_num() const { return syscall_num_; }
+  void set_syscall_num(std::shared_ptr<Value> syscall_num) { syscall_num_ = syscall_num; }
+
+  const std::vector<std::shared_ptr<Value>>& args() const { return args_; }
+  std::vector<std::shared_ptr<Value>>& args() { return args_; }
+
+  std::vector<std::shared_ptr<Value>> UsedValues() const override;
+
+  InstrKind instr_kind() const override { return InstrKind::kSyscall; }
+  std::string OperationString() const override { return "syscall"; }
+
+  bool operator==(const Instr& that) const override;
+
+ private:
+  std::shared_ptr<Value> syscall_num_;
+  std::vector<std::shared_ptr<Value>> args_;
 };
 
 class CallInstr : public Instr {

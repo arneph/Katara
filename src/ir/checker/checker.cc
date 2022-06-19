@@ -332,6 +332,9 @@ void Checker::CheckInstr(const ir::Instr* instr, const ir::Block* block, const i
     case ir::InstrKind::kJumpCond:
       CheckJumpCondInstr(static_cast<const ir::JumpCondInstr*>(instr), block);
       break;
+    case ir::InstrKind::kSyscall:
+      CheckSyscallInstr(static_cast<const ir::SyscallInstr*>(instr));
+      break;
     case ir::InstrKind::kCall:
       CheckCallInstr(static_cast<const ir::CallInstr*>(instr));
       break;
@@ -648,6 +651,25 @@ void Checker::CheckJumpCondInstr(const ir::JumpCondInstr* jump_cond_instr, const
   if (!child_matches_destination_false) {
     AddIssue(Issue(block, {jump_cond_instr}, Issue::Kind::kJumpCondInstrDestinationIsNotChildBlock,
                    "ir::JumpCondInstr destination_false is not a child block"));
+  }
+}
+
+void Checker::CheckSyscallInstr(const ir::SyscallInstr* syscall_instr) {
+  if (syscall_instr->result()->type() != ir::i64()) {
+    AddIssue(Issue(syscall_instr, {syscall_instr->result().get()},
+                   Issue::Kind::kSyscallInstrResultDoesNotHaveI64Type,
+                   "ir::SyscallInstr result does not have I64 type"));
+  }
+  if (syscall_instr->syscall_num()->type() != ir::i64()) {
+    AddIssue(Issue(syscall_instr, {syscall_instr->syscall_num().get()},
+                   Issue::Kind::kSyscallInstrSyscallNumberDoesNotHaveI64Type,
+                   "ir::SyscallInstr syscall number does not have I64 type"));
+  }
+  for (const auto& arg : syscall_instr->args()) {
+    if (arg->type() != ir::i64()) {
+      AddIssue(Issue(syscall_instr, {arg.get()}, Issue::Kind::kSyscallInstrArgDoesNotHaveI64Type,
+                     "ir::SyscallInstr arg does not have I64 type"));
+    }
   }
 }
 

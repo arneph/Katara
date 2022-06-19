@@ -244,6 +244,26 @@ bool JumpCondInstr::operator==(const Instr& that_instr) const {
   return true;
 }
 
+std::vector<std::shared_ptr<Value>> SyscallInstr::UsedValues() const {
+  std::vector<std::shared_ptr<Value>> used_values{syscall_num_};
+  used_values.insert(used_values.end(), args_.begin(), args_.end());
+  return used_values;
+}
+
+bool SyscallInstr::operator==(const Instr& that_instr) const {
+  if (that_instr.instr_kind() != InstrKind::kSyscall) return false;
+  auto that = static_cast<const SyscallInstr&>(that_instr);
+  if (!IsEqual(result().get(), that.result().get())) return false;
+  if (!IsEqual(syscall_num().get(), that.syscall_num().get())) return false;
+  if (args().size() != that.args().size()) return false;
+  for (std::size_t i = 0; i < args().size(); i++) {
+    const Value* arg_a = args().at(i).get();
+    const Value* arg_b = that.args().at(i).get();
+    if (!IsEqual(arg_a, arg_b)) return false;
+  }
+  return true;
+}
+
 std::vector<std::shared_ptr<Value>> CallInstr::UsedValues() const {
   std::vector<std::shared_ptr<Value>> used_values{func_};
   used_values.insert(used_values.end(), args_.begin(), args_.end());
