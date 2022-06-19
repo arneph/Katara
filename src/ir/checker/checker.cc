@@ -374,7 +374,7 @@ void Checker::CheckPhiInstr(const ir::PhiInstr* phi_instr, const ir::Block* bloc
       parent_arg_indices.at(arg->origin()) = int64_t(i);
     }
 
-    if (arg->type() != phi_instr->result()->type()) {
+    if (!ir::IsEqual(arg->type(), phi_instr->result()->type())) {
       AddIssue(Issue(phi_instr, {arg, phi_instr->result().get()},
                      Issue::Kind::kPhiInstrArgAndResultHaveMismatchedTypes,
                      "ir::PhiInstr has mismatched arg and result type"));
@@ -676,7 +676,7 @@ void Checker::CheckCallInstr(const ir::CallInstr* call_instr) {
     for (std::size_t i = 0; i < call_instr->args().size(); i++) {
       const ir::Type* actual_arg_type = call_instr->args().at(i)->type();
       const ir::Type* expected_arg_type = callee->args().at(i)->type();
-      if (actual_arg_type != expected_arg_type) {
+      if (!ir::IsEqual(actual_arg_type, expected_arg_type)) {
         AddIssue(Issue(call_instr,
                        {callee, call_instr->args().at(i).get(), callee->args().at(i).get()},
                        Issue::Kind::kCallInstrDoesNotMatchStaticCalleeSignature,
@@ -691,7 +691,7 @@ void Checker::CheckCallInstr(const ir::CallInstr* call_instr) {
     for (std::size_t i = 0; i < call_instr->results().size(); i++) {
       const ir::Type* actual_result_type = call_instr->results().at(i)->type();
       const ir::Type* expected_result_type = callee->result_types().at(i);
-      if (actual_result_type != expected_result_type) {
+      if (!ir::IsEqual(actual_result_type, expected_result_type)) {
         AddIssue(Issue(call_instr,
                        {callee, call_instr->results().at(i).get(), callee->result_types().at(i)},
                        Issue::Kind::kCallInstrDoesNotMatchStaticCalleeSignature,
@@ -719,7 +719,7 @@ void Checker::CheckReturnInstr(const ir::ReturnInstr* return_instr, const ir::Bl
     }
     const ir::Type* actual_return_type = actual_return_value->type();
     const ir::Type* expected_return_type = func->result_types().at(i);
-    if (actual_return_type != expected_return_type) {
+    if (!ir::IsEqual(actual_return_type, expected_return_type)) {
       AddIssue(Issue(func,
                      {return_instr, return_instr->args().at(i).get(), func->result_types().at(i)},
                      Issue::Kind::kReturnInstrDoesNotMatchFuncSignature,
