@@ -27,6 +27,7 @@
 #include "src/lang/processors/ir/lowerers/shared_pointer_lowerer.h"
 #include "src/lang/processors/ir/lowerers/unique_pointer_lowerer.h"
 #include "src/lang/processors/ir/optimizers/shared_to_unique_pointer_optimizer.h"
+#include "src/lang/processors/ir/optimizers/unique_pointer_to_local_value_optimizer.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 
@@ -100,6 +101,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
 
 void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
   lang::ir_optimizers::ConvertSharedToUniquePointersInProgram(program);
+  lang::ir_optimizers::ConvertUniquePointersToLocalValuesInProgram(program);
   if (debug_handler.GenerateDebugInfo()) {
     GenerateIrDebugInfo(program, "ext_optimized", debug_handler);
   }
