@@ -27,15 +27,17 @@ namespace ir_optimizers {
 namespace {
 
 bool CanConvertPointer(ir::value_num_t value, const ir_info::FuncValues& func_values) {
-  auto defining_instr =
-      static_cast<ir_ext::MakeSharedPointerInstr*>(func_values.GetInstrDefiningValue(value));
-  if (defining_instr == nullptr) {
+  ir::Instr* defining_instr = func_values.GetInstrDefiningValue(value);
+  if (defining_instr == nullptr ||
+      defining_instr->instr_kind() != ir::InstrKind::kLangMakeSharedPointer) {
     return false;
   }
   for (ir::Instr* using_instr : func_values.GetInstrsUsingValue(value)) {
     switch (using_instr->instr_kind()) {
       case ir::InstrKind::kLangCopySharedPointer:
-      case ir::InstrKind::kPhi:  // TODO: support analysis with phis
+      case ir::InstrKind::kPhi:   // TODO: support analysis with phis
+      case ir::InstrKind::kCall:  // TODO: support analysis across function boundaries
+      case ir::InstrKind::kReturn:
         return false;
       default:
         break;
