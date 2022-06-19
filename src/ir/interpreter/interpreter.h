@@ -50,6 +50,8 @@ class Interpreter {
   std::vector<std::shared_ptr<ir::Constant>> CallFunc(ir::Func* func,
                                                       std::vector<RuntimeConstant> args);
 
+  void ExecuteMovInstr(ir::MovInstr* instr, FuncContext& ctx);
+  void ExecutePhiInstr(ir::PhiInstr* instr, ir::block_num_t previous_block_num, FuncContext& ctx);
   void ExecuteConversion(ir::Conversion* instr, FuncContext& ctx);
   void ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& ctx);
   void ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx);

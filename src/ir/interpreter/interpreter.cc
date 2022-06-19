@@ -43,6 +43,12 @@ std::vector<Interpreter::RuntimeConstant> Interpreter::CallFunc(ir::Func* func,
       ir::Instr* instr = current_block->instrs().at(i).get();
       bool exit_instr_loop = false;
       switch (instr->instr_kind()) {
+        case ir::InstrKind::kMov:
+          ExecuteMovInstr(static_cast<ir::MovInstr*>(instr), ctx);
+          break;
+        case ir::InstrKind::kPhi:
+          ExecutePhiInstr(static_cast<ir::PhiInstr*>(instr), previous_block->number(), ctx);
+          break;
         case ir::InstrKind::kConversion:
           ExecuteConversion(static_cast<ir::Conversion*>(instr), ctx);
           break;
@@ -102,6 +108,23 @@ std::vector<Interpreter::RuntimeConstant> Interpreter::CallFunc(ir::Func* func,
       }
     }
   }
+}
+
+void Interpreter::ExecuteMovInstr(ir::MovInstr* instr, FuncContext& ctx) {
+  RuntimeConstant value = Evaluate(instr->origin(), ctx);
+  ctx.computed_values_.insert_or_assign(instr->result()->number(), value);
+}
+
+void Interpreter::ExecutePhiInstr(ir::PhiInstr* instr, ir::block_num_t previous_block_num,
+                                  FuncContext& ctx) {
+  for (const auto& arg : instr->args()) {
+    if (arg->origin() == previous_block_num) {
+      RuntimeConstant value = Evaluate(arg->value(), ctx);
+      ctx.computed_values_.insert_or_assign(instr->result()->number(), value);
+      return;
+    }
+  }
+  common::fail("could not find inherited value for previous block");
 }
 
 void Interpreter::ExecuteConversion(ir::Conversion* instr, FuncContext& ctx) {
