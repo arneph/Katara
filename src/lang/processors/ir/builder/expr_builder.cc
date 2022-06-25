@@ -253,7 +253,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryE
 
   ir::Block* y_entry_block = ir_ctx.func()->AddBlock();
   IRContext y_ir_ctx = ir_ctx.ChildContextFor(y_entry_block);
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->x(), ast_ctx, y_ir_ctx).front();
+  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ast_ctx, y_ir_ctx).front();
   ir::Block* y_exit_block = y_ir_ctx.block();
 
   ir::Block* merge_block = ir_ctx.func()->AddBlock();
@@ -522,8 +522,62 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIndexExpr(ast::IndexExpr* ex
 std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExpr(ast::CallExpr* expr,
                                                                            ASTContext& ast_ctx,
                                                                            IRContext& ir_ctx) {
+  switch (type_info_->ExprInfoOf(expr->func())->kind()) {
+    case types::ExprInfo::Kind::kBuiltin:
+      return {BuildValueOfCallExprWithTypeConversion(expr, ast_ctx, ir_ctx)};
+    case types::ExprInfo::Kind::kType:
+      return BuildValuesOfCallExprWithBuiltin(expr, ast_ctx, ir_ctx);
+    case types::ExprInfo::Kind::kVariable:
+    case types::ExprInfo::Kind::kValue:
+    case types::ExprInfo::Kind::kValueOk:
+      return BuildValuesOfCallExprWithFuncCall(expr, ast_ctx, ir_ctx);
+    default:
+      common::fail("unexpected func expr kind in call expr");
+  }
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfCallExprWithTypeConversion(ast::CallExpr* expr,
+                                                                               ASTContext& ast_ctx,
+                                                                               IRContext& ir_ctx) {
   // TODO: implement
   return {};
+}
+
+std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExprWithBuiltin(
+    ast::CallExpr* expr, ASTContext& ast_ctx, IRContext& ir_ctx) {
+  // TODO: implement
+  return {};
+}
+
+std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExprWithFuncCall(
+    ast::CallExpr* expr, ASTContext& ast_ctx, IRContext& ir_ctx) {
+  std::shared_ptr<ir::Value> ir_func = BuildValuesOfExpr(expr->func(), ast_ctx, ir_ctx).front();
+  // TODO: support type parameters
+
+  types::Type* types_expr_type = type_info_->TypeOf(expr);
+  std::vector<std::shared_ptr<ir::Value>> args = BuildValuesOfExprs(expr->args(), ast_ctx, ir_ctx);
+  std::vector<std::shared_ptr<ir::Computed>> results;
+  if (types_expr_type->type_kind() == types::TypeKind::kTuple) {
+    auto types_tuple = static_cast<types::Tuple*>(types_expr_type);
+    results.reserve(types_tuple->variables().size());
+    for (types::Variable* types_tuple_member : types_tuple->variables()) {
+      types::Type* types_result_type = types_tuple_member->type();
+      const ir::Type* ir_result_type = type_builder_.BuildType(types_result_type);
+      results.push_back(
+          std::make_shared<ir::Computed>(ir_result_type, ir_ctx.func()->next_computed_number()));
+    }
+  } else {
+    const ir::Type* ir_result_type = type_builder_.BuildType(types_expr_type);
+    results.push_back(
+        std::make_shared<ir::Computed>(ir_result_type, ir_ctx.func()->next_computed_number()));
+  }
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::CallInstr>(ir_func, results, args));
+  std::vector<std::shared_ptr<ir::Value>> result_values;
+  result_values.reserve(results.size());
+  for (std::shared_ptr<ir::Computed>& result : results) {
+    result_values.push_back(std::static_pointer_cast<ir::Value>(result));
+  }
+  return static_cast<std::vector<std::shared_ptr<ir::Value>>>(result_values);
 }
 
 std::shared_ptr<ir::Constant> ExprBuilder::BuildValueOfFuncLit(ast::FuncLit* expr,

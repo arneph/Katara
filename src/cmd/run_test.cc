@@ -25,7 +25,7 @@ INSTANTIATE_TEST_SUITE_P(RunTestInstance, RunTest,
                                  .optimize_ir = true,
                              }));
 
-TEST_P(RunTest, RunsSmallProgramCorrectly) {
+TEST_P(RunTest, RunsSumCorrectly) {
   TestContext ctx;
   ctx.filesystem()->WriteContentsOfFile("test.kat", R"kat(
 package main
@@ -45,6 +45,58 @@ func main() int {
       ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
 
   EXPECT_EQ(result, 45);
+}
+
+TEST_P(RunTest, RunsRecursiveFibonacci1Correctly) {
+  TestContext ctx;
+  ctx.filesystem()->WriteContentsOfFile("test.kat", R"kat(
+package main
+
+func fib(n int) int {
+  if 0 == n || 1 == n {
+    return 1
+  } else {
+    return fib(n-1) + fib(n-2)
+  }
+}
+
+func main() int {
+  return fib(11)
+}
+)kat");
+
+  std::vector<std::filesystem::path> paths{"test.kat"};
+  BuildOptions build_options = GetParam();
+  ErrorCode result =
+      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+
+  EXPECT_EQ(result, 144);
+}
+
+TEST_P(RunTest, RunsRecursiveFibonacci2Correctly) {
+  TestContext ctx;
+  ctx.filesystem()->WriteContentsOfFile("test.kat", R"kat(
+package main
+
+func fib(n int) int {
+  if 0 <= n <= 1 {
+    return 1
+  } else {
+    return fib(n-1) + fib(n-2)
+  }
+}
+
+func main() int {
+  return fib(11)
+}
+)kat");
+
+  std::vector<std::filesystem::path> paths{"test.kat"};
+  BuildOptions build_options = GetParam();
+  ErrorCode result =
+      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+
+  EXPECT_EQ(result, 144);
 }
 
 }  // namespace cmd

@@ -262,6 +262,39 @@ void Coordinator::FindActionsForFuncDecl(ast::FuncDecl* func_decl) {
   func_body_actions_.push_back(body_action);
 }
 
+std::unordered_set<types::Object*> Coordinator::FindPrerequisites(ast::FuncDecl* func_decl) {
+  std::unordered_set<types::Object*> prerequisites;
+
+  switch (func_decl->kind()) {
+    case ast::FuncDecl::Kind::kFunc:
+      break;
+    case ast::FuncDecl::Kind::kInstanceMethod: {
+      std::unordered_set<types::Object*> expr_receiver_prerequisites =
+          FindPrerequisites(func_decl->expr_receiver());
+      prerequisites.insert(expr_receiver_prerequisites.begin(), expr_receiver_prerequisites.end());
+      break;
+    }
+    case ast::FuncDecl::Kind::kTypeMethod: {
+      std::unordered_set<types::Object*> type_receiver_prerequisites =
+          FindPrerequisites(func_decl->type_receiver());
+      prerequisites.insert(type_receiver_prerequisites.begin(), type_receiver_prerequisites.end());
+      break;
+    }
+  }
+
+  if (func_decl->type_params() != nullptr) {
+    std::unordered_set<types::Object*> type_params_prerequisites =
+        FindPrerequisites(func_decl->type_params());
+    prerequisites.insert(type_params_prerequisites.begin(), type_params_prerequisites.end());
+  }
+
+  std::unordered_set<types::Object*> func_type_prerequisites =
+      FindPrerequisites(func_decl->func_type());
+  prerequisites.insert(func_type_prerequisites.begin(), func_type_prerequisites.end());
+
+  return prerequisites;
+}
+
 std::unordered_set<types::Object*> Coordinator::FindPrerequisites(ast::Node* node) {
   std::unordered_set<types::Object*> objects;
   ast::WalkFunction walker = ast::WalkFunction([&](ast::Node* node) -> ast::WalkFunction {

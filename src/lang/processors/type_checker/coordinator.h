@@ -67,6 +67,7 @@ class Coordinator {
   void FindActionsForVarDecl(ast::GenDecl* var_decl);
   void FindActionsForFuncDecl(ast::FuncDecl* func_decl);
 
+  std::unordered_set<types::Object*> FindPrerequisites(ast::FuncDecl* func_decl);
   std::unordered_set<types::Object*> FindPrerequisites(ast::Node* node);
 
   std::vector<Action*> FindActionOrder();

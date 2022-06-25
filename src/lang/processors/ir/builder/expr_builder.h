@@ -115,9 +115,20 @@ class ExprBuilder {
                                                         IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfIndexExpr(ast::IndexExpr* expr, ASTContext& ast_ctx,
                                                    IRContext& ir_ctx);
+
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfCallExpr(ast::CallExpr* expr,
                                                                 ASTContext& ast_ctx,
                                                                 IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValueOfCallExprWithTypeConversion(ast::CallExpr* expr,
+                                                                    ASTContext& ast_ctx,
+                                                                    IRContext& ir_ctx);
+  std::vector<std::shared_ptr<ir::Value>> BuildValuesOfCallExprWithBuiltin(ast::CallExpr* expr,
+                                                                           ASTContext& ast_ctx,
+                                                                           IRContext& ir_ctx);
+  std::vector<std::shared_ptr<ir::Value>> BuildValuesOfCallExprWithFuncCall(ast::CallExpr* expr,
+                                                                            ASTContext& ast_ctx,
+                                                                            IRContext& ir_ctx);
+
   std::shared_ptr<ir::Constant> BuildValueOfFuncLit(ast::FuncLit* expr, ASTContext& ast_ctx,
                                                     IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfCompositeLit(ast::CompositeLit* expr, ASTContext& ast_ctx,
