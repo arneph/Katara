@@ -828,6 +828,14 @@ ast::Expr* Parser::ParseExpr(tokens::precedence_t prec, ExprOptions expr_options
         is_comparison = true;
         break;
       default:
+        if (is_comparison) {
+          x = ast_builder_.Create<ast::CompareExpr>(compare_expr_operands, compare_expr_op_starts,
+                                                    compare_expr_ops);
+          compare_expr_operands.clear();
+          compare_expr_op_starts.clear();
+          compare_expr_ops.clear();
+          is_comparison = false;
+        }
         break;
     }
     scanner_.Next();
