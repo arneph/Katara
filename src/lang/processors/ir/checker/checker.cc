@@ -87,6 +87,11 @@ void Checker::CheckMakeSharedPointerInstr(
                    "lang::ir_ext::MakeSharedPointerInstr result is not a strong "
                    "lang::ir_ext::SharedPointer"));
   }
+  if (make_shared_pointer_instr->size()->type() != ir::i64()) {
+    AddIssue(Issue(make_shared_pointer_instr, {make_shared_pointer_instr->size().get()},
+                   Issue::Kind::kLangMakeSharedPointerInstrSizeDoesNotHaveI64Type,
+                   "lang::ir_ext::MakeSharedPointerInstr size does not have I64 type"));
+  }
 }
 
 void Checker::CheckCopySharedPointerInstr(
@@ -154,7 +159,12 @@ void Checker::CheckMakeUniquePointerInstr(
     AddIssue(Issue(make_unique_pointer_instr, {make_unique_pointer_instr->result().get()},
                    Issue::Kind::kLangMakeUniquePointerInstrResultDoesNotHaveUniquePointerType,
                    "lang::ir_ext::MakeUniquePointerInstr result does not have "
-                   "lang::ir_ext::SharedPointer type"));
+                   "lang::ir_ext::UniquePointer type"));
+  }
+  if (make_unique_pointer_instr->size()->type() != ir::i64()) {
+    AddIssue(Issue(make_unique_pointer_instr, {make_unique_pointer_instr->size().get()},
+                   Issue::Kind::kLangMakeUniquePointerInstrSizeDoesNotHaveI64Type,
+                   "lang::ir_ext::MakeUniquePointerInstr size does not have I64 type"));
   }
 }
 

@@ -73,12 +73,12 @@ std::unique_ptr<ir_ext::PanicInstr> FuncParser::ParsePanicInstr() {
   return std::make_unique<ir_ext::PanicInstr>(reason);
 }
 
-// MakeSharedPointerInstr ::= 'panic' Value NL
 std::unique_ptr<ir_ext::MakeSharedPointerInstr> FuncParser::ParseMakeSharedInstr(
     std::shared_ptr<ir::Computed> result) {
+  std::shared_ptr<ir::Value> size = ParseValue(ir::i64());
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::MakeSharedPointerInstr>(result);
+  return std::make_unique<ir_ext::MakeSharedPointerInstr>(result, size);
 }
 
 std::unique_ptr<ir_ext::CopySharedPointerInstr> FuncParser::ParseCopySharedInstr(
@@ -102,9 +102,10 @@ std::unique_ptr<ir_ext::DeleteSharedPointerInstr> FuncParser::ParseDeleteSharedI
 
 std::unique_ptr<ir_ext::MakeUniquePointerInstr> FuncParser::ParseMakeUniqueInstr(
     std::shared_ptr<ir::Computed> result) {
+  std::shared_ptr<ir::Value> size = ParseValue(ir::i64());
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::MakeUniquePointerInstr>(result);
+  return std::make_unique<ir_ext::MakeUniquePointerInstr>(result, size);
 }
 
 std::unique_ptr<ir_ext::DeleteUniquePointerInstr> FuncParser::ParseDeleteUniqueInstr() {

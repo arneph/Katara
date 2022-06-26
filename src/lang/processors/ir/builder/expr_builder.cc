@@ -149,7 +149,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryEx
       std::shared_ptr<ir::Computed> struct_address = std::make_shared<ir::Computed>(
           ir_struct_pointer_type, ir_ctx.func()->next_computed_number());
       ir_ctx.block()->instrs().push_back(
-          std::make_unique<ir_ext::MakeSharedPointerInstr>(struct_address));
+          std::make_unique<ir_ext::MakeSharedPointerInstr>(struct_address, ir::I64One()));
       ir_ctx.block()->instrs().push_back(
           std::make_unique<ir::StoreInstr>(struct_address, struct_value));
       return struct_address;

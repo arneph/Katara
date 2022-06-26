@@ -41,17 +41,24 @@ class PanicInstr : public ir::Instr {
 
 class MakeSharedPointerInstr : public ir::Computation {
  public:
-  explicit MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result) : ir::Computation(result) {}
+  explicit MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result,
+                                  std::shared_ptr<ir::Value> size)
+      : ir::Computation(result), size_(size) {}
 
   const ir::Type* element_type() const { return pointer_type()->element(); }
   const ir_ext::SharedPointer* pointer_type() const;
 
-  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {}; }
+  std::shared_ptr<ir::Value> size() const { return size_; }
+
+  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {size_}; }
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangMakeSharedPointer; }
   std::string OperationString() const override { return "make_shared"; }
 
   bool operator==(const ir::Instr& that) const override;
+
+ private:
+  std::shared_ptr<ir::Value> size_;
 };
 
 class CopySharedPointerInstr : public ir::Computation {
@@ -110,17 +117,24 @@ class DeleteSharedPointerInstr : public ir::Instr {
 
 class MakeUniquePointerInstr : public ir::Computation {
  public:
-  explicit MakeUniquePointerInstr(std::shared_ptr<ir::Computed> result) : ir::Computation(result) {}
+  explicit MakeUniquePointerInstr(std::shared_ptr<ir::Computed> result,
+                                  std::shared_ptr<ir::Value> size)
+      : ir::Computation(result), size_(size) {}
 
   const ir::Type* element_type() const { return pointer_type()->element(); }
   const ir_ext::UniquePointer* pointer_type() const;
 
-  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {}; }
+  std::shared_ptr<ir::Value> size() const { return size_; }
+
+  std::vector<std::shared_ptr<ir::Value>> UsedValues() const override { return {size_}; }
 
   ir::InstrKind instr_kind() const override { return ir::InstrKind::kLangMakeUniquePointer; }
   std::string OperationString() const override { return "make_unique"; }
 
   bool operator==(const ir::Instr& that) const override;
+
+ private:
+  std::shared_ptr<ir::Value> size_;
 };
 
 class DeleteUniquePointerInstr : public ir::Instr {

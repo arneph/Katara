@@ -38,7 +38,8 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrResultDoesNotHaveSharedPointerTyp
   auto result = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   ir::Block* block = func->AddBlock();
   func->set_entry_block_num(block->number());
-  block->instrs().push_back(std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result));
+  block->instrs().push_back(
+      std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   EXPECT_THAT(
@@ -59,7 +60,8 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrResultIsNotAStrongSharedPointer) 
       /*vnum=*/0);
   ir::Block* block = func->AddBlock();
   func->set_entry_block_num(block->number());
-  block->instrs().push_back(std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result));
+  block->instrs().push_back(
+      std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   EXPECT_THAT(
@@ -69,6 +71,28 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrResultIsNotAStrongSharedPointer) 
                    Issue::Kind::kLangMakeSharedPointerInstrResultIsNotAStrongSharedPointer),
           Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
           Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+}
+
+TEST(CheckerTest, CatchesMakeSharedPointerInstrSizeDoesNotHaveI64Type) {
+  ir::Program program;
+  ir::Func* func = program.AddFunc();
+  auto result = std::make_shared<ir::Computed>(
+      program.type_table().AddType(
+          std::make_unique<lang::ir_ext::SharedPointer>(/*is_strong=*/true, ir::u32())),
+      /*vnum=*/0);
+  ir::Block* block = func->AddBlock();
+  func->set_entry_block_num(block->number());
+  block->instrs().push_back(
+      std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I32Zero()));
+  block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
+
+  EXPECT_THAT(CheckProgram(&program),
+              ElementsAre(AllOf(
+                  Property("kind", &Issue::kind,
+                           Issue::Kind::kLangMakeSharedPointerInstrSizeDoesNotHaveI64Type),
+                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
+                  Property("involved_objects", &Issue::involved_objects,
+                           ElementsAre(ir::I32Zero().get())))));
 }
 
 TEST(CheckerTest, CatchesCopySharedPointerInstrResultDoesNotHaveSharedPointerType) {
@@ -229,7 +253,8 @@ TEST(CheckerTest, CatchesMakeUniquePointerInstrResultDoesNotHaveUniquePointerTyp
   auto result = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   ir::Block* block = func->AddBlock();
   func->set_entry_block_num(block->number());
-  block->instrs().push_back(std::make_unique<lang::ir_ext::MakeUniquePointerInstr>(result));
+  block->instrs().push_back(
+      std::make_unique<lang::ir_ext::MakeUniquePointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   EXPECT_THAT(
@@ -239,6 +264,27 @@ TEST(CheckerTest, CatchesMakeUniquePointerInstrResultDoesNotHaveUniquePointerTyp
                    Issue::Kind::kLangMakeUniquePointerInstrResultDoesNotHaveUniquePointerType),
           Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
           Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+}
+
+TEST(CheckerTest, CatchesMakeUniquePointerInstrSizeDoesNotHaveI64Type) {
+  ir::Program program;
+  ir::Func* func = program.AddFunc();
+  auto result = std::make_shared<ir::Computed>(
+      program.type_table().AddType(std::make_unique<lang::ir_ext::UniquePointer>(ir::i8())),
+      /*vnum=*/0);
+  ir::Block* block = func->AddBlock();
+  func->set_entry_block_num(block->number());
+  block->instrs().push_back(
+      std::make_unique<lang::ir_ext::MakeUniquePointerInstr>(result, ir::U64Zero()));
+  block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
+
+  EXPECT_THAT(CheckProgram(&program),
+              ElementsAre(AllOf(
+                  Property("kind", &Issue::kind,
+                           Issue::Kind::kLangMakeUniquePointerInstrSizeDoesNotHaveI64Type),
+                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
+                  Property("involved_objects", &Issue::involved_objects,
+                           ElementsAre(ir::U64Zero().get())))));
 }
 
 TEST(CheckerTest, CatchesDeleteUniquePointerInstrArgumentDoesNotHaveUniquePointerType) {

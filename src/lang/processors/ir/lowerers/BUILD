@@ -15,6 +15,20 @@ cc_library(
     ],
 )
 
+cc_test(
+    name = "shared_pointer_lowerer_test",
+    srcs = ["shared_pointer_lowerer_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":shared_pointer_lowerer",
+        "//src/ir:ir_lib",
+        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/serialization:parse",
+        "//src/lang/representation",
+        "@gtest//:gtest_main",
+    ],
+)
+
 cc_library(
     name = "unique_pointer_lowerer",
     srcs = ["unique_pointer_lowerer.cc"],
@@ -26,5 +40,19 @@ cc_library(
     deps = [
         "//src/ir:ir_lib",
         "//src/lang/representation",
+    ],
+)
+
+cc_test(
+    name = "unique_pointer_lowerer_test",
+    srcs = ["unique_pointer_lowerer_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":unique_pointer_lowerer",
+        "//src/ir:ir_lib",
+        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/serialization:parse",
+        "//src/lang/representation",
+        "@gtest//:gtest_main",
     ],
 )

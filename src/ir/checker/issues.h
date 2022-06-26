@@ -96,6 +96,7 @@ class Issue {
     // Lang issues:
     kLangMakeSharedPointerInstrResultDoesNotHaveSharedPointerType,
     kLangMakeSharedPointerInstrResultIsNotAStrongSharedPointer,
+    kLangMakeSharedPointerInstrSizeDoesNotHaveI64Type,
     kLangCopySharedPointerInstrResultDoesNotHaveSharedPointerType,
     kLangCopySharedPointerInstrCopiedDoesNotHaveSharedPointerType,
     kLangCopySharedPointerInstrOffsetDoesNotHaveI64Type,
@@ -103,6 +104,7 @@ class Issue {
     kLangCopySharedPointerInstrConvertsFromWeakToStrongSharedPointer,
     kLangDeleteSharedPointerInstrArgumentDoesNotHaveSharedPointerType,
     kLangMakeUniquePointerInstrResultDoesNotHaveUniquePointerType,
+    kLangMakeUniquePointerInstrSizeDoesNotHaveI64Type,
     kLangDeleteUniquePointerInstrArgumentDoesNotHaveUniquePointerType,
     kLangLoadFromSmartPointerHasMismatchedElementType,
     kLangStoreToSmartPointerHasMismatchedElementType,

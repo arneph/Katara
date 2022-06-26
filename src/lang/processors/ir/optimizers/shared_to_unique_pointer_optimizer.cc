@@ -61,7 +61,7 @@ void ConvertValueFromSharedToUniquePointer(ir::value_num_t value_num,
 
 void ConvertMakeSharedToMakeUniquePointer(std::unique_ptr<ir::Instr>& instr) {
   auto old_instr = static_cast<ir_ext::MakeSharedPointerInstr*>(instr.get());
-  instr = std::make_unique<ir_ext::MakeUniquePointerInstr>(old_instr->result());
+  instr = std::make_unique<ir_ext::MakeUniquePointerInstr>(old_instr->result(), old_instr->size());
 }
 
 void ConvertDeleteSharedToDeleteUniquePointer(std::unique_ptr<ir::Instr>& instr) {

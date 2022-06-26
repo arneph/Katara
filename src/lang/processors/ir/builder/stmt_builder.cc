@@ -29,7 +29,8 @@ void StmtBuilder::BuildVarDecl(types::Variable* var, bool initialize_var, ASTCon
   const ir_ext::SharedPointer* pointer_type = type_builder_.BuildStrongPointerToType(var->type());
   std::shared_ptr<ir::Computed> address =
       std::make_shared<ir::Computed>(pointer_type, ir_ctx.func()->next_computed_number());
-  ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::MakeSharedPointerInstr>(address));
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::MakeSharedPointerInstr>(address, ir::I64One()));
   ast_ctx.AddAddressOfVar(var, address);
 
   if (initialize_var) {

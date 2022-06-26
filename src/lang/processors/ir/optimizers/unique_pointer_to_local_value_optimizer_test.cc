@@ -23,7 +23,7 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationImpossibleTestInst
                          testing::Values(R"ir(
 @0 main() => () {
   {0}
-    %0:lshared_ptr<i8, s> = make_shared
+    %0:lshared_ptr<i8, s> = make_shared #1:i64
     delete_shared %0
     ret
 }
@@ -38,7 +38,7 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationImpossibleTestInst
                                          R"ir(
 @0 creator() => (lunique_ptr<i8>) {
   {0}
-    %0:lunique_ptr<i8> = make_unique
+    %0:lunique_ptr<i8> = make_unique #1:i64
     ret %0
 }
 
@@ -52,10 +52,10 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationImpossibleTestInst
                                          R"ir(
 @0 main(%0:b) => () {
   {0}
-    %1:lunique_ptr<i8> = make_unique
+    %1:lunique_ptr<i8> = make_unique #1:i64
     jcc %0, {1}, {2}
   {1}
-    %2:lunique_ptr<i8> = make_unique
+    %2:lunique_ptr<i8> = make_unique #1:i64
     jmp {2}
   {2}
     %3:lunique_ptr<i8> = phi %1{0}, %2{1}
@@ -92,7 +92,7 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationPossibleTestInstan
                                  .input_program = R"ir(
 @0 main() => () {
   {0}
-    %0:lunique_ptr<i8> = make_unique
+    %0:lunique_ptr<i8> = make_unique #1:i64
     delete_unique %0
     ret
 }
@@ -108,7 +108,7 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationPossibleTestInstan
                                  .input_program = R"ir(
 @0 main() => (i16) {
   {0}
-    %0:lunique_ptr<i16> = make_unique
+    %0:lunique_ptr<i16> = make_unique #1:i64
     store %0, #123:i16
     %1:i16 = load %0
     %2:i16 = iadd %1, #42:i16
@@ -132,9 +132,9 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationPossibleTestInstan
                                  .input_program = R"ir(
 @0 main() => (i64) {
   {0}
-    %0:lunique_ptr<i64> = make_unique
+    %0:lunique_ptr<i64> = make_unique #1:i64
     store %0, #0:i64
-    %1:lunique_ptr<i64> = make_unique
+    %1:lunique_ptr<i64> = make_unique #1:i64
     store %1, #0:i64
     jmp {1}
   {1}
