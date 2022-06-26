@@ -553,6 +553,7 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExprWithFu
     ast::CallExpr* expr, ASTContext& ast_ctx, IRContext& ir_ctx) {
   std::shared_ptr<ir::Value> ir_func = BuildValuesOfExpr(expr->func(), ast_ctx, ir_ctx).front();
   // TODO: support type parameters
+  // TODO: support receivers
 
   types::Type* types_expr_type = type_info_->TypeOf(expr);
   std::vector<std::shared_ptr<ir::Value>> args = BuildValuesOfExprs(expr->args(), ast_ctx, ir_ctx);
