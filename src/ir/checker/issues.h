@@ -94,8 +94,24 @@ class Issue {
     kComputedValueDefinitionDoesNotDominateUse,
 
     // Lang issues:
+    kLangMakeSharedPointerInstrResultDoesNotHaveSharedPointerType,
+    kLangMakeSharedPointerInstrResultIsNotAStrongSharedPointer,
+    kLangCopySharedPointerInstrResultDoesNotHaveSharedPointerType,
+    kLangCopySharedPointerInstrCopiedDoesNotHaveSharedPointerType,
+    kLangCopySharedPointerInstrOffsetDoesNotHaveI64Type,
+    kLangCopySharedPointerInstrResultAndCopiedHaveDifferentElementTypes,
+    kLangCopySharedPointerInstrConvertsFromWeakToStrongSharedPointer,
+    kLangDeleteSharedPointerInstrArgumentDoesNotHaveSharedPointerType,
+    kLangMakeUniquePointerInstrResultDoesNotHaveUniquePointerType,
+    kLangDeleteUniquePointerInstrArgumentDoesNotHaveUniquePointerType,
     kLangLoadFromSmartPointerHasMismatchedElementType,
     kLangStoreToSmartPointerHasMismatchedElementType,
+    kLangStringIndexInstrResultDoesNotHaveI8Type,
+    kLangStringIndexInstrStringOperandDoesNotHaveStringType,
+    kLangStringIndexInstrIndexOperandDoesNotHaveI64Type,
+    kLangStringConcatInstrResultDoesNotHaveStringType,
+    kLangStringConcatInstrDoesNotHaveArguments,
+    kLangStringConcatInstrOperandDoesNotHaveStringType,
   };
 
   Issue(const ir::Object* scope_object, Kind kind, std::string message)

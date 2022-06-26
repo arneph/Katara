@@ -41,7 +41,7 @@ class PanicInstr : public ir::Instr {
 
 class MakeSharedPointerInstr : public ir::Computation {
  public:
-  explicit MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result);
+  explicit MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result) : ir::Computation(result) {}
 
   const ir::Type* element_type() const { return pointer_type()->element(); }
   const ir_ext::SharedPointer* pointer_type() const;
@@ -58,7 +58,10 @@ class CopySharedPointerInstr : public ir::Computation {
  public:
   CopySharedPointerInstr(std::shared_ptr<ir::Computed> result,
                          std::shared_ptr<ir::Computed> copied_shared_pointer,
-                         std::shared_ptr<ir::Value> pointer_offset);
+                         std::shared_ptr<ir::Value> pointer_offset)
+      : ir::Computation(result),
+        copied_shared_pointer_(copied_shared_pointer),
+        pointer_offset_(pointer_offset) {}
 
   const ir::Type* element_type() const { return copied_pointer_type()->element(); }
   const ir_ext::SharedPointer* copied_pointer_type() const;
@@ -83,7 +86,8 @@ class CopySharedPointerInstr : public ir::Computation {
 
 class DeleteSharedPointerInstr : public ir::Instr {
  public:
-  explicit DeleteSharedPointerInstr(std::shared_ptr<ir::Computed> deleted_shared_pointer);
+  explicit DeleteSharedPointerInstr(std::shared_ptr<ir::Computed> deleted_shared_pointer)
+      : deleted_shared_pointer_(deleted_shared_pointer) {}
 
   const ir::Type* element_type() const { return pointer_type()->element(); }
   const ir_ext::SharedPointer* pointer_type() const;
@@ -106,7 +110,7 @@ class DeleteSharedPointerInstr : public ir::Instr {
 
 class MakeUniquePointerInstr : public ir::Computation {
  public:
-  explicit MakeUniquePointerInstr(std::shared_ptr<ir::Computed> result);
+  explicit MakeUniquePointerInstr(std::shared_ptr<ir::Computed> result) : ir::Computation(result) {}
 
   const ir::Type* element_type() const { return pointer_type()->element(); }
   const ir_ext::UniquePointer* pointer_type() const;
@@ -121,7 +125,8 @@ class MakeUniquePointerInstr : public ir::Computation {
 
 class DeleteUniquePointerInstr : public ir::Instr {
  public:
-  explicit DeleteUniquePointerInstr(std::shared_ptr<ir::Computed> deleted_unique_pointer);
+  explicit DeleteUniquePointerInstr(std::shared_ptr<ir::Computed> deleted_unique_pointer)
+      : deleted_unique_pointer_(deleted_unique_pointer) {}
 
   const ir::Type* element_type() const { return pointer_type()->element(); }
   const ir_ext::UniquePointer* pointer_type() const;

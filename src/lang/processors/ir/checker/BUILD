@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
@@ -18,5 +18,17 @@ cc_library(
         "//src/ir/checker",
         "//src/ir/representation",
         "//src/lang/representation",
+    ],
+)
+
+cc_test(
+    name = "checker_test",
+    srcs = ["checker_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":checker",
+        "//src/ir/representation",
+        "//src/lang/representation",
+        "@gtest//:gtest_main",
     ],
 )

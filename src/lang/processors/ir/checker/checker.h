@@ -44,10 +44,11 @@ class Checker : public ::ir_checker::Checker {
   void CheckMakeUniquePointerInstr(const ir_ext::MakeUniquePointerInstr* make_unique_pointer_instr);
   void CheckDeleteUniquePointerInstr(
       const ir_ext::DeleteUniquePointerInstr* delete_unique_pointer_instr);
-  void CheckStringIndexInstr(const ir_ext::StringIndexInstr* string_index_instr);
-  void CheckStringConcatInstr(const ir_ext::StringConcatInstr* string_concat_instr);
   void CheckLoadInstr(const ir::LoadInstr* load_instr) final;
   void CheckStoreInstr(const ir::StoreInstr* store_instr) final;
+
+  void CheckStringIndexInstr(const ir_ext::StringIndexInstr* string_index_instr);
+  void CheckStringConcatInstr(const ir_ext::StringConcatInstr* string_concat_instr);
 
   friend std::vector<::ir_checker::Issue> CheckProgram(const ir::Program* program);
 };
