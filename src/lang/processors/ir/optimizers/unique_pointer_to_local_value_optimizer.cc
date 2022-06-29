@@ -34,6 +34,10 @@ bool CanConvertPointer(ir::value_num_t value, const ir_info::FuncValues& func_va
       defining_instr->instr_kind() != ir::InstrKind::kLangMakeUniquePointer) {
     return false;
   }
+  auto make_unique_ptr_instr = static_cast<ir_ext::MakeUniquePointerInstr*>(defining_instr);
+  if (make_unique_ptr_instr->size() != ir::I64One()) {
+    return false;
+  }
   for (ir::Instr* using_instr : func_values.GetInstrsUsingValue(value)) {
     switch (using_instr->instr_kind()) {
       case ir::InstrKind::kPhi:   // TODO: support analysis with phis

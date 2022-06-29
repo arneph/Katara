@@ -62,6 +62,14 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationImpossibleTestInst
     delete_unique %3
     ret
 }
+)ir",
+                                         R"ir(
+@0 main() => () {
+  {0}
+    %0:lunique_ptr<i8> = make_unique #42:i64
+    delete_unique %0
+    ret
+}
 )ir"));
 
 TEST_P(UniquePointerToLocalValueOptimizationImpossibleTest, DoesNotOptimizeProgram) {
