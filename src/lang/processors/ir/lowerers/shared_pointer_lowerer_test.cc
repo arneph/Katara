@@ -111,6 +111,23 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                              },
                              LowererTestParams{
                                  .input_program = R"ir(
+@0 f() => (lshared_ptr<u16, s>) {
+  {0}
+    %0:lshared_ptr<u16, s> = make_shared #1:i64
+    %1:lshared_ptr<u16, s> = mov %0
+    ret %1
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 f() => (ptr, ptr) {
+  {0}
+    %2:ptr, %3:ptr = call @1, #8:i64, @-1
+    ret %2, %3
+}
+)ir",
+                             },
+                             LowererTestParams{
+                                 .input_program = R"ir(
 @0 main() => (i64) {
   {0}
     %0:lshared_ptr<i64, s> = make_shared #1:i64

@@ -381,6 +381,22 @@ void LowerStoreInSharedPointerInstr(
       it, std::make_unique<ir::StoreInstr>(decomposed_accessed.underlying_pointer, value));
 }
 
+void LowerMovSharedPointerInstr(
+    ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
+    std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
+  auto mov_instr = static_cast<ir::MovInstr*>(it->get());
+  if (mov_instr->result()->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+    return;
+  }
+  ir::value_num_t origin_shared_pointer_num =
+      static_cast<ir::Computed*>(mov_instr->origin().get())->number();
+  ir::value_num_t result_shared_pointer_num = mov_instr->result()->number();
+  DecomposedShared& decomposed_origin = decomposed_shared_pointers.at(origin_shared_pointer_num);
+  it = block->instrs().erase(it);
+  --it;
+  decomposed_shared_pointers.emplace(result_shared_pointer_num, decomposed_origin);
+}
+
 void LowerSharedPointersInCallInstr(
     ir::Func* func, ir::CallInstr* call_instr,
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
@@ -440,7 +456,7 @@ void LowerSharedPointersInFunc(const LoweringFuncs& lowering_funcs, ir::Func* fu
   std::unordered_map<ir::value_num_t, DecomposedShared> decomposed_shared_pointers;
   LowerSharedPointerArgsOfFunc(func, decomposed_shared_pointers);
   LowerSharedPointerResultsOfFunc(func);
-  // TODO: implement lowering of mov and phi instrs that handle shared pointers
+  // TODO: implement lowering of phi instrs that handle shared pointers
   // TODO: implement lowering of load/store results that are shared pointers
   func->ForBlocksInDominanceOrder([&](ir::Block* block) {
     for (auto it = block->instrs().begin(); it != block->instrs().end(); ++it) {
@@ -460,6 +476,9 @@ void LowerSharedPointersInFunc(const LoweringFuncs& lowering_funcs, ir::Func* fu
           break;
         case ir::InstrKind::kStore:
           LowerStoreInSharedPointerInstr(block, it, decomposed_shared_pointers, lowering_funcs);
+          break;
+        case ir::InstrKind::kMov:
+          LowerMovSharedPointerInstr(block, it, decomposed_shared_pointers);
           break;
         case ir::InstrKind::kCall:
           LowerSharedPointersInCallInstr(func, static_cast<ir::CallInstr*>(old_instr),
