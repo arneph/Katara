@@ -188,7 +188,7 @@ void Checker::CheckLoadInstr(const ir::LoadInstr* load_instr) {
     return;
   }
   auto smart_ptr = static_cast<const ir_ext::SmartPointer*>(load_instr->address()->type());
-  if (load_instr->result()->type() != smart_ptr->element()) {
+  if (!ir::IsEqual(load_instr->result()->type(), smart_ptr->element())) {
     AddIssue(Issue(load_instr, {load_instr->address().get(), load_instr->result().get()},
                    Issue::Kind::kLangLoadFromSmartPointerHasMismatchedElementType,
                    "ir::LoadInstr lang::ir_ext::SmartPointer does not match result type"));
@@ -203,7 +203,7 @@ void Checker::CheckStoreInstr(const ir::StoreInstr* store_instr) {
     return;
   }
   auto smart_ptr = static_cast<const ir_ext::SmartPointer*>(store_instr->address()->type());
-  if (store_instr->value()->type() != smart_ptr->element()) {
+  if (!ir::IsEqual(store_instr->value()->type(), smart_ptr->element())) {
     AddIssue(Issue(store_instr, {store_instr->address().get(), store_instr->value().get()},
                    Issue::Kind::kLangStoreToSmartPointerHasMismatchedElementType,
                    "ir::StoreInstr lang::ir_ext::SmartPointer does not match result type"));
