@@ -143,11 +143,7 @@ std::shared_ptr<IntConstant> ToIntConstant(common::Int value) {
 }
 
 void PointerConstant::WriteRefString(std::ostream& os) const {
-  if (value_ == 0) {
-    os << "nil";
-  } else {
-    os << std::hex << std::showbase << value_ << std::resetiosflags(0);
-  }
+  os << std::hex << std::showbase << value_ << std::resetiosflags(0);
 }
 
 bool PointerConstant::operator==(const Value& that) const {
