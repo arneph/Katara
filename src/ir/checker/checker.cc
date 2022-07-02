@@ -347,7 +347,7 @@ void Checker::CheckInstr(const ir::Instr* instr, const ir::Block* block, const i
 }
 
 void Checker::CheckMovInstr(const ir::MovInstr* mov_instr) {
-  if (mov_instr->origin()->type() != mov_instr->result()->type()) {
+  if (!ir::IsEqual(mov_instr->origin()->type(), mov_instr->result()->type())) {
     AddIssue(Issue(mov_instr, {mov_instr->origin().get(), mov_instr->result().get()},
                    Issue::Kind::kMovInstrOriginAndResultHaveMismatchedTypes,
                    "ir::MovInstr has with mismatched origin and result type"));
