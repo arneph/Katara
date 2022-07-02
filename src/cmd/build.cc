@@ -147,7 +147,9 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
   }
   auto ir_program = std::get<std::unique_ptr<ir::Program>>(std::move(program_or_error));
 
-  OptimizeIrExtProgram(ir_program.get(), debug_handler);
+  if (options.optimize_ir_ext) {
+    OptimizeIrExtProgram(ir_program.get(), debug_handler);
+  }
   LowerIrExtProgram(ir_program.get(), debug_handler);
   if (options.optimize_ir) {
     OptimizeIrProgram(ir_program.get(), debug_handler);

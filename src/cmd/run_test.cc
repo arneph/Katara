@@ -19,9 +19,19 @@ class RunTest : public testing::TestWithParam<BuildOptions> {};
 INSTANTIATE_TEST_SUITE_P(RunTestInstance, RunTest,
                          testing::Values(
                              BuildOptions{
+                                 .optimize_ir_ext = false,
                                  .optimize_ir = false,
                              },
                              BuildOptions{
+                                 .optimize_ir_ext = false,
+                                 .optimize_ir = true,
+                             },
+                             BuildOptions{
+                                 .optimize_ir_ext = true,
+                                 .optimize_ir = false,
+                             },
+                             BuildOptions{
+                                 .optimize_ir_ext = true,
                                  .optimize_ir = true,
                              }));
 
