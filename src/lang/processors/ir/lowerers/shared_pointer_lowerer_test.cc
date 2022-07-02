@@ -128,6 +128,74 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                              },
                              LowererTestParams{
                                  .input_program = R"ir(
+@0 f(%0:b) => (lshared_ptr<u64, s>) {
+  {0}
+    jcc %0, {1}, {2}
+  {1}
+    %1:lshared_ptr<u64, s> = make_shared #1:i64
+    jmp {3}
+  {2}
+    %2:lshared_ptr<u64, s> = make_shared #1:i64
+    jmp {3}
+  {3}
+    %3:lshared_ptr<u64, s> = phi %1{1}, %2{2}
+    ret %3
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 f(%0:b) => (ptr, ptr) {
+  {0}
+    jcc %0, {1}, {2}
+  {1}
+    %8:ptr, %9:ptr = call @1, #8:i64, @-1
+    jmp {3}
+  {2}
+    %4:ptr, %5:ptr = call @1, #8:i64, @-1
+    jmp {3}
+  {3}
+    %6:ptr = phi %8{1}, %4{2}
+    %7:ptr = phi %9{1}, %5{2}
+    ret %6, %7
+}
+)ir",
+                             },
+                             LowererTestParams{
+                                 .input_program = R"ir(
+@0 f(%0:b) => (lshared_ptr<u64, s>) {
+  {0}
+    %1:lshared_ptr<u64, s> = make_shared #1:i64
+    jmp{1}
+  {1}
+    %2:lshared_ptr<u64, s> = phi %1{0}, %3{2}
+    jcc %0, {2}, {3}
+  {2}
+    %3:lshared_ptr<u64, s> = copy_shared %2, #0:i64
+    delete_shared %2
+    jmp {1}
+  {3}
+    ret %2
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 f(%0:b) => (ptr, ptr) {
+  {0}
+    %4:ptr, %5:ptr = call @1, #8:i64, @-1
+    jmp{1}
+  {1}
+    %6:ptr = phi %4{0}, %6{2}
+    %7:ptr = phi %5{0}, %8{2}
+    jcc %0, {2}, {3}
+  {2}
+    %8:ptr = call @2, %6, %7, #0:i64
+    call @4, %6
+    jmp {1}
+  {3}
+    ret %6, %7
+}
+)ir",
+                             },
+                             LowererTestParams{
+                                 .input_program = R"ir(
 @0 main() => (i64) {
   {0}
     %0:lshared_ptr<i64, s> = make_shared #1:i64

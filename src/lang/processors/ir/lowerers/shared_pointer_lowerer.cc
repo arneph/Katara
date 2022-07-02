@@ -8,7 +8,10 @@
 
 #include "shared_pointer_lowerer.h"
 
+#include <memory>
+#include <optional>
 #include <unordered_map>
+#include <vector>
 
 #include "src/ir/builder/block_builder.h"
 #include "src/ir/builder/func_builder.h"
@@ -397,6 +400,59 @@ void LowerMovSharedPointerInstr(
   decomposed_shared_pointers.emplace(result_shared_pointer_num, decomposed_origin);
 }
 
+struct PhiInstrLoweringInfo {
+  ir::value_num_t result_shared_pointer_num;
+  std::unordered_map<ir::block_num_t, ir::value_num_t> arg_shared_pointer_nums;
+  ir::PhiInstr* control_block_pointer_phi_instr;
+  ir::PhiInstr* underlying_pointer_phi_instr;
+};
+
+std::optional<PhiInstrLoweringInfo> LowerSharedPointerDefinitionsInPhiInstr(
+    ir::Func* func, ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
+    std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
+  auto old_phi_instr = static_cast<ir::PhiInstr*>(it->get());
+  if (old_phi_instr->result()->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+    return std::nullopt;
+  }
+  PhiInstrLoweringInfo info;
+  info.result_shared_pointer_num = old_phi_instr->result()->number();
+  for (std::shared_ptr<ir::InheritedValue>& arg : old_phi_instr->args()) {
+    info.arg_shared_pointer_nums.try_emplace(
+        arg->origin(), static_cast<ir::Computed*>(arg->value().get())->number());
+  }
+  DecomposedShared decomposed_result{
+      .control_block_pointer =
+          std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number()),
+      .underlying_pointer =
+          std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number()),
+  };
+
+  it = block->instrs().erase(it);
+  it = block->instrs().insert(
+      it, std::make_unique<ir::PhiInstr>(decomposed_result.control_block_pointer,
+                                         std::vector<std::shared_ptr<ir::InheritedValue>>{}));
+  info.control_block_pointer_phi_instr = static_cast<ir::PhiInstr*>(it->get());
+  ++it;
+  it = block->instrs().insert(
+      it, std::make_unique<ir::PhiInstr>(decomposed_result.underlying_pointer,
+                                         std::vector<std::shared_ptr<ir::InheritedValue>>{}));
+  info.underlying_pointer_phi_instr = static_cast<ir::PhiInstr*>(it->get());
+  decomposed_shared_pointers.emplace(info.result_shared_pointer_num, decomposed_result);
+  return info;
+}
+
+void LowerSharedPointerArgsForPhiInstr(
+    PhiInstrLoweringInfo& info,
+    std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
+  for (auto& [origin, arg_shared_pointer_num] : info.arg_shared_pointer_nums) {
+    DecomposedShared& decomposed_result = decomposed_shared_pointers.at(arg_shared_pointer_num);
+    info.control_block_pointer_phi_instr->args().push_back(
+        std::make_shared<ir::InheritedValue>(decomposed_result.control_block_pointer, origin));
+    info.underlying_pointer_phi_instr->args().push_back(
+        std::make_shared<ir::InheritedValue>(decomposed_result.underlying_pointer, origin));
+  }
+}
+
 void LowerSharedPointersInCallInstr(
     ir::Func* func, ir::CallInstr* call_instr,
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
@@ -454,9 +510,9 @@ void LowerSharedPointersInReturnInstr(
 
 void LowerSharedPointersInFunc(const LoweringFuncs& lowering_funcs, ir::Func* func) {
   std::unordered_map<ir::value_num_t, DecomposedShared> decomposed_shared_pointers;
+  std::vector<PhiInstrLoweringInfo> phi_instrs_lowering_info;
   LowerSharedPointerArgsOfFunc(func, decomposed_shared_pointers);
   LowerSharedPointerResultsOfFunc(func);
-  // TODO: implement lowering of phi instrs that handle shared pointers
   // TODO: implement lowering of load/store results that are shared pointers
   func->ForBlocksInDominanceOrder([&](ir::Block* block) {
     for (auto it = block->instrs().begin(); it != block->instrs().end(); ++it) {
@@ -480,6 +536,13 @@ void LowerSharedPointersInFunc(const LoweringFuncs& lowering_funcs, ir::Func* fu
         case ir::InstrKind::kMov:
           LowerMovSharedPointerInstr(block, it, decomposed_shared_pointers);
           break;
+        case ir::InstrKind::kPhi:
+          if (std::optional<PhiInstrLoweringInfo> info = LowerSharedPointerDefinitionsInPhiInstr(
+                  func, block, it, decomposed_shared_pointers);
+              info.has_value()) {
+            phi_instrs_lowering_info.push_back(*info);
+          }
+          break;
         case ir::InstrKind::kCall:
           LowerSharedPointersInCallInstr(func, static_cast<ir::CallInstr*>(old_instr),
                                          decomposed_shared_pointers);
@@ -493,6 +556,9 @@ void LowerSharedPointersInFunc(const LoweringFuncs& lowering_funcs, ir::Func* fu
       }
     }
   });
+  for (PhiInstrLoweringInfo& info : phi_instrs_lowering_info) {
+    LowerSharedPointerArgsForPhiInstr(info, decomposed_shared_pointers);
+  }
 }
 
 }  // namespace
