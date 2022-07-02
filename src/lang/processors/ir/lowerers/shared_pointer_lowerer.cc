@@ -228,6 +228,40 @@ struct LoweringFuncs {
   ir::func_num_t validate_weak_shared_func_num;
 };
 
+void LowerSharedPointerArgsOfFunc(
+    ir::Func* func,
+    std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
+  for (auto it = func->args().begin(); it != func->args().end(); ++it) {
+    if ((*it)->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+      continue;
+    }
+    ir::value_num_t shared_ptr_num = (*it)->number();
+    DecomposedShared decomposed{
+        .control_block_pointer =
+            std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number()),
+        .underlying_pointer =
+            std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number()),
+    };
+    it = func->args().erase(it);
+    it = func->args().insert(it, decomposed.control_block_pointer);
+    ++it;
+    it = func->args().insert(it, decomposed.underlying_pointer);
+    decomposed_shared_pointers.emplace(shared_ptr_num, decomposed);
+  }
+}
+
+void LowerSharedPointerResultsOfFunc(ir::Func* func) {
+  for (auto it = func->result_types().begin(); it != func->result_types().end(); ++it) {
+    if ((*it)->type_kind() != ir::TypeKind::kLangSharedPointer) {
+      return;
+    }
+    it = func->result_types().erase(it);
+    it = func->result_types().insert(it, ir::pointer_type());
+    ++it;
+    it = func->result_types().insert(it, ir::pointer_type());
+  }
+}
+
 void LowerMakeSharedPointerInstr(
     ir::Func* func, ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers,
@@ -281,7 +315,7 @@ void LowerDeleteSharedPointerInstr(
   auto delete_shared_instr = static_cast<ir_ext::DeleteSharedPointerInstr*>(it->get());
   ir::value_num_t deleted_shared_pointer_num =
       delete_shared_instr->deleted_shared_pointer()->number();
-  DecomposedShared decomposed_deleted = decomposed_shared_pointers.at(deleted_shared_pointer_num);
+  DecomposedShared& decomposed_deleted = decomposed_shared_pointers.at(deleted_shared_pointer_num);
 
   ir::func_num_t func_num = static_cast<const ir_ext::SharedPointer*>(
                                 delete_shared_instr->deleted_shared_pointer()->type())
@@ -303,7 +337,8 @@ void LowerLoadFromSharedPointerInstr(
   }
   ir::value_num_t accessed_shared_pointer_num =
       static_cast<ir::Computed*>(load_shared_instr->address().get())->number();
-  DecomposedShared decomposed_accessed = decomposed_shared_pointers.at(accessed_shared_pointer_num);
+  DecomposedShared& decomposed_accessed =
+      decomposed_shared_pointers.at(accessed_shared_pointer_num);
   std::shared_ptr<ir::Computed> result = load_shared_instr->result();
 
   bool is_strong =
@@ -329,7 +364,8 @@ void LowerStoreInSharedPointerInstr(
   }
   ir::value_num_t accessed_shared_pointer_num =
       static_cast<ir::Computed*>(store_shared_instr->address().get())->number();
-  DecomposedShared decomposed_accessed = decomposed_shared_pointers.at(accessed_shared_pointer_num);
+  DecomposedShared& decomposed_accessed =
+      decomposed_shared_pointers.at(accessed_shared_pointer_num);
   std::shared_ptr<ir::Value> value = store_shared_instr->value();
 
   bool is_strong =
@@ -345,9 +381,66 @@ void LowerStoreInSharedPointerInstr(
       it, std::make_unique<ir::StoreInstr>(decomposed_accessed.underlying_pointer, value));
 }
 
+void LowerSharedPointersInCallInstr(
+    ir::Func* func, ir::CallInstr* call_instr,
+    std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
+  for (auto it = call_instr->args().begin(); it != call_instr->args().end(); ++it) {
+    ir::Value* old_arg = it->get();
+    if (old_arg->kind() != ir::Value::Kind::kComputed ||
+        old_arg->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+      continue;
+    }
+    ir::value_num_t arg_shared_pointer_num = static_cast<ir::Computed*>(old_arg)->number();
+    DecomposedShared& decomposed_arg = decomposed_shared_pointers.at(arg_shared_pointer_num);
+    it = call_instr->args().erase(it);
+    it = call_instr->args().insert(it, decomposed_arg.control_block_pointer);
+    ++it;
+    it = call_instr->args().insert(it, decomposed_arg.underlying_pointer);
+  }
+  for (auto it = call_instr->results().begin(); it != call_instr->results().end(); ++it) {
+    ir::Computed* old_result = it->get();
+    if (old_result->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+      continue;
+    }
+    ir::value_num_t result_shared_pointer_num = old_result->number();
+    DecomposedShared decomposed{
+        .control_block_pointer =
+            std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number()),
+        .underlying_pointer =
+            std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number()),
+    };
+
+    it = call_instr->results().erase(it);
+    it = call_instr->results().insert(it, decomposed.control_block_pointer);
+    ++it;
+    it = call_instr->results().insert(it, decomposed.underlying_pointer);
+    decomposed_shared_pointers.emplace(result_shared_pointer_num, decomposed);
+  }
+}
+
+void LowerSharedPointersInReturnInstr(
+    ir::ReturnInstr* return_instr,
+    std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
+  for (auto it = return_instr->args().begin(); it != return_instr->args().end(); ++it) {
+    ir::Value* old_arg = it->get();
+    if (old_arg->kind() != ir::Value::Kind::kComputed ||
+        old_arg->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
+      continue;
+    }
+    ir::value_num_t arg_shared_pointer_num = static_cast<ir::Computed*>(old_arg)->number();
+    DecomposedShared& decomposed_arg = decomposed_shared_pointers.at(arg_shared_pointer_num);
+    it = return_instr->args().erase(it);
+    it = return_instr->args().insert(it, decomposed_arg.control_block_pointer);
+    ++it;
+    it = return_instr->args().insert(it, decomposed_arg.underlying_pointer);
+  }
+}
+
 void LowerSharedPointersInFunc(const LoweringFuncs& lowering_funcs, ir::Func* func) {
   std::unordered_map<ir::value_num_t, DecomposedShared> decomposed_shared_pointers;
-  // TODO: implement lowering of func/call arguments and results
+  LowerSharedPointerArgsOfFunc(func, decomposed_shared_pointers);
+  LowerSharedPointerResultsOfFunc(func);
+  // TODO: implement lowering of mov and phi instrs that handle shared pointers
   // TODO: implement lowering of load/store results that are shared pointers
   func->ForBlocksInDominanceOrder([&](ir::Block* block) {
     for (auto it = block->instrs().begin(); it != block->instrs().end(); ++it) {
@@ -367,6 +460,14 @@ void LowerSharedPointersInFunc(const LoweringFuncs& lowering_funcs, ir::Func* fu
           break;
         case ir::InstrKind::kStore:
           LowerStoreInSharedPointerInstr(block, it, decomposed_shared_pointers, lowering_funcs);
+          break;
+        case ir::InstrKind::kCall:
+          LowerSharedPointersInCallInstr(func, static_cast<ir::CallInstr*>(old_instr),
+                                         decomposed_shared_pointers);
+          break;
+        case ir::InstrKind::kReturn:
+          LowerSharedPointersInReturnInstr(static_cast<ir::ReturnInstr*>(old_instr),
+                                           decomposed_shared_pointers);
           break;
         default:
           continue;

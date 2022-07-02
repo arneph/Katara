@@ -8,15 +8,109 @@
 
 #include "src/lang/processors/ir/lowerers/shared_pointer_lowerer.h"
 
+#include <string>
+
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "src/ir/representation/num_types.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/print.h"
 #include "src/lang/processors/ir/checker/checker.h"
 #include "src/lang/processors/ir/serialization/parse.h"
 
-TEST(SharedPointerLowererTest, LowersSimpleProgram) {
-  std::unique_ptr<ir::Program> lowered_program = lang::ir_serialization::ParseProgram(R"ir(
+using ::testing::Each;
+using ::testing::Property;
+
+struct LowererTestParams {
+  std::string input_program;
+  std::string expected_program;
+};
+
+class SharedPointerLowererTest : public testing::TestWithParam<LowererTestParams> {};
+
+INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererTest,
+                         testing::Values(
+                             LowererTestParams{
+                                 .input_program = R"ir(
+@0 f(%0:lshared_ptr<u16, s>) => (u16) {
+  {0}
+    %1:u16 = load %0
+    ret %1
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 f(%2:ptr, %3:ptr) => (u16) {
+  {0}
+    %1:u16 = load %3
+    ret %1
+}
+)ir",
+                             },
+                             LowererTestParams{
+                                 .input_program = R"ir(
+@0 f() => (lshared_ptr<func, s>) {
+  {0}
+    %0:lshared_ptr<func, s> = make_shared #1:i64
+    store %0, @0
+    ret %0
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 f() => (ptr, ptr) {
+  {0}
+    %1:ptr, %2:ptr = call @1, #8:i64, @-1
+    store %2, @0
+    ret %1, %2
+}
+)ir",
+                             },
+                             LowererTestParams{
+                                 .input_program = R"ir(
+@0 f(%0:i16, %1:lshared_ptr<u32, w>, %2:b) => (lshared_ptr<i16, s>, ptr) {
+  {0}
+    %3:lshared_ptr<i16, s> = make_shared #1:i64
+    %4:lshared_ptr<u32, w> = copy_shared %1, #0:i64
+    store %3, %0
+    delete_shared %1
+    delete_shared %4
+    ret %3, 0x0
+}
+
+@1 g() => () {
+  {42}
+    %0:lshared_ptr<u32, s> = make_shared #1:i64
+    %1:lshared_ptr<u32, w> = copy_shared %0, #0:i64
+    %2:lshared_ptr<i16, s>, %3:ptr = call @0, #1234:i16, %1, #t
+    delete_shared %0
+    delete_shared %2
+    ret
+}
+
+)ir",
+                                 .expected_program = R"ir(
+@0 f (%0:i16, %5:ptr, %6:ptr, %2:b) => (ptr, ptr, ptr) {
+  {0}
+    %7:ptr, %8:ptr = call @2, #8:i64, @-1
+    %9:ptr = call @4, %5, %6, #0:i64
+    store %8, %0
+    call @6, %5
+    call @6, %5
+    ret %7, %8, 0x0
+}
+
+@1 g () => () {
+  {42}
+    %4:ptr, %5:ptr = call @2, #8:i64, @-1
+    %6:ptr = call @4, %4, %5, #0:i64
+    %7:ptr, %8:ptr, %3:ptr = call @0, #1234:i16, %4, %6, #t
+    call @5, %4
+    call @5, %7
+    ret
+}
+)ir",
+                             },
+                             LowererTestParams{
+                                 .input_program = R"ir(
 @0 main() => (i64) {
   {0}
     %0:lshared_ptr<i64, s> = make_shared #1:i64
@@ -45,8 +139,8 @@ TEST(SharedPointerLowererTest, LowersSimpleProgram) {
     store %0, %8
     jmp {2}
 }
-)ir");
-  std::unique_ptr<ir::Program> expected_program = lang::ir_serialization::ParseProgram(R"ir(
+)ir",
+                                 .expected_program = R"ir(
 @0 main () => (i64) {
 {0}
   %10:ptr, %11:ptr = call @1, #8:i64, @-1
@@ -75,107 +169,27 @@ TEST(SharedPointerLowererTest, LowersSimpleProgram) {
   store %11, %8
   jmp {2}
 }
-@1 make_shared (%0:i64, %1:func) => (ptr, ptr) {
-{0}
-  %2:i64 = iadd #24:i64, %0
-  %3:ptr = malloc %2
-  store %3, #1:i64
-  %4:ptr = poff %3, #8:i64
-  store %4, #0:i64
-  %5:ptr = poff %3, #16:i64
-  store %5, %1
-  %6:ptr = poff %3, #24:i64
-  ret %3, %6
-}
+)ir",
+                             }));
 
-@2 strong_copy_shared (%0:ptr, %1:ptr, %2:i64) => (ptr) {
-{0}
-  %3:i64 = load %0
-  %4:i64 = iadd %3, #1:i64
-  store %0, %4
-  %5:ptr = poff %1, %2
-  ret %5
-}
-
-@3 weak_copy_shared (%0:ptr, %1:ptr, %2:i64) => (ptr) {
-{0}
-  %3:ptr = poff %0, #8:i64
-  %4:i64 = load %3
-  %5:i64 = iadd %4, #1:i64
-  store %3, %5
-  %6:ptr = poff %1, %2
-  ret %6
-}
-
-@4 delete_strong_shared (%0:ptr) => () {
-{0}
-  %1:i64 = load %0
-  %2:b = ieq %1, #1:i64
-  jcc %2, {2}, {1}
-{1}
-  %3:i64 = isub %1, #1:i64
-  store %0, %3
-  ret
-{2}
-  %4:ptr = poff %0, #16:i64
-  %5:func = load %4
-  %6:b = niltest %5
-  jcc %6, {4}, {3}
-{3}
-  %7:ptr = poff %0, #24:i64
-  call %5, %7
-  jmp {4}
-{4}
-  %8:ptr = poff %0, #8:i64
-  %9:i64 = load %8
-  %10:b = ieq %9, #0:i64
-  jcc %10, {6}, {5}
-{5}
-  ret
-{6}
-  free %0
-  ret
-}
-
-@5 delete_weak_shared (%0:ptr) => () {
-{0}
-  %1:ptr = poff %0, #8:i64
-  %2:i64 = load %1
-  %3:b = ieq %2, #1:i64
-  jcc %3, {2}, {1}
-{1}
-  %4:i64 = isub %2, #1:i64
-  store %1, %4
-  ret
-{2}
-  %5:i64 = load %0
-  %6:b = ieq %5, #0:i64
-  jcc %6, {4}, {3}
-{3}
-  ret
-{4}
-  free %0
-  ret
-}
-
-@6 validate_weak_shared (%0:ptr) => () {
-{0}
-  %1:i64 = load %0
-  %2:b = ieq %1, #0:i64
-  jcc %2, {2}, {1}
-{1}
-  ret
-{2}
-  panic "0x600000210e18"
-}
-)ir");
+TEST_P(SharedPointerLowererTest, LowersProgram) {
+  std::unique_ptr<ir::Program> lowered_program =
+      lang::ir_serialization::ParseProgram(GetParam().input_program);
+  std::unique_ptr<ir::Program> expected_program =
+      lang::ir_serialization::ParseProgram(GetParam().expected_program);
   lang::ir_checker::AssertProgramIsOkay(lowered_program.get());
-  lang::ir_checker::AssertProgramIsOkay(expected_program.get());
+  ASSERT_THAT(lang::ir_checker::CheckProgram(expected_program.get()),
+              Each(Property(&ir_checker::Issue::kind,
+                            ir_checker::Issue::Kind::kCallInstrStaticCalleeDoesNotExist)));
 
   lang::ir_lowerers::LowerSharedPointersInProgram(lowered_program.get());
   lang::ir_checker::AssertProgramIsOkay(lowered_program.get());
-  EXPECT_TRUE(ir::IsEqual(lowered_program->GetFunc(0), expected_program->GetFunc(0)))
-      << "Expected different lowered function, got:\n"
-      << ir_serialization::Print(lowered_program->GetFunc(0)) << "\nexpected:\n"
-      << ir_serialization::Print(expected_program->GetFunc(0));
+  for (ir::func_num_t func_num = 0; func_num < ir::func_num_t(expected_program->funcs().size());
+       func_num++) {
+    EXPECT_TRUE(
+        ir::IsEqual(lowered_program->GetFunc(func_num), expected_program->GetFunc(func_num)))
+        << "Expected different lowered function, got:\n"
+        << ir_serialization::Print(lowered_program->GetFunc(func_num)) << "\nexpected:\n"
+        << ir_serialization::Print(expected_program->GetFunc(func_num));
+  }
 }
