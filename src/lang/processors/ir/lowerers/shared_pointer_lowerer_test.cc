@@ -297,6 +297,38 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
     ret
 }
 )ir",
+                             },
+                             LowererTestParams{
+                                 .input_program = R"ir(
+@0 inc (%0:lshared_ptr<i64, s>) => () {
+  {0}
+    %1:lshared_ptr<lshared_ptr<i64, s>, s> = make_shared #1:i64
+    store %1, %0
+    %2:lshared_ptr<i64, s> = load %1
+    %3:i64 = load %2
+    %4:i64 = iadd %3, #1:i64
+    store %2, %4
+    delete_shared %1
+    ret
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 inc (%5:ptr, %6:ptr) => () {
+  {0}
+    %7:ptr, %8:ptr = call @1, #8:i64, @-1
+    store %8, %5
+    %9:ptr = poff %8, #8:i64
+    store %9, %6
+    %10:ptr = load %8
+    %12:ptr = poff %8, #8:i64
+    %11:ptr = load %12
+    %3:i64 = load %11
+    %4:i64 = iadd %3, #1:i64
+    store %11, %4
+    call @4, %7
+    ret
+}
+)ir",
                              }));
 
 TEST_P(SharedPointerLowererTest, LowersProgram) {
