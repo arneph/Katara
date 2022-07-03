@@ -46,6 +46,14 @@ INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationImpossibleTestInstance
  }
 )ir",
                                          R"ir(
+ @0 main(%0:ptr) => () {
+   {0}
+     %1:lshared_ptr<i8, s> = make_shared #1:i64
+    store %0, %1
+    ret
+ }
+)ir",
+                                         R"ir(
 @0 creator() => (lshared_ptr<i8, s>) {
   {0}
     %0:lshared_ptr<i8, s> = make_shared #1:i64
@@ -111,6 +119,26 @@ INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationPossibleTestInstance,
 @0 main() => () {
   {0}
     %0:lunique_ptr<i8> = make_unique #1:i64
+    delete_unique %0
+    ret
+}
+)ir",
+                             },
+                             PossibleOptimizationTestParams{
+                                 .input_program = R"ir(
+@0 main() => () {
+  {0}
+    %0:lshared_ptr<i8, s> = make_shared #1:i64
+    store %0, #123:i8
+    delete_shared %0
+    ret
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 main() => () {
+  {0}
+    %0:lunique_ptr<i8> = make_unique #1:i64
+    store %0, #123:i8
     delete_unique %0
     ret
 }
