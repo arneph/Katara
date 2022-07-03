@@ -50,6 +50,15 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationImpossibleTestInst
 }
 )ir",
                                          R"ir(
+@0 main() => () {
+  {0}
+    %0:lunique_ptr<i8> = make_unique #1:i64
+    %1:lunique_ptr<i8> = mov %0
+    delete_unique %1
+    ret
+}
+)ir",
+                                         R"ir(
 @0 main(%0:b) => () {
   {0}
     %1:lunique_ptr<i8> = make_unique #1:i64
@@ -60,6 +69,14 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationImpossibleTestInst
   {2}
     %3:lunique_ptr<i8> = phi %1{0}, %2{1}
     delete_unique %3
+    ret
+}
+)ir",
+                                         R"ir(
+@0 main(%0:ptr) => () {
+  {0}
+    %1:lunique_ptr<i8> = make_unique #1:i64
+    store %0, %1
     ret
 }
 )ir",
@@ -132,6 +149,60 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationPossibleTestInstan
     %1:i16 = mov #123:i16
     %2:i16 = iadd %1, #42:i16
     %3:i16 = mov %2
+    ret %3
+}
+)ir",
+                             },
+                             PossibleOptimizationTestParams{
+                                 .input_program = R"ir(
+@0 main() => (i8) {
+  {0}
+    %0:lunique_ptr<lunique_ptr<i8>> = make_unique #1:i64
+    %1:lunique_ptr<i8> = make_unique #1:i64
+    store %1, #42:i8
+    store %0, %1
+    %2:lunique_ptr<i8> = load %0
+    %3:i8 = load %2
+    delete_unique %2
+    delete_unique %0
+    ret %3
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 main() => (i8) {
+  {0}
+    %1:lunique_ptr<i8> = make_unique #1:i64
+    store %1, #42:i8
+    %2:lunique_ptr<i8> = mov %1
+    %3:i8 = load %2
+    delete_unique %2
+    ret %3
+}
+)ir",
+                             },
+                             PossibleOptimizationTestParams{
+                                 .input_program = R"ir(
+@0 main() => (i8) {
+  {0}
+    %0:lunique_ptr<lshared_ptr<i8, s>> = make_unique #1:i64
+    %1:lshared_ptr<i8, s> = make_shared #1:i64
+    store %1, #42:i8
+    store %0, %1
+    %2:lshared_ptr<i8, s> = load %0
+    %3:i8 = load %2
+    delete_shared %2
+    delete_unique %0
+    ret %3
+}
+)ir",
+                                 .expected_program = R"ir(
+@0 main() => (i8) {
+  {0}
+    %1:lshared_ptr<i8, s> = make_shared #1:i64
+    store %1, #42:i8
+    %2:lshared_ptr<i8, s> = mov %1
+    %3:i8 = load %2
+    delete_shared %2
     ret %3
 }
 )ir",

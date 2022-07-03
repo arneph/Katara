@@ -40,10 +40,19 @@ bool CanConvertPointer(ir::value_num_t value, const ir_info::FuncValues& func_va
   }
   for (ir::Instr* using_instr : func_values.GetInstrsUsingValue(value)) {
     switch (using_instr->instr_kind()) {
-      case ir::InstrKind::kPhi:   // TODO: support analysis with phis
+      case ir::InstrKind::kMov:
+      case ir::InstrKind::kPhi:   // TODO: support analysis with movs and phis
       case ir::InstrKind::kCall:  // TODO: support analysis across function boundaries
       case ir::InstrKind::kReturn:
         return false;
+      case ir::InstrKind::kStore: {
+        ir::Value* stored_value = static_cast<ir::StoreInstr*>(using_instr)->value().get();
+        if (stored_value->kind() == ir::Value::Kind::kComputed &&
+            static_cast<ir::Computed*>(stored_value)->number() == value) {
+          return false;
+        }
+        break;
+      }
       default:
         break;
     }
@@ -134,14 +143,20 @@ void ConvertPointerInFunc(ir::value_num_t value_num, ir::Func* func,
 }
 
 void ConvertPointersInFunc(ir::Func* func) {
-  const ir_info::FuncValues func_values = ir_analyzers::FindValuesInFunc(func);
+  bool converted = false;
+  do {
+    const ir_info::FuncValues func_values = ir_analyzers::FindValuesInFunc(func);
 
-  for (ir::value_num_t value :
-       func_values.GetValuesWithTypeKind(ir::TypeKind::kLangUniquePointer)) {
-    if (CanConvertPointer(value, func_values)) {
-      ConvertPointerInFunc(value, func, func_values);
+    converted = false;
+    for (ir::value_num_t value :
+         func_values.GetValuesWithTypeKind(ir::TypeKind::kLangUniquePointer)) {
+      if (CanConvertPointer(value, func_values)) {
+        ConvertPointerInFunc(value, func, func_values);
+        converted = true;
+        break;
+      }
     }
-  }
+  } while (converted);
 }
 
 }  // namespace
