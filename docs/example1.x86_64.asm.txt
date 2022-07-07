@@ -1,0 +1,30 @@
+main: ; <2>
+BB0:
+	push rbp
+	mov rbp,rsp
+	push rbx
+	mov rbx,0x00000000
+	mov rdx,0x00000000
+	jmp BB1
+BB1:
+	cmp rbx,0x0000000a
+	setl al
+	test al,0xffffffff
+	je BB3
+	jmp BB4
+BB2:
+	mov rax,rbx
+	add rax,0x00000001
+	mov rbx,rax
+	mov rdx,rcx
+	jmp BB1
+BB3:
+	mov rax,rdx
+	pop rbx
+	pop rbp
+	ret
+BB4:
+	mov rax,rbx
+	mov rcx,rdx
+	add rcx,rax
+	jmp BB2

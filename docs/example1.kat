@@ -1,0 +1,9 @@
+package main
+
+func main() int {
+	var sum int
+	for i := 0; i < 10; i++ {
+		sum += i
+	}
+	return sum
+}

@@ -1,0 +1,59 @@
+digraph g {
+	n0 [label = "node\lpackage main...\l", fillcolor = "#ff0000" style = "filled", shape = box, labeljust = l];
+	n1 [label = "decl\lfunc main() int {...\l", fillcolor = "#ffff00" style = "filled", shape = box, labeljust = l];
+	n2 [label = "expr\lmain\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n3 [label = "expr\lfunc main() int\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n4 [label = "node\l()\l", fillcolor = "#ff0000" style = "filled", shape = box, labeljust = l];
+	n5 [label = "node\lint\l", fillcolor = "#ff0000" style = "filled", shape = box, labeljust = l];
+	n6 [label = "node\lint\l", fillcolor = "#ff0000" style = "filled", shape = box, labeljust = l];
+	n7 [label = "expr\lint\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n8 [label = "stmt\l{...\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n9 [label = "stmt\lvar sum int\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n10 [label = "decl\lvar sum int\l", fillcolor = "#ffff00" style = "filled", shape = box, labeljust = l];
+	n11 [label = "node\lsum int\l", fillcolor = "#ff0000" style = "filled", shape = box, labeljust = l];
+	n12 [label = "expr\lsum\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n13 [label = "expr\lint\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n14 [label = "stmt\lfor i := 0; i < 10; i++ {...\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n15 [label = "stmt\li := 0\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n16 [label = "expr\li\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n17 [label = "expr\l0\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n18 [label = "expr\li < 10\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n19 [label = "expr\li\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n20 [label = "expr\l10\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n21 [label = "stmt\li++\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n22 [label = "expr\li\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n23 [label = "stmt\l{...\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n24 [label = "stmt\lsum += i\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n25 [label = "expr\lsum\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n26 [label = "expr\li\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n27 [label = "stmt\lreturn sum\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n28 [label = "expr\lsum\l", fillcolor = "#00ffff" style = "filled", shape = box, labeljust = l];
+	n0->n1
+	n1->n2
+	n1->n3
+	n3->n4
+	n3->n5
+	n5->n6
+	n6->n7
+	n1->n8
+	n8->n9
+	n9->n10
+	n10->n11
+	n11->n12
+	n11->n13
+	n8->n14
+	n14->n15
+	n15->n16
+	n15->n17
+	n14->n18
+	n18->n19
+	n18->n20
+	n14->n21
+	n21->n22
+	n14->n23
+	n23->n24
+	n24->n25
+	n24->n26
+	n8->n27
+	n27->n28
+}

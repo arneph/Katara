@@ -1,0 +1,36 @@
+Types:
+test2.kat:6:2  sum    int           
+test2.kat:5:21 i      int           
+test2.kat:5:13 i < 10 bool (untyped)
+test2.kat:3:12 int    int           
+test2.kat:5:13 i      int           
+test2.kat:6:9  i      int           
+test2.kat:5:17 10     int (untyped) 
+test2.kat:8:8  sum    int           
+test2.kat:4:9  int    int           
+test2.kat:5:10 0      int (untyped) 
+
+Constant Expressions:
+test2.kat:5:17 10 10
+test2.kat:5:10 0  0 
+
+Constants:
+
+Definitions:
+test2.kat:5:5 i    var i int      
+test2.kat:4:5 sum  var sum int    
+test2.kat:3:5 main func main() int
+
+Uses:
+test2.kat:6:2  sum var sum int
+test2.kat:6:9  i   var i int  
+test2.kat:3:12 int type int   
+test2.kat:5:13 i   var i int  
+test2.kat:8:8  sum var sum int
+test2.kat:5:5  i   var i int  
+test2.kat:4:9  int type int   
+test2.kat:5:21 i   var i int  
+
+Implicits:
+test2.kat:3:12 var  int
+
