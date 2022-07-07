@@ -255,4 +255,4 @@ BB4:
 11. With the [`$ katara run`](https://github.com/arneph/Katara/blob/master/src/cmd/run.cc) command,
 the code gets written to a new page in memory, functions (including malloc and free) get linked,
 the permissions for the page get changed from write to execute, the compiled program runs in the
-same process and returns with the expected exit code 45.
+same process and returns with the expected exit code 45 (the sum from 0 to 9).
