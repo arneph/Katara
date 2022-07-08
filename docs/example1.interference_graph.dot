@@ -1,0 +1,26 @@
+graph g {
+	n0 [label = "6\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n1 [label = "7\l", fillcolor = "#ff0000" style = "filled", shape = box, labeljust = l];
+	n2 [label = "4\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n3 [label = "5\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n4 [label = "8\l", fillcolor = "#ff0000" style = "filled", shape = box, labeljust = l];
+	n5 [label = "3\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n6 [label = "9\l", fillcolor = "#ffff00" style = "filled", shape = box, labeljust = l];
+	n7 [label = "2\l", fillcolor = "#00ff00" style = "filled", shape = box, labeljust = l];
+	n1--n0
+	n4--n2
+	n4--n3
+	n6--n0
+	n6--n1
+	n6--n2
+	n6--n3
+	n6--n4
+	n6--n5
+	n7--n0
+	n7--n1
+	n7--n3
+	n7--n4
+	n7--n5
+	n7--n2
+	n7--n6
+}

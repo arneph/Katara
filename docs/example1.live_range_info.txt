@@ -1,0 +1,36 @@
+live ranges for @0 main:
+  {4} - live ranges:
+<----> %9
+ +-+   %6
+<----> %2
+  ++   %7
+   +-> %8
+entry set: %2, %9
+ exit set: %8, %2, %9
+
+  {3} - live ranges:
+<+  %9
+entry set: %9
+ exit set: 
+
+  {2} - live ranges:
+<---> %8
+<---> %2
+<---> %9
+ ++   %4
+  +-> %5
+entry set: %9, %2, %8
+ exit set: %5, %9, %2, %8
+
+  {1} - live ranges:
+<----> %9
+<----> %2
+   ++  %3
+entry set: %2, %9
+ exit set: %2, %9
+
+  {0} - live ranges:
+<-> %9
+<-> %2
+entry set: %2, %9
+ exit set: %2, %9

@@ -123,6 +123,11 @@ Initially, all local variables are treated as reference counted (shared) heap al
 makes it possible to capture them in inner functions that outlive the stack frame or return the 
 address of a local variable from a function.
 
+Katara generates a control flow graph and dominator tree for this IR:
+
+![Control flow graph](https://github.com/arneph/Katara/blob/master/docs/example1.cfg.dot.png?raw=true)
+![Dominator tree](https://github.com/arneph/Katara/blob/master/docs/example1.dom.dot.png?raw=true)
+
 5. Optimizers for the high level IR attempt to convert 
 [from shared to unique (not reference counted) pointers](https://github.com/arneph/Katara/blob/master/src/lang/processors/ir/optimizers/shared_to_unique_pointer_optimizer.cc)
 and [from unique pointers to local values](https://github.com/arneph/Katara/blob/master/src/lang/processors/ir/optimizers/unique_pointer_to_local_value_optimizer.cc).
@@ -206,16 +211,58 @@ to mov instructions in the respective parent blocks of blocks
 with phi instructions.
 
 9. The [life ranges](https://github.com/arneph/Katara/blob/master/src/ir/info/func_live_ranges.h)
-for all SSA values to be stored in registers gets 
-[determined](https://github.com/arneph/Katara/blob/master/src/ir/analyzers/live_range_analyzer.cc)
-and an 
+for all SSA values to be stored in registers get 
+[determined](https://github.com/arneph/Katara/blob/master/src/ir/analyzers/live_range_analyzer.cc):
+
+```
+live ranges for @0 main:
+  {4} - live ranges:
+<----> %9
+ +-+   %6
+<----> %2
+  ++   %7
+   +-> %8
+entry set: %2, %9
+ exit set: %8, %2, %9
+
+  {3} - live ranges:
+<+  %9
+entry set: %9
+ exit set: 
+
+  {2} - live ranges:
+<---> %8
+<---> %2
+<---> %9
+ ++   %4
+  +-> %5
+entry set: %9, %2, %8
+ exit set: %5, %9, %2, %8
+
+  {1} - live ranges:
+<----> %9
+<----> %2
+   ++  %3
+entry set: %2, %9
+ exit set: %2, %9
+
+  {0} - live ranges:
+<-> %9
+<-> %2
+entry set: %2, %9
+ exit set: %2, %9
+```
+
+10. An 
 [interference graph](https://github.com/arneph/Katara/blob/master/src/ir/info/interference_graph.h) 
 between all register values gets 
 [built](https://github.com/arneph/Katara/blob/master/src/ir/analyzers/interference_graph_builder.cc)
 and 
-[colored](https://github.com/arneph/Katara/blob/master/src/ir/analyzers/interference_graph_colorer.cc).
+[colored](https://github.com/arneph/Katara/blob/master/src/ir/analyzers/interference_graph_colorer.cc):
 
-10. Using the register assignments and live ranges, the IR gets 
+![Colored interference graph for example program](https://github.com/arneph/Katara/blob/master/docs/example1.interference_graph.dot.png?raw=true)
+
+11. Using the register assignments and live ranges, the IR gets 
 [translated](https://github.com/arneph/Katara/tree/master/src/x86_64/ir_translator) 
 to [x86_64](https://github.com/arneph/Katara/tree/master/src/x86_64):
 
@@ -252,7 +299,7 @@ BB4:
     jmp BB2
 ```
 
-11. With the [`$ katara run`](https://github.com/arneph/Katara/blob/master/src/cmd/run.cc) command,
+12. With the [`$ katara run`](https://github.com/arneph/Katara/blob/master/src/cmd/run.cc) command,
 the code gets written to a new page in memory, functions (including malloc and free) get linked,
 the permissions for the page get changed from write to execute, the compiled program runs in the
 same process and returns with the expected exit code 45 (the sum from 0 to 9).

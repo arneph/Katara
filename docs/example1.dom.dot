@@ -1,0 +1,11 @@
+digraph g {
+	n0 [label = "{0}\l%0:lshared_ptr<i64, s> = make_shared\lstore %0, #0:i64\l%1:lshared_ptr<i64, s> = make_shared\lstore %1, #0:i64\ljmp {1}\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n1 [label = "{1}\l%2:i64 = load %1\l%3:b = ilss %2, #10:i64\ljcc %3, {4}, {3}\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n2 [label = "{2}\l%4:i64 = load %1\l%5:i64 = iadd %4, #1:i64\lstore %1, %5\ljmp {1}\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n3 [label = "{3}\ldelete_shared %1\l%9:i64 = load %0\ldelete_shared %0\lret %9\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n4 [label = "{4}\l%6:i64 = load %1\l%7:i64 = load %0\l%8:i64 = iadd %7, %6\lstore %0, %8\ljmp {2}\l", fillcolor = "#ffffff" style = "filled", shape = box, labeljust = l];
+	n0->n1
+	n1->n4
+	n1->n3
+	n4->n2
+}
