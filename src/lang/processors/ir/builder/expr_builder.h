@@ -122,9 +122,14 @@ class ExprBuilder {
   std::shared_ptr<ir::Value> BuildValueOfCallExprWithTypeConversion(ast::CallExpr* expr,
                                                                     ASTContext& ast_ctx,
                                                                     IRContext& ir_ctx);
-  std::vector<std::shared_ptr<ir::Value>> BuildValuesOfCallExprWithBuiltin(ast::CallExpr* expr,
-                                                                           ASTContext& ast_ctx,
-                                                                           IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValuesOfCallExprWithBuiltin(ast::CallExpr* expr,
+                                                              ASTContext& ast_ctx,
+                                                              IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValuesOfLenCall(ast::CallExpr* expr, ASTContext& ast_ctx,
+                                                  IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValuesOfMakeCall(ast::CallExpr* expr, ASTContext& ast_ctx,
+                                                   IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValuesOfNewCall(ast::CallExpr* expr, IRContext& ir_ctx);
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfCallExprWithFuncCall(ast::CallExpr* expr,
                                                                             ASTContext& ast_ctx,
                                                                             IRContext& ir_ctx);

@@ -158,8 +158,8 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryEx
     }
 
   } else if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
-    std::shared_ptr<ir::Value> address = BuildAddressOfExpr(x, ast_ctx, ir_ctx);
-    types::Type* types_value_type = type_info_->ExprInfoOf(x)->type();
+    std::shared_ptr<ir::Value> address = BuildValuesOfExpr(x, ast_ctx, ir_ctx).front();
+    types::Type* types_value_type = type_info_->ExprInfoOf(expr)->type();
     const ir::Type* ir_value_type = type_builder_.BuildType(types_value_type);
     std::shared_ptr<ir::Computed> value =
         std::make_shared<ir::Computed>(ir_value_type, ir_ctx.func()->next_computed_number());
@@ -523,10 +523,10 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExpr(ast::
                                                                            ASTContext& ast_ctx,
                                                                            IRContext& ir_ctx) {
   switch (type_info_->ExprInfoOf(expr->func())->kind()) {
-    case types::ExprInfo::Kind::kBuiltin:
-      return {BuildValueOfCallExprWithTypeConversion(expr, ast_ctx, ir_ctx)};
     case types::ExprInfo::Kind::kType:
-      return BuildValuesOfCallExprWithBuiltin(expr, ast_ctx, ir_ctx);
+      return {BuildValueOfCallExprWithTypeConversion(expr, ast_ctx, ir_ctx)};
+    case types::ExprInfo::Kind::kBuiltin:
+      return {BuildValuesOfCallExprWithBuiltin(expr, ast_ctx, ir_ctx)};
     case types::ExprInfo::Kind::kVariable:
     case types::ExprInfo::Kind::kValue:
     case types::ExprInfo::Kind::kValueOk:
@@ -543,10 +543,51 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfCallExprWithTypeConversion(a
   return {};
 }
 
-std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExprWithBuiltin(
-    ast::CallExpr* expr, ASTContext& ast_ctx, IRContext& ir_ctx) {
+std::shared_ptr<ir::Value> ExprBuilder::BuildValuesOfCallExprWithBuiltin(ast::CallExpr* expr,
+                                                                         ASTContext& ast_ctx,
+                                                                         IRContext& ir_ctx) {
+  types::Builtin* builtin =
+      static_cast<types::Builtin*>(type_info_->UseOf(static_cast<ast::Ident*>(expr->func())));
+
+  switch (builtin->kind()) {
+    case types::Builtin::Kind::kLen:
+      return BuildValuesOfLenCall(expr, ast_ctx, ir_ctx);
+    case types::Builtin::Kind::kMake:
+      return BuildValuesOfMakeCall(expr, ast_ctx, ir_ctx);
+    case types::Builtin::Kind::kNew:
+      return BuildValuesOfNewCall(expr, ir_ctx);
+    default:
+      common::fail("unexpected builtin");
+  }
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValuesOfLenCall(ast::CallExpr* expr,
+                                                             ASTContext& ast_ctx,
+                                                             IRContext& ir_ctx) {
   // TODO: implement
-  return {};
+  return nullptr;
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValuesOfMakeCall(ast::CallExpr* expr,
+                                                              ASTContext& ast_ctx,
+                                                              IRContext& ir_ctx) {
+  // TODO: implement
+  return nullptr;
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValuesOfNewCall(ast::CallExpr* expr,
+                                                             IRContext& ir_ctx) {
+  ast::Expr* ast_element_type = expr->type_args().front();
+  types::Type* types_element_type = type_info_->TypeOf(ast_element_type);
+  const ir_ext::SharedPointer* ir_pointer_type =
+      type_builder_.BuildStrongPointerToType(types_element_type);
+  std::shared_ptr<ir::Computed> address =
+      std::make_shared<ir::Computed>(ir_pointer_type, ir_ctx.func()->next_computed_number());
+  std::shared_ptr<ir::Value> default_value = value_builder_.BuildDefaultForType(types_element_type);
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::MakeSharedPointerInstr>(address, ir::I64One()));
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, default_value));
+  return address;
 }
 
 std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExprWithFuncCall(
@@ -558,7 +599,8 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExprWithFu
   types::Type* types_expr_type = type_info_->TypeOf(expr);
   std::vector<std::shared_ptr<ir::Value>> args = BuildValuesOfExprs(expr->args(), ast_ctx, ir_ctx);
   std::vector<std::shared_ptr<ir::Computed>> results;
-  if (types_expr_type->type_kind() == types::TypeKind::kTuple) {
+  if (types_expr_type == nullptr) {
+  } else if (types_expr_type->type_kind() == types::TypeKind::kTuple) {
     auto types_tuple = static_cast<types::Tuple*>(types_expr_type);
     results.reserve(types_tuple->variables().size());
     for (types::Variable* types_tuple_member : types_tuple->variables()) {

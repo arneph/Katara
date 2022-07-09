@@ -109,4 +109,29 @@ func main() int {
   EXPECT_EQ(result, 144);
 }
 
+TEST_P(RunTest, RunsNewCorrectly) {
+  TestContext ctx;
+  ctx.filesystem()->WriteContentsOfFile("test.kat", R"kat(
+package main
+
+func inc(a *int64) {
+  *a++
+}
+
+func main() int64 {
+  x := new<int64>()
+  *x = 42
+  inc(x)
+  return *x
+}
+)kat");
+
+  std::vector<std::filesystem::path> paths{"test.kat"};
+  BuildOptions build_options = GetParam();
+  ErrorCode result =
+      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+
+  EXPECT_EQ(result, 43);
+}
+
 }  // namespace cmd
