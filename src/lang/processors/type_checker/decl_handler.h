@@ -34,7 +34,7 @@ class DeclHandler final : public BaseHandler {
 
  private:
   DeclHandler(class TypeResolver& type_resolver, types::InfoBuilder& info_builder,
-              issues::IssueTracker issues)
+              issues::IssueTracker& issues)
       : BaseHandler(type_resolver, info_builder, issues) {}
 
   types::Variable* EvaluateExprReceiver(ast::ExprReceiver* expr_receiver,
