@@ -134,4 +134,34 @@ func main() int64 {
   EXPECT_EQ(result, 43);
 }
 
+TEST_P(RunTest, RunsAddressOfLocalVariableCorrectly) {
+  TestContext ctx;
+  ctx.filesystem()->WriteContentsOfFile("test.kat", R"kat(
+package main
+
+func create() *int64 {
+  var a int64 = 42
+  return &a
+}
+
+func inc(a *int64) {
+  *a++
+}
+
+func main() int64 {
+  x := create()
+  *x *= 3
+  inc(x)
+  return *x
+}
+)kat");
+
+  std::vector<std::filesystem::path> paths{"test.kat"};
+  BuildOptions build_options = GetParam();
+  ErrorCode result =
+      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+
+  EXPECT_EQ(result, 127);
+}
+
 }  // namespace cmd
