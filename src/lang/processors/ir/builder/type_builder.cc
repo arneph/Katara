@@ -141,7 +141,7 @@ const ir_ext::Array* TypeBuilder::BuildTypeForContainer(types::Container* types_
   ir_array_builder.SetElement(ir_element);
   if (types_container->type_kind() == types::TypeKind::kArray) {
     types::Array* types_array = static_cast<types::Array*>(types_container);
-    ir_array_builder.SetFixedSize(types_array->length());
+    ir_array_builder.SetFixedCount(types_array->length());
   }
   program_->type_table().AddType(ir_array_builder.Build());
   return ir_array;

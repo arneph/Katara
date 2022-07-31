@@ -36,6 +36,8 @@ class SharedPointer : public SmartPointer {
   bool is_strong() const { return is_strong_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangSharedPointer; }
+  int64_t size() const override { return 2 * ir::pointer_type()->size(); }
+  ir::Alignment alignment() const override { return ir::pointer_type()->alignment(); }
   void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
@@ -49,6 +51,8 @@ class UniquePointer : public SmartPointer {
   explicit UniquePointer(const ir::Type* element) : SmartPointer(element) {}
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangUniquePointer; }
+  int64_t size() const override { return ir::pointer_type()->size(); }
+  ir::Alignment alignment() const override { return ir::pointer_type()->alignment(); }
   void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
@@ -57,6 +61,8 @@ class UniquePointer : public SmartPointer {
 class StringType : public ir::Type {
  public:
   constexpr ir::TypeKind type_kind() const override { return ir::TypeKind::kLangString; }
+  int64_t size() const override { return 2 * ir::pointer_type()->size(); }
+  ir::Alignment alignment() const override { return ir::pointer_type()->alignment(); }
   void WriteRefString(std::ostream& os) const override { os << "lstr"; }
 
   bool operator==(const ir::Type& that) const override { return type_kind() == that.type_kind(); }
@@ -64,24 +70,26 @@ class StringType : public ir::Type {
 
 const StringType* string();
 
-constexpr int64_t kDynamicArraySize = -1;
+constexpr int64_t kDynamicArrayCount = -1;
 
 class Array : public ir::Type {
  public:
   const ir::Type* element() const { return element_; }
-  bool is_dynamic() const { return size_ == kDynamicArraySize; }
-  int64_t size() const { return size_; }
+  bool is_dynamic() const { return count_ == kDynamicArrayCount; }
+  int64_t count() const { return count_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangArray; }
+  int64_t size() const override { return count_ * element_->size(); }
+  ir::Alignment alignment() const override { return element_->alignment(); }
   void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
 
  private:
-  Array() : element_(nullptr), size_(kDynamicArraySize) {}
+  Array() : element_(nullptr), count_(kDynamicArrayCount) {}
 
   const ir::Type* element_;
-  int64_t size_;
+  int64_t count_;
 
   friend class ArrayBuilder;
 };
@@ -91,7 +99,7 @@ class ArrayBuilder {
   ArrayBuilder();
 
   void SetElement(const ir::Type* element) { array_->element_ = element; }
-  void SetFixedSize(int64_t size) { array_->size_ = size; }
+  void SetFixedCount(int64_t count) { array_->count_ = count; }
 
   Array* Get() { return array_.get(); }
   std::unique_ptr<Array> Build() { return std::move(array_); }
@@ -112,6 +120,8 @@ class Struct : public ir::Type {
   const std::vector<Field>& fields() const { return fields_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangStruct; }
+  int64_t size() const override;
+  ir::Alignment alignment() const override;
   void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
@@ -152,6 +162,8 @@ class Interface : public ir::Type {
   const std::vector<Method>& methods() const { return methods_; }
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangInterface; }
+  int64_t size() const override { return 2 * ir::pointer_type()->size(); }
+  ir::Alignment alignment() const override { return ir::pointer_type()->alignment(); }
   void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const ir::Type& that) const override;
@@ -185,6 +197,8 @@ class TypeID : public ir::Type {
   TypeID() {}
 
   ir::TypeKind type_kind() const override { return ir::TypeKind::kLangTypeID; }
+  int64_t size() const override { return 8; }
+  ir::Alignment alignment() const override { return ir::Alignment::k8Byte; }
   void WriteRefString(std::ostream& os) const override { os << "ltypeid"; }
 
   bool operator==(const ir::Type& that) const override { return type_kind() == that.type_kind(); }

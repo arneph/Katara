@@ -49,7 +49,7 @@ const StringType* string() { return &kString; }
 void Array::WriteRefString(std::ostream& os) const {
   os << "larray<";
   element()->WriteRefString(os);
-  os << ", " << size_ << ">";
+  os << ", " << count_ << ">";
 }
 
 bool Array::operator==(const ir::Type& that_type) const {
@@ -73,6 +73,22 @@ void Struct::WriteRefString(std::ostream& os) const {
     fields_.at(i).type->WriteRefString(os);
   }
   os << ">";
+}
+
+int64_t Struct::size() const {
+  int64_t size = 0;
+  for (const Field& field : fields_) {
+    size += field.type->size();
+  }
+  return size;
+}
+
+ir::Alignment Struct::alignment() const {
+  ir::Alignment alignment = ir::Alignment::kNoAlignment;
+  for (const Field& field : fields_) {
+    alignment = std::max(alignment, field.type->alignment());
+  }
+  return alignment;
 }
 
 bool Struct::operator==(const ir::Type& that_type) const {

@@ -154,7 +154,14 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryEx
           std::make_unique<ir::StoreInstr>(struct_address, struct_value));
       return struct_address;
     } else {
-      return BuildAddressOfExpr(x, ast_ctx, ir_ctx);
+      types::Type* types_pointer_type = type_info_->ExprInfoOf(expr)->type();
+      const ir::Type* ir_pointer_type = type_builder_.BuildType(types_pointer_type);
+      std::shared_ptr<ir::Computed> result =
+          std::make_shared<ir::Computed>(ir_pointer_type, ir_ctx.func()->next_computed_number());
+      std::shared_ptr<ir::Computed> copied = BuildAddressOfExpr(x, ast_ctx, ir_ctx);
+      ir_ctx.block()->instrs().push_back(
+          std::make_unique<ir_ext::CopySharedPointerInstr>(result, copied, ir::I64Zero()));
+      return result;
     }
 
   } else if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {

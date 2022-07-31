@@ -79,7 +79,7 @@ const ir_ext::Array* TypeParser::ParseArray() {
   builder.SetElement(ParseType());
   if (scanner().token() == ::ir_serialization::Scanner::kComma) {
     scanner().ConsumeToken(::ir_serialization::Scanner::kComma);
-    builder.SetFixedSize(scanner().ConsumeInt64());
+    builder.SetFixedCount(scanner().ConsumeInt64());
   }
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleClose);
 

@@ -34,6 +34,15 @@ enum class TypeKind {
   kLangTypeID,
 };
 
+enum Alignment : int8_t {
+  kNoAlignment = 0,
+  k1Byte = 1 << 0,
+  k2Byte = 1 << 1,
+  k4Byte = 1 << 2,
+  k8Byte = 1 << 3,
+  k16Byte = 1 << 4,
+};
+
 bool IsAtomicType(TypeKind type_kind);
 
 class Type : public Object {
@@ -42,6 +51,8 @@ class Type : public Object {
 
   constexpr Object::Kind object_kind() const final { return Object::Kind::kType; }
   constexpr virtual TypeKind type_kind() const = 0;
+  constexpr virtual int64_t size() const = 0;
+  constexpr virtual Alignment alignment() const = 0;
 
   constexpr virtual bool operator==(const Type& that) const = 0;
 };
@@ -66,6 +77,8 @@ class BoolType : public AtomicType {
  public:
   constexpr int8_t bit_size() const override { return 8; }
   constexpr TypeKind type_kind() const override { return TypeKind::kBool; }
+  constexpr int64_t size() const override { return 1; }
+  constexpr Alignment alignment() const override { return Alignment::k1Byte; }
   void WriteRefString(std::ostream& os) const override { os << "b"; }
 };
 
@@ -78,6 +91,8 @@ class IntType : public AtomicType {
   constexpr int8_t bit_size() const override { return common::BitSizeOf(type_); }
   constexpr common::IntType int_type() const { return type_; }
   constexpr TypeKind type_kind() const override { return TypeKind::kInt; }
+  constexpr int64_t size() const override { return common::BitSizeOf(type_) / 8; }
+  constexpr Alignment alignment() const override { return Alignment(size()); }
   bool operator==(const Type& that) const override;
   void WriteRefString(std::ostream& os) const override { os << common::ToString(type_); }
 
@@ -99,6 +114,8 @@ class PointerType : public AtomicType {
  public:
   constexpr int8_t bit_size() const override { return 64; }
   constexpr TypeKind type_kind() const override { return TypeKind::kPointer; }
+  constexpr int64_t size() const override { return 8; }
+  constexpr Alignment alignment() const override { return Alignment::k8Byte; }
   void WriteRefString(std::ostream& os) const override { os << "ptr"; }
 };
 
@@ -108,6 +125,8 @@ class FuncType : public AtomicType {
  public:
   constexpr int8_t bit_size() const override { return 64; }
   constexpr TypeKind type_kind() const override { return TypeKind::kFunc; }
+  constexpr int64_t size() const override { return 8; }
+  constexpr Alignment alignment() const override { return Alignment::k8Byte; }
   void WriteRefString(std::ostream& os) const override { os << "func"; }
 };
 
