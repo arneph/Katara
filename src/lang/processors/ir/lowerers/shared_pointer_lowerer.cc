@@ -33,14 +33,16 @@ ir::func_num_t BuildMakeSharedFunc(ir::Program* program) {
   ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(program);
 
   fb.SetName("make_shared");
-  auto underlying_size = fb.AddArg(ir::i64());
-  auto destructor = fb.AddArg(ir::func_type());
+  auto underlying_element_size = fb.AddArg(ir::i64());
+  auto underlying_count = fb.AddArg(ir::i64());
+  auto underlying_destructor = fb.AddArg(ir::func_type());
   fb.AddResultType(ir::pointer_type());
   fb.AddResultType(ir::pointer_type());
 
   ir_builder::BlockBuilder bb = fb.AddEntryBlock();
 
   auto control_block_size = ir::ToIntConstant(kControlBlockSize);
+  auto underlying_size = bb.IntMul(underlying_element_size, underlying_count);
   auto total_size = bb.IntAdd(control_block_size, underlying_size);
   auto control_block_pointer = bb.Malloc(total_size);
   bb.Store(control_block_pointer, ir::I64One());
@@ -51,22 +53,12 @@ ir::func_num_t BuildMakeSharedFunc(ir::Program* program) {
 
   auto destructor_offset = ir::ToIntConstant(kDestructorPointerOffset);
   auto destructor_pointer = bb.OffsetPointer(control_block_pointer, destructor_offset);
-  bb.Store(destructor_pointer, destructor);
+  bb.Store(destructor_pointer, underlying_destructor);
 
   auto underlying_pointer = bb.OffsetPointer(control_block_pointer, control_block_size);
   bb.Return({control_block_pointer, underlying_pointer});
 
   return fb.func_number();
-}
-
-std::unique_ptr<ir::CallInstr> CallMakeSharedFunc(ir::func_num_t make_shared_func_num,
-                                                  DecomposedShared& decomposed_result) {
-  return std::make_unique<ir::CallInstr>(
-      ir::ToFuncConstant(make_shared_func_num),
-      std::vector<std::shared_ptr<ir::Computed>>{decomposed_result.control_block_pointer,
-                                                 decomposed_result.underlying_pointer},
-      std::vector<std::shared_ptr<ir::Value>>{ir::I64Eight(), ir::NilFunc()});
-  // TODO: use actual size and destructor of element type
 }
 
 ir::func_num_t BuildCopySharedFunc(ir::Program* program, bool copy_is_strong) {
@@ -97,17 +89,6 @@ ir::func_num_t BuildCopySharedFunc(ir::Program* program, bool copy_is_strong) {
   bb.Return({new_underlying_pointer});
 
   return fb.func_number();
-}
-
-std::unique_ptr<ir::CallInstr> CallCopySharedFunc(ir::func_num_t copy_shared_func_num,
-                                                  DecomposedShared& decomposed_result,
-                                                  DecomposedShared& decomposed_copied,
-                                                  std::shared_ptr<ir::Value> offset) {
-  return std::make_unique<ir::CallInstr>(
-      ir::ToFuncConstant(copy_shared_func_num),
-      std::vector<std::shared_ptr<ir::Computed>>{decomposed_result.underlying_pointer},
-      std::vector<std::shared_ptr<ir::Value>>{decomposed_copied.control_block_pointer,
-                                              decomposed_copied.underlying_pointer, offset});
 }
 
 ir::func_num_t BuildDeleteSharedFunc(ir::Program* program, bool pointer_is_strong) {
@@ -185,13 +166,6 @@ ir::func_num_t BuildDeleteSharedFunc(ir::Program* program, bool pointer_is_stron
   return fb.func_number();
 }
 
-std::unique_ptr<ir::CallInstr> CallDeleteSharedFunc(ir::func_num_t delete_shared_func_num,
-                                                    DecomposedShared& decomposed_deleted) {
-  return std::make_unique<ir::CallInstr>(
-      ir::ToFuncConstant(delete_shared_func_num), std::vector<std::shared_ptr<ir::Computed>>{},
-      std::vector<std::shared_ptr<ir::Value>>{decomposed_deleted.control_block_pointer});
-}
-
 ir::func_num_t BuildValidateWeakSharedFunc(ir::Program* program) {
   ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(program);
 
@@ -212,14 +186,6 @@ ir::func_num_t BuildValidateWeakSharedFunc(ir::Program* program) {
       std::make_shared<ir_ext::StringConstant>("attempted to access deleted weak pointer"));
 
   return fb.func_number();
-}
-
-std::unique_ptr<ir::CallInstr> CallValidateWeakSharedFunc(
-    ir::func_num_t validate_weak_shared_func_num, DecomposedShared& decomposed_validated) {
-  return std::make_unique<ir::CallInstr>(
-      ir::ToFuncConstant(validate_weak_shared_func_num),
-      std::vector<std::shared_ptr<ir::Computed>>{},
-      std::vector<std::shared_ptr<ir::Value>>{decomposed_validated.control_block_pointer});
 }
 
 struct LoweringFuncs {
@@ -270,6 +236,7 @@ void LowerMakeSharedPointerInstr(
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers,
     const LoweringFuncs& lowering_funcs) {
   auto make_shared_instr = static_cast<ir_ext::MakeSharedPointerInstr*>(it->get());
+  const ir_ext::SharedPointer* shared_pointer_type = make_shared_instr->pointer_type();
   ir::value_num_t shared_pointer_num = make_shared_instr->result()->number();
   DecomposedShared decomposed{
       .control_block_pointer =
@@ -277,10 +244,16 @@ void LowerMakeSharedPointerInstr(
       .underlying_pointer =
           std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number()),
   };
+  auto call_instr = std::make_unique<ir::CallInstr>(
+      ir::ToFuncConstant(lowering_funcs.make_shared_func_num),
+      std::vector<std::shared_ptr<ir::Computed>>{decomposed.control_block_pointer,
+                                                 decomposed.underlying_pointer},
+      std::vector<std::shared_ptr<ir::Value>>{
+          ir::ToIntConstant(common::Int(shared_pointer_type->element()->size())),
+          make_shared_instr->size(), ir::NilFunc()});
 
   it = block->instrs().erase(it);
-  it = block->instrs().insert(it,
-                              CallMakeSharedFunc(lowering_funcs.make_shared_func_num, decomposed));
+  it = block->instrs().insert(it, std::move(call_instr));
   decomposed_shared_pointers.emplace(shared_pointer_num, decomposed);
 }
 
@@ -304,9 +277,14 @@ void LowerCopySharedPointerInstr(
           ? lowering_funcs.strong_copy_shared_func_num
           : lowering_funcs.weak_copy_shared_func_num;
 
+  auto call_instr = std::make_unique<ir::CallInstr>(
+      ir::ToFuncConstant(func_num),
+      std::vector<std::shared_ptr<ir::Computed>>{decomposed_result.underlying_pointer},
+      std::vector<std::shared_ptr<ir::Value>>{decomposed_copied.control_block_pointer,
+                                              decomposed_copied.underlying_pointer, offset});
+
   it = block->instrs().erase(it);
-  it = block->instrs().insert(
-      it, CallCopySharedFunc(func_num, decomposed_result, decomposed_copied, offset));
+  it = block->instrs().insert(it, std::move(call_instr));
 
   decomposed_shared_pointers.emplace(result_shared_pointer_num, decomposed_result);
 }
@@ -326,11 +304,15 @@ void LowerDeleteSharedPointerInstr(
                                 ? lowering_funcs.delete_strong_shared_func_num
                                 : lowering_funcs.delete_weak_shared_func_num;
 
+  auto call_instr = std::make_unique<ir::CallInstr>(
+      ir::ToFuncConstant(func_num), std::vector<std::shared_ptr<ir::Computed>>{},
+      std::vector<std::shared_ptr<ir::Value>>{decomposed_deleted.control_block_pointer});
+
   it = block->instrs().erase(it);
-  it = block->instrs().insert(it, CallDeleteSharedFunc(func_num, decomposed_deleted));
+  it = block->instrs().insert(it, std::move(call_instr));
 }
 
-void LowerLoadFromSharedPointerInstr(
+void LowerLoadValueFromSharedPointerInstr(
     ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers,
     const LoweringFuncs& lowering_funcs) {
@@ -349,15 +331,17 @@ void LowerLoadFromSharedPointerInstr(
 
   it = block->instrs().erase(it);
   if (!is_strong) {
-    it = block->instrs().insert(
-        it, CallValidateWeakSharedFunc(lowering_funcs.validate_weak_shared_func_num,
-                                       decomposed_accessed));
+    auto call_instr = std::make_unique<ir::CallInstr>(
+        ir::ToFuncConstant(lowering_funcs.validate_weak_shared_func_num),
+        std::vector<std::shared_ptr<ir::Computed>>{},
+        std::vector<std::shared_ptr<ir::Value>>{decomposed_accessed.control_block_pointer});
+    it = block->instrs().insert(it, std::move(call_instr));
   }
   it = block->instrs().insert(
       it, std::make_unique<ir::LoadInstr>(result, decomposed_accessed.underlying_pointer));
 }
 
-void LowerStoreInSharedPointerInstr(
+void LowerStoreValueInSharedPointerInstr(
     ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers,
     const LoweringFuncs& lowering_funcs) {
@@ -376,15 +360,17 @@ void LowerStoreInSharedPointerInstr(
 
   it = block->instrs().erase(it);
   if (!is_strong) {
-    it = block->instrs().insert(
-        it, CallValidateWeakSharedFunc(lowering_funcs.validate_weak_shared_func_num,
-                                       decomposed_accessed));
+    auto call_instr = std::make_unique<ir::CallInstr>(
+        ir::ToFuncConstant(lowering_funcs.validate_weak_shared_func_num),
+        std::vector<std::shared_ptr<ir::Computed>>{},
+        std::vector<std::shared_ptr<ir::Value>>{decomposed_accessed.control_block_pointer});
+    it = block->instrs().insert(it, std::move(call_instr));
   }
   it = block->instrs().insert(
       it, std::make_unique<ir::StoreInstr>(decomposed_accessed.underlying_pointer, value));
 }
 
-void LowerLoadOfSharedPointerInstr(
+void LowerLoadOfSharedPointerAsValueInstr(
     ir::Func* func, ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
   auto load_shared_instr = static_cast<ir::LoadInstr*>(it->get());
@@ -417,7 +403,7 @@ void LowerLoadOfSharedPointerInstr(
   decomposed_shared_pointers.emplace(shared_pointer_num, decomposed);
 }
 
-void LowerStoreOfSharedPointerInstr(
+void LowerStoreOfSharedPointerAsValueInstr(
     ir::Func* func, ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
   auto store_shared_instr = static_cast<ir::StoreInstr*>(it->get());
@@ -588,12 +574,14 @@ void LowerSharedPointersInFunc(const LoweringFuncs& lowering_funcs, ir::Func* fu
           LowerDeleteSharedPointerInstr(block, it, decomposed_shared_pointers, lowering_funcs);
           break;
         case ir::InstrKind::kLoad:
-          LowerLoadFromSharedPointerInstr(block, it, decomposed_shared_pointers, lowering_funcs);
-          LowerLoadOfSharedPointerInstr(func, block, it, decomposed_shared_pointers);
+          LowerLoadValueFromSharedPointerInstr(block, it, decomposed_shared_pointers,
+                                               lowering_funcs);
+          LowerLoadOfSharedPointerAsValueInstr(func, block, it, decomposed_shared_pointers);
           break;
         case ir::InstrKind::kStore:
-          LowerStoreInSharedPointerInstr(block, it, decomposed_shared_pointers, lowering_funcs);
-          LowerStoreOfSharedPointerInstr(func, block, it, decomposed_shared_pointers);
+          LowerStoreValueInSharedPointerInstr(block, it, decomposed_shared_pointers,
+                                              lowering_funcs);
+          LowerStoreOfSharedPointerAsValueInstr(func, block, it, decomposed_shared_pointers);
           break;
         case ir::InstrKind::kMov:
           LowerMovSharedPointerInstr(block, it, decomposed_shared_pointers);

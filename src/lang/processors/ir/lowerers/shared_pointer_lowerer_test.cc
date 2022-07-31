@@ -58,7 +58,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                                  .expected_program = R"ir(
 @0 f() => (ptr, ptr) {
   {0}
-    %1:ptr, %2:ptr = call @1, #8:i64, @-1
+    %1:ptr, %2:ptr = call @1, #8:i64, #1:i64, @-1
     store %2, @0
     ret %1, %2
 }
@@ -90,7 +90,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                                  .expected_program = R"ir(
 @0 f (%0:i16, %5:ptr, %6:ptr, %2:b) => (ptr, ptr, ptr) {
   {0}
-    %7:ptr, %8:ptr = call @2, #8:i64, @-1
+    %7:ptr, %8:ptr = call @2, #2:i64, #1:i64, @-1
     %9:ptr = call @4, %5, %6, #0:i64
     store %8, %0
     call @6, %5
@@ -100,7 +100,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
 
 @1 g () => () {
   {42}
-    %4:ptr, %5:ptr = call @2, #8:i64, @-1
+    %4:ptr, %5:ptr = call @2, #4:i64, #1:i64, @-1
     %6:ptr = call @4, %4, %5, #0:i64
     %7:ptr, %8:ptr, %3:ptr = call @0, #1234:i16, %4, %6, #t
     call @5, %4
@@ -121,7 +121,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                                  .expected_program = R"ir(
 @0 f() => (ptr, ptr) {
   {0}
-    %2:ptr, %3:ptr = call @1, #8:i64, @-1
+    %2:ptr, %3:ptr = call @1, #2:i64, #1:i64, @-1
     ret %2, %3
 }
 )ir",
@@ -147,10 +147,10 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
   {0}
     jcc %0, {1}, {2}
   {1}
-    %8:ptr, %9:ptr = call @1, #8:i64, @-1
+    %8:ptr, %9:ptr = call @1, #8:i64, #1:i64, @-1
     jmp {3}
   {2}
-    %4:ptr, %5:ptr = call @1, #8:i64, @-1
+    %4:ptr, %5:ptr = call @1, #8:i64, #1:i64, @-1
     jmp {3}
   {3}
     %6:ptr = phi %8{1}, %4{2}
@@ -179,7 +179,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                                  .expected_program = R"ir(
 @0 f(%0:b) => (ptr, ptr) {
   {0}
-    %4:ptr, %5:ptr = call @1, #8:i64, @-1
+    %4:ptr, %5:ptr = call @1, #8:i64, #1:i64, @-1
     jmp{1}
   {1}
     %6:ptr = phi %4{0}, %6{2}
@@ -228,9 +228,9 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                                  .expected_program = R"ir(
 @0 main () => (i64) {
 {0}
-  %10:ptr, %11:ptr = call @1, #8:i64, @-1
+  %10:ptr, %11:ptr = call @1, #8:i64, #1:i64, @-1
   store %11, #0:i64
-  %12:ptr, %13:ptr = call @1, #8:i64, @-1
+  %12:ptr, %13:ptr = call @1, #8:i64, #1:i64, @-1
   store %13, #0:i64
   jmp {1}
 {1}
@@ -289,7 +289,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                                  .expected_program = R"ir(
 @0 f(%0:ptr, %1:i32) => () {
   {0}
-    %3:ptr, %4:ptr = call @1, #8:i64, @-1
+    %3:ptr, %4:ptr = call @1, #4:i64, #1:i64, @-1
     store %4, %1
     store %0, %3
     %5:ptr = poff %0, #8:i64
@@ -315,7 +315,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                                  .expected_program = R"ir(
 @0 inc (%5:ptr, %6:ptr) => () {
   {0}
-    %7:ptr, %8:ptr = call @1, #8:i64, @-1
+    %7:ptr, %8:ptr = call @1, #16:i64, #1:i64, @-1
     store %8, %5
     %9:ptr = poff %8, #8:i64
     store %9, %6
