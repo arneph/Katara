@@ -183,7 +183,7 @@ bool DeclHandler::ProcessVariables(std::vector<types::Variable*> variables,
   types::Type* value_type = type_resolver().expr_handler().CheckValueExpr(value_expr);
   if (value_type == nullptr) {
     return false;
-  } else if (value_type->type_kind() == types::TypeKind::kBasic) {
+  } else if (all_variables_type == nullptr && value_type->type_kind() == types::TypeKind::kBasic) {
     types::Basic::Kind basic_kind = static_cast<types::Basic*>(value_type)->kind();
     types::Basic::Kind typed_basic_kind = types::ConvertIfUntyped(basic_kind);
     value_type = info()->basic_type(typed_basic_kind);
