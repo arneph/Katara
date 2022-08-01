@@ -211,59 +211,45 @@ void Interpreter::ExecuteNilTestInstr(ir::NilTestInstr* instr, FuncContext& ctx)
 }
 
 void Interpreter::ExecuteMallocInstr(ir::MallocInstr* instr, FuncContext& ctx) {
-  uint64_t size = EvaluateInt(instr->size(), ctx).AsUint64();
-  int64_t address = int64_t(malloc(size));
+  int64_t size = EvaluateInt(instr->size(), ctx).AsInt64();
+  int64_t address = heap_.Malloc(size);
   ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToPointerConstant(address));
 }
-
-namespace {
-
-template <typename T>
-T LoadFromHeap(int64_t address) {
-  return *((T*)(address));
-}
-
-template <typename T>
-void StoreOnHeap(int64_t address, T value) {
-  *((T*)(address)) = value;
-}
-
-}  // namespace
 
 void Interpreter::ExecuteLoadInstr(ir::LoadInstr* instr, FuncContext& ctx) {
   int64_t address = EvaluatePointer(instr->address(), ctx);
   const ir::Type* result_type = instr->result()->type();
-  RuntimeConstant result_value = [address, result_type]() -> RuntimeConstant {
+  RuntimeConstant result_value = [this, address, result_type]() -> RuntimeConstant {
     switch (result_type->type_kind()) {
       case ir::TypeKind::kBool:
-        return ir::ToBoolConstant(LoadFromHeap<bool>(address));
+        return ir::ToBoolConstant(heap_.Load<bool>(address));
       case ir::TypeKind::kInt: {
-        common::Int result = [address](common::IntType int_type) {
+        common::Int result = [this, address](common::IntType int_type) {
           switch (int_type) {
             case common::IntType::kI8:
-              return common::Int(LoadFromHeap<int8_t>(address));
+              return common::Int(heap_.Load<int8_t>(address));
             case common::IntType::kI16:
-              return common::Int(LoadFromHeap<int16_t>(address));
+              return common::Int(heap_.Load<int16_t>(address));
             case common::IntType::kI32:
-              return common::Int(LoadFromHeap<int32_t>(address));
+              return common::Int(heap_.Load<int32_t>(address));
             case common::IntType::kI64:
-              return common::Int(LoadFromHeap<int64_t>(address));
+              return common::Int(heap_.Load<int64_t>(address));
             case common::IntType::kU8:
-              return common::Int(LoadFromHeap<uint8_t>(address));
+              return common::Int(heap_.Load<uint8_t>(address));
             case common::IntType::kU16:
-              return common::Int(LoadFromHeap<uint16_t>(address));
+              return common::Int(heap_.Load<uint16_t>(address));
             case common::IntType::kU32:
-              return common::Int(LoadFromHeap<uint32_t>(address));
+              return common::Int(heap_.Load<uint32_t>(address));
             case common::IntType::kU64:
-              return common::Int(LoadFromHeap<uint64_t>(address));
+              return common::Int(heap_.Load<uint64_t>(address));
           }
         }(static_cast<const ir::IntType*>(result_type)->int_type());
         return ir::ToIntConstant(result);
       }
       case ir::TypeKind::kPointer:
-        return ir::ToPointerConstant(LoadFromHeap<int64_t>(address));
+        return ir::ToPointerConstant(heap_.Load<int64_t>(address));
       case ir::TypeKind::kFunc:
-        return ir::ToFuncConstant(LoadFromHeap<ir::func_num_t>(address));
+        return ir::ToFuncConstant(heap_.Load<ir::func_num_t>(address));
       default:
         common::fail("can not handle type");
     }
@@ -277,47 +263,47 @@ void Interpreter::ExecuteStoreInstr(ir::StoreInstr* instr, FuncContext& ctx) {
   switch (value_type->type_kind()) {
     case ir::TypeKind::kBool: {
       bool value = EvaluateBool(instr->value(), ctx);
-      StoreOnHeap(address, value);
+      heap_.Store(address, value);
       return;
     }
     case ir::TypeKind::kInt: {
       common::Int value = EvaluateInt(instr->value(), ctx);
       switch (value.type()) {
         case common::IntType::kI8:
-          StoreOnHeap(address, int8_t(value.AsInt64()));
+          heap_.Store(address, int8_t(value.AsInt64()));
           return;
         case common::IntType::kI16:
-          StoreOnHeap(address, int16_t(value.AsInt64()));
+          heap_.Store(address, int16_t(value.AsInt64()));
           return;
         case common::IntType::kI32:
-          StoreOnHeap(address, int32_t(value.AsInt64()));
+          heap_.Store(address, int32_t(value.AsInt64()));
           return;
         case common::IntType::kI64:
-          StoreOnHeap(address, value.AsInt64());
+          heap_.Store(address, value.AsInt64());
           return;
         case common::IntType::kU8:
-          StoreOnHeap(address, uint8_t(value.AsUint64()));
+          heap_.Store(address, uint8_t(value.AsUint64()));
           return;
         case common::IntType::kU16:
-          StoreOnHeap(address, uint16_t(value.AsUint64()));
+          heap_.Store(address, uint16_t(value.AsUint64()));
           return;
         case common::IntType::kU32:
-          StoreOnHeap(address, uint32_t(value.AsUint64()));
+          heap_.Store(address, uint32_t(value.AsUint64()));
           return;
         case common::IntType::kU64:
-          StoreOnHeap(address, value.AsUint64());
+          heap_.Store(address, value.AsUint64());
           return;
       }
       break;
     }
     case ir::TypeKind::kPointer: {
       int64_t value = EvaluatePointer(instr->value(), ctx);
-      StoreOnHeap(address, value);
+      heap_.Store(address, value);
       return;
     }
     case ir::TypeKind::kFunc: {
       ir::func_num_t value = EvaluateFunc(instr->value(), ctx);
-      StoreOnHeap(address, value);
+      heap_.Store(address, value);
       return;
     }
     default:
@@ -328,7 +314,7 @@ void Interpreter::ExecuteStoreInstr(ir::StoreInstr* instr, FuncContext& ctx) {
 
 void Interpreter::ExecuteFreeInstr(ir::FreeInstr* instr, FuncContext& ctx) {
   int64_t address = EvaluatePointer(instr->address(), ctx);
-  free((void*)(address));
+  heap_.Free(address);
 }
 
 void Interpreter::ExecuteCallInstr(ir::CallInstr* instr, FuncContext& ctx) {

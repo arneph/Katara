@@ -14,17 +14,18 @@
 
 namespace cmd {
 
-ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& options,
-                    DebugHandler& debug_handler, Context* ctx) {
+ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& build_options,
+                    InterpretOptions& interpret_options, DebugHandler& debug_handler,
+                    Context* ctx) {
   std::variant<std::unique_ptr<ir::Program>, ErrorCode> ir_program_or_error =
-      Build(paths, options, debug_handler, ctx);
+      Build(paths, build_options, debug_handler, ctx);
   if (std::holds_alternative<ErrorCode>(ir_program_or_error)) {
     return std::get<ErrorCode>(ir_program_or_error);
   }
   std::unique_ptr<ir::Program> ir_program =
       std::get<std::unique_ptr<ir::Program>>(std::move(ir_program_or_error));
 
-  ir_interpreter::Interpreter interpreter(ir_program.get());
+  ir_interpreter::Interpreter interpreter(ir_program.get(), interpret_options.sanitize);
   interpreter.run();
   return ErrorCode(interpreter.exit_code());
 }

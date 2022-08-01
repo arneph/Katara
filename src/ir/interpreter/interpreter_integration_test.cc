@@ -68,7 +68,7 @@ func main() int {
   ::lang::ir_checker::AssertProgramIsOkay(program.get());
 
   // Interpret IR:
-  ir_interpreter::Interpreter interpreter(program.get());
+  ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
   interpreter.run();
 
   EXPECT_EQ(interpreter.exit_code(), GetParam().expected_value);
@@ -105,7 +105,7 @@ func main() int {
   ::lang::ir_checker::AssertProgramIsOkay(program.get());
 
   // Interpret IR:
-  ir_interpreter::Interpreter interpreter(program.get());
+  ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
   interpreter.run();
 
   EXPECT_EQ(interpreter.exit_code(), 345);
@@ -143,7 +143,7 @@ func main() int {
   lang::ir_lowerers::LowerSharedPointersInProgram(program.get());
 
   // Interpret IR:
-  ir_interpreter::Interpreter interpreter(program.get());
+  ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
   interpreter.run();
 
   EXPECT_EQ(interpreter.exit_code(), 45);

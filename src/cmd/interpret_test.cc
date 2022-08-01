@@ -14,25 +14,102 @@
 
 namespace cmd {
 
-class InterpretTest : public testing::TestWithParam<BuildOptions> {};
+struct Options {
+  BuildOptions build_options;
+  InterpretOptions interpret_options;
+};
+
+class InterpretTest : public testing::TestWithParam<Options> {};
 
 INSTANTIATE_TEST_SUITE_P(InterpretTestInstance, InterpretTest,
                          testing::Values(
-                             BuildOptions{
-                                 .optimize_ir_ext = false,
-                                 .optimize_ir = false,
+                             Options{
+                                 .build_options =
+                                     BuildOptions{
+                                         .optimize_ir_ext = false,
+                                         .optimize_ir = false,
+                                     },
+                                 .interpret_options =
+                                     InterpretOptions{
+                                         .sanitize = false,
+                                     },
                              },
-                             BuildOptions{
-                                 .optimize_ir_ext = false,
-                                 .optimize_ir = true,
+                             Options{
+                                 .build_options =
+                                     BuildOptions{
+                                         .optimize_ir_ext = true,
+                                         .optimize_ir = false,
+                                     },
+                                 .interpret_options =
+                                     InterpretOptions{
+                                         .sanitize = false,
+                                     },
                              },
-                             BuildOptions{
-                                 .optimize_ir_ext = true,
-                                 .optimize_ir = false,
+                             Options{
+                                 .build_options =
+                                     BuildOptions{
+                                         .optimize_ir_ext = false,
+                                         .optimize_ir = true,
+                                     },
+                                 .interpret_options =
+                                     InterpretOptions{
+                                         .sanitize = false,
+                                     },
                              },
-                             BuildOptions{
-                                 .optimize_ir_ext = true,
-                                 .optimize_ir = true,
+                             Options{
+                                 .build_options =
+                                     BuildOptions{
+                                         .optimize_ir_ext = true,
+                                         .optimize_ir = true,
+                                     },
+                                 .interpret_options =
+                                     InterpretOptions{
+                                         .sanitize = false,
+                                     },
+                             },
+                             Options{
+                                 .build_options =
+                                     BuildOptions{
+                                         .optimize_ir_ext = false,
+                                         .optimize_ir = false,
+                                     },
+                                 .interpret_options =
+                                     InterpretOptions{
+                                         .sanitize = true,
+                                     },
+                             },
+                             Options{
+                                 .build_options =
+                                     BuildOptions{
+                                         .optimize_ir_ext = true,
+                                         .optimize_ir = false,
+                                     },
+                                 .interpret_options =
+                                     InterpretOptions{
+                                         .sanitize = true,
+                                     },
+                             },
+                             Options{
+                                 .build_options =
+                                     BuildOptions{
+                                         .optimize_ir_ext = false,
+                                         .optimize_ir = true,
+                                     },
+                                 .interpret_options =
+                                     InterpretOptions{
+                                         .sanitize = true,
+                                     },
+                             },
+                             Options{
+                                 .build_options =
+                                     BuildOptions{
+                                         .optimize_ir_ext = true,
+                                         .optimize_ir = true,
+                                     },
+                                 .interpret_options =
+                                     InterpretOptions{
+                                         .sanitize = true,
+                                     },
                              }));
 
 TEST_P(InterpretTest, InterpretsSmallProgramCorrectly) {
@@ -50,11 +127,43 @@ func main() int {
   )kat");
 
   std::vector<std::filesystem::path> paths{"test.kat"};
-  BuildOptions build_options;
-  ErrorCode result =
-      Interpret(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+  BuildOptions build_options = GetParam().build_options;
+  InterpretOptions interpret_options = GetParam().interpret_options;
+  ErrorCode result = Interpret(paths, build_options, interpret_options,
+                               DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
 
   EXPECT_EQ(result, 45);
+}
+
+TEST_P(InterpretTest, RunsAddressOfLocalVariableCorrectly) {
+  TestContext ctx;
+  ctx.filesystem()->WriteContentsOfFile("test.kat", R"kat(
+package main
+
+func create() *int64 {
+  var a int64 = 42
+  return &a
+}
+
+func inc(a *int64) {
+  *a++
+}
+
+func main() int64 {
+  x := create()
+  *x *= 3
+  inc(x)
+  return *x
+}
+)kat");
+
+  std::vector<std::filesystem::path> paths{"test.kat"};
+  BuildOptions build_options = GetParam().build_options;
+  InterpretOptions interpret_options = GetParam().interpret_options;
+  ErrorCode result = Interpret(paths, build_options, interpret_options,
+                               DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+
+  EXPECT_EQ(result, 127);
 }
 
 }  // namespace cmd

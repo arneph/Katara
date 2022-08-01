@@ -19,9 +19,13 @@
 
 namespace cmd {
 
-ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& options,
-                    DebugHandler& debug_handler, Context* ctx);
+struct InterpretOptions {
+  bool sanitize = false;
+};
 
-}
+ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& build_options,
+                    InterpretOptions& interpret_options, DebugHandler& debug_handler, Context* ctx);
+
+}  // namespace cmd
 
 #endif /* cmd_interpret_h */

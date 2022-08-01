@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "src/common/atomics/atomics.h"
+#include "src/ir/interpreter/heap.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -32,7 +33,7 @@ class Interpreter {
     kTerminated,
   };
 
-  Interpreter(ir::Program* program) : program_(program) {}
+  Interpreter(ir::Program* program, bool sanitize) : heap_(sanitize), program_(program) {}
 
   ExecutionState state() const { return state_; }
   void run();
@@ -78,6 +79,7 @@ class Interpreter {
 
   ExecutionState state_ = ExecutionState::kReady;
   int64_t exit_code_ = 0;
+  Heap heap_;
 
   ir::Program* program_;
 };

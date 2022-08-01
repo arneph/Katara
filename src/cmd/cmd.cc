@@ -59,7 +59,8 @@ struct FlagSets {
   common::FlagSet run_flags;
 };
 
-void GenerateFlagSets(DebugConfig& debug_config, BuildOptions& build_options, FlagSets& flag_sets) {
+void GenerateFlagSets(DebugConfig& debug_config, BuildOptions& build_options,
+                      InterpretOptions& interpret_options, FlagSets& flag_sets) {
   flag_sets.debug_flags.Add<bool>("debug_output",
                                   "If true, debug information will be written in the directory "
                                   "specified with -debug_output_path.",
@@ -82,6 +83,10 @@ void GenerateFlagSets(DebugConfig& debug_config, BuildOptions& build_options, Fl
 
   flag_sets.doc_flags = flag_sets.debug_flags.CreateChild();
   flag_sets.interpret_flags = flag_sets.build_flags.CreateChild();
+  flag_sets.interpret_flags.Add<bool>("sanitize",
+                                      "If true, performs dynamic checks during interpretation.",
+                                      interpret_options.sanitize);
+
   flag_sets.run_flags = flag_sets.build_flags.CreateChild();
 }
 
@@ -178,8 +183,9 @@ ErrorCode Execute(std::vector<std::string> args, Context* ctx) {
 
   DebugConfig debug_config;
   BuildOptions build_options;
+  InterpretOptions interpret_options;
   FlagSets flag_sets;
-  GenerateFlagSets(debug_config, build_options, flag_sets);
+  GenerateFlagSets(debug_config, build_options, interpret_options, flag_sets);
 
   switch (*command) {
     case Command::kHelp:
@@ -210,7 +216,7 @@ ErrorCode Execute(std::vector<std::string> args, Context* ctx) {
       flag_sets.interpret_flags.Parse(args, ctx->stderr());
       std::vector<std::filesystem::path> paths = ArgsToPaths(args);
       DebugHandler debug_handler(debug_config, ctx);
-      return Interpret(paths, build_options, debug_handler, ctx);
+      return Interpret(paths, build_options, interpret_options, debug_handler, ctx);
     }
     case Command::kRun: {
       flag_sets.run_flags.Parse(args, ctx->stderr());
