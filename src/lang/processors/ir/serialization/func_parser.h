@@ -33,8 +33,10 @@ namespace ir_serialization {
 class FuncParser : public ::ir_serialization::FuncParser {
  public:
   FuncParser(::ir_serialization::Scanner& scanner, ::ir_serialization::TypeParser* type_parser,
-             ::ir_serialization::ConstantParser* constant_parser, ir::Program* program)
-      : ::ir_serialization::FuncParser(scanner, type_parser, constant_parser, program) {}
+             ::ir_serialization::ConstantParser* constant_parser, ir::Program* program,
+             int64_t func_num_offset)
+      : ::ir_serialization::FuncParser(scanner, type_parser, constant_parser, program,
+                                       func_num_offset) {}
 
  private:
   std::unique_ptr<ir::Instr> ParseInstrWithResults(

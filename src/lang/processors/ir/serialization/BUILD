@@ -63,6 +63,9 @@ cc_library(
 
 cc_library(
     name = "parse",
+    srcs = [
+        "parse.cc",
+    ],
     hdrs = [
         "parse.h",
     ],

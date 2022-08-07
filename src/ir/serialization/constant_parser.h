@@ -21,8 +21,12 @@ namespace ir_serialization {
 
 class ConstantParser {
  public:
-  ConstantParser(Scanner& scanner, TypeParser* type_parser, ir::Program* program)
-      : scanner_(scanner), type_parser_(type_parser), program_(program) {}
+  ConstantParser(Scanner& scanner, TypeParser* type_parser, ir::Program* program,
+                 int64_t func_num_offset)
+      : scanner_(scanner),
+        type_parser_(type_parser),
+        program_(program),
+        func_num_offset_(func_num_offset) {}
   virtual ~ConstantParser() = default;
 
   virtual std::shared_ptr<ir::Constant> ParseConstant(const ir::Type* expected_type);
@@ -40,6 +44,7 @@ class ConstantParser {
   Scanner& scanner_;
   TypeParser* type_parser_;
   ir::Program* program_;
+  int64_t func_num_offset_;
 };
 
 }  // namespace ir_serialization

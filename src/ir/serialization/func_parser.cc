@@ -16,7 +16,7 @@ namespace ir_serialization {
 ir::Func* FuncParser::ParseFunc() {
   scanner().ConsumeToken(Scanner::kAtSign);
 
-  func_ = program()->AddFunc(scanner().ConsumeInt64());
+  func_ = program()->AddFunc(scanner().ConsumeInt64() + func_num_offset_);
 
   if (scanner().token() == Scanner::kIdentifier) {
     func_->set_name(scanner().ConsumeIdentifier());

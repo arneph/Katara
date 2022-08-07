@@ -900,4 +900,85 @@ TEST(ParseTest, ParsesSyscall) {
   EXPECT_THAT(return_instr->args().front().get(), syscall_instr->result().get());
 }
 
+TEST(ParseTest, ParsesAdditionalFuncs) {
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+@0 (%0:i64, %1:i64, %2:func) => (ptr, i64) {
+{0}
+  %3:i64, %4:ptr = call %2, #42:i64, %1, #123:u16, %0
+  ret %4, %3
+}
+
+@1 (%0:i64, %1:i64) => (i64) {
+{0}
+  %2:i64 = syscall #42:i64, %1, #123, %0
+  ret %2
+}
+)ir");
+  ir::Func* func_a = program->GetFunc(0);
+  ir::Func* func_b = program->GetFunc(1);
+  std::vector<ir::Func*> additional_funcs =
+      ir_serialization::ParseAdditionalFuncsForProgram(program.get(), R"ir(
+@0 toast(%2:func) => (b) {
+{0}
+  %0:i64 = call %2, #987:i64, #-1:i64
+  %1:b = igtr %0, #0:i64
+  ret %1
+}
+
+@42 main() => (i64) {
+{0}
+  %0:b = call @0, @-1
+  ret #0:i64
+}
+
+)ir");
+
+  ASSERT_THAT(additional_funcs, SizeIs(2));
+  ir::Func* func_c = additional_funcs.at(0);
+  ir::Func* func_d = additional_funcs.at(1);
+
+  ir_checker::AssertProgramIsOkay(program.get());
+
+  ASSERT_THAT(program->funcs(), SizeIs(4));
+  EXPECT_THAT(program->entry_func(), IsNull());
+  EXPECT_EQ(program->entry_func_num(), ir::kNoFuncNum);
+
+  EXPECT_EQ(func_c->number(), 2);
+  EXPECT_EQ(program->GetFunc(2), func_c);
+  EXPECT_EQ(func_d->number(), 44);
+  EXPECT_EQ(program->GetFunc(44), func_d);
+
+  EXPECT_EQ(func_a->number(), 0);
+  EXPECT_THAT(func_a->name(), IsEmpty());
+  EXPECT_THAT(func_a->args(), SizeIs(3));
+  ASSERT_THAT(func_a->result_types(), SizeIs(2));
+  EXPECT_EQ(func_a->computed_count(), 5);
+
+  EXPECT_EQ(func_b->number(), 1);
+  EXPECT_THAT(func_b->name(), IsEmpty());
+  EXPECT_THAT(func_b->args(), SizeIs(2));
+  ASSERT_THAT(func_b->result_types(), SizeIs(1));
+  EXPECT_EQ(func_b->computed_count(), 3);
+
+  EXPECT_EQ(func_c->name(), "toast");
+  EXPECT_THAT(func_c->args(), SizeIs(1));
+  ASSERT_THAT(func_c->result_types(), SizeIs(1));
+  EXPECT_EQ(func_c->computed_count(), 3);
+
+  EXPECT_EQ(func_d->name(), "main");
+  EXPECT_THAT(func_d->args(), IsEmpty());
+  ASSERT_THAT(func_d->result_types(), SizeIs(1));
+  EXPECT_EQ(func_d->computed_count(), 1);
+
+  ir::Block* block = func_d->blocks().at(0).get();
+
+  ASSERT_EQ(block->instrs().at(0)->instr_kind(), ir::InstrKind::kCall);
+  auto call_instr = static_cast<ir::CallInstr*>(block->instrs().at(0).get());
+  EXPECT_TRUE(ir::IsEqual(call_instr->func().get(), ir::ToFuncConstant(2).get()));
+  ASSERT_THAT(call_instr->args(), SizeIs(1));
+  ASSERT_EQ(call_instr->args().at(0)->type(), ir::func_type());
+  ASSERT_EQ(call_instr->args().at(0)->kind(), ir::Value::Kind::kConstant);
+  EXPECT_TRUE(ir::IsEqual(call_instr->args().at(0).get(), ir::NilFunc().get()));
+}
+
 }  // namespace

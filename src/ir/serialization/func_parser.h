@@ -30,11 +30,12 @@ namespace ir_serialization {
 class FuncParser {
  public:
   FuncParser(Scanner& scanner, TypeParser* type_parser, ConstantParser* constant_parser,
-             ir::Program* program)
+             ir::Program* program, int64_t func_num_offset)
       : scanner_(scanner),
         type_parser_(type_parser),
         constant_parser_(constant_parser),
-        program_(program) {}
+        program_(program),
+        func_num_offset_(func_num_offset) {}
   virtual ~FuncParser() = default;
 
   ir::Func* ParseFunc();
@@ -96,6 +97,7 @@ class FuncParser {
   TypeParser* type_parser_;
   ConstantParser* constant_parser_;
   ir::Program* program_;
+  int64_t func_num_offset_;
   ir::Func* func_;
   std::unordered_map<ir::value_num_t, std::shared_ptr<ir::Computed>> computed_values_;
 };

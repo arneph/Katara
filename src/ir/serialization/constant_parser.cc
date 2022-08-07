@@ -45,6 +45,9 @@ std::shared_ptr<ir::PointerConstant> ConstantParser::ParsePointerConstant() {
 std::shared_ptr<ir::FuncConstant> ConstantParser::ParseFuncConstant() {
   scanner().ConsumeToken(Scanner::kAtSign);
   ir::func_num_t number = scanner().ConsumeInt64();
+  if (number != ir::kNoFuncNum) {
+    number += func_num_offset_;
+  }
 
   return ir::ToFuncConstant(number);
 }

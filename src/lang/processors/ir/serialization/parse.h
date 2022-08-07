@@ -9,29 +9,21 @@
 #ifndef lang_ir_serialization_parse_h
 #define lang_ir_serialization_parse_h
 
-#include "src/ir/serialization/parse.h"
-#include "src/lang/processors/ir/serialization/constant_parser.h"
-#include "src/lang/processors/ir/serialization/func_parser.h"
-#include "src/lang/processors/ir/serialization/type_parser.h"
+#include <istream>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "src/ir/representation/program.h"
 
 namespace lang {
 namespace ir_serialization {
 
-std::unique_ptr<ir::Program> ParseProgram(std::istream& in_stream) {
-  return ::ir_serialization::ParseProgram<TypeParser, ConstantParser, FuncParser>(in_stream);
-}
-
-std::unique_ptr<ir::Program> ParseProgram(std::string text) {
-  return ::ir_serialization::ParseProgram<TypeParser, ConstantParser, FuncParser>(text);
-}
-
-ir::Func* ParseFunc(ir::Program* program, std::istream& in_stream) {
-  return ::ir_serialization::ParseFunc<TypeParser, ConstantParser, FuncParser>(program, in_stream);
-}
-
-ir::Func* ParseFunc(ir::Program* program, std::string text) {
-  return ::ir_serialization::ParseFunc<TypeParser, ConstantParser, FuncParser>(program, text);
-}
+std::unique_ptr<ir::Program> ParseProgram(std::istream& in_stream);
+std::unique_ptr<ir::Program> ParseProgram(std::string text);
+std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program,
+                                                      std::istream& in_stream);
+std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, std::string text);
 
 }  // namespace ir_serialization
 }  // namespace lang
