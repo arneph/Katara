@@ -35,7 +35,7 @@ const ir::Type* TypeParser::ParseType() {
   } else if (name == "func") {
     return ir::func_type();
   } else {
-    common::fail(scanner().PositionString() + ": unexpected type");
+    common::fail(scanner().PositionString() + ": unexpected type '" + name + "'");
   }
 }
 
