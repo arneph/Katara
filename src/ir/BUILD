@@ -1,6 +1,8 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//src:katara.bzl", "COPTS")
 
+exports_files(["ir_file_check.cc"])
+
 cc_library(
     name = "ir_lib",
     copts = COPTS,
