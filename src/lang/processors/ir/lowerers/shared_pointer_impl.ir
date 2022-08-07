@@ -1,0 +1,94 @@
+@0 make_shared (%0:i64, %1:i64, %2:func) => (ptr, ptr) {
+{0}
+  %3:i64 = imul %0, %1
+  %4:i64 = iadd #24:i64, %3
+  %5:ptr = malloc %4
+  store %5, #1:i64
+  %6:ptr = poff %5, #8:i64
+  store %6, #0:i64
+  %7:ptr = poff %5, #16:i64
+  store %7, %2
+  %8:ptr = poff %5, #24:i64
+  ret %5, %8
+}
+
+@1 strong_copy_shared (%0:ptr, %1:ptr, %2:i64) => (ptr) {
+{0}
+  %3:i64 = load %0
+  %4:i64 = iadd %3, #1:i64
+  store %0, %4
+  %5:ptr = poff %1, %2
+  ret %5
+}
+
+@2 weak_copy_shared (%0:ptr, %1:ptr, %2:i64) => (ptr) {
+{0}
+  %3:ptr = poff %0, #8:i64
+  %4:i64 = load %3
+  %5:i64 = iadd %4, #1:i64
+  store %3, %5
+  %6:ptr = poff %1, %2
+  ret %6
+}
+
+@3 delete_strong_shared (%0:ptr) => () {
+{0}
+  %1:i64 = load %0
+  %2:b = ieq %1, #1:i64
+  jcc %2, {2}, {1}
+{1}
+  %3:i64 = isub %1, #1:i64
+  store %0, %3
+  ret
+{2}
+  %4:ptr = poff %0, #16:i64
+  %5:func = load %4
+  %6:b = niltest %5
+  jcc %6, {4}, {3}
+{3}
+  %7:ptr = poff %0, #24:i64
+  call %5, %7
+  jmp {4}
+{4}
+  %8:ptr = poff %0, #8:i64
+  %9:i64 = load %8
+  %10:b = ieq %9, #0:i64
+  jcc %10, {6}, {5}
+{5}
+  ret
+{6}
+  free %0
+  ret
+}
+
+@4 delete_weak_shared (%0:ptr) => () {
+{0}
+  %1:ptr = poff %0, #8:i64
+  %2:i64 = load %1
+  %3:b = ieq %2, #1:i64
+  jcc %3, {2}, {1}
+{1}
+  %4:i64 = isub %2, #1:i64
+  store %1, %4
+  ret
+{2}
+  %5:i64 = load %0
+  %6:b = ieq %5, #0:i64
+  jcc %6, {4}, {3}
+{3}
+  ret
+{4}
+  free %0
+  ret
+}
+
+@5 validate_weak_shared (%0:ptr) => () {
+{0}
+  %1:i64 = load %0
+  %2:b = ieq %1, #0:i64
+  jcc %2, {2}, {1}
+{1}
+  ret
+{2}
+  panic "0x6000014dc718"
+}
