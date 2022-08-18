@@ -9,8 +9,8 @@
 #include "src/cmd/katara/run.h"
 
 #include "gtest/gtest.h"
-#include "src/cmd/katara/context/context.h"
-#include "src/cmd/katara/context/test_context.h"
+#include "src/cmd/context.h"
+#include "src/cmd/test_context.h"
 
 namespace cmd {
 

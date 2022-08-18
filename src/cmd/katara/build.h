@@ -14,7 +14,7 @@
 #include <variant>
 #include <vector>
 
-#include "src/cmd/katara/context/context.h"
+#include "src/cmd/context.h"
 #include "src/cmd/katara/debug.h"
 #include "src/cmd/katara/error_codes.h"
 #include "src/ir/representation/program.h"

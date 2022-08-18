@@ -6,8 +6,8 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#ifndef katara_context_test_context_h
-#define katara_context_test_context_h
+#ifndef cmd_test_context_h
+#define cmd_test_context_h
 
 #include <filesystem>
 #include <iostream>
@@ -15,7 +15,7 @@
 #include <string>
 #include <vector>
 
-#include "src/cmd/katara/context/context.h"
+#include "src/cmd/context.h"
 #include "src/common/filesystem/filesystem.h"
 #include "src/common/filesystem/test_filesystem.h"
 
@@ -42,4 +42,4 @@ class TestContext : public Context {
 
 }  // namespace cmd
 
-#endif /* katara_context_test_context_h */
+#endif /* cmd_test_context_h */

@@ -6,9 +6,9 @@
 //  Copyright © 2019 Arne Philipeit. All rights reserved.
 //
 
+#include "src/cmd/context.h"
 #include "src/cmd/katara/cmd.h"
-#include "src/cmd/katara/context/context.h"
-#include "src/cmd/katara/context/real_context.h"
+#include "src/cmd/real_context.h"
 #include "src/cmd/util.h"
 
 int main(int argc, char* argv[]) {

@@ -12,7 +12,7 @@
 #include <string>
 #include <vector>
 
-#include "src/cmd/katara/context/context.h"
+#include "src/cmd/context.h"
 #include "src/cmd/katara/error_codes.h"
 
 namespace cmd {

@@ -6,15 +6,15 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#ifndef katara_context_real_context_h
-#define katara_context_real_context_h
+#ifndef cmd_real_context_h
+#define cmd_real_context_h
 
 #include <filesystem>
 #include <iostream>
 #include <string>
 #include <vector>
 
-#include "src/cmd/katara/context/context.h"
+#include "src/cmd/context.h"
 #include "src/common/filesystem/filesystem.h"
 #include "src/common/filesystem/real_filesystem.h"
 
@@ -33,4 +33,4 @@ class RealContext : public Context {
 
 }  // namespace cmd
 
-#endif /* katara_context_real_context_h */
+#endif /* cmd_real_context_h */
