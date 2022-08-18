@@ -6,16 +6,16 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_interpret_h
-#define cmd_interpret_h
+#ifndef katara_interpret_h
+#define katara_interpret_h
 
 #include <filesystem>
 #include <vector>
 
-#include "src/cmd/build.h"
-#include "src/cmd/context/context.h"
-#include "src/cmd/debug.h"
-#include "src/cmd/error_codes.h"
+#include "src/cmd/katara/build.h"
+#include "src/cmd/katara/context/context.h"
+#include "src/cmd/katara/debug.h"
+#include "src/cmd/katara/error_codes.h"
 
 namespace cmd {
 
@@ -28,4 +28,4 @@ ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& bui
 
 }  // namespace cmd
 
-#endif /* cmd_interpret_h */
+#endif /* katara_interpret_h */

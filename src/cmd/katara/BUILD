@@ -19,7 +19,7 @@ cc_library(
         "//visibility:private",
     ],
     deps = [
-        "//src/cmd/context",
+        "//src/cmd/katara/context",
     ],
 )
 
@@ -30,7 +30,7 @@ cc_library(
     copts = COPTS,
     visibility = [
         "//src:__pkg__",
-        "//src/cmd:__pkg__",
+        "//src/cmd/katara:__pkg__",
     ],
 )
 
@@ -45,7 +45,7 @@ cc_library(
     deps = [
         ":debug",
         ":error_codes",
-        "//src/cmd/context",
+        "//src/cmd/katara/context",
         "//src/common/graph",
         "//src/lang:lang_lib",
     ],
@@ -63,7 +63,7 @@ cc_library(
         ":debug",
         ":error_codes",
         ":load",
-        "//src/cmd/context",
+        "//src/cmd/katara/context",
     ],
 )
 
@@ -79,7 +79,7 @@ cc_library(
         ":debug",
         ":error_codes",
         ":load",
-        "//src/cmd/context",
+        "//src/cmd/katara/context",
         "//src/ir:ir_lib",
         "//src/lang:lang_lib",
         "//src/x86_64:x86_64_lib",
@@ -99,7 +99,7 @@ cc_library(
         ":build",
         ":debug",
         ":error_codes",
-        "//src/cmd/context",
+        "//src/cmd/katara/context",
         "//src/ir:ir_lib",
     ],
 )
@@ -110,8 +110,8 @@ cc_test(
     copts = COPTS,
     deps = [
         ":interpret",
-        "//src/cmd/context",
-        "//src/cmd/context:test_context",
+        "//src/cmd/katara/context",
+        "//src/cmd/katara/context:test_context",
         "@gtest//:gtest_main",
     ],
 )
@@ -128,7 +128,7 @@ cc_library(
         ":build",
         ":debug",
         ":error_codes",
-        "//src/cmd/context",
+        "//src/cmd/katara/context",
         "//src/common/data_view",
         "//src/common/memory",
         "//src/ir:ir_lib",
@@ -142,8 +142,8 @@ cc_test(
     copts = COPTS,
     deps = [
         ":run",
-        "//src/cmd/context",
-        "//src/cmd/context:test_context",
+        "//src/cmd/katara/context",
+        "//src/cmd/katara/context:test_context",
         "@gtest//:gtest_main",
     ],
 )
@@ -163,7 +163,19 @@ cc_library(
         ":error_codes",
         ":interpret",
         ":run",
-        "//src/cmd/context",
+        "//src/cmd/katara/context",
         "//src/common/flags",
+    ],
+)
+
+cc_binary(
+    name = "katara",
+    srcs = ["katara.cc"],
+    copts = COPTS,
+    deps = [
+        ":cmd",
+        ":util",
+        "//src/cmd/katara/context",
+        "//src/cmd/katara/context:real_context",
     ],
 )

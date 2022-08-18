@@ -14,10 +14,10 @@
 #include <variant>
 #include <vector>
 
-#include "src/cmd/build.h"
-#include "src/cmd/doc.h"
-#include "src/cmd/interpret.h"
-#include "src/cmd/run.h"
+#include "src/cmd/katara/build.h"
+#include "src/cmd/katara/doc.h"
+#include "src/cmd/katara/interpret.h"
+#include "src/cmd/katara/run.h"
 #include "src/common/flags/flags.h"
 #include "src/common/logging/logging.h"
 

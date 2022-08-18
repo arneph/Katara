@@ -6,17 +6,17 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_build_h
-#define cmd_build_h
+#ifndef katara_build_h
+#define katara_build_h
 
 #include <filesystem>
 #include <memory>
 #include <variant>
 #include <vector>
 
-#include "src/cmd/context/context.h"
-#include "src/cmd/debug.h"
-#include "src/cmd/error_codes.h"
+#include "src/cmd/katara/context/context.h"
+#include "src/cmd/katara/debug.h"
+#include "src/cmd/katara/error_codes.h"
 #include "src/ir/representation/program.h"
 #include "src/x86_64/program.h"
 
@@ -33,4 +33,4 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
 
 }  // namespace cmd
 
-#endif /* cmd_build_h */
+#endif /* katara_build_h */

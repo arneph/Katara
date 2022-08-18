@@ -6,16 +6,16 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_load_h
-#define cmd_load_h
+#ifndef katara_load_h
+#define katara_load_h
 
 #include <filesystem>
 #include <variant>
 #include <vector>
 
-#include "src/cmd/context/context.h"
-#include "src/cmd/debug.h"
-#include "src/cmd/error_codes.h"
+#include "src/cmd/katara/context/context.h"
+#include "src/cmd/katara/debug.h"
+#include "src/cmd/katara/error_codes.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 
@@ -31,4 +31,4 @@ std::variant<LoadResult, ErrorCode> Load(std::vector<std::filesystem::path>& pat
 
 }  // namespace cmd
 
-#endif /* cmd_load_h */
+#endif /* katara_load_h */

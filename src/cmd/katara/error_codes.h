@@ -6,8 +6,8 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_error_codes_h
-#define cmd_error_codes_h
+#ifndef katara_error_codes_h
+#define katara_error_codes_h
 
 namespace cmd {
 
@@ -22,4 +22,4 @@ enum ErrorCode : int {
 
 }
 
-#endif /* cmd_error_codes_h */
+#endif /* katara_error_codes_h */

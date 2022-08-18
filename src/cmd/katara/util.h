@@ -6,8 +6,8 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_util_h
-#define cmd_util_h
+#ifndef katara_util_h
+#define katara_util_h
 
 #include <string>
 #include <vector>
@@ -18,4 +18,4 @@ std::vector<std::string> ConvertMainArgs(int argc, char* argv[]);
 
 }  // namespace cmd
 
-#endif /* cmd_util_h */
+#endif /* katara_util_h */

@@ -6,16 +6,16 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_run_h
-#define cmd_run_h
+#ifndef katara_run_h
+#define katara_run_h
 
 #include <filesystem>
 #include <vector>
 
-#include "src/cmd/build.h"
-#include "src/cmd/context/context.h"
-#include "src/cmd/debug.h"
-#include "src/cmd/error_codes.h"
+#include "src/cmd/katara/build.h"
+#include "src/cmd/katara/context/context.h"
+#include "src/cmd/katara/debug.h"
+#include "src/cmd/katara/error_codes.h"
 
 namespace cmd {
 
@@ -24,4 +24,4 @@ ErrorCode Run(std::vector<std::filesystem::path>& paths, BuildOptions& options,
 
 }
 
-#endif /* cmd_run_h */
+#endif /* katara_run_h */

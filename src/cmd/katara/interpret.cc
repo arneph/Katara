@@ -8,7 +8,7 @@
 
 #include "interpret.h"
 
-#include "src/cmd/build.h"
+#include "src/cmd/katara/build.h"
 #include "src/ir/interpreter/interpreter.h"
 #include "src/ir/representation/program.h"
 

@@ -10,7 +10,7 @@
 
 #include <unordered_map>
 
-#include "src/cmd/load.h"
+#include "src/cmd/katara/load.h"
 #include "src/ir/analyzers/func_call_graph_builder.h"
 #include "src/ir/analyzers/interference_graph_builder.h"
 #include "src/ir/analyzers/live_range_analyzer.h"

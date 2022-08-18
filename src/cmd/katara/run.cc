@@ -12,7 +12,7 @@
 #include <sstream>
 #include <variant>
 
-#include "src/cmd/build.h"
+#include "src/cmd/katara/build.h"
 #include "src/common/memory/memory.h"
 #include "src/ir/analyzers/interference_graph_builder.h"
 #include "src/ir/analyzers/live_range_analyzer.h"

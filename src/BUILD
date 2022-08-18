@@ -13,18 +13,6 @@ cc_library(
 )
 
 cc_binary(
-    name = "katara",
-    srcs = ["main.cc"],
-    copts = COPTS,
-    deps = [
-        "//src/cmd",
-        "//src/cmd:util",
-        "//src/cmd/context",
-        "//src/cmd/context:real_context",
-    ],
-)
-
-cc_binary(
     name = "katara-tests",
     srcs = ["tests.cc"],
     copts = COPTS,

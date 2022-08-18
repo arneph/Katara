@@ -10,7 +10,7 @@
 
 #include <variant>
 
-#include "src/cmd/load.h"
+#include "src/cmd/katara/load.h"
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/docs/package_doc.h"
 

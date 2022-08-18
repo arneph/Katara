@@ -231,7 +231,7 @@ cc_library(
     copts = COPTS,
     visibility = [
         "//src:__pkg__",
-        "//src/cmd:__pkg__",
+        "//src/cmd/katara:__pkg__",
     ],
     deps = [
         ":func_translator",

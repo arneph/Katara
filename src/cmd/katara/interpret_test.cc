@@ -6,11 +6,11 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#include "src/cmd/interpret.h"
+#include "src/cmd/katara/interpret.h"
 
 #include "gtest/gtest.h"
-#include "src/cmd/context/context.h"
-#include "src/cmd/context/test_context.h"
+#include "src/cmd/katara/context/context.h"
+#include "src/cmd/katara/context/test_context.h"
 
 namespace cmd {
 

@@ -6,12 +6,12 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_debug_h
-#define cmd_debug_h
+#ifndef katara_debug_h
+#define katara_debug_h
 
 #include <filesystem>
 
-#include "src/cmd/context/context.h"
+#include "src/cmd/katara/context/context.h"
 
 namespace cmd {
 
@@ -42,4 +42,4 @@ class DebugHandler {
 
 }  // namespace cmd
 
-#endif /* cmd_debug_h */
+#endif /* katara_debug_h */

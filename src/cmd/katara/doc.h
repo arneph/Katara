@@ -6,15 +6,15 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_doc_h
-#define cmd_doc_h
+#ifndef katara_doc_h
+#define katara_doc_h
 
 #include <filesystem>
 #include <vector>
 
-#include "src/cmd/context/context.h"
-#include "src/cmd/debug.h"
-#include "src/cmd/error_codes.h"
+#include "src/cmd/katara/context/context.h"
+#include "src/cmd/katara/debug.h"
+#include "src/cmd/katara/error_codes.h"
 
 namespace cmd {
 
@@ -22,4 +22,4 @@ ErrorCode Doc(std::vector<std::filesystem::path>& paths, DebugHandler& debug_han
 
 }
 
-#endif /* cmd_doc_h */
+#endif /* katara_doc_h */

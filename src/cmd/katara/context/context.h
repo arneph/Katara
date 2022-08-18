@@ -6,8 +6,8 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#ifndef cmd_context_context_h
-#define cmd_context_context_h
+#ifndef katara_context_context_h
+#define katara_context_context_h
 
 #include <filesystem>
 #include <iostream>
@@ -33,4 +33,4 @@ class Context {
 
 }  // namespace cmd
 
-#endif /* cmd_context_context_h */
+#endif /* katara_context_context_h */
