@@ -24,17 +24,6 @@ cc_library(
 )
 
 cc_library(
-    name = "util",
-    srcs = ["util.cc"],
-    hdrs = ["util.h"],
-    copts = COPTS,
-    visibility = [
-        "//src:__pkg__",
-        "//src/cmd/katara:__pkg__",
-    ],
-)
-
-cc_library(
     name = "load",
     srcs = ["load.cc"],
     hdrs = ["load.h"],
@@ -174,7 +163,7 @@ cc_binary(
     copts = COPTS,
     deps = [
         ":cmd",
-        ":util",
+        "//src/cmd:util",
         "//src/cmd/katara/context",
         "//src/cmd/katara/context:real_context",
     ],

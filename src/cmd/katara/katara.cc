@@ -9,7 +9,7 @@
 #include "src/cmd/katara/cmd.h"
 #include "src/cmd/katara/context/context.h"
 #include "src/cmd/katara/context/real_context.h"
-#include "src/cmd/katara/util.h"
+#include "src/cmd/util.h"
 
 int main(int argc, char* argv[]) {
   cmd::RealContext ctx;
