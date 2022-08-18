@@ -121,3 +121,33 @@ cc_test(
         "@gtest//:gtest_main",
     ],
 )
+
+cc_library(
+    name = "debugger",
+    srcs = ["debugger.cc"],
+    hdrs = ["debugger.h"],
+    copts = COPTS,
+    visibility = [
+        "//src/ir:__subpackages__",
+    ],
+    deps = [
+        ":execution_point",
+        ":heap",
+        ":interpreter",
+        ":stack",
+        "//src/ir/representation",
+    ],
+)
+
+cc_test(
+    name = "debugger_test",
+    srcs = ["debugger_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":debugger",
+        "//src/ir/checker",
+        "//src/ir/representation",
+        "//src/ir/serialization:parse",
+        "@gtest//:gtest_main",
+    ],
+)
