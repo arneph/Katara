@@ -153,6 +153,7 @@ cc_library(
         ":interpret",
         ":run",
         "//src/cmd:context",
+        "//src/cmd:version",
         "//src/common/flags",
     ],
 )

@@ -51,3 +51,16 @@ cc_library(
         "//src/common/filesystem:test_filesystem",
     ],
 )
+
+cc_library(
+    name = "version",
+    srcs = ["version.cc"],
+    hdrs = ["version.h"],
+    copts = COPTS,
+    visibility = [
+        "//src/cmd:__subpackages__",
+    ],
+    deps = [
+        ":context",
+    ],
+)

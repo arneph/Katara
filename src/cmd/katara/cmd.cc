@@ -18,6 +18,7 @@
 #include "src/cmd/katara/doc.h"
 #include "src/cmd/katara/interpret.h"
 #include "src/cmd/katara/run.h"
+#include "src/cmd/version.h"
 #include "src/common/flags/flags.h"
 #include "src/common/logging/logging.h"
 
@@ -163,10 +164,6 @@ void PrintHelpForArgs(std::vector<std::string> args, FlagSets& flag_sets, Contex
   }
 }
 
-constexpr std::string_view kVersion = "0.1";
-
-void PrintVersion(Context* ctx) { *ctx->stdout() << "Katara version " << kVersion << "\n"; }
-
 }  // namespace
 
 ErrorCode Execute(std::vector<std::string> args, Context* ctx) {
@@ -192,7 +189,7 @@ ErrorCode Execute(std::vector<std::string> args, Context* ctx) {
       PrintHelpForArgs(args, flag_sets, ctx);
       return kNoError;
     case Command::kVersion:
-      PrintVersion(ctx);
+      Version(ctx);
       return kNoError;
     case Command::kBuild: {
       flag_sets.build_flags.Parse(args, ctx->stderr());
