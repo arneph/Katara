@@ -69,7 +69,7 @@ func main() int {
 
   // Interpret IR:
   ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
-  interpreter.run();
+  interpreter.Run();
 
   EXPECT_EQ(interpreter.exit_code(), GetParam().expected_value);
 }
@@ -106,7 +106,7 @@ func main() int {
 
   // Interpret IR:
   ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
-  interpreter.run();
+  interpreter.Run();
 
   EXPECT_EQ(interpreter.exit_code(), 345);
 }
@@ -144,7 +144,7 @@ func main() int {
 
   // Interpret IR:
   ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
-  interpreter.run();
+  interpreter.Run();
 
   EXPECT_EQ(interpreter.exit_code(), 45);
 }

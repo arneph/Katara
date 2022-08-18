@@ -12,149 +12,168 @@
 
 namespace ir_interpreter {
 
-void Interpreter::run() {
+Interpreter::Interpreter(ir::Program* program, bool sanitize) : heap_(sanitize), program_(program) {
+  if (program_->entry_func_num() == ir::kNoFuncNum) {
+    common::fail("program has no entry function");
+  }
   ir::Func* entry_func = program_->entry_func();
   if (!entry_func->args().empty()) {
     // TODO: support argc, argv
-    common::fail("entry func has arguments");
+    common::fail("entry function has arguments");
   } else if (entry_func->result_types().size() != 1) {
-    common::fail("entry func does not have one result");
+    common::fail("entry function does not have one result");
   }
 
-  state_ = ExecutionState::kRunning;
-  std::vector<RuntimeConstant> results = CallFunc(entry_func, {});
-  ir::IntConstant* result = static_cast<ir::IntConstant*>(results.front().get());
-  exit_code_ = result->value().AsInt64();
-  state_ = ExecutionState::kTerminated;
+  stack_.PushFrame(entry_func);
 }
 
-std::vector<Interpreter::RuntimeConstant> Interpreter::CallFunc(ir::Func* func,
-                                                                std::vector<RuntimeConstant> args) {
-  ir::Block* current_block = func->entry_block();
-  ir::Block* previous_block = nullptr;
-  FuncContext ctx;
-  for (std::size_t i = 0; i < func->args().size(); i++) {
-    ir::value_num_t number = func->args().at(i)->number();
-    RuntimeConstant value = args.at(i);
-    ctx.computed_values_.insert({number, value});
+int64_t Interpreter::exit_code() const {
+  if (!HasProgramCompleted()) {
+    common::fail("program has not terminated");
   }
-  while (true) {
-    for (size_t i = 0; i < current_block->instrs().size(); i++) {
-      ir::Instr* instr = current_block->instrs().at(i).get();
-      bool exit_instr_loop = false;
-      switch (instr->instr_kind()) {
-        case ir::InstrKind::kMov:
-          ExecuteMovInstr(static_cast<ir::MovInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kPhi:
-          ExecutePhiInstr(static_cast<ir::PhiInstr*>(instr), previous_block->number(), ctx);
-          break;
-        case ir::InstrKind::kConversion:
-          ExecuteConversion(static_cast<ir::Conversion*>(instr), ctx);
-          break;
-        case ir::InstrKind::kIntBinary:
-          ExecuteIntBinaryInstr(static_cast<ir::IntBinaryInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kIntCompare:
-          ExecuteIntCompareInstr(static_cast<ir::IntCompareInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kIntShift:
-          ExecuteIntShiftInstr(static_cast<ir::IntShiftInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kPointerOffset:
-          ExecutePointerOffsetInstr(static_cast<ir::PointerOffsetInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kNilTest:
-          ExecuteNilTestInstr(static_cast<ir::NilTestInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kMalloc:
-          ExecuteMallocInstr(static_cast<ir::MallocInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kLoad:
-          ExecuteLoadInstr(static_cast<ir::LoadInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kStore:
-          ExecuteStoreInstr(static_cast<ir::StoreInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kFree:
-          ExecuteFreeInstr(static_cast<ir::FreeInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kJump:
-          previous_block = current_block;
-          current_block = func->GetBlock(static_cast<ir::JumpInstr*>(instr)->destination());
-          exit_instr_loop = true;
-          break;
-        case ir::InstrKind::kJumpCond: {
-          auto jump_cond_instr = static_cast<ir::JumpCondInstr*>(instr);
-          bool cond = EvaluateBool(jump_cond_instr->condition(), ctx);
-          previous_block = current_block;
-          current_block = func->GetBlock(cond ? jump_cond_instr->destination_true()
-                                              : jump_cond_instr->destination_false());
-          exit_instr_loop = true;
-          break;
-        }
-        case ir::InstrKind::kCall:
-          ExecuteCallInstr(static_cast<ir::CallInstr*>(instr), ctx);
-          break;
-        case ir::InstrKind::kReturn: {
-          ir::ReturnInstr* return_instr = static_cast<ir::ReturnInstr*>(instr);
-          return Evaluate(return_instr->args(), ctx);
-        }
-        default:
-          common::fail("interpreter does not support instruction: " + instr->RefString());
-      }
-      if (exit_instr_loop) {
-        break;
-      }
+  return exit_code_.value();
+}
+
+void Interpreter::Run() {
+  while (!HasProgramCompleted()) {
+    ExecuteStep();
+  }
+}
+
+void Interpreter::ExecuteStep() {
+  if (stack_.current_frame()->exec_point().is_at_func_exit()) {
+    ExecuteFuncExit();
+  } else {
+    ExecuteInstr(stack_.current_frame()->exec_point().next_instr());
+  }
+}
+
+void Interpreter::ExecuteFuncExit() {
+  std::vector<std::shared_ptr<ir::Constant>> results =
+      stack_.current_frame()->exec_point().results();
+  stack_.PopCurrentFrame();
+
+  if (stack_.depth() == 0) {
+    ir::IntConstant* result = static_cast<ir::IntConstant*>(results.front().get());
+    exit_code_ = result->value().AsInt64();
+
+  } else {
+    auto call_instr =
+        static_cast<ir::CallInstr*>(stack_.current_frame()->exec_point().next_instr());
+    for (std::size_t i = 0; i < results.size(); i++) {
+      ir::value_num_t result_num = call_instr->results().at(i)->number();
+      std::shared_ptr<ir::Constant>& result_value = results.at(i);
+      stack_.current_frame()->computed_values().insert_or_assign(result_num, result_value);
     }
+    stack_.current_frame()->exec_point().AdvanceToNextInstr();
   }
 }
 
-void Interpreter::ExecuteMovInstr(ir::MovInstr* instr, FuncContext& ctx) {
-  RuntimeConstant value = Evaluate(instr->origin(), ctx);
-  ctx.computed_values_.insert_or_assign(instr->result()->number(), value);
+void Interpreter::ExecuteInstr(ir::Instr* instr) {
+  switch (instr->instr_kind()) {
+    case ir::InstrKind::kMov:
+      ExecuteMovInstr(static_cast<ir::MovInstr*>(instr));
+      break;
+    case ir::InstrKind::kPhi:
+      ExecutePhiInstr(static_cast<ir::PhiInstr*>(instr));
+      break;
+    case ir::InstrKind::kConversion:
+      ExecuteConversion(static_cast<ir::Conversion*>(instr));
+      break;
+    case ir::InstrKind::kIntBinary:
+      ExecuteIntBinaryInstr(static_cast<ir::IntBinaryInstr*>(instr));
+      break;
+    case ir::InstrKind::kIntCompare:
+      ExecuteIntCompareInstr(static_cast<ir::IntCompareInstr*>(instr));
+      break;
+    case ir::InstrKind::kIntShift:
+      ExecuteIntShiftInstr(static_cast<ir::IntShiftInstr*>(instr));
+      break;
+    case ir::InstrKind::kPointerOffset:
+      ExecutePointerOffsetInstr(static_cast<ir::PointerOffsetInstr*>(instr));
+      break;
+    case ir::InstrKind::kNilTest:
+      ExecuteNilTestInstr(static_cast<ir::NilTestInstr*>(instr));
+      break;
+    case ir::InstrKind::kMalloc:
+      ExecuteMallocInstr(static_cast<ir::MallocInstr*>(instr));
+      break;
+    case ir::InstrKind::kLoad:
+      ExecuteLoadInstr(static_cast<ir::LoadInstr*>(instr));
+      break;
+    case ir::InstrKind::kStore:
+      ExecuteStoreInstr(static_cast<ir::StoreInstr*>(instr));
+      break;
+    case ir::InstrKind::kFree:
+      ExecuteFreeInstr(static_cast<ir::FreeInstr*>(instr));
+      break;
+    case ir::InstrKind::kJump:
+      ExecuteJumpInstr(static_cast<ir::JumpInstr*>(instr));
+      return;
+    case ir::InstrKind::kJumpCond:
+      ExecuteJumpCondInstr(static_cast<ir::JumpCondInstr*>(instr));
+      return;
+    case ir::InstrKind::kCall:
+      ExecuteCallInstr(static_cast<ir::CallInstr*>(instr));
+      return;
+    case ir::InstrKind::kReturn:
+      ExecuteReturnInstr(static_cast<ir::ReturnInstr*>(instr));
+      return;
+    default:
+      common::fail("interpreter does not support instruction: " + instr->RefString());
+  }
+  stack_.current_frame()->exec_point().AdvanceToNextInstr();
 }
 
-void Interpreter::ExecutePhiInstr(ir::PhiInstr* instr, ir::block_num_t previous_block_num,
-                                  FuncContext& ctx) {
+void Interpreter::ExecuteMovInstr(ir::MovInstr* instr) {
+  std::shared_ptr<ir::Constant> value = Evaluate(instr->origin());
+  stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(), value);
+}
+
+void Interpreter::ExecutePhiInstr(ir::PhiInstr* instr) {
+  ir::block_num_t previous_block_num =
+      stack_.current_frame()->exec_point().previous_block()->number();
   for (const auto& arg : instr->args()) {
     if (arg->origin() == previous_block_num) {
-      RuntimeConstant value = Evaluate(arg->value(), ctx);
-      ctx.computed_values_.insert_or_assign(instr->result()->number(), value);
+      std::shared_ptr<ir::Constant> value = Evaluate(arg->value());
+      stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(), value);
       return;
     }
   }
   common::fail("could not find inherited value for previous block");
 }
 
-void Interpreter::ExecuteConversion(ir::Conversion* instr, FuncContext& ctx) {
+void Interpreter::ExecuteConversion(ir::Conversion* instr) {
   ir::value_num_t result_num = instr->result()->number();
   const ir::Type* result_type = instr->result()->type();
   ir::TypeKind result_type_kind = result_type->type_kind();
   ir::TypeKind operand_type_kind = instr->operand()->type()->type_kind();
 
   if (result_type_kind == ir::TypeKind::kBool && operand_type_kind == ir::TypeKind::kInt) {
-    common::Int operand = EvaluateInt(instr->operand(), ctx);
+    common::Int operand = EvaluateInt(instr->operand());
     bool result = operand.ConvertToBool();
-    ctx.computed_values_.insert_or_assign(result_num, ir::ToBoolConstant(result));
+    stack_.current_frame()->computed_values().insert_or_assign(result_num,
+                                                               ir::ToBoolConstant(result));
     return;
 
   } else if (result_type_kind == ir::TypeKind::kInt) {
     common::IntType result_int_type = static_cast<const ir::IntType*>(result_type)->int_type();
 
     if (operand_type_kind == ir::TypeKind::kBool) {
-      bool operand = EvaluateBool(instr->operand(), ctx);
+      bool operand = EvaluateBool(instr->operand());
       common::Int result = common::Bool::ConvertTo(result_int_type, operand);
-      ctx.computed_values_.insert_or_assign(result_num, ir::ToIntConstant(result));
+      stack_.current_frame()->computed_values().insert_or_assign(result_num,
+                                                                 ir::ToIntConstant(result));
       return;
 
     } else if (operand_type_kind == ir::TypeKind::kInt) {
-      common::Int operand = EvaluateInt(instr->operand(), ctx);
+      common::Int operand = EvaluateInt(instr->operand());
       if (!operand.CanConvertTo(result_int_type)) {
         common::fail("can not handle conversion instr");
       }
       common::Int result = operand.ConvertTo(result_int_type);
-      ctx.computed_values_.insert_or_assign(result_num, ir::ToIntConstant(result));
+      stack_.current_frame()->computed_values().insert_or_assign(result_num,
+                                                                 ir::ToIntConstant(result));
       return;
     }
   }
@@ -162,64 +181,71 @@ void Interpreter::ExecuteConversion(ir::Conversion* instr, FuncContext& ctx) {
   common::fail("interpreter does not support conversion");
 }
 
-void Interpreter::ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& ctx) {
-  common::Int a = EvaluateInt(instr->operand_a(), ctx);
-  common::Int b = EvaluateInt(instr->operand_b(), ctx);
+void Interpreter::ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr) {
+  common::Int a = EvaluateInt(instr->operand_a());
+  common::Int b = EvaluateInt(instr->operand_b());
   if (!common::Int::CanCompute(a, b)) {
     common::fail("can not compute binary instr");
   }
   common::Int result = common::Int::Compute(a, instr->operation(), b);
-  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToIntConstant(result));
+  stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
+                                                             ir::ToIntConstant(result));
 }
 
-void Interpreter::ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx) {
-  common::Int a = EvaluateInt(instr->operand_a(), ctx);
-  common::Int b = EvaluateInt(instr->operand_b(), ctx);
+void Interpreter::ExecuteIntCompareInstr(ir::IntCompareInstr* instr) {
+  common::Int a = EvaluateInt(instr->operand_a());
+  common::Int b = EvaluateInt(instr->operand_b());
   if (!common::Int::CanCompare(a, b)) {
     common::fail("can not compute compare instr");
   }
   bool result = common::Int::Compare(a, instr->operation(), b);
-  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToBoolConstant(result));
+  stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
+                                                             ir::ToBoolConstant(result));
 }
 
-void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx) {
-  common::Int shifted = EvaluateInt(instr->shifted(), ctx);
-  common::Int offset = EvaluateInt(instr->offset(), ctx);
+void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr) {
+  common::Int shifted = EvaluateInt(instr->shifted());
+  common::Int offset = EvaluateInt(instr->offset());
   common::Int result = common::Int::Shift(shifted, instr->operation(), offset);
-  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToIntConstant(result));
+  stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
+                                                             ir::ToIntConstant(result));
 }
 
-void Interpreter::ExecutePointerOffsetInstr(ir::PointerOffsetInstr* instr, FuncContext& ctx) {
-  int64_t pointer = EvaluatePointer(instr->pointer(), ctx);
-  int64_t offset = EvaluateInt(instr->offset(), ctx).AsInt64();
+void Interpreter::ExecutePointerOffsetInstr(ir::PointerOffsetInstr* instr) {
+  int64_t pointer = EvaluatePointer(instr->pointer());
+  int64_t offset = EvaluateInt(instr->offset()).AsInt64();
   int64_t result = pointer + offset;
-  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToPointerConstant(result));
+  stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
+                                                             ir::ToPointerConstant(result));
 }
 
-void Interpreter::ExecuteNilTestInstr(ir::NilTestInstr* instr, FuncContext& ctx) {
-  bool result = [this, instr, &ctx]() {
+void Interpreter::ExecuteNilTestInstr(ir::NilTestInstr* instr) {
+  bool result = [this, instr]() {
     switch (instr->tested()->type()->type_kind()) {
       case ir::TypeKind::kPointer:
-        return EvaluatePointer(instr->tested(), ctx) == 0;
+        return EvaluatePointer(instr->tested()) == 0;
       case ir::TypeKind::kFunc:
-        return EvaluateFunc(instr->tested(), ctx) == ir::kNoFuncNum;
+        return EvaluateFunc(instr->tested()) == ir::kNoFuncNum;
       default:
         common::fail("unexpected type for niltest");
     }
   }();
-  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToBoolConstant(result));
+  stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
+                                                             ir::ToBoolConstant(result));
 }
 
-void Interpreter::ExecuteMallocInstr(ir::MallocInstr* instr, FuncContext& ctx) {
-  int64_t size = EvaluateInt(instr->size(), ctx).AsInt64();
+void Interpreter::ExecuteMallocInstr(ir::MallocInstr* instr) {
+  int64_t size = EvaluateInt(instr->size()).AsInt64();
   int64_t address = heap_.Malloc(size);
-  ctx.computed_values_.insert_or_assign(instr->result()->number(), ir::ToPointerConstant(address));
+  stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
+                                                             ir::ToPointerConstant(address));
 }
 
-void Interpreter::ExecuteLoadInstr(ir::LoadInstr* instr, FuncContext& ctx) {
-  int64_t address = EvaluatePointer(instr->address(), ctx);
+void Interpreter::ExecuteLoadInstr(ir::LoadInstr* instr) {
+  int64_t address = EvaluatePointer(instr->address());
   const ir::Type* result_type = instr->result()->type();
-  RuntimeConstant result_value = [this, address, result_type]() -> RuntimeConstant {
+  std::shared_ptr<ir::Constant> result_value = [this, address,
+                                                result_type]() -> std::shared_ptr<ir::Constant> {
     switch (result_type->type_kind()) {
       case ir::TypeKind::kBool:
         return ir::ToBoolConstant(heap_.Load<bool>(address));
@@ -254,20 +280,21 @@ void Interpreter::ExecuteLoadInstr(ir::LoadInstr* instr, FuncContext& ctx) {
         common::fail("can not handle type");
     }
   }();
-  ctx.computed_values_.insert_or_assign(instr->result()->number(), result_value);
+  stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
+                                                             result_value);
 }
 
-void Interpreter::ExecuteStoreInstr(ir::StoreInstr* instr, FuncContext& ctx) {
-  int64_t address = EvaluatePointer(instr->address(), ctx);
+void Interpreter::ExecuteStoreInstr(ir::StoreInstr* instr) {
+  int64_t address = EvaluatePointer(instr->address());
   const ir::Type* value_type = instr->value()->type();
   switch (value_type->type_kind()) {
     case ir::TypeKind::kBool: {
-      bool value = EvaluateBool(instr->value(), ctx);
+      bool value = EvaluateBool(instr->value());
       heap_.Store(address, value);
       return;
     }
     case ir::TypeKind::kInt: {
-      common::Int value = EvaluateInt(instr->value(), ctx);
+      common::Int value = EvaluateInt(instr->value());
       switch (value.type()) {
         case common::IntType::kI8:
           heap_.Store(address, int8_t(value.AsInt64()));
@@ -297,12 +324,12 @@ void Interpreter::ExecuteStoreInstr(ir::StoreInstr* instr, FuncContext& ctx) {
       break;
     }
     case ir::TypeKind::kPointer: {
-      int64_t value = EvaluatePointer(instr->value(), ctx);
+      int64_t value = EvaluatePointer(instr->value());
       heap_.Store(address, value);
       return;
     }
     case ir::TypeKind::kFunc: {
-      ir::func_num_t value = EvaluateFunc(instr->value(), ctx);
+      ir::func_num_t value = EvaluateFunc(instr->value());
       heap_.Store(address, value);
       return;
     }
@@ -312,57 +339,75 @@ void Interpreter::ExecuteStoreInstr(ir::StoreInstr* instr, FuncContext& ctx) {
   common::fail("can not handle type");
 }
 
-void Interpreter::ExecuteFreeInstr(ir::FreeInstr* instr, FuncContext& ctx) {
-  int64_t address = EvaluatePointer(instr->address(), ctx);
+void Interpreter::ExecuteFreeInstr(ir::FreeInstr* instr) {
+  int64_t address = EvaluatePointer(instr->address());
   heap_.Free(address);
 }
 
-void Interpreter::ExecuteCallInstr(ir::CallInstr* instr, FuncContext& ctx) {
-  ir::func_num_t func_num = EvaluateFunc(instr->func(), ctx);
+void Interpreter::ExecuteJumpInstr(ir::JumpInstr* instr) {
+  ir::func_num_t next_block_num = instr->destination();
+  ir::Block* next_block = stack_.current_frame()->func()->GetBlock(next_block_num);
+  stack_.current_frame()->exec_point().AdvanceToNextBlock(next_block);
+}
+
+void Interpreter::ExecuteJumpCondInstr(ir::JumpCondInstr* instr) {
+  bool cond = EvaluateBool(instr->condition());
+  ir::func_num_t next_block_num = cond ? instr->destination_true() : instr->destination_false();
+  ir::Block* next_block = stack_.current_frame()->func()->GetBlock(next_block_num);
+  stack_.current_frame()->exec_point().AdvanceToNextBlock(next_block);
+}
+
+void Interpreter::ExecuteCallInstr(ir::CallInstr* instr) {
+  ir::func_num_t func_num = EvaluateFunc(instr->func());
   ir::Func* func = program_->GetFunc(func_num);
-  std::vector<RuntimeConstant> args = Evaluate(instr->args(), ctx);
-  std::vector<RuntimeConstant> results = CallFunc(func, args);
-  for (std::size_t i = 0; i < instr->results().size(); i++) {
-    ir::value_num_t result_num = instr->results().at(i)->number();
-    RuntimeConstant result_value = results.at(i);
-    ctx.computed_values_.insert_or_assign(result_num, result_value);
+  std::vector<std::shared_ptr<ir::Constant>> args = Evaluate(instr->args());
+
+  stack_.PushFrame(func);
+  for (std::size_t i = 0; i < args.size(); i++) {
+    ir::value_num_t arg_num = func->args().at(i)->number();
+    std::shared_ptr<ir::Constant>& arg_value = args.at(i);
+    stack_.current_frame()->computed_values().insert({arg_num, arg_value});
   }
 }
 
-bool Interpreter::EvaluateBool(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
-  return static_cast<ir::BoolConstant*>(Evaluate(ir_value, ctx).get())->value();
+void Interpreter::ExecuteReturnInstr(ir::ReturnInstr* instr) {
+  std::vector<std::shared_ptr<ir::Constant>> results = Evaluate(instr->args());
+  stack_.current_frame()->exec_point().AdvanceToFuncExit(results);
 }
 
-common::Int Interpreter::EvaluateInt(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
-  return static_cast<ir::IntConstant*>(Evaluate(ir_value, ctx).get())->value();
+bool Interpreter::EvaluateBool(std::shared_ptr<ir::Value> ir_value) {
+  return static_cast<ir::BoolConstant*>(Evaluate(ir_value).get())->value();
 }
 
-int64_t Interpreter::EvaluatePointer(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
-  return static_cast<ir::PointerConstant*>(Evaluate(ir_value, ctx).get())->value();
+common::Int Interpreter::EvaluateInt(std::shared_ptr<ir::Value> ir_value) {
+  return static_cast<ir::IntConstant*>(Evaluate(ir_value).get())->value();
 }
 
-ir::func_num_t Interpreter::EvaluateFunc(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx) {
-  return static_cast<ir::FuncConstant*>(Evaluate(ir_value, ctx).get())->value();
+int64_t Interpreter::EvaluatePointer(std::shared_ptr<ir::Value> ir_value) {
+  return static_cast<ir::PointerConstant*>(Evaluate(ir_value).get())->value();
 }
 
-std::vector<Interpreter::RuntimeConstant> Interpreter::Evaluate(
-    const std::vector<std::shared_ptr<ir::Value>>& ir_values, FuncContext& ctx) {
-  std::vector<RuntimeConstant> values;
+ir::func_num_t Interpreter::EvaluateFunc(std::shared_ptr<ir::Value> ir_value) {
+  return static_cast<ir::FuncConstant*>(Evaluate(ir_value).get())->value();
+}
+
+std::vector<std::shared_ptr<ir::Constant>> Interpreter::Evaluate(
+    const std::vector<std::shared_ptr<ir::Value>>& ir_values) {
+  std::vector<std::shared_ptr<ir::Constant>> values;
   values.reserve(ir_values.size());
   for (auto ir_value : ir_values) {
-    values.push_back(Evaluate(ir_value, ctx));
+    values.push_back(Evaluate(ir_value));
   }
   return values;
 }
 
-Interpreter::RuntimeConstant Interpreter::Evaluate(std::shared_ptr<ir::Value> ir_value,
-                                                   FuncContext& ctx) {
+std::shared_ptr<ir::Constant> Interpreter::Evaluate(std::shared_ptr<ir::Value> ir_value) {
   switch (ir_value->kind()) {
     case ir::Value::Kind::kConstant:
       return std::static_pointer_cast<ir::Constant>(ir_value);
     case ir::Value::Kind::kComputed: {
       auto computed = static_cast<ir::Computed*>(ir_value.get());
-      return ctx.computed_values_.at(computed->number());
+      return stack_.current_frame()->computed_values().at(computed->number());
     }
     case ir::Value::Kind::kInherited:
       common::fail("tried to evaluate inherited value");

@@ -10,7 +10,9 @@
 #include <vector>
 
 #include "src/common/atomics/atomics.h"
+#include "src/ir/interpreter/execution_point.h"
 #include "src/ir/interpreter/heap.h"
+#include "src/ir/interpreter/stack.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -26,60 +28,58 @@ namespace ir_interpreter {
 
 class Interpreter {
  public:
-  enum class ExecutionState {
-    kReady,
-    kRunning,
-    kPaused,
-    kTerminated,
-  };
+  Interpreter(ir::Program* program, bool sanitize);
+  virtual ~Interpreter() = default;
 
-  Interpreter(ir::Program* program, bool sanitize) : heap_(sanitize), program_(program) {}
+  virtual int64_t exit_code() const;
 
-  ExecutionState state() const { return state_; }
-  void run();
-  void pause();
+  virtual void Run();
 
-  int64_t exit_code() const { return exit_code_; }
+ protected:
+  bool HasProgramCompleted() const { return exit_code_.has_value(); }
+  void ExecuteStep();
+
+  std::optional<int64_t> exit_code_;
+  Stack stack_;
+  Heap heap_;
 
  private:
-  typedef std::shared_ptr<ir::Constant> RuntimeConstant;
+  std::vector<std::shared_ptr<ir::Constant>> CallFunc(
+      ir::Func* func, std::vector<std::shared_ptr<ir::Constant>> args);
 
-  struct FuncContext {
-    std::unordered_map<ir::value_num_t, RuntimeConstant> computed_values_;
-  };
+  void ExecuteFuncExit();
 
-  std::vector<std::shared_ptr<ir::Constant>> CallFunc(ir::Func* func,
-                                                      std::vector<RuntimeConstant> args);
+  void ExecuteInstr(ir::Instr* instr);
+  void ExecuteMovInstr(ir::MovInstr* instr);
+  void ExecutePhiInstr(ir::PhiInstr* instr);
+  void ExecuteConversion(ir::Conversion* instr);
+  void ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr);
+  void ExecuteIntCompareInstr(ir::IntCompareInstr* instr);
+  void ExecuteIntShiftInstr(ir::IntShiftInstr* instr);
 
-  void ExecuteMovInstr(ir::MovInstr* instr, FuncContext& ctx);
-  void ExecutePhiInstr(ir::PhiInstr* instr, ir::block_num_t previous_block_num, FuncContext& ctx);
-  void ExecuteConversion(ir::Conversion* instr, FuncContext& ctx);
-  void ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr, FuncContext& ctx);
-  void ExecuteIntCompareInstr(ir::IntCompareInstr* instr, FuncContext& ctx);
-  void ExecuteIntShiftInstr(ir::IntShiftInstr* instr, FuncContext& ctx);
+  void ExecutePointerOffsetInstr(ir::PointerOffsetInstr* instr);
+  void ExecuteNilTestInstr(ir::NilTestInstr* instr);
 
-  void ExecutePointerOffsetInstr(ir::PointerOffsetInstr* instr, FuncContext& ctx);
-  void ExecuteNilTestInstr(ir::NilTestInstr* instr, FuncContext& ctx);
+  void ExecuteMallocInstr(ir::MallocInstr* instr);
+  void ExecuteLoadInstr(ir::LoadInstr* instr);
+  void ExecuteStoreInstr(ir::StoreInstr* instr);
+  void ExecuteFreeInstr(ir::FreeInstr* instr);
 
-  void ExecuteMallocInstr(ir::MallocInstr* instr, FuncContext& ctx);
-  void ExecuteLoadInstr(ir::LoadInstr* instr, FuncContext& ctx);
-  void ExecuteStoreInstr(ir::StoreInstr* instr, FuncContext& ctx);
-  void ExecuteFreeInstr(ir::FreeInstr* instr, FuncContext& ctx);
+  void ExecuteJumpInstr(ir::JumpInstr* instr);
+  void ExecuteJumpCondInstr(ir::JumpCondInstr* instr);
+  void ExecuteCallInstr(ir::CallInstr* instr);
+  void ExecuteReturnInstr(ir::ReturnInstr* instr);
 
-  void ExecuteCallInstr(ir::CallInstr* instr, FuncContext& ctx);
+  bool EvaluateBool(std::shared_ptr<ir::Value> ir_value);
+  common::Int EvaluateInt(std::shared_ptr<ir::Value> ir_value);
+  int64_t EvaluatePointer(std::shared_ptr<ir::Value> ir_value);
+  ir::func_num_t EvaluateFunc(std::shared_ptr<ir::Value> ir_value);
 
-  bool EvaluateBool(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
-  common::Int EvaluateInt(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
-  int64_t EvaluatePointer(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
-  ir::func_num_t EvaluateFunc(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
+  std::vector<std::shared_ptr<ir::Constant>> Evaluate(
+      const std::vector<std::shared_ptr<ir::Value>>& ir_values);
+  std::shared_ptr<ir::Constant> Evaluate(std::shared_ptr<ir::Value> ir_value);
 
-  std::vector<RuntimeConstant> Evaluate(const std::vector<std::shared_ptr<ir::Value>>& ir_values,
-                                        FuncContext& ctx);
-  RuntimeConstant Evaluate(std::shared_ptr<ir::Value> ir_value, FuncContext& ctx);
-
-  ExecutionState state_ = ExecutionState::kReady;
-  int64_t exit_code_ = 0;
-  Heap heap_;
+  StackFrame& current_stack_frame();
 
   ir::Program* program_;
 };

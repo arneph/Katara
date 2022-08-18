@@ -26,7 +26,7 @@ ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& bui
       std::get<std::unique_ptr<ir::Program>>(std::move(ir_program_or_error));
 
   ir_interpreter::Interpreter interpreter(ir_program.get(), interpret_options.sanitize);
-  interpreter.run();
+  interpreter.Run();
   return ErrorCode(interpreter.exit_code());
 }
 
