@@ -102,7 +102,7 @@ std::vector<std::filesystem::path> ArgsToPaths(std::vector<std::string>& args) {
 
 void PrintGeneralHelp(Context* ctx) {
   *ctx->stdout()
-      << "Katara is a tool to work with Katara source code.\n"
+      << "katara is a tool to work with Katara source code.\n"
          "\n"
          "Usage:\n"
          "\n"
