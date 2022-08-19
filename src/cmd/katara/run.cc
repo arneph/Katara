@@ -25,6 +25,7 @@
 #include "src/x86_64/machine_code/linker.h"
 
 namespace cmd {
+namespace katara {
 namespace {
 
 std::string SubdirNameForFunc(ir::Func* func) {
@@ -134,4 +135,5 @@ ErrorCode Run(std::vector<std::filesystem::path>& paths, BuildOptions& options,
   return ErrorCode(main_func());
 }
 
+}  // namespace katara
 }  // namespace cmd

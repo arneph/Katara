@@ -32,6 +32,7 @@
 #include "src/lang/processors/packages/package_manager.h"
 
 namespace cmd {
+namespace katara {
 namespace {
 
 std::string SubdirNameForFunc(ir::Func* func) {
@@ -158,4 +159,5 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
   return std::move(ir_program);
 }
 
+}  // namespace katara
 }  // namespace cmd

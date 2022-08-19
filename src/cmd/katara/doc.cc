@@ -15,6 +15,7 @@
 #include "src/lang/processors/docs/package_doc.h"
 
 namespace cmd {
+namespace katara {
 
 ErrorCode Doc(std::vector<std::filesystem::path>& paths, DebugHandler& debug_handler,
               Context* ctx) {
@@ -41,4 +42,5 @@ ErrorCode Doc(std::vector<std::filesystem::path>& paths, DebugHandler& debug_han
   return kNoError;
 }
 
+}  // namespace katara
 }  // namespace cmd

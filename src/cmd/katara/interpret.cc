@@ -13,6 +13,7 @@
 #include "src/ir/representation/program.h"
 
 namespace cmd {
+namespace katara {
 
 ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& build_options,
                     InterpretOptions& interpret_options, DebugHandler& debug_handler,
@@ -30,4 +31,5 @@ ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& bui
   return ErrorCode(interpreter.exit_code());
 }
 
+}  // namespace katara
 }  // namespace cmd

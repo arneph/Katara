@@ -13,5 +13,5 @@
 
 int main(int argc, char* argv[]) {
   cmd::RealContext ctx;
-  return cmd::Execute(cmd::ConvertMainArgs(argc, argv), &ctx);
+  return cmd::katara::Execute(cmd::ConvertMainArgs(argc, argv), &ctx);
 }

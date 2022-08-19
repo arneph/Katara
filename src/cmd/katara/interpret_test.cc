@@ -13,6 +13,7 @@
 #include "src/cmd/test_context.h"
 
 namespace cmd {
+namespace katara {
 
 struct Options {
   BuildOptions build_options;
@@ -166,4 +167,5 @@ func main() int64 {
   EXPECT_EQ(result, 127);
 }
 
+}  // namespace katara
 }  // namespace cmd

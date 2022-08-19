@@ -16,9 +16,11 @@
 #include "src/cmd/katara/error_codes.h"
 
 namespace cmd {
+namespace katara {
 
 ErrorCode Execute(std::vector<std::string> args, Context* ctx);
 
+}  // namespace katara
 }  // namespace cmd
 
 #endif /* katara_cmd_h */

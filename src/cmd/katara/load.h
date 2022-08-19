@@ -20,6 +20,7 @@
 #include "src/lang/processors/packages/package_manager.h"
 
 namespace cmd {
+namespace katara {
 
 struct LoadResult {
   std::unique_ptr<lang::packages::PackageManager> pkg_manager;
@@ -29,6 +30,7 @@ struct LoadResult {
 std::variant<LoadResult, ErrorCode> Load(std::vector<std::filesystem::path>& paths,
                                          DebugHandler& debug_handler, Context* ctx);
 
+}  // namespace katara
 }  // namespace cmd
 
 #endif /* katara_load_h */

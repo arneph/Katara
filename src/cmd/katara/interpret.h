@@ -18,6 +18,7 @@
 #include "src/cmd/katara/error_codes.h"
 
 namespace cmd {
+namespace katara {
 
 struct InterpretOptions {
   bool sanitize = false;
@@ -26,6 +27,7 @@ struct InterpretOptions {
 ErrorCode Interpret(std::vector<std::filesystem::path>& paths, BuildOptions& build_options,
                     InterpretOptions& interpret_options, DebugHandler& debug_handler, Context* ctx);
 
+}  // namespace katara
 }  // namespace cmd
 
 #endif /* katara_interpret_h */

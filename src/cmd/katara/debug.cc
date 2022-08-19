@@ -9,6 +9,7 @@
 #include "debug.h"
 
 namespace cmd {
+namespace katara {
 
 DebugHandler& DebugHandler::WithDebugEnabledButOutputDisabled() {
   static DebugHandler handler = DebugHandler(DebugConfig{.check_ir = true}, /*ctx=*/nullptr);
@@ -32,4 +33,5 @@ void DebugHandler::WriteToDebugFile(std::string text, std::string subdir_name,
   }
 }
 
+}  // namespace katara
 }  // namespace cmd

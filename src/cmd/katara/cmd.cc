@@ -23,6 +23,7 @@
 #include "src/common/logging/logging.h"
 
 namespace cmd {
+namespace katara {
 namespace {
 
 enum class Command {
@@ -226,4 +227,5 @@ ErrorCode Execute(std::vector<std::string> args, Context* ctx) {
   }
 }
 
+}  // namespace katara
 }  // namespace cmd

@@ -13,6 +13,7 @@
 #include "src/cmd/test_context.h"
 
 namespace cmd {
+namespace katara {
 
 class RunTest : public testing::TestWithParam<BuildOptions> {};
 
@@ -51,8 +52,8 @@ func main() int {
 
   std::vector<std::filesystem::path> paths{"test.kat"};
   BuildOptions build_options = GetParam();
-  ErrorCode result =
-      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+  ErrorCode result = ::cmd::katara::Run(paths, build_options,
+                                        DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
 
   EXPECT_EQ(result, 45);
 }
@@ -77,8 +78,8 @@ func main() int {
 
   std::vector<std::filesystem::path> paths{"test.kat"};
   BuildOptions build_options = GetParam();
-  ErrorCode result =
-      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+  ErrorCode result = ::cmd::katara::Run(paths, build_options,
+                                        DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
 
   EXPECT_EQ(result, 144);
 }
@@ -103,8 +104,8 @@ func main() int {
 
   std::vector<std::filesystem::path> paths{"test.kat"};
   BuildOptions build_options = GetParam();
-  ErrorCode result =
-      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+  ErrorCode result = ::cmd::katara::Run(paths, build_options,
+                                        DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
 
   EXPECT_EQ(result, 144);
 }
@@ -128,8 +129,8 @@ func main() int64 {
 
   std::vector<std::filesystem::path> paths{"test.kat"};
   BuildOptions build_options = GetParam();
-  ErrorCode result =
-      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+  ErrorCode result = ::cmd::katara::Run(paths, build_options,
+                                        DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
 
   EXPECT_EQ(result, 43);
 }
@@ -158,10 +159,11 @@ func main() int64 {
 
   std::vector<std::filesystem::path> paths{"test.kat"};
   BuildOptions build_options = GetParam();
-  ErrorCode result =
-      ::cmd::Run(paths, build_options, DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
+  ErrorCode result = ::cmd::katara::Run(paths, build_options,
+                                        DebugHandler::WithDebugEnabledButOutputDisabled(), &ctx);
 
   EXPECT_EQ(result, 127);
 }
 
+}  // namespace katara
 }  // namespace cmd

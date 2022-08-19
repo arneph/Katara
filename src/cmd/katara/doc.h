@@ -17,9 +17,11 @@
 #include "src/cmd/katara/error_codes.h"
 
 namespace cmd {
+namespace katara {
 
 ErrorCode Doc(std::vector<std::filesystem::path>& paths, DebugHandler& debug_handler, Context* ctx);
 
 }
+}  // namespace cmd
 
 #endif /* katara_doc_h */

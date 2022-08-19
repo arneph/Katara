@@ -14,6 +14,7 @@
 #include "src/cmd/context.h"
 
 namespace cmd {
+namespace katara {
 
 struct DebugConfig {
   bool generate_debug_info = false;
@@ -40,6 +41,7 @@ class DebugHandler {
   Context* ctx_;
 };
 
+}  // namespace katara
 }  // namespace cmd
 
 #endif /* katara_debug_h */

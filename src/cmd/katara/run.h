@@ -18,10 +18,12 @@
 #include "src/cmd/katara/error_codes.h"
 
 namespace cmd {
+namespace katara {
 
 ErrorCode Run(std::vector<std::filesystem::path>& paths, BuildOptions& options,
               DebugHandler& debug_handler, Context* ctx);
 
 }
+}  // namespace cmd
 
 #endif /* katara_run_h */

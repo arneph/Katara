@@ -13,6 +13,7 @@
 #include "src/lang/representation/types/info_util.h"
 
 namespace cmd {
+namespace katara {
 namespace {
 
 constexpr std::string_view kStdLibPath = "/Users/arne/Documents/Xcode/Katara/stdlib";
@@ -142,4 +143,5 @@ std::variant<LoadResult, ErrorCode> Load(std::vector<std::filesystem::path>& pat
   };
 }
 
+}  // namespace katara
 }  // namespace cmd

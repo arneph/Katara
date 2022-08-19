@@ -10,6 +10,7 @@
 #define katara_error_codes_h
 
 namespace cmd {
+namespace katara {
 
 enum ErrorCode : int {
   kNoError,
@@ -21,5 +22,6 @@ enum ErrorCode : int {
 };
 
 }
+}  // namespace cmd
 
 #endif /* katara_error_codes_h */

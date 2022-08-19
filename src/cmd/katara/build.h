@@ -21,6 +21,7 @@
 #include "src/x86_64/program.h"
 
 namespace cmd {
+namespace katara {
 
 struct BuildOptions {
   bool optimize_ir_ext = true;
@@ -31,6 +32,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
     std::vector<std::filesystem::path>& paths, BuildOptions& options, DebugHandler& debug_handler,
     Context* ctx);
 
+}  // namespace katara
 }  // namespace cmd
 
 #endif /* katara_build_h */
