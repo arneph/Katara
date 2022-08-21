@@ -92,7 +92,17 @@ std::string ToString(Bool::BinaryOp op) {
 std::string Int::ToString(Base base) const {
   std::stringstream ss;
   ss << std::setbase(base);
-  std::visit([&ss](auto&& value) { ss << value; }, value_);
+  switch (type()) {
+    case IntType::kI8:
+      ss << int64_t(std::get<int8_t>(value_));
+      break;
+    case IntType::kU8:
+      ss << uint64_t(std::get<uint8_t>(value_));
+      break;
+    default:
+      std::visit([&ss](auto&& value) { ss << value; }, value_);
+      break;
+  }
   return ss.str();
 }
 

@@ -671,6 +671,45 @@ TEST(IntTest, HandlesComparisons) {
   }
 }
 
+TEST(IntTest, ToStringConvertsCorrectly) {
+  EXPECT_EQ(Int(int8_t{0}).ToString(), "0");
+  EXPECT_EQ(Int(int16_t{0}).ToString(), "0");
+  EXPECT_EQ(Int(int32_t{0}).ToString(), "0");
+  EXPECT_EQ(Int(int64_t{0}).ToString(), "0");
+  EXPECT_EQ(Int(uint8_t{0}).ToString(), "0");
+  EXPECT_EQ(Int(uint16_t{0}).ToString(), "0");
+  EXPECT_EQ(Int(uint32_t{0}).ToString(), "0");
+  EXPECT_EQ(Int(uint64_t{0}).ToString(), "0");
+
+  EXPECT_EQ(Int(int8_t{1}).ToString(), "1");
+  EXPECT_EQ(Int(int16_t{1}).ToString(), "1");
+  EXPECT_EQ(Int(int32_t{1}).ToString(), "1");
+  EXPECT_EQ(Int(int64_t{1}).ToString(), "1");
+  EXPECT_EQ(Int(uint8_t{1}).ToString(), "1");
+  EXPECT_EQ(Int(uint16_t{1}).ToString(), "1");
+  EXPECT_EQ(Int(uint32_t{1}).ToString(), "1");
+  EXPECT_EQ(Int(uint64_t{1}).ToString(), "1");
+
+  EXPECT_EQ(Int(int8_t{127}).ToString(), "127");
+  EXPECT_EQ(Int(int16_t{127}).ToString(), "127");
+  EXPECT_EQ(Int(int32_t{127}).ToString(), "127");
+  EXPECT_EQ(Int(int64_t{127}).ToString(), "127");
+  EXPECT_EQ(Int(uint8_t{127}).ToString(), "127");
+  EXPECT_EQ(Int(uint16_t{127}).ToString(), "127");
+  EXPECT_EQ(Int(uint32_t{127}).ToString(), "127");
+  EXPECT_EQ(Int(uint64_t{127}).ToString(), "127");
+
+  EXPECT_EQ(Int(int8_t{-1}).ToString(), "-1");
+  EXPECT_EQ(Int(int16_t{-1}).ToString(), "-1");
+  EXPECT_EQ(Int(int32_t{-1}).ToString(), "-1");
+  EXPECT_EQ(Int(int64_t{-1}).ToString(), "-1");
+
+  EXPECT_EQ(Int(int8_t{-128}).ToString(), "-128");
+  EXPECT_EQ(Int(int16_t{-128}).ToString(), "-128");
+  EXPECT_EQ(Int(int32_t{-128}).ToString(), "-128");
+  EXPECT_EQ(Int(int64_t{-128}).ToString(), "-128");
+}
+
 TEST(ToI64Test, RejectsEmpty) { EXPECT_EQ(ToI64(""), std::nullopt); }
 
 TEST(ToI64Test, RejectsWhitespace) {
@@ -694,6 +733,8 @@ TEST(ToI64Test, RejectsInvalidStrings) {
 }
 
 TEST(ToI64Test, HandlesValidStrings) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicitly-unsigned-literal"
   EXPECT_THAT(ToI64("0"),
               Optional(AllOf(Property(&Int::type, IntType::kI64), Property(&Int::AsInt64, 0))));
   EXPECT_THAT(ToI64("0000"),
@@ -756,6 +797,7 @@ TEST(ToI64Test, HandlesValidStrings) {
   EXPECT_THAT(ToI64("-0x8000000000000000"),
               Optional(AllOf(Property(&Int::type, IntType::kI64),
                              Property(&Int::AsInt64, -9223372036854775808))));
+#pragma clang diagnostic pop
 }
 
 TEST(ToI64Test, RejectsOverflow) {
@@ -791,6 +833,8 @@ TEST(ToU64Test, RejectsInvalidStrings) {
 }
 
 TEST(ToU64Test, HandlesValidStrings) {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicitly-unsigned-literal"
   EXPECT_THAT(ToU64("0"),
               Optional(AllOf(Property(&Int::type, IntType::kU64), Property(&Int::AsUint64, 0))));
   EXPECT_THAT(ToU64("0000"),
@@ -833,6 +877,7 @@ TEST(ToU64Test, HandlesValidStrings) {
   EXPECT_THAT(ToU64("+0xffffffffffffffff"),
               Optional(AllOf(Property(&Int::type, IntType::kU64),
                              Property(&Int::AsUint64, 18446744073709551615))));
+#pragma clang diagnostic pop
 }
 
 TEST(ToU64Test, RejectsNegativeNumbers) {
