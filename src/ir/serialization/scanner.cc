@@ -41,7 +41,7 @@ std::string Scanner::PositionString() const {
 
 std::string Scanner::token_text() const {
   if (token_ == kUnknown || token_ == kEoF) {
-    common::fail("token has no associated string");
+    common::fail("token has no associated text");
   }
   return token_text_;
 }
@@ -220,7 +220,17 @@ void Scanner::FailForUnexpectedToken(std::vector<Token> expected_tokens) {
     }
     error += Scanner::TokenToString(expected_token);
   }
-  error += "; got '" + token_text() + "'";
+  error += "; got ";
+  switch (token()) {
+    case kUnknown:
+    case kNewLine:
+    case kEoF:
+      error += Scanner::TokenToString(token());
+      break;
+    default:
+      error += "'" + token_text() + "'";
+      break;
+  }
   common::fail(error);
 }
 
