@@ -83,7 +83,7 @@ std::vector<std::shared_ptr<Value>> PhiInstr::UsedValues() const {
 }
 
 void PhiInstr::WriteRefString(std::ostream& os) const {
-  result()->WriteRefString(os);
+  result()->WriteRefStringWithType(os);
   os << " = " << OperationString() << " ";
   for (size_t i = 0; i < args_.size(); i++) {
     if (i > 0) os << ", ";
