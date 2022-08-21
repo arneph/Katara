@@ -25,11 +25,9 @@ void Print(const ir::Program* program, std::ostream& os) {
     fnums.push_back(func->number());
   }
   std::sort(fnums.begin(), fnums.end());
-  bool first = true;
   for (ir::func_num_t fnum : fnums) {
-    if (!first) os << "\n\n";
     Print(program->GetFunc(fnum), os);
-    first = false;
+    os << "\n\n";
   }
 }
 
