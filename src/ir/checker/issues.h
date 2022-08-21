@@ -130,7 +130,8 @@ class Issue {
   Kind kind() const { return kind_; }
   std::string message() const { return message_; }
 
-  friend std::ostream& operator<<(std::ostream& os, const Issue& issue);
+  std::string ToShortString() const;
+  std::string ToDetailedString() const;
 
  private:
   const ir::Object* scope_object_;
@@ -138,10 +139,6 @@ class Issue {
   Kind kind_;
   std::string message_;
 };
-
-std::ostream& operator<<(std::ostream& os, const Issue& issue);
-std::ostream& operator<<(std::ostream& os, const Issue::Kind& kind);
-
 }  // namespace ir_checker
 
 #endif /* ir_checker_issues_h */

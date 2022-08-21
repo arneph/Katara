@@ -28,14 +28,7 @@ void AssertProgramIsOkay(const ir::Program* program) {
   std::stringstream buf;
   buf << "IR checker found issues:\n";
   for (const Issue& issue : issues) {
-    buf << "[" << int64_t(issue.kind()) << "] " << issue.message() << "\n";
-    buf << "\tScope: " << issue.scope_object()->RefString() << "\n";
-    if (!issue.involved_objects().empty()) {
-      buf << "\tInvolved Objects:\n";
-      for (const ir::Object* object : issue.involved_objects()) {
-        buf << "\t\t" << object->RefString() << "\n";
-      }
-    }
+    buf << issue.ToDetailedString();
   }
   common::fail(buf.str());
 }
@@ -757,13 +750,5 @@ void Checker::CheckValue(const ir::Value* value) {
 }
 
 void Checker::AddIssue(Issue issue) { issues_.push_back(issue); }
-
-std::ostream& operator<<(std::ostream& os, const Issue& issue) {
-  return os << "[" << int64_t(issue.kind()) << "] " << issue.message();
-}
-
-std::ostream& operator<<(std::ostream& os, const Issue::Kind& kind) {
-  return os << "[" << int64_t(kind) << "]";
-}
 
 }  // namespace ir_checker

@@ -3,6 +3,9 @@ load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "issues",
+    srcs = [
+        "issues.cc",
+    ],
     hdrs = [
         "issues.h",
     ],
