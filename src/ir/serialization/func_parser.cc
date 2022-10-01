@@ -20,6 +20,9 @@ ir::Func* FuncParser::ParseFunc() {
 
   if (scanner().token() == Scanner::kIdentifier) {
     func_->set_name(scanner().ConsumeIdentifier());
+    if (func_->name() == "main") {
+      program_->set_entry_func_num(func_->number());
+    }
   }
 
   ParseFuncArgs();

@@ -940,8 +940,8 @@ TEST(ParseTest, ParsesAdditionalFuncs) {
   ir_checker::AssertProgramIsOkay(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(4));
-  EXPECT_THAT(program->entry_func(), IsNull());
-  EXPECT_EQ(program->entry_func_num(), ir::kNoFuncNum);
+  EXPECT_EQ(program->entry_func(), func_d);
+  EXPECT_EQ(program->entry_func_num(), 44);
 
   EXPECT_EQ(func_c->number(), 2);
   EXPECT_EQ(program->GetFunc(2), func_c);
