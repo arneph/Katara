@@ -8,6 +8,9 @@
 
 #include "heap.h"
 
+#include <iomanip>
+#include <sstream>
+
 #include "src/common/logging/logging.h"
 
 namespace ir_interpreter {
@@ -125,6 +128,102 @@ void Heap::MarkAsInitialized(Memory* memory, MemoryRange range) {
   for (int64_t i = range_index_begin; i < range_index_end; i++) {
     memory->initialization.at(i) = true;
   }
+}
+
+std::string Heap::ToDebuggerString() const {
+  if (!sanitize_) {
+    common::fail("requested debugger string of heap without santization turned on");
+  }
+  std::stringstream ss;
+  if (allocated_.empty()) {
+    ss << "No allocated heap memory\n";
+  } else {
+    ss << "Allocated heap memory:\n";
+    for (const auto& allocated : allocated_) {
+      ss << ToDebuggerString(allocated.get());
+    }
+  }
+  if (freed_.empty()) {
+    ss << "No freed heap memory\n";
+  } else {
+    ss << "Freed heap memory:\n";
+    for (const auto& freed : freed_) {
+      int64_t memory_size = freed.size;
+      int64_t memory_begin_address = freed.address;
+      int64_t memory_end_address = memory_begin_address + memory_size;
+      ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << memory_begin_address << " - "
+         << "0x" << std::hex << std::setw(16) << std::setfill('0') << (memory_end_address - 1);
+      ss << " (" << std::dec << std::setw(6) << memory_size << " bytes)\n";
+    }
+  }
+  return ss.str();
+}
+
+std::string Heap::ToDebuggerString(int64_t address) const {
+  if (!sanitize_) {
+    common::fail("requested debugger string of heap without santization turned on");
+  }
+  for (const auto& allocated : allocated_) {
+    if (!IsContained(address, allocated->range)) {
+      continue;
+    }
+    return ToDebuggerString(allocated.get());
+  }
+  for (const auto& freed : freed_) {
+    if (!IsContained(address, freed)) {
+      continue;
+    }
+    int64_t memory_size = freed.size;
+    int64_t memory_begin_address = freed.address;
+    int64_t memory_end_address = memory_begin_address + memory_size;
+    std::stringstream ss;
+    ss << "Freed heap memory:\n";
+    ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << memory_begin_address << " - "
+       << "0x" << std::hex << std::setw(16) << std::setfill('0') << (memory_end_address - 1);
+    ss << " (" << std::dec << memory_size << " bytes)\n";
+    return ss.str();
+  }
+  std::stringstream ss;
+  ss << "No heap memory at 0x" << std::hex << std::setw(16) << std::setfill('0') << address << "\n";
+  return ss.str();
+}
+
+std::string Heap::ToDebuggerString(Memory* memory) const {
+  int64_t memory_size = memory->range.size;
+  int64_t memory_begin_address = memory->range.address;
+  int64_t memory_end_address = memory_begin_address + memory_size;
+  std::stringstream ss;
+  if (memory_size > 1) {
+    ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << memory_begin_address << " - "
+       << "0x" << std::hex << std::setw(16) << std::setfill('0') << (memory_end_address - 1);
+    ss << " (" << std::dec << memory_size << " bytes)\n";
+  }
+  constexpr int kBytesPerLine = 16;
+  for (int64_t line = 0; line < memory_size / kBytesPerLine; line++) {
+    int64_t line_begin_address = memory_begin_address + line * kBytesPerLine;
+    int64_t line_end_address =
+        std::min(line_begin_address + kBytesPerLine, memory_begin_address + memory_size);
+    ss << "0x" << std::hex << std::setw(16) << std::setfill('0') << line_begin_address << "  ";
+
+    for (int64_t byte_addr = line_begin_address; byte_addr < line_end_address; byte_addr++) {
+      int64_t byte_index = byte_addr - memory_begin_address;
+      if (!memory->initialization.at(byte_index)) {
+        ss << "??";
+      } else {
+        uint8_t byte = *(uint8_t*)(byte_addr);
+        ss << std::hex << std::setw(2) << std::setfill('0') << int64_t(byte);
+      }
+      if (byte_addr < line_end_address - 1) {
+        ss << " ";
+        if (byte_index % 8 == 7) {
+          ss << " ";
+        }
+      } else {
+        ss << "\n";
+      }
+    }
+  }
+  return ss.str();
 }
 
 }  // namespace ir_interpreter

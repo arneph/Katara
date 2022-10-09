@@ -20,6 +20,8 @@ class Heap {
   Heap(bool sanitize) : sanitize_(sanitize) {}
   ~Heap();
 
+  bool sanitizes() const { return sanitize_; }
+
   int64_t Malloc(int64_t size);
   void Free(int64_t address);
 
@@ -52,6 +54,9 @@ class Heap {
     }
   }
 
+  std::string ToDebuggerString() const;
+  std::string ToDebuggerString(int64_t address) const;
+
  private:
   struct MemoryRange {
     int64_t address;
@@ -73,6 +78,8 @@ class Heap {
   void CheckCanBeFreed(int64_t address);
 
   void MarkAsInitialized(Memory* memory, MemoryRange range);
+
+  std::string ToDebuggerString(Memory* memory) const;
 
   bool sanitize_;
   std::vector<std::unique_ptr<Memory>> allocated_;
