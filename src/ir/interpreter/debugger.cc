@@ -41,6 +41,16 @@ const Heap& Debugger::heap() const {
   return heap_;
 }
 
+std::function<void()> Debugger::TerminationObserver() const {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return termination_observer_;
+}
+
+void Debugger::SetTerminationObserver(std::function<void()> observer) {
+  std::lock_guard<std::mutex> lock(mutex_);
+  termination_observer_ = observer;
+}
+
 void Debugger::Run() { StartExecution(ExecutionCommand::kRun); }
 
 void Debugger::StepIn() { StartExecution(ExecutionCommand::kStepIn); }
@@ -109,9 +119,16 @@ void Debugger::Execute(ExecutionCommand command) {
     ExecuteStep();
 
     if (HasProgramCompleted()) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      exec_state_ = ExecutionState::kTerminated;
-      cond_.notify_all();
+      std::function<void()> observer;
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        exec_state_ = ExecutionState::kTerminated;
+        cond_.notify_all();
+        observer = termination_observer_;
+      }
+      if (observer) {
+        observer();
+      }
       return;
 
     } else if (ExecutedCommand(command, initial_stack_depth)) {

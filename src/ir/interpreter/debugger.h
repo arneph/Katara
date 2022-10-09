@@ -7,6 +7,7 @@
 //
 
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <thread>
 
@@ -33,6 +34,9 @@ class Debugger final : public Interpreter {
   ~Debugger() override { PauseAndAwait(); }
 
   ExecutionState execution_state() const;
+
+  std::function<void()> TerminationObserver() const;
+  void SetTerminationObserver(std::function<void()> observer);
 
   int64_t exit_code() const override;
   const Stack& stack() const;
@@ -61,6 +65,8 @@ class Debugger final : public Interpreter {
 
   void Execute(ExecutionCommand command);
   bool ExecutedCommand(ExecutionCommand command, std::size_t initial_stack_depth);
+
+  std::function<void()> termination_observer_;
 
   mutable std::mutex mutex_;
   std::condition_variable cond_;

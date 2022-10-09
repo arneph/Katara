@@ -106,6 +106,28 @@ TEST_P(DebuggerTest, RunsCorrectlyWithSanityCheck) {
   EXPECT_EQ(debugger.exit_code(), GetParam().expected_exit_code);
 }
 
+class TerminationObserverMock {
+ public:
+  MOCK_METHOD(void, Terminated, ());
+};
+
+TEST_P(DebuggerTest, CallsTerminationObserver) {
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  program->set_entry_func_num(0);
+
+  ir_checker::AssertProgramIsOkay(program.get());
+  ir_interpreter::Debugger debugger(program.get(), /*sanitize=*/true);
+
+  TerminationObserverMock mock_observer;
+  EXPECT_CALL(mock_observer, Terminated()).Times(1);
+
+  debugger.SetTerminationObserver([&] { mock_observer.Terminated(); });
+  debugger.Run();
+  debugger.AwaitTermination();
+
+  EXPECT_EQ(debugger.exit_code(), GetParam().expected_exit_code);
+}
+
 TEST_P(DebuggerTest, StepsInCorrectly) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
   program->set_entry_func_num(0);
