@@ -15,6 +15,7 @@ cc_library(
         "//src/ir/checker",
         "//src/ir/info",
         "//src/ir/interpreter",
+        "//src/ir/interpreter:debugger",
         "//src/ir/optimizers",
         "//src/ir/processors",
         "//src/ir/representation",
