@@ -7,6 +7,7 @@
 //
 
 #include <memory>
+#include <sstream>
 #include <unordered_map>
 #include <vector>
 
@@ -59,7 +60,14 @@ class Stack {
   StackFrame* PushFrame(ir::Func* func);
   void PopCurrentFrame();
 
+  std::string ToDebuggerString() const;
+  std::string ToDebuggerString(std::size_t frame_index, bool include_computed_values) const;
+
  private:
+  void WriteFrameFunc(std::size_t frame_index, std::stringstream& ss) const;
+  void WriteFrameInstr(std::size_t frame_index, std::stringstream& ss) const;
+  void WriteFrameValues(std::size_t frame_index, std::stringstream& ss) const;
+
   std::vector<std::unique_ptr<StackFrame>> frames_;
 };
 
