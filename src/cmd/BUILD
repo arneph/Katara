@@ -64,3 +64,17 @@ cc_library(
         ":context",
     ],
 )
+
+cc_library(
+    name = "repl",
+    srcs = ["repl.cc"],
+    hdrs = ["repl.h"],
+    copts = COPTS,
+    visibility = [
+        "//src/cmd:__subpackages__",
+    ],
+    deps = [
+        ":context",
+        "//src/common/logging",
+    ],
+)
