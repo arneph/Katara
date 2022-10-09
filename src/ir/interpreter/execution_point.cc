@@ -8,7 +8,7 @@
 
 #include "execution_point.h"
 
-#include <algorithm>
+#include <sstream>
 
 #include "src/common/logging/logging.h"
 
@@ -19,6 +19,12 @@ ExecutionPoint ExecutionPoint::AtFuncEntry(ir::Func* func) {
                         /*current_block=*/func->entry_block(),
                         /*next_instr=*/func->entry_block()->instrs().front().get(),
                         /*results=*/{});
+}
+
+std::size_t ExecutionPoint::next_instr_index() const {
+  auto it = std::find_if(current_block_->instrs().begin(), current_block_->instrs().end(),
+                         [this](auto& instr) { return instr.get() == next_instr_; });
+  return it - current_block_->instrs().begin();
 }
 
 void ExecutionPoint::AdvanceToNextInstr() {

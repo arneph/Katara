@@ -28,6 +28,7 @@ class ExecutionPoint {
   ir::Block* previous_block() const { return previous_block_; }
   ir::Block* current_block() const { return current_block_; }
   ir::Instr* next_instr() const { return next_instr_; }
+  std::size_t next_instr_index() const;
   const std::vector<std::shared_ptr<ir::Constant>>& results() const;
 
   void AdvanceToNextInstr();
