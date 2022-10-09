@@ -27,18 +27,24 @@ int64_t Debugger::exit_code() const {
 
 const Stack& Debugger::stack() const {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (exec_state_ != ExecutionState::kPaused) {
-    common::fail("program is not paused");
+  switch (exec_state_) {
+    case ExecutionState::kPaused:
+    case ExecutionState::kTerminated:
+      return stack_;
+    default:
+      common::fail("program is not paused");
   }
-  return stack_;
 }
 
 const Heap& Debugger::heap() const {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (exec_state_ != ExecutionState::kPaused) {
-    common::fail("program is not paused");
+  switch (exec_state_) {
+    case ExecutionState::kPaused:
+    case ExecutionState::kTerminated:
+      return heap_;
+    default:
+      common::fail("program is not paused");
   }
-  return heap_;
 }
 
 std::function<void()> Debugger::TerminationObserver() const {
