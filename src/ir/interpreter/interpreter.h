@@ -31,6 +31,8 @@ class Interpreter {
   Interpreter(ir::Program* program, bool sanitize);
   virtual ~Interpreter() = default;
 
+  ir::Program* program() const { return program_; }
+
   virtual int64_t exit_code() const;
 
   virtual void Run();
