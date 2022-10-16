@@ -199,7 +199,7 @@ std::string Heap::ToDebuggerString(Memory* memory) const {
     ss << " (" << std::dec << memory_size << " bytes)\n";
   }
   constexpr int kBytesPerLine = 16;
-  for (int64_t line = 0; line < memory_size / kBytesPerLine; line++) {
+  for (int64_t line = 0; line < 1 + (memory_size - 1) / kBytesPerLine; line++) {
     int64_t line_begin_address = memory_begin_address + line * kBytesPerLine;
     int64_t line_end_address =
         std::min(line_begin_address + kBytesPerLine, memory_begin_address + memory_size);
