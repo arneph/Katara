@@ -48,7 +48,7 @@ TEST(UniquePointerLowererTest, LowersSimpleProgram) {
   lang::ir_lowerers::LowerUniquePointersInProgram(lowered_program.get());
   lang::ir_checker::AssertProgramIsOkay(lowered_program.get());
   EXPECT_TRUE(ir::IsEqual(lowered_program.get(), expected_program.get()))
-      << "Expected different lowered program, got:\n"
-      << ir_serialization::Print(lowered_program.get()) << "\nexpected:\n"
-      << ir_serialization::Print(expected_program.get());
+      << "Expected different lowered program:\n"
+      << ir_serialization::Print(expected_program.get()) << "\ngot:\n"
+      << ir_serialization::Print(lowered_program.get());
 }
