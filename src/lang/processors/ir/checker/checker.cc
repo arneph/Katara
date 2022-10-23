@@ -205,7 +205,7 @@ void Checker::CheckStoreInstr(const ir::StoreInstr* store_instr) {
   }
 }
 
-void Checker::CheckMovInstr(const ir::MovInstr *mov_instr) {
+void Checker::CheckMovInstr(const ir::MovInstr* mov_instr) {
   if ((mov_instr->result()->type()->type_kind() == ir::TypeKind::kLangSharedPointer ||
        mov_instr->result()->type()->type_kind() == ir::TypeKind::kLangUniquePointer) &&
       ir::IsEqual(mov_instr->origin().get(), ir::NilPointer().get())) {

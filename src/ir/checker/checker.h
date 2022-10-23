@@ -43,8 +43,8 @@ class Checker {
   virtual void CheckBlock(const ir::Block* block, const ir::Func* func);
   virtual void CheckInstr(const ir::Instr* instr, const ir::Block* block, const ir::Func* func);
   virtual void CheckMovInstr(const ir::MovInstr* mov_instr);
-  virtual void CheckPhiInstr(const ir::PhiInstr* phi_instr,
-                             const ir::Block* block, const ir::Func* func);
+  virtual void CheckPhiInstr(const ir::PhiInstr* phi_instr, const ir::Block* block,
+                             const ir::Func* func);
   virtual void CheckLoadInstr(const ir::LoadInstr* load_instr);
   virtual void CheckStoreInstr(const ir::StoreInstr* store_instr);
   virtual void CheckValue(const ir::Value* value);

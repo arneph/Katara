@@ -282,33 +282,35 @@ void LowerStoreOfSharedPointerAsValueInstr(
 }
 
 void LowerMovSharedPointerInstr(
-                                ir::Func* func, ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
+    ir::Func* func, ir::Block* block, std::vector<std::unique_ptr<ir::Instr>>::iterator& it,
     std::unordered_map<ir::value_num_t, DecomposedShared>& decomposed_shared_pointers) {
   auto mov_instr = static_cast<ir::MovInstr*>(it->get());
   if (mov_instr->result()->type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
     return;
   }
-  
+
   ir::value_num_t result_shared_pointer_num = mov_instr->result()->number();
   if (ir::IsEqual(mov_instr->origin().get(), ir::NilPointer().get())) {
     std::shared_ptr<ir::Computed> control_block_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
+        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
     std::shared_ptr<ir::Computed> underlying_pointer =
-      std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
+        std::make_shared<ir::Computed>(ir::pointer_type(), func->next_computed_number());
     DecomposedShared decomposed{
-      .control_block_pointer = control_block_pointer,
-      .underlying_pointer = underlying_pointer,
+        .control_block_pointer = control_block_pointer,
+        .underlying_pointer = underlying_pointer,
     };
 
     it = block->instrs().erase(it);
     --it;
-    it = block->instrs().insert(it, std::make_unique<ir::MovInstr>(control_block_pointer, ir::NilPointer()));
-    it = block->instrs().insert(it, std::make_unique<ir::MovInstr>(underlying_pointer, ir::NilPointer()));
+    it = block->instrs().insert(
+        it, std::make_unique<ir::MovInstr>(control_block_pointer, ir::NilPointer()));
+    it = block->instrs().insert(
+        it, std::make_unique<ir::MovInstr>(underlying_pointer, ir::NilPointer()));
     decomposed_shared_pointers.emplace(result_shared_pointer_num, decomposed);
-    
+
   } else {
     ir::value_num_t origin_shared_pointer_num =
-    static_cast<ir::Computed*>(mov_instr->origin().get())->number();
+        static_cast<ir::Computed*>(mov_instr->origin().get())->number();
     DecomposedShared& decomposed_origin = decomposed_shared_pointers.at(origin_shared_pointer_num);
     it = block->instrs().erase(it);
     --it;
