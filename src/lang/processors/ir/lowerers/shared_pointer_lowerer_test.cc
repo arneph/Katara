@@ -93,8 +93,8 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
     %7:ptr, %8:ptr = call @2, #2:i64, #1:i64, @-1
     %9:ptr = call @4, %5, %6, #0:i64
     store %8, %0
-    call @6, %5
-    call @6, %5
+    call @8, %5
+    call @8, %5
     ret %7, %8, 0x0
 }
 
@@ -103,8 +103,8 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
     %4:ptr, %5:ptr = call @2, #4:i64, #1:i64, @-1
     %6:ptr = call @4, %4, %5, #0:i64
     %7:ptr, %8:ptr, %3:ptr = call @0, #1234:i16, %4, %6, #t
-    call @5, %4
-    call @5, %7
+    call @6, %4
+    call @6, %7
     ret
 }
 )ir",
@@ -187,7 +187,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
     jcc %0, {2}, {3}
   {2}
     %8:ptr = call @2, %6, %7, #0:i64
-    call @4, %6
+    call @5, %6
     jmp {1}
   {3}
     ret %6, %7
@@ -243,9 +243,9 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
   store %13, %5
   jmp {1}
 {3}
-  call @4, %12
+  call @5, %12
   %9:i64 = load %11
-  call @4, %10
+  call @5, %10
   ret %9
 {4}
   %6:i64 = load %13
@@ -315,7 +315,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
                                  .expected_program = R"ir(
 @0 inc (%5:ptr, %6:ptr) => () {
   {0}
-    %7:ptr, %8:ptr = call @1, #16:i64, #1:i64, @-1
+    %7:ptr, %8:ptr = call @1, #16:i64, #1:i64, @4
     store %8, %5
     %9:ptr = poff %8, #8:i64
     store %9, %6
@@ -325,7 +325,7 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
     %3:i64 = load %11
     %4:i64 = iadd %3, #1:i64
     store %11, %4
-    call @4, %7
+    call @5, %7
     ret
 }
 )ir",
@@ -347,8 +347,8 @@ TEST_P(SharedPointerLowererTest, LowersProgram) {
        func_num++) {
     EXPECT_TRUE(
         ir::IsEqual(lowered_program->GetFunc(func_num), expected_program->GetFunc(func_num)))
-        << "Expected different lowered function, got:\n"
-        << ir_serialization::Print(lowered_program->GetFunc(func_num)) << "\nexpected:\n"
-        << ir_serialization::Print(expected_program->GetFunc(func_num));
+        << "Expected different lowered function:\n"
+        << ir_serialization::Print(expected_program->GetFunc(func_num)) << "\ngot:\n"
+        << ir_serialization::Print(lowered_program->GetFunc(func_num));
   }
 }
