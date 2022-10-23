@@ -165,12 +165,14 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryEx
     }
 
   } else if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
-    std::shared_ptr<ir::Value> address = BuildValuesOfExpr(x, ast_ctx, ir_ctx).front();
+    std::shared_ptr<ir::Computed> address =
+        std::static_pointer_cast<ir::Computed>(BuildValuesOfExpr(x, ast_ctx, ir_ctx).front());
     types::Type* types_value_type = type_info_->ExprInfoOf(expr)->type();
     const ir::Type* ir_value_type = type_builder_.BuildType(types_value_type);
     std::shared_ptr<ir::Computed> value =
         std::make_shared<ir::Computed>(ir_value_type, ir_ctx.func()->next_computed_number());
     ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(value, address));
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
     return value;
   } else {
     common::fail("unexpected unary memory expr");
@@ -660,31 +662,47 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIdent(ast::Ident* ident, AST
   types::Object* object = type_info_->ObjectOf(ident);
   types::ExprInfo ident_info = type_info_->ExprInfoOf(ident).value();
   switch (object->object_kind()) {
-    case types::ObjectKind::kConstant: {
-      types::Constant* constant = static_cast<types::Constant*>(object);
-      return value_builder_.BuildConstant(constant->value());
-    }
-    case types::ObjectKind::kVariable: {
-      types::Variable* var = static_cast<types::Variable*>(object);
-      const ir::Type* type = type_builder_.BuildType(var->type());
-      std::shared_ptr<ir::Value> address = ast_ctx.LookupAddressOfVar(var);
-      std::shared_ptr<ir::Computed> value =
-          std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
-      ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(value, address));
-      return value;
-    }
-    case types::ObjectKind::kFunc: {
-      types::Func* types_func = static_cast<types::Func*>(object);
-      ir::Func* ir_func = funcs_.at(types_func);
-      return ir::ToFuncConstant(ir_func->number());
-    }
-    case types::ObjectKind::kNil: {
-      return ir::NilPointer();
-    }
+    case types::ObjectKind::kConstant:
+      return BuildValueOfConstant(static_cast<types::Constant*>(object));
+    case types::ObjectKind::kVariable:
+      return BuildValueOfVariable(static_cast<types::Variable*>(object), ast_ctx, ir_ctx);
+    case types::ObjectKind::kFunc:
+      return BuildValueOfFunc(static_cast<types::Func*>(object));
+    case types::ObjectKind::kNil:
+      return BuildValueOfNil();
     default:
       common::fail("unexpected object kind");
   }
 }
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfConstant(types::Constant* constant) {
+  return value_builder_.BuildConstant(constant->value());
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfVariable(types::Variable* var,
+                                                             ASTContext& ast_ctx,
+                                                             IRContext& ir_ctx) {
+  const ir::Type* type = type_builder_.BuildType(var->type());
+  std::shared_ptr<ir::Value> address = ast_ctx.LookupAddressOfVar(var);
+  std::shared_ptr<ir::Computed> value =
+      std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(value, address));
+  if (type->type_kind() != ir::TypeKind::kLangSharedPointer) {
+    return value;
+  }
+  std::shared_ptr<ir::Computed> copy =
+      std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::CopySharedPointerInstr>(copy, value, /*offset=*/ir::I64Zero()));
+  return copy;
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfFunc(types::Func* types_func) {
+  ir::Func* ir_func = funcs_.at(types_func);
+  return ir::ToFuncConstant(ir_func->number());
+}
+
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfNil() { return ir::NilPointer(); }
 
 }  // namespace ir_builder
 }  // namespace lang

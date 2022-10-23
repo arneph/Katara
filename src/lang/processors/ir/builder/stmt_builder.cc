@@ -24,44 +24,6 @@ void StmtBuilder::BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx
   }
 }
 
-void StmtBuilder::BuildVarDecl(types::Variable* var, bool initialize_var, ASTContext& ast_ctx,
-                               IRContext& ir_ctx) {
-  const ir_ext::SharedPointer* pointer_type = type_builder_.BuildStrongPointerToType(var->type());
-  std::shared_ptr<ir::Computed> address =
-      std::make_shared<ir::Computed>(pointer_type, ir_ctx.func()->next_computed_number());
-  ir_ctx.block()->instrs().push_back(
-      std::make_unique<ir_ext::MakeSharedPointerInstr>(address, ir::I64One()));
-  ast_ctx.AddAddressOfVar(var, address);
-
-  if (initialize_var) {
-    std::shared_ptr<ir::Value> default_value = value_builder_.BuildDefaultForType(var->type());
-    ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, default_value));
-  }
-}
-
-void StmtBuilder::BuildVarDeletionsForASTContextAndAllParents(ASTContext* ast_ctx,
-                                                              IRContext& ir_ctx) {
-  for (ASTContext* ctx = ast_ctx; ctx != nullptr; ctx = ctx->parent()) {
-    BuildVarDeletionsForASTContext(ctx, ir_ctx);
-  }
-}
-
-void StmtBuilder::BuildVarDeletionsForASTContextsUntilParent(ASTContext* innermost_ast_ctx,
-                                                             ASTContext* outermost_ast_ctx,
-                                                             IRContext& ir_ctx) {
-  for (ASTContext* ctx = innermost_ast_ctx; ctx != outermost_ast_ctx; ctx = ctx->parent()) {
-    BuildVarDeletionsForASTContext(ctx, ir_ctx);
-  }
-  BuildVarDeletionsForASTContext(outermost_ast_ctx, ir_ctx);
-}
-
-void StmtBuilder::BuildVarDeletionsForASTContext(ASTContext* ast_ctx, IRContext& ir_ctx) {
-  for (auto it = ast_ctx->var_addresses().rbegin(); it != ast_ctx->var_addresses().rend(); ++it) {
-    std::shared_ptr<ir::Computed> address = it->second;
-    ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
-  }
-}
-
 void StmtBuilder::BuildStmt(ast::Stmt* stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
   std::string label;
   while (stmt->node_kind() == ast::NodeKind::kLabeledStmt) {
@@ -122,46 +84,14 @@ void StmtBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, ASTContext& ast_ctx, I
   }
   for (ast::Spec* spec : decl->specs()) {
     ast::ValueSpec* value_spec = static_cast<ast::ValueSpec*>(spec);
-    for (ast::Ident* name : value_spec->names()) {
-      types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
-      if (var == nullptr) {
-        continue;
-      }
-      BuildVarDecl(var, /*initialize_var=*/value_spec->values().empty(), ast_ctx, ir_ctx);
-    }
-
-    if (!value_spec->values().empty()) {
-      std::vector<std::shared_ptr<ir::Value>> values =
-          expr_builder_.BuildValuesOfExprs(value_spec->values(), ast_ctx, ir_ctx);
-      for (size_t i = 0; i < value_spec->names().size() && i < values.size(); i++) {
-        ast::Ident* name = value_spec->names().at(i);
-        types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
-        if (var == nullptr) {
-          continue;
-        }
-        std::shared_ptr<ir::Value> address = ast_ctx.LookupAddressOfVar(var);
-        std::shared_ptr<ir::Value> value = values.at(i);
-        ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
-      }
-    }
+    BuildVarDeclsForValueSpec(value_spec, ast_ctx, ir_ctx);
+    BuildAssignmentsForValueSpec(value_spec, ast_ctx, ir_ctx);
   }
 }
 
 void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_ctx,
                                   IRContext& ir_ctx) {
-  if (assign_stmt->tok() == tokens::kDefine) {
-    for (ast::Expr* lhs : assign_stmt->lhs()) {
-      if (lhs->node_kind() != ast::NodeKind::kIdent) {
-        continue;
-      }
-      ast::Ident* ident = static_cast<ast::Ident*>(lhs);
-      types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(ident));
-      if (var == nullptr) {
-        continue;
-      }
-      BuildVarDecl(var, /*initialize_var=*/false, ast_ctx, ir_ctx);
-    }
-  }
+  BuildVarDeclsForAssignStmt(assign_stmt, ast_ctx, ir_ctx);
 
   std::vector<std::shared_ptr<ir::Computed>> lhs_addresses =
       expr_builder_.BuildAddressesOfExprs(assign_stmt->lhs(), ast_ctx, ir_ctx);
@@ -171,7 +101,7 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_
   switch (assign_stmt->tok()) {
     case tokens::kAssign:
     case tokens::kDefine:
-      BuildSimpleAssignStmt(lhs_addresses, rhs_values, ir_ctx);
+      BuildAssignments(lhs_addresses, rhs_values, ir_ctx);
       break;
     case tokens::kAddAssign:
     case tokens::kSubAssign:
@@ -183,91 +113,200 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_
     case tokens::kXorAssign:
     case tokens::kShlAssign:
     case tokens::kShrAssign:
-    case tokens::kAndNotAssign:
-      BuildOpAssignStmt(assign_stmt->tok(), lhs_addresses, rhs_values, ir_ctx);
+    case tokens::kAndNotAssign: {
+      std::vector<std::shared_ptr<ir::Value>> assigned_values =
+          BuildAssignedValuesForOpAssignment(assign_stmt->tok(), lhs_addresses, rhs_values, ir_ctx);
+      BuildAssignments(lhs_addresses, assigned_values, ir_ctx);
       break;
+    }
     default:
       common::fail("unexpected assign op");
   }
 }
 
-void StmtBuilder::BuildSimpleAssignStmt(std::vector<std::shared_ptr<ir::Computed>> lhs_addresses,
-                                        std::vector<std::shared_ptr<ir::Value>> rhs_values,
-                                        IRContext& ir_ctx) {
-  for (size_t i = 0; i < lhs_addresses.size(); i++) {
-    std::shared_ptr<ir::Value> lhs_address = lhs_addresses.at(i);
-    std::shared_ptr<ir::Value> rhs_value = rhs_values.at(i);
-    ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(lhs_address, rhs_value));
-  }
-}
-
-void StmtBuilder::BuildOpAssignStmt(tokens::Token op_assign_tok,
-                                    std::vector<std::shared_ptr<ir::Computed>> lhs_addresses,
-                                    std::vector<std::shared_ptr<ir::Value>> rhs_values,
-                                    IRContext& ir_ctx) {
+std::vector<std::shared_ptr<ir::Value>> StmtBuilder::BuildAssignedValuesForOpAssignment(
+    tokens::Token op_assign_tok, std::vector<std::shared_ptr<ir::Computed>> lhs_addresses,
+    std::vector<std::shared_ptr<ir::Value>> rhs_values, IRContext& ir_ctx) {
   std::vector<std::shared_ptr<ir::Value>> assigned_values;
   assigned_values.reserve(lhs_addresses.size());
   for (size_t i = 0; i < lhs_addresses.size(); i++) {
-    std::shared_ptr<ir::Value> lhs_address = lhs_addresses.at(i);
-    auto lhs_pointer_type = static_cast<const ir_ext::SharedPointer*>(lhs_address->type());
-    const ir::Type* lhs_type = lhs_pointer_type->element();
-    std::shared_ptr<ir::Computed> lhs_value =
-        std::make_shared<ir::Computed>(lhs_type, ir_ctx.func()->next_computed_number());
-    ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(lhs_value, lhs_address));
+    std::shared_ptr<ir::Computed> lhs_address = lhs_addresses.at(i);
     std::shared_ptr<ir::Value> rhs_value = rhs_values.at(i);
+    assigned_values.push_back(
+        BuildAssignedValueForOpAssignment(op_assign_tok, lhs_address, rhs_value, ir_ctx));
+  }
+  return assigned_values;
+}
 
-    if (op_assign_tok == tokens::kAddAssign && lhs_type->type_kind() == ir::TypeKind::kLangString) {
-      assigned_values.push_back(value_builder_.BuildStringConcat(lhs_value, rhs_value, ir_ctx));
+namespace {
 
-    } else if (op_assign_tok == tokens::kShlAssign || op_assign_tok == tokens::kShrAssign) {
-      common::Int::ShiftOp op = [op_assign_tok]() {
-        switch (op_assign_tok) {
-          case tokens::kShlAssign:
-            return common::Int::ShiftOp::kLeft;
-          case tokens::kShrAssign:
-            return common::Int::ShiftOp::kRight;
-          default:
-            common::fail("unexpected assign op");
-        }
-      }();
-      rhs_value = value_builder_.BuildConversion(rhs_value, ir::u64(), ir_ctx);
-      assigned_values.push_back(value_builder_.BuildIntShiftOp(lhs_value, op, rhs_value, ir_ctx));
+common::Int::BinaryOp OpAssignTokToIntBinaryOp(tokens::Token op_assign_tok) {
+  switch (op_assign_tok) {
+    case tokens::kAddAssign:
+      return common::Int::BinaryOp::kAdd;
+    case tokens::kSubAssign:
+      return common::Int::BinaryOp::kSub;
+    case tokens::kMulAssign:
+      return common::Int::BinaryOp::kMul;
+    case tokens::kQuoAssign:
+      return common::Int::BinaryOp::kDiv;
+    case tokens::kRemAssign:
+      return common::Int::BinaryOp::kRem;
+    case tokens::kAndAssign:
+      return common::Int::BinaryOp::kAnd;
+    case tokens::kOrAssign:
+      return common::Int::BinaryOp::kOr;
+    case tokens::kXorAssign:
+      return common::Int::BinaryOp::kXor;
+    case tokens::kAndNotAssign:
+      return common::Int::BinaryOp::kAndNot;
+    default:
+      common::fail("unexpected assign op");
+  }
+}
 
-    } else {
-      common::Int::BinaryOp op = [op_assign_tok]() {
-        switch (op_assign_tok) {
-          case tokens::kAddAssign:
-            return common::Int::BinaryOp::kAdd;
-          case tokens::kSubAssign:
-            return common::Int::BinaryOp::kSub;
-          case tokens::kMulAssign:
-            return common::Int::BinaryOp::kMul;
-          case tokens::kQuoAssign:
-            return common::Int::BinaryOp::kDiv;
-          case tokens::kRemAssign:
-            return common::Int::BinaryOp::kRem;
-          case tokens::kAndAssign:
-            return common::Int::BinaryOp::kAnd;
-          case tokens::kOrAssign:
-            return common::Int::BinaryOp::kOr;
-          case tokens::kXorAssign:
-            return common::Int::BinaryOp::kXor;
-          case tokens::kAndNotAssign:
-            return common::Int::BinaryOp::kAndNot;
-          default:
-            common::fail("unexpected assign op");
-        }
-      }();
-      rhs_value = value_builder_.BuildConversion(rhs_value, lhs_type, ir_ctx);
-      assigned_values.push_back(value_builder_.BuildIntBinaryOp(lhs_value, op, rhs_value, ir_ctx));
+common::Int::ShiftOp OpAssignTokToIntShiftOp(tokens::Token op_assign_tok) {
+  switch (op_assign_tok) {
+    case tokens::kShlAssign:
+      return common::Int::ShiftOp::kLeft;
+    case tokens::kShrAssign:
+      return common::Int::ShiftOp::kRight;
+    default:
+      common::fail("unexpected assign op");
+  }
+}
+
+}  // namespace
+
+std::shared_ptr<ir::Value> StmtBuilder::BuildAssignedValueForOpAssignment(
+    tokens::Token op_assign_tok, std::shared_ptr<ir::Computed> lhs_address,
+    std::shared_ptr<ir::Value> rhs_value, IRContext& ir_ctx) {
+  auto lhs_pointer_type = static_cast<const ir_ext::SharedPointer*>(lhs_address->type());
+  const ir::Type* lhs_type = lhs_pointer_type->element();
+  std::shared_ptr<ir::Computed> lhs_value =
+      std::make_shared<ir::Computed>(lhs_type, ir_ctx.func()->next_computed_number());
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(lhs_value, lhs_address));
+
+  if (op_assign_tok == tokens::kAddAssign && lhs_type->type_kind() == ir::TypeKind::kLangString) {
+    return value_builder_.BuildStringConcat(lhs_value, rhs_value, ir_ctx);
+
+  } else if (op_assign_tok == tokens::kShlAssign || op_assign_tok == tokens::kShrAssign) {
+    common::Int::ShiftOp op = OpAssignTokToIntShiftOp(op_assign_tok);
+    rhs_value = value_builder_.BuildConversion(rhs_value, ir::u64(), ir_ctx);
+    return value_builder_.BuildIntShiftOp(lhs_value, op, rhs_value, ir_ctx);
+
+  } else {
+    common::Int::BinaryOp op = OpAssignTokToIntBinaryOp(op_assign_tok);
+    rhs_value = value_builder_.BuildConversion(rhs_value, lhs_type, ir_ctx);
+    return value_builder_.BuildIntBinaryOp(lhs_value, op, rhs_value, ir_ctx);
+  }
+}
+
+void StmtBuilder::BuildVarDeclsForValueSpec(ast::ValueSpec* value_spec, ASTContext& ast_ctx,
+                                            IRContext& ir_ctx) {
+  for (ast::Ident* name : value_spec->names()) {
+    BuildVarDeclForIdent(name, ast_ctx, ir_ctx);
+  }
+}
+
+void StmtBuilder::BuildVarDeclsForAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_ctx,
+                                             IRContext& ir_ctx) {
+  if (assign_stmt->tok() != tokens::kDefine) {
+    return;
+  }
+  for (ast::Expr* lhs : assign_stmt->lhs()) {
+    if (lhs->node_kind() != ast::NodeKind::kIdent) {
+      continue;
     }
+    BuildVarDeclForIdent(static_cast<ast::Ident*>(lhs), ast_ctx, ir_ctx);
   }
+}
 
-  for (size_t i = 0; i < lhs_addresses.size(); i++) {
-    std::shared_ptr<ir::Value> address = lhs_addresses.at(i);
-    std::shared_ptr<ir::Value> value = assigned_values.at(i);
-    ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
+void StmtBuilder::BuildVarDeclForIdent(ast::Ident* ident, ASTContext& ast_ctx, IRContext& ir_ctx) {
+  types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(ident));
+  if (var == nullptr) {
+    return;
   }
+  BuildVarDecl(var, ast_ctx, ir_ctx);
+}
+
+void StmtBuilder::BuildVarDecl(types::Variable* var, ASTContext& ast_ctx, IRContext& ir_ctx) {
+  const ir_ext::SharedPointer* pointer_type = type_builder_.BuildStrongPointerToType(var->type());
+  std::shared_ptr<ir::Computed> address =
+      std::make_shared<ir::Computed>(pointer_type, ir_ctx.func()->next_computed_number());
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::MakeSharedPointerInstr>(address, ir::I64One()));
+  ast_ctx.AddAddressOfVar(var, address);
+
+  std::shared_ptr<ir::Value> default_value = value_builder_.BuildDefaultForType(var->type());
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, default_value));
+}
+
+void StmtBuilder::BuildVarDeletionsForASTContextAndAllParents(ASTContext* ast_ctx,
+                                                              IRContext& ir_ctx) {
+  for (ASTContext* ctx = ast_ctx; ctx != nullptr; ctx = ctx->parent()) {
+    BuildVarDeletionsForASTContext(ctx, ir_ctx);
+  }
+}
+
+void StmtBuilder::BuildVarDeletionsForASTContextsUntilParent(ASTContext* innermost_ast_ctx,
+                                                             ASTContext* outermost_ast_ctx,
+                                                             IRContext& ir_ctx) {
+  for (ASTContext* ctx = innermost_ast_ctx; ctx != outermost_ast_ctx; ctx = ctx->parent()) {
+    BuildVarDeletionsForASTContext(ctx, ir_ctx);
+  }
+  BuildVarDeletionsForASTContext(outermost_ast_ctx, ir_ctx);
+}
+
+void StmtBuilder::BuildVarDeletionsForASTContext(ASTContext* ast_ctx, IRContext& ir_ctx) {
+  for (auto it = ast_ctx->var_addresses().rbegin(); it != ast_ctx->var_addresses().rend(); ++it) {
+    std::shared_ptr<ir::Computed> address = it->second;
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
+  }
+}
+
+void StmtBuilder::BuildAssignmentsForValueSpec(ast::ValueSpec* value_spec, ASTContext& ast_ctx,
+                                               IRContext& ir_ctx) {
+  if (value_spec->values().empty()) {
+    return;
+  }
+  std::vector<std::shared_ptr<ir::Value>> values =
+      expr_builder_.BuildValuesOfExprs(value_spec->values(), ast_ctx, ir_ctx);
+  for (size_t i = 0; i < value_spec->names().size() && i < values.size(); i++) {
+    ast::Ident* name = value_spec->names().at(i);
+    types::Variable* var = static_cast<types::Variable*>(type_info_->DefinitionOf(name));
+    if (var == nullptr) {
+      continue;
+    }
+    std::shared_ptr<ir::Computed> address = ast_ctx.LookupAddressOfVar(var);
+    std::shared_ptr<ir::Value> value = values.at(i);
+    BuildAssignment(address, value, ir_ctx);
+  }
+}
+
+void StmtBuilder::BuildAssignments(std::vector<std::shared_ptr<ir::Computed>> lhs_addresses,
+                                   std::vector<std::shared_ptr<ir::Value>> rhs_values,
+                                   IRContext& ir_ctx) {
+  for (size_t i = 0; i < lhs_addresses.size(); i++) {
+    std::shared_ptr<ir::Computed> lhs_address = lhs_addresses.at(i);
+    std::shared_ptr<ir::Value> rhs_value = rhs_values.at(i);
+    BuildAssignment(lhs_address, rhs_value, ir_ctx);
+  }
+}
+
+void StmtBuilder::BuildAssignment(std::shared_ptr<ir::Computed> lhs_address,
+                                  std::shared_ptr<ir::Value> rhs_value, IRContext& ir_ctx) {
+  const ir::Type* lhs_type =
+      static_cast<const ir_ext::SharedPointer*>(lhs_address->type())->element();
+  if (lhs_type->type_kind() == ir::TypeKind::kLangSharedPointer) {
+    std::shared_ptr<ir::Computed> old_value =
+        std::make_shared<ir::Computed>(lhs_type, ir_ctx.func()->next_computed_number());
+    ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(old_value, lhs_address));
+    ir_ctx.block()->instrs().push_back(
+        std::make_unique<ir_ext::DeleteSharedPointerInstr>(old_value));
+  }
+  rhs_value = value_builder_.BuildConversion(rhs_value, lhs_type, ir_ctx);
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(lhs_address, rhs_value));
 }
 
 void StmtBuilder::BuildExprStmt(ast::ExprStmt* expr_stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
@@ -297,16 +336,6 @@ void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, ASTContext& ast
   ir_ctx.block()->instrs().push_back(
       std::make_unique<ir::IntBinaryInstr>(new_value, op, old_value, one));
   ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, new_value));
-}
-
-void StmtBuilder::BuildReturnStmt(ast::ReturnStmt* return_stmt, ASTContext& ast_ctx,
-                                  IRContext& ir_ctx) {
-  std::vector<std::shared_ptr<ir::Value>> results =
-      expr_builder_.BuildValuesOfExprs(return_stmt->results(), ast_ctx, ir_ctx);
-
-  BuildVarDeletionsForASTContextAndAllParents(&ast_ctx, ir_ctx);
-
-  ir_ctx.block()->instrs().push_back(std::make_unique<ir::ReturnInstr>(results));
 }
 
 void StmtBuilder::BuildIfStmt(ast::IfStmt* if_stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
@@ -468,6 +497,16 @@ void StmtBuilder::BuildBranchStmt(ast::BranchStmt* branch_stmt, ASTContext& ast_
 
   ir_ctx.block()->instrs().push_back(std::make_unique<ir::JumpInstr>(branch.destination));
   ir_ctx.func()->AddControlFlow(ir_ctx.block()->number(), branch.destination);
+}
+
+void StmtBuilder::BuildReturnStmt(ast::ReturnStmt* return_stmt, ASTContext& ast_ctx,
+                                  IRContext& ir_ctx) {
+  std::vector<std::shared_ptr<ir::Value>> results =
+      expr_builder_.BuildValuesOfExprs(return_stmt->results(), ast_ctx, ir_ctx);
+
+  BuildVarDeletionsForASTContextAndAllParents(&ast_ctx, ir_ctx);
+
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::ReturnInstr>(results));
 }
 
 }  // namespace ir_builder

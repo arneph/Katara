@@ -51,6 +51,8 @@ class ExprBuilder {
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfExpr(ast::Expr* expr, ASTContext& ast_ctx,
                                                             IRContext& ir_ctx);
 
+ private:
+  // Unary expressions:
   std::shared_ptr<ir::Value> BuildValueOfUnaryExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
                                                    IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfBoolNotExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
@@ -63,6 +65,7 @@ class ExprBuilder {
   std::shared_ptr<ir::Value> BuildValueOfUnaryMemoryExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
                                                          IRContext& ir_ctx);
 
+  // Binary expressions:
   std::shared_ptr<ir::Value> BuildValueOfBinaryExpr(ast::BinaryExpr* expr, ASTContext& ast_ctx,
                                                     IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfStringConcatExpr(ast::BinaryExpr* expr,
@@ -76,6 +79,7 @@ class ExprBuilder {
   std::shared_ptr<ir::Value> BuildValueOfBinaryLogicExpr(ast::BinaryExpr* expr, ASTContext& ast_ctx,
                                                          IRContext& ir_ctx);
 
+  // Comparison expressions:
   std::shared_ptr<ir::Value> BuildValueOfCompareExpr(ast::CompareExpr* expr, ASTContext& ast_ctx,
                                                      IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfSingleCompareExpr(ast::CompareExpr* expr,
@@ -97,6 +101,7 @@ class ExprBuilder {
                                                        std::shared_ptr<ir::Value> y,
                                                        IRContext& ir_ctx);
 
+  // Selection expressions:
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfSelectionExpr(ast::SelectionExpr* expr,
                                                                      ASTContext& ast_ctx,
                                                                      IRContext& ir_ctx);
@@ -107,15 +112,18 @@ class ExprBuilder {
                                                                   ASTContext& ast_ctx,
                                                                   IRContext& ir_ctx);
 
+  // Type assertions:
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfTypeAssertExpr(ast::TypeAssertExpr* expr,
                                                                       ASTContext& ast_ctx,
                                                                       IRContext& ir_ctx);
 
+  // Index expressions:
   std::shared_ptr<ir::Computed> BuildAddressOfIndexExpr(ast::IndexExpr* expr, ASTContext& ast_ctx,
                                                         IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfIndexExpr(ast::IndexExpr* expr, ASTContext& ast_ctx,
                                                    IRContext& ir_ctx);
 
+  // Function calls:
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfCallExpr(ast::CallExpr* expr,
                                                                 ASTContext& ast_ctx,
                                                                 IRContext& ir_ctx);
@@ -134,17 +142,23 @@ class ExprBuilder {
                                                                             ASTContext& ast_ctx,
                                                                             IRContext& ir_ctx);
 
+  // Literals:
   std::shared_ptr<ir::Constant> BuildValueOfFuncLit(ast::FuncLit* expr, ASTContext& ast_ctx,
                                                     IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfCompositeLit(ast::CompositeLit* expr, ASTContext& ast_ctx,
                                                       IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfBasicLit(ast::BasicLit* basic_lit);
 
+  // Identifiers:
   std::shared_ptr<ir::Computed> BuildAddressOfIdent(ast::Ident* ident, ASTContext& ast_ctx);
   std::shared_ptr<ir::Value> BuildValueOfIdent(ast::Ident* ident, ASTContext& ast_ctx,
                                                IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValueOfConstant(types::Constant* constant);
+  std::shared_ptr<ir::Value> BuildValueOfVariable(types::Variable* var, ASTContext& ast_ctx,
+                                                  IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValueOfFunc(types::Func* func);
+  std::shared_ptr<ir::Value> BuildValueOfNil();
 
- private:
   types::Info* type_info_;
   TypeBuilder& type_builder_;
   ValueBuilder& value_builder_;

@@ -109,7 +109,7 @@ void IRBuilder::BuildFuncParameters(types::Tuple* parameters, ASTContext& ast_ct
     std::shared_ptr<ir::Computed> ir_func_arg =
         std::make_shared<ir::Computed>(ir_type, ir_ctx.func()->next_computed_number());
     ir_ctx.func()->args().push_back(ir_func_arg);
-    stmt_builder_.BuildVarDecl(var, /*initialize_var=*/false, ast_ctx, ir_ctx);
+    stmt_builder_.BuildVarDecl(var, ast_ctx, ir_ctx);
     std::shared_ptr<ir::Value> address = ast_ctx.LookupAddressOfVar(var);
     ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, ir_func_arg));
   }
@@ -124,7 +124,7 @@ void IRBuilder::BuildFuncResults(types::Tuple* results, ASTContext& ast_ctx, IRC
     const ir::Type* ir_result_type = type_builder_.BuildType(types_result_type);
     ir_ctx.func()->result_types().push_back(ir_result_type);
     if (!types_result->name().empty()) {
-      stmt_builder_.BuildVarDecl(types_result, /*initialize_var=*/true, ast_ctx, ir_ctx);
+      stmt_builder_.BuildVarDecl(types_result, ast_ctx, ir_ctx);
     }
   }
 }

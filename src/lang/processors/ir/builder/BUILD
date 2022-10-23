@@ -100,3 +100,21 @@ cc_library(
         "//src/lang/representation",
     ],
 )
+
+cc_test(
+    name = "ir_builder_test",
+    srcs = ["ir_builder_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":ir_builder",
+        "//src/common/filesystem",
+        "//src/common/filesystem:test_filesystem",
+        "//src/ir:ir_lib",
+        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/serialization:parse",
+        "//src/lang/processors/packages:package",
+        "//src/lang/processors/packages:package_manager",
+        "//src/lang/representation",
+        "@gtest//:gtest_main",
+    ],
+)
