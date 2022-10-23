@@ -8,15 +8,44 @@ ir_ext_file_check(
 )
 
 cc_library(
+    name = "shared_pointer_impl",
+    srcs = ["shared_pointer_impl.cc"],
+    hdrs = ["shared_pointer_impl.h"],
+    copts = COPTS,
+    data = [":shared_pointer_impl.ir"],
+    visibility = [
+        "//visibility:private",
+    ],
+    deps = [
+        "//src/ir:ir_lib",
+        "//src/lang/processors/ir/serialization:parse",
+    ],
+)
+
+cc_test(
+    name = "shared_pointer_impl_test",
+    srcs = ["shared_pointer_impl_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":shared_pointer_impl",
+        "//src/ir:ir_lib",
+        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/serialization:parse",
+        "//src/lang/representation",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cc_library(
     name = "shared_pointer_lowerer",
     srcs = ["shared_pointer_lowerer.cc"],
     hdrs = ["shared_pointer_lowerer.h"],
     copts = COPTS,
-    data = [":shared_pointer_impl.ir"],
     visibility = [
         "//visibility:public",
     ],
     deps = [
+        ":shared_pointer_impl",
         "//src/ir:ir_lib",
         "//src/lang/processors/ir/serialization:parse",
         "//src/lang/representation",
