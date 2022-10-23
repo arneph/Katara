@@ -195,7 +195,7 @@ lowered to more
 [basic IR instructions](https://github.com/arneph/Katara/blob/master/src/ir/representation/instrs.h)
 and function calls to the language runtime.
 
-7. Using [IR anlayers](https://github.com/arneph/Katara/tree/master/src/ir/analyzers), the low level IR gets further optimized, removing 
+7. Using [IR analyzers](https://github.com/arneph/Katara/tree/master/src/ir/analyzers), the low level IR gets further optimized, removing 
 [unused functions](https://github.com/arneph/Katara/blob/master/src/ir/optimizers/func_call_graph_optimizer.cc) 
 and code. In the future, 
 constant folding, common subexpression elimination, function inlining, etc. will be implemented 
