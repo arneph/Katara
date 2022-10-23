@@ -80,6 +80,9 @@ bool Heap::Overlap(MemoryRange range_a, MemoryRange range_b) {
 }
 
 Heap::Memory* Heap::CheckExists(MemoryRange range) {
+  if (0 <= range.address && range.address < 100) {
+    common::fail("attempted to access memory at or near 0x0");
+  }
   for (auto& memory : allocated_) {
     if (IsContained(/*contained=*/range, /*container=*/memory->range)) {
       return memory.get();

@@ -69,6 +69,24 @@ TEST(HeapDeathTest, CatchesMemoryNeverFreed) {
       "not all memory was freed");
 }
 
+TEST(HeapDeathTest, CatchesLoadFromNil) {
+  EXPECT_DEATH(
+      [] {
+        auto heap = ir_interpreter::Heap(/*sanitize=*/true);
+        heap.Load<int64_t>(0x0);
+      }(),
+      "attempted to access memory at or near 0x0");
+}
+
+TEST(HeapDeathTest, CatchesLoadFromNearNil) {
+  EXPECT_DEATH(
+      [] {
+        auto heap = ir_interpreter::Heap(/*sanitize=*/true);
+        heap.Load<int64_t>(0x42);
+      }(),
+      "attempted to access memory at or near 0x0");
+}
+
 TEST(HeapDeathTest, CatchesLoadFromNeverAllocatedMemory) {
   EXPECT_DEATH(
       [] {
