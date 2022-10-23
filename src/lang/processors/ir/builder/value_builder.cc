@@ -105,28 +105,27 @@ std::shared_ptr<ir::Value> ValueBuilder::BuildConversion(std::shared_ptr<ir::Val
 }
 
 std::shared_ptr<ir::Value> ValueBuilder::BuildDefaultForType(types::Type* types_type) {
+  const ir::Type* ir_type = type_builder_.BuildType(types_type);
   switch (types_type->type_kind()) {
-    case types::TypeKind::kBasic: {
-      const ir::Type* ir_type = type_builder_.BuildType(types_type);
+    case types::TypeKind::kBasic:
       switch (ir_type->type_kind()) {
         case ir::TypeKind::kBool:
           return ir::False();
         case ir::TypeKind::kInt:
           return ir::ZeroWithType(static_cast<const ir::IntType*>(ir_type)->int_type());
-        case ir::TypeKind::kPointer:
-          return ir::NilPointer();
-        case ir::TypeKind::kFunc:
-          return ir::NilFunc();
         case ir::TypeKind::kLangString:
           return std::make_shared<ir_ext::StringConstant>("");
         default:
           common::fail("unexpected ir type for basic type");
       }
-    }
+    case types::TypeKind::kPointer:
+      return ir::NilPointer();
+    case types::TypeKind::kSignature:
+      return ir::NilFunc();
     default:
-      return std::make_shared<ir_ext::StringConstant>("");
-      // TODO: implement more types
-      // common::fail("unexpected lang type");
+      common::fail("unexpected lang type");
+      //      return std::make_shared<ir_ext::StringConstant>("");
+      //      // TODO: implement more types
   }
 }
 
