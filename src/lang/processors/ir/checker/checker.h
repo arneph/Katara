@@ -47,6 +47,8 @@ class Checker : public ::ir_checker::Checker {
   void CheckLoadInstr(const ir::LoadInstr* load_instr) final;
   void CheckStoreInstr(const ir::StoreInstr* store_instr) final;
 
+  void CheckMovInstr(const ir::MovInstr* mov_instr) final;
+  
   void CheckStringIndexInstr(const ir_ext::StringIndexInstr* string_index_instr);
   void CheckStringConcatInstr(const ir_ext::StringConcatInstr* string_concat_instr);
 

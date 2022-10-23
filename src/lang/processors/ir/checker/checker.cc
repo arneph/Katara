@@ -196,10 +196,22 @@ void Checker::CheckStoreInstr(const ir::StoreInstr* store_instr) {
     return;
   }
   auto smart_ptr = static_cast<const ir_ext::SmartPointer*>(store_instr->address()->type());
-  if (!ir::IsEqual(store_instr->value()->type(), smart_ptr->element())) {
+  if (ir::IsEqual(store_instr->value().get(), ir::NilPointer().get())) {
+    return;
+  } else if (!ir::IsEqual(store_instr->value()->type(), smart_ptr->element())) {
     AddIssue(Issue(store_instr, {store_instr->address().get(), store_instr->value().get()},
                    Issue::Kind::kLangStoreToSmartPointerHasMismatchedElementType,
                    "ir::StoreInstr lang::ir_ext::SmartPointer does not match result type"));
+  }
+}
+
+void Checker::CheckMovInstr(const ir::MovInstr *mov_instr) {
+  if ((mov_instr->result()->type()->type_kind() == ir::TypeKind::kLangSharedPointer ||
+       mov_instr->result()->type()->type_kind() == ir::TypeKind::kLangUniquePointer) &&
+      ir::IsEqual(mov_instr->origin().get(), ir::NilPointer().get())) {
+    return;
+  } else {
+    return ::ir_checker::Checker::CheckMovInstr(mov_instr);
   }
 }
 
