@@ -26,7 +26,7 @@ std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfExpr(ast::Expr* expr, A
                                                               IRContext& ir_ctx) {
   switch (expr->node_kind()) {
     case ast::NodeKind::kUnaryExpr:
-      return BuildAddressOfUnaryMemoryExpr(static_cast<ast::UnaryExpr*>(expr), ast_ctx, ir_ctx);
+      return BuildAddressOfUnaryExpr(static_cast<ast::UnaryExpr*>(expr), ast_ctx, ir_ctx);
     case ast::NodeKind::kSelectionExpr:
       // TODO: handle other selection kinds
       return BuildAddressOfStructFieldSelectionExpr(static_cast<ast::SelectionExpr*>(expr), ast_ctx,
@@ -85,14 +85,33 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfExpr(ast::Expr
   }
 }
 
+std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfUnaryExpr(ast::UnaryExpr* expr,
+                                                                   ASTContext& ast_ctx,
+                                                                   IRContext& ir_ctx) {
+  switch (expr->op()) {
+    case tokens::kMul:
+    case tokens::kRem:
+      return std::static_pointer_cast<ir::Computed>(
+          BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front());
+    default:
+      common::fail("unexpected unary op");
+  }
+}
+
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryExpr(ast::UnaryExpr* expr,
                                                               ASTContext& ast_ctx,
                                                               IRContext& ir_ctx) {
   switch (expr->op()) {
+    case tokens::kAnd:
+      if (expr->x()->node_kind() == ast::NodeKind::kCompositeLit) {
+        return BuildValueOfCompositeLitRefExpr(static_cast<ast::CompositeLit*>(expr->x()), ast_ctx,
+                                               ir_ctx);
+      } else {
+        return BuildValueOfRefExpr(expr, ast_ctx, ir_ctx);
+      }
     case tokens::kMul:
     case tokens::kRem:
-    case tokens::kAnd:
-      return BuildValueOfUnaryMemoryExpr(expr, ast_ctx, ir_ctx);
+      return BuildValueOfDeRefExpr(expr, ast_ctx, ir_ctx);
     case tokens::kAdd:
       return BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
     case tokens::kSub:
@@ -125,58 +144,47 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntUnaryExpr(ast::UnaryExpr*
   return value_builder_.BuildIntUnaryOp(op, x, ir_ctx);
 }
 
-std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfUnaryMemoryExpr(ast::UnaryExpr* expr,
-                                                                         ASTContext& ast_ctx,
-                                                                         IRContext& ir_ctx) {
-  if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
-    return std::static_pointer_cast<ir::Computed>(
-        BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front());
-  } else {
-    common::fail("unexpected unary memory expr");
-  }
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfRefExpr(ast::UnaryExpr* expr,
+                                                            ASTContext& ast_ctx,
+                                                            IRContext& ir_ctx) {
+  types::Type* types_pointer_type = type_info_->ExprInfoOf(expr)->type();
+  const ir::Type* ir_pointer_type = type_builder_.BuildType(types_pointer_type);
+  std::shared_ptr<ir::Computed> result =
+      std::make_shared<ir::Computed>(ir_pointer_type, ir_ctx.func()->next_computed_number());
+  std::shared_ptr<ir::Computed> copied = BuildAddressOfExpr(expr->x(), ast_ctx, ir_ctx);
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::CopySharedPointerInstr>(result, copied, ir::I64Zero()));
+  return result;
 }
 
-std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryMemoryExpr(ast::UnaryExpr* expr,
-                                                                    ASTContext& ast_ctx,
-                                                                    IRContext& ir_ctx) {
-  ast::Expr* x = expr->x();
-  if (expr->op() == tokens::kAnd) {
-    if (x->node_kind() == ast::NodeKind::kCompositeLit) {
-      const ir_ext::SharedPointer* ir_struct_pointer_type =
-          type_builder_.BuildStrongPointerToType(type_info_->ExprInfoOf(x)->type());
-      std::shared_ptr<ir::Value> struct_value =
-          BuildValueOfCompositeLit(static_cast<ast::CompositeLit*>(x), ast_ctx, ir_ctx);
-      std::shared_ptr<ir::Computed> struct_address = std::make_shared<ir::Computed>(
-          ir_struct_pointer_type, ir_ctx.func()->next_computed_number());
-      ir_ctx.block()->instrs().push_back(
-          std::make_unique<ir_ext::MakeSharedPointerInstr>(struct_address, ir::I64One()));
-      ir_ctx.block()->instrs().push_back(
-          std::make_unique<ir::StoreInstr>(struct_address, struct_value));
-      return struct_address;
-    } else {
-      types::Type* types_pointer_type = type_info_->ExprInfoOf(expr)->type();
-      const ir::Type* ir_pointer_type = type_builder_.BuildType(types_pointer_type);
-      std::shared_ptr<ir::Computed> result =
-          std::make_shared<ir::Computed>(ir_pointer_type, ir_ctx.func()->next_computed_number());
-      std::shared_ptr<ir::Computed> copied = BuildAddressOfExpr(x, ast_ctx, ir_ctx);
-      ir_ctx.block()->instrs().push_back(
-          std::make_unique<ir_ext::CopySharedPointerInstr>(result, copied, ir::I64Zero()));
-      return result;
-    }
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfCompositeLitRefExpr(ast::CompositeLit* expr,
+                                                                        ASTContext& ast_ctx,
+                                                                        IRContext& ir_ctx) {
+  const ir_ext::SharedPointer* ir_struct_pointer_type =
+      type_builder_.BuildStrongPointerToType(type_info_->ExprInfoOf(expr)->type());
+  std::shared_ptr<ir::Value> struct_value =
+      BuildValueOfCompositeLit(static_cast<ast::CompositeLit*>(expr), ast_ctx, ir_ctx);
+  std::shared_ptr<ir::Computed> struct_address =
+      std::make_shared<ir::Computed>(ir_struct_pointer_type, ir_ctx.func()->next_computed_number());
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::MakeSharedPointerInstr>(struct_address, ir::I64One()));
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir::StoreInstr>(struct_address, struct_value));
+  return struct_address;
+}
 
-  } else if (expr->op() == tokens::kMul || expr->op() == tokens::kRem) {
-    std::shared_ptr<ir::Computed> address =
-        std::static_pointer_cast<ir::Computed>(BuildValuesOfExpr(x, ast_ctx, ir_ctx).front());
-    types::Type* types_value_type = type_info_->ExprInfoOf(expr)->type();
-    const ir::Type* ir_value_type = type_builder_.BuildType(types_value_type);
-    std::shared_ptr<ir::Computed> value =
-        std::make_shared<ir::Computed>(ir_value_type, ir_ctx.func()->next_computed_number());
-    ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(value, address));
-    ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
-    return value;
-  } else {
-    common::fail("unexpected unary memory expr");
-  }
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfDeRefExpr(ast::UnaryExpr* expr,
+                                                              ASTContext& ast_ctx,
+                                                              IRContext& ir_ctx) {
+  std::shared_ptr<ir::Computed> address =
+      std::static_pointer_cast<ir::Computed>(BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front());
+  types::Type* types_value_type = type_info_->ExprInfoOf(expr)->type();
+  const ir::Type* ir_value_type = type_builder_.BuildType(types_value_type);
+  std::shared_ptr<ir::Computed> value =
+      std::make_shared<ir::Computed>(ir_value_type, ir_ctx.func()->next_computed_number());
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(value, address));
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
+  return value;
 }
 
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryExpr(ast::BinaryExpr* expr,

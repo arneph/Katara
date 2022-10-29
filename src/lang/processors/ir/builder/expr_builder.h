@@ -53,17 +53,21 @@ class ExprBuilder {
 
  private:
   // Unary expressions:
+  std::shared_ptr<ir::Computed> BuildAddressOfUnaryExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
+                                                        IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfUnaryExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
                                                    IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfBoolNotExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
                                                      IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfIntUnaryExpr(ast::UnaryExpr* expr, common::Int::UnaryOp op,
                                                       ASTContext& ast_ctx, IRContext& ir_ctx);
-  std::shared_ptr<ir::Computed> BuildAddressOfUnaryMemoryExpr(ast::UnaryExpr* expr,
-                                                              ASTContext& ast_ctx,
-                                                              IRContext& ir_ctx);
-  std::shared_ptr<ir::Value> BuildValueOfUnaryMemoryExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
-                                                         IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValueOfRefExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
+                                                 IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValueOfCompositeLitRefExpr(ast::CompositeLit* expr,
+                                                             ASTContext& ast_ctx,
+                                                             IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValueOfDeRefExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
+                                                   IRContext& ir_ctx);
 
   // Binary expressions:
   std::shared_ptr<ir::Value> BuildValueOfBinaryExpr(ast::BinaryExpr* expr, ASTContext& ast_ctx,
