@@ -27,6 +27,10 @@ enum class ArgsKind {
 
 std::variant<ArgsKind, ErrorCode> FindArgsKind(std::vector<std::filesystem::path>& paths,
                                                Context* ctx) {
+  if (paths.empty()) {
+    *ctx->stderr() << "no path arguments were provided\n";
+    return ErrorCode::kLoadErrorNoPaths;
+  }
   ArgsKind args_kind = ArgsKind::kNone;
   for (std::filesystem::path path : paths) {
     path = ctx->filesystem()->Absolute(path);

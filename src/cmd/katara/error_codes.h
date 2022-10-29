@@ -14,6 +14,7 @@ namespace katara {
 
 enum ErrorCode : int {
   kNoError,
+  kLoadErrorNoPaths,
   kLoadErrorMixedSourceFileArgsWithPackagePathArgs,
   kLoadErrorMultiplePackagePathArgs,
   kLoadErrorForPackage,
