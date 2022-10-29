@@ -85,14 +85,23 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfExpr(ast::Expr
   }
 }
 
+std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfExpr(ast::Expr* expr, ASTContext& ast_ctx,
+                                                         IRContext& ir_ctx) {
+  std::vector<std::shared_ptr<ir::Value>> values = BuildValuesOfExpr(expr, ast_ctx, ir_ctx);
+  if (values.size() != 1) {
+    common::fail("expected exactly one value for the given expression, got: " +
+                 std::to_string(values.size()));
+  }
+  return values.front();
+}
+
 std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfUnaryExpr(ast::UnaryExpr* expr,
                                                                    ASTContext& ast_ctx,
                                                                    IRContext& ir_ctx) {
   switch (expr->op()) {
     case tokens::kMul:
     case tokens::kRem:
-      return std::static_pointer_cast<ir::Computed>(
-          BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front());
+      return std::static_pointer_cast<ir::Computed>(BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx));
     default:
       common::fail("unexpected unary op");
   }
@@ -113,7 +122,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryExpr(ast::UnaryExpr* ex
     case tokens::kRem:
       return BuildValueOfDeRefExpr(expr, ast_ctx, ir_ctx);
     case tokens::kAdd:
-      return BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
+      return BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
     case tokens::kSub:
       return BuildValueOfIntUnaryExpr(expr, common::Int::UnaryOp::kNeg, ast_ctx, ir_ctx);
     case tokens::kXor:
@@ -128,7 +137,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryExpr(ast::UnaryExpr* ex
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBoolNotExpr(ast::UnaryExpr* expr,
                                                                 ASTContext& ast_ctx,
                                                                 IRContext& ir_ctx) {
-  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> x = BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
   return value_builder_.BuildBoolNot(x, ir_ctx);
 }
 
@@ -139,7 +148,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntUnaryExpr(ast::UnaryExpr*
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
   const ir::Type* ir_type = type_builder_.BuildType(basic_type);
-  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> x = BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
   x = value_builder_.BuildConversion(x, ir_type, ir_ctx);
   return value_builder_.BuildIntUnaryOp(op, x, ir_ctx);
 }
@@ -177,7 +186,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfDeRefExpr(ast::UnaryExpr* ex
                                                               ASTContext& ast_ctx,
                                                               IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> address =
-      std::static_pointer_cast<ir::Computed>(BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front());
+      std::static_pointer_cast<ir::Computed>(BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx));
   types::Type* types_value_type = type_info_->ExprInfoOf(expr)->type();
   const ir::Type* ir_value_type = type_builder_.BuildType(types_value_type);
   std::shared_ptr<ir::Computed> value =
@@ -229,8 +238,8 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryExpr(ast::BinaryExpr* 
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfStringConcatExpr(ast::BinaryExpr* expr,
                                                                      ASTContext& ast_ctx,
                                                                      IRContext& ir_ctx) {
-  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> x = BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
+  std::shared_ptr<ir::Value> y = BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
   return value_builder_.BuildStringConcat(x, y, ir_ctx);
 }
 
@@ -241,9 +250,9 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntBinaryExpr(ast::BinaryExp
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
   const ir::Type* ir_type = type_builder_.BuildTypeForBasic(basic_type);
-  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> x = BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
   x = value_builder_.BuildConversion(x, ir_type, ir_ctx);
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> y = BuildValueOfExpr(expr->y(), ast_ctx, ir_ctx);
   y = value_builder_.BuildConversion(y, ir_type, ir_ctx);
   return value_builder_.BuildIntBinaryOp(x, op, y, ir_ctx);
 }
@@ -255,9 +264,9 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntShiftExpr(ast::BinaryExpr
   types::Basic* basic_type =
       static_cast<types::Basic*>(type_info_->ExprInfoOf(expr).value().type());
   const ir::Type* ir_type = type_builder_.BuildTypeForBasic(basic_type);
-  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> x = BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
   x = value_builder_.BuildConversion(x, ir_type, ir_ctx);
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> y = BuildValueOfExpr(expr->y(), ast_ctx, ir_ctx);
   y = value_builder_.BuildConversion(y, ir::u64(), ir_ctx);
   return value_builder_.BuildIntShiftOp(x, op, y, ir_ctx);
 }
@@ -265,12 +274,12 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntShiftExpr(ast::BinaryExpr
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryExpr* expr,
                                                                     ASTContext& ast_ctx,
                                                                     IRContext& ir_ctx) {
-  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(expr->x(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> x = BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
   ir::Block* x_exit_block = ir_ctx.block();
 
   ir::Block* y_entry_block = ir_ctx.func()->AddBlock();
   IRContext y_ir_ctx = ir_ctx.ChildContextFor(y_entry_block);
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(expr->y(), ast_ctx, y_ir_ctx).front();
+  std::shared_ptr<ir::Value> y = BuildValueOfExpr(expr->y(), ast_ctx, y_ir_ctx);
   ir::Block* y_exit_block = y_ir_ctx.block();
 
   ir::Block* merge_block = ir_ctx.func()->AddBlock();
@@ -328,11 +337,11 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfSingleCompareExpr(ast::Compa
                                                                       IRContext& ir_ctx) {
   ast::Expr* x_expr = expr->operands().front();
   types::Type* x_type = type_info_->ExprInfoOf(x_expr)->type();
-  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(x_expr, ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> x = BuildValueOfExpr(x_expr, ast_ctx, ir_ctx);
 
   ast::Expr* y_expr = expr->operands().back();
   types::Type* y_type = type_info_->ExprInfoOf(y_expr)->type();
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(y_expr, ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> y = BuildValueOfExpr(y_expr, ast_ctx, ir_ctx);
 
   return BuildValueOfComparison(expr->compare_ops().front(), x, x_type, y, y_type, ast_ctx, ir_ctx);
 }
@@ -342,12 +351,12 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfMultipleCompareExpr(ast::Com
                                                                         IRContext& ir_ctx) {
   ast::Expr* x_expr = expr->operands().front();
   types::Type* x_type = type_info_->ExprInfoOf(x_expr)->type();
-  std::shared_ptr<ir::Value> x = BuildValuesOfExpr(x_expr, ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> x = BuildValueOfExpr(x_expr, ast_ctx, ir_ctx);
 
   tokens::Token op = expr->compare_ops().front();
   ast::Expr* y_expr = expr->operands().at(1);
   types::Type* y_type = type_info_->ExprInfoOf(y_expr)->type();
-  std::shared_ptr<ir::Value> y = BuildValuesOfExpr(y_expr, ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> y = BuildValueOfExpr(y_expr, ast_ctx, ir_ctx);
 
   std::shared_ptr<ir::Value> partial_result =
       BuildValueOfComparison(op, x, x_type, y, y_type, ast_ctx, ir_ctx);
@@ -375,7 +384,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfMultipleCompareExpr(ast::Com
     op = expr->compare_ops().at(i);
     y_expr = expr->operands().at(i + 1);
     y_type = type_info_->ExprInfoOf(y_expr)->type();
-    y = BuildValuesOfExpr(y_expr, ast_ctx, ir_ctx).front();
+    y = BuildValueOfExpr(y_expr, ast_ctx, ir_ctx);
 
     partial_result = BuildValueOfComparison(op, x, x_type, y, y_type, ast_ctx, ir_ctx);
     prior_block = ir_ctx.block();
@@ -516,8 +525,8 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIndexExpr(ast::IndexExpr* ex
   if (types_accessed_underlying_type->type_kind() == types::TypeKind::kBasic) {
     // Note: strings are the only basic type that can be indexed
     const ir::Type* rune_type = ir::i32();
-    std::shared_ptr<ir::Value> string = BuildValuesOfExpr(accessed_expr, ast_ctx, ir_ctx).front();
-    std::shared_ptr<ir::Value> index = BuildValuesOfExpr(index_expr, ast_ctx, ir_ctx).front();
+    std::shared_ptr<ir::Value> string = BuildValueOfExpr(accessed_expr, ast_ctx, ir_ctx);
+    std::shared_ptr<ir::Value> index = BuildValueOfExpr(index_expr, ast_ctx, ir_ctx);
     std::shared_ptr<ir::Computed> value =
         std::make_shared<ir::Computed>(rune_type, ir_ctx.func()->next_computed_number());
     ir_ctx.block()->instrs().push_back(
@@ -609,7 +618,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValuesOfNewCall(ast::CallExpr* expr
 
 std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExprWithFuncCall(
     ast::CallExpr* expr, ASTContext& ast_ctx, IRContext& ir_ctx) {
-  std::shared_ptr<ir::Value> ir_func = BuildValuesOfExpr(expr->func(), ast_ctx, ir_ctx).front();
+  std::shared_ptr<ir::Value> ir_func = BuildValueOfExpr(expr->func(), ast_ctx, ir_ctx);
   // TODO: support type parameters
   // TODO: support receivers
 

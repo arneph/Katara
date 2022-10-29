@@ -50,6 +50,8 @@ class ExprBuilder {
                                                              IRContext& ir_ctx);
   std::vector<std::shared_ptr<ir::Value>> BuildValuesOfExpr(ast::Expr* expr, ASTContext& ast_ctx,
                                                             IRContext& ir_ctx);
+  std::shared_ptr<ir::Value> BuildValueOfExpr(ast::Expr* expr, ASTContext& ast_ctx,
+                                              IRContext& ir_ctx);
 
  private:
   // Unary expressions:
