@@ -82,10 +82,12 @@ func main() int {
   {0}
     %0:lshared_ptr<i64, s> = make_shared #1:i64
     store %0, #0:i64
-    store %0, #42:i64
-    %1:i64 = load %0
+    %1:lshared_ptr<i64, s> = copy_shared %0, #0:i64
+    store %1, #42:i64
+    delete_shared %1
+    %2:i64 = load %0
     delete_shared %0
-    ret %1
+    ret %2
 }
 )ir",
                              },
@@ -103,11 +105,13 @@ func a() *uint16 {
   {0}
     %0:lshared_ptr<u16, s> = make_shared #1:i64
     store %0, #0:u16
-    %1:u16 = conv #65535:i64
-    store %0, %1
-    %2:lshared_ptr<u16, s> = copy_shared %0, #0:i64
+    %1:lshared_ptr<u16, s> = copy_shared %0, #0:i64
+    %2:u16 = conv #65535:i64
+    store %1, %2
+    delete_shared %1
+    %3:lshared_ptr<u16, s> = copy_shared %0, #0:i64
     delete_shared %0
-    ret %2
+    ret %3
 }
 )ir",
                              },
@@ -125,15 +129,17 @@ func a() *int32 {
   {0}
     %0:lshared_ptr<lshared_ptr<i32, s>, s> = make_shared #1:i64
     store %0, 0x0
-    %1:lshared_ptr<i32, s> = make_shared #1:i64
-    store %1, #0:i32
-    %2:lshared_ptr<i32, s> = load %0
-    delete_shared %2
-    store %0, %1
-    %3:lshared_ptr<i32, s> = load %0
-    %4:lshared_ptr<i32, s> = copy_shared %3, #0:i64
+    %1:lshared_ptr<lshared_ptr<i32, s>, s> = copy_shared %0, #0:i64
+    %2:lshared_ptr<i32, s> = make_shared #1:i64
+    store %2, #0:i32
+    %3:lshared_ptr<i32, s> = load %1
+    delete_shared %3
+    store %1, %2
+    delete_shared %1
+    %4:lshared_ptr<i32, s> = load %0
+    %5:lshared_ptr<i32, s> = copy_shared %4, #0:i64
     delete_shared %0
-    ret %4
+    ret %5
 }
 )ir",
                              },
@@ -152,23 +158,27 @@ func a() *int32 {
   {0}
     %0:lshared_ptr<lshared_ptr<i32, s>, s> = make_shared #1:i64
     store %0, 0x0
-    %1:lshared_ptr<i32, s> = make_shared #1:i64
-    store %1, #0:i32
-    %2:lshared_ptr<i32, s> = load %0
-    delete_shared %2
-    store %0, %1
-    %3:lshared_ptr<lshared_ptr<i32, s>, s> = make_shared #1:i64
-    store %3, 0x0
-    %4:lshared_ptr<i32, s> = load %0
-    %5:lshared_ptr<i32, s> = copy_shared %4, #0:i64
-    %6:lshared_ptr<i32, s> = load %3
-    delete_shared %6
-    store %3, %5
-    %7:lshared_ptr<i32, s> = load %3
-    %8:lshared_ptr<i32, s> = copy_shared %7, #0:i64
+    %1:lshared_ptr<lshared_ptr<i32, s>, s> = copy_shared %0, #0:i64
+    %2:lshared_ptr<i32, s> = make_shared #1:i64
+    store %2, #0:i32
+    %3:lshared_ptr<i32, s> = load %1
     delete_shared %3
+    store %1, %2
+    delete_shared %1
+    %4:lshared_ptr<lshared_ptr<i32, s>, s> = make_shared #1:i64
+    store %4, 0x0
+    %5:lshared_ptr<lshared_ptr<i32, s>, s> = copy_shared %4, #0:i64
+    %6:lshared_ptr<i32, s> = load %0
+    %7:lshared_ptr<i32, s> = copy_shared %6, #0:i64
+    %8:lshared_ptr<i32, s> = load %5
+    delete_shared %8
+    store %5, %7
+    delete_shared %5
+    %9:lshared_ptr<i32, s> = load %4
+    %10:lshared_ptr<i32, s> = copy_shared %9, #0:i64
+    delete_shared %4
     delete_shared %0
-    ret %8
+    ret %10
 }
 )ir",
                              },
@@ -205,12 +215,145 @@ func a() int {
   {0}
     %0:lshared_ptr<i64, s> = make_shared #1:i64
     store %0, #0:i64
-    store %0, #42:i64
     %1:lshared_ptr<i64, s> = copy_shared %0, #0:i64
-    %2:i64 = load %1
+    store %1, #42:i64
     delete_shared %1
+    %2:lshared_ptr<i64, s> = copy_shared %0, #0:i64
+    %3:i64 = load %2
+    delete_shared %2
     delete_shared %0
-    ret %2
+  ret %3
+}
+)ir",
+                             },
+                             IRBuilderTestParams{
+                                 .input_lang_program = R"kat(
+package main
+
+func get(a *uint16) uint16 {
+  return *a
+}
+)kat",
+                                 .expected_ir_program = R"ir(
+@0 get (%0:lshared_ptr<u16, s>) => (u16) {
+  {0}
+    %1:lshared_ptr<lshared_ptr<u16, s>, s> = make_shared #1:i64
+    store %1, 0x0
+    store %1, %0
+    %2:lshared_ptr<u16, s> = load %1
+    %3:lshared_ptr<u16, s> = copy_shared %2, #0:i64
+    %4:u16 = load %3
+    delete_shared %3
+    delete_shared %1
+    ret %4
+}
+)ir",
+                             },
+                             IRBuilderTestParams{
+                                 .input_lang_program = R"kat(
+package main
+
+func set(a *uint16) {
+  *a = 123
+}
+)kat",
+                                 .expected_ir_program = R"ir(
+@0 set (%0:lshared_ptr<u16, s>) => () {
+  {0}
+    %1:lshared_ptr<lshared_ptr<u16, s>, s> = make_shared #1:i64
+    store %1, 0x0
+    store %1, %0
+    %2:lshared_ptr<u16, s> = load %1
+    %3:lshared_ptr<u16, s> = copy_shared %2, #0:i64
+    %4:u16 = conv #123:i64
+    store %3, %4
+    delete_shared %3
+    delete_shared %1
+    ret
+}
+)ir",
+                             },
+                             IRBuilderTestParams{
+                                 .input_lang_program = R"kat(
+package main
+
+func inc(a *uint16) {
+  *a = *a + 1
+}
+)kat",
+                                 .expected_ir_program = R"ir(
+@0 inc (%0:lshared_ptr<u16, s>) => () {
+  {0}
+    %1:lshared_ptr<lshared_ptr<u16, s>, s> = make_shared #1:i64
+    store %1, 0x0
+    store %1, %0
+    %2:lshared_ptr<u16, s> = load %1
+    %3:lshared_ptr<u16, s> = copy_shared %2, #0:i64
+    %4:lshared_ptr<u16, s> = load %1
+    %5:lshared_ptr<u16, s> = copy_shared %4, #0:i64
+    %6:u16 = load %5
+    delete_shared %5
+    %7:u16 = conv #1:i64
+    %8:u16 = iadd %6, %7
+    store %3, %8
+    delete_shared %3
+    delete_shared %1
+    ret
+}
+)ir",
+                             },
+                             IRBuilderTestParams{
+                                 .input_lang_program = R"kat(
+package main
+
+func inc(a *uint16) {
+  *a++
+}
+)kat",
+                                 .expected_ir_program = R"ir(
+@0 inc (%0:lshared_ptr<u16, s>) => () {
+  {0}
+    %1:lshared_ptr<lshared_ptr<u16, s>, s> = make_shared #1:i64
+    store %1, 0x0
+    store %1, %0
+    %2:lshared_ptr<u16, s> = load %1
+    %3:lshared_ptr<u16, s> = copy_shared %2, #0:i64
+    %4:u16 = load %3
+    %5:u16 = iadd %4, #1:u16
+    store %3, %5
+    delete_shared %3
+    delete_shared %1
+    ret
+}
+)ir",
+                             },
+                             IRBuilderTestParams{
+                                 .input_lang_program = R"kat(
+package main
+
+func add(a *uint16, b uint16) {
+  *a += b
+}
+)kat",
+                                 .expected_ir_program = R"ir(
+@0 add (%0:lshared_ptr<u16, s>, %2:u16) => () {
+  {0}
+    %1:lshared_ptr<lshared_ptr<u16, s>, s> = make_shared #1:i64
+    store %1, 0x0
+    store %1, %0
+    %3:lshared_ptr<u16, s> = make_shared #1:i64
+    store %3, #0:u16
+    store %3, %2
+    %4:lshared_ptr<u16, s> = load %1
+    %5:lshared_ptr<u16, s> = copy_shared %4, #0:i64
+    %6:u16 = load %3
+    %7:u16 = load %5
+    %8:u16 = iadd %7, %6
+    store %5, %8
+    delete_shared %5
+    delete_shared %3
+    delete_shared %1
+    ret
 }
 )ir",
                              }));

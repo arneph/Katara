@@ -279,8 +279,12 @@ void StmtBuilder::BuildAssignmentsForValueSpec(ast::ValueSpec* value_spec, ASTCo
       continue;
     }
     std::shared_ptr<ir::Computed> address = ast_ctx.LookupAddressOfVar(var);
+    std::shared_ptr<ir::Computed> copy =
+        std::make_shared<ir::Computed>(address->type(), ir_ctx.func()->next_computed_number());
+    ir_ctx.block()->instrs().push_back(
+        std::make_unique<ir_ext::CopySharedPointerInstr>(copy, address, /*offset=*/ir::I64Zero()));
     std::shared_ptr<ir::Value> value = values.at(i);
-    BuildAssignment(address, value, ir_ctx);
+    BuildAssignment(copy, value, ir_ctx);
   }
 }
 
@@ -307,6 +311,8 @@ void StmtBuilder::BuildAssignment(std::shared_ptr<ir::Computed> lhs_address,
   }
   rhs_value = value_builder_.BuildConversion(rhs_value, lhs_type, ir_ctx);
   ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(lhs_address, rhs_value));
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::DeleteSharedPointerInstr>(lhs_address));
 }
 
 void StmtBuilder::BuildExprStmt(ast::ExprStmt* expr_stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {
@@ -336,6 +342,7 @@ void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, ASTContext& ast
   ir_ctx.block()->instrs().push_back(
       std::make_unique<ir::IntBinaryInstr>(new_value, op, old_value, one));
   ir_ctx.block()->instrs().push_back(std::make_unique<ir::StoreInstr>(address, new_value));
+  ir_ctx.block()->instrs().push_back(std::make_unique<ir_ext::DeleteSharedPointerInstr>(address));
 }
 
 void StmtBuilder::BuildIfStmt(ast::IfStmt* if_stmt, ASTContext& ast_ctx, IRContext& ir_ctx) {

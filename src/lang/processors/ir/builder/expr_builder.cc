@@ -34,7 +34,7 @@ std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfExpr(ast::Expr* expr, A
     case ast::NodeKind::kIndexExpr:
       return BuildAddressOfIndexExpr(static_cast<ast::IndexExpr*>(expr), ast_ctx, ir_ctx);
     case ast::NodeKind::kIdent:
-      return BuildAddressOfIdent(static_cast<ast::Ident*>(expr), ast_ctx);
+      return BuildAddressOfIdent(static_cast<ast::Ident*>(expr), ast_ctx, ir_ctx);
     default:
       common::fail("unexpected addressable expr");
   }
@@ -156,14 +156,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntUnaryExpr(ast::UnaryExpr*
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfRefExpr(ast::UnaryExpr* expr,
                                                             ASTContext& ast_ctx,
                                                             IRContext& ir_ctx) {
-  types::Type* types_pointer_type = type_info_->ExprInfoOf(expr)->type();
-  const ir::Type* ir_pointer_type = type_builder_.BuildType(types_pointer_type);
-  std::shared_ptr<ir::Computed> result =
-      std::make_shared<ir::Computed>(ir_pointer_type, ir_ctx.func()->next_computed_number());
-  std::shared_ptr<ir::Computed> copied = BuildAddressOfExpr(expr->x(), ast_ctx, ir_ctx);
-  ir_ctx.block()->instrs().push_back(
-      std::make_unique<ir_ext::CopySharedPointerInstr>(result, copied, ir::I64Zero()));
-  return result;
+  return BuildAddressOfExpr(expr->x(), ast_ctx, ir_ctx);
 }
 
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfCompositeLitRefExpr(ast::CompositeLit* expr,
@@ -668,10 +661,16 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBasicLit(ast::BasicLit* basi
 }
 
 std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfIdent(ast::Ident* ident,
-                                                               ASTContext& ast_ctx) {
+                                                               ASTContext& ast_ctx,
+                                                               IRContext& ir_ctx) {
   types::Object* object = type_info_->ObjectOf(ident);
   types::Variable* var = static_cast<types::Variable*>(object);
-  return ast_ctx.LookupAddressOfVar(var);
+  std::shared_ptr<ir::Computed> address = ast_ctx.LookupAddressOfVar(var);
+  std::shared_ptr<ir::Computed> copy =
+      std::make_shared<ir::Computed>(address->type(), ir_ctx.func()->next_computed_number());
+  ir_ctx.block()->instrs().push_back(
+      std::make_unique<ir_ext::CopySharedPointerInstr>(copy, address, /*offset=*/ir::I64Zero()));
+  return copy;
 }
 
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIdent(ast::Ident* ident, ASTContext& ast_ctx,
