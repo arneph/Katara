@@ -16,7 +16,7 @@
 namespace lang {
 namespace ast {
 
-common::Graph NodeToTree(const common::FileSet* file_set, Node* node) {
+common::Graph NodeToTree(const common::PosFileSet* file_set, Node* node) {
   common::Graph graph(/*is_directed=*/true);
   std::vector<int64_t> stack;
   int64_t count = 0;
@@ -42,7 +42,7 @@ common::Graph NodeToTree(const common::FileSet* file_set, Node* node) {
       title = "node";
       color = common::kRed;
     }
-    common::File* file = file_set->FileAt(ast_node->start());
+    common::PosFile* file = file_set->FileAt(ast_node->start());
     std::string text = file->contents(ast_node->start(), ast_node->end());
     if (auto it = std::find(text.begin(), text.end(), '\n'); it != text.end()) {
       text = std::string(text.begin(), it) + "...";

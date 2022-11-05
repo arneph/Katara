@@ -150,7 +150,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path, std::filesystem::path
 
   ast::ASTBuilder ast_builder = ast_.builder();
   std::map<std::string, ast::File*> ast_files;
-  for (common::File* pos_file : pkg->pos_files_) {
+  for (common::PosFile* pos_file : pkg->pos_files_) {
     ast::File* ast_file = parser::Parser::ParseFile(pos_file, ast_builder, pkg->issue_tracker_);
     ast_files.insert({pos_file->name(), ast_file});
   }

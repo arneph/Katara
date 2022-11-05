@@ -39,8 +39,9 @@ std::string InsertLineNumbers(std::string text, int64_t& line_number) {
 };  // namespace
 
 FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
-                                     const common::FileSet* pos_file_set, types::Info* type_info) {
-  common::File* pos_file = pos_file_set->FileAt(ast_file->start());
+                                     const common::PosFileSet* pos_file_set,
+                                     types::Info* type_info) {
+  common::PosFile* pos_file = pos_file_set->FileAt(ast_file->start());
   scanner::Scanner scanner(pos_file);
   common::pos_t last_pos = pos_file->start() - 1;
   std::ostringstream ss;
@@ -76,7 +77,7 @@ FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
       id = "p" + std::to_string(scanner.token_start());
       types::Object* obj = type_info->ObjectOf(ident);
       if (obj != nullptr && obj->package() != nullptr) {
-        common::File* obj_file = pos_file_set->FileAt(obj->position());
+        common::PosFile* obj_file = pos_file_set->FileAt(obj->position());
         classs = "p" + std::to_string(obj->position());
         link = html::GroupLink{
             .link = obj_file->name() + ".html#" + classs,

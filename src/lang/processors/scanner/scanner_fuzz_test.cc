@@ -20,8 +20,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
 
   std::string contents(reinterpret_cast<const char*>(data), size);
 
-  common::FileSet pos_file_set;
-  common::File* pos_file = pos_file_set.AddFile("test_file.kat", contents);
+  common::PosFileSet pos_file_set;
+  common::PosFile* pos_file = pos_file_set.AddFile("test_file.kat", contents);
 
   scanner::Scanner scanner(pos_file);
 

@@ -244,7 +244,7 @@ class IssueTracker {
     kTerminal,
   };
 
-  IssueTracker(const common::FileSet* file_set) : file_set_(file_set) {}
+  IssueTracker(const common::PosFileSet* file_set) : file_set_(file_set) {}
 
   bool has_warnings() const;
   bool has_errors() const;
@@ -258,7 +258,7 @@ class IssueTracker {
   void PrintIssues(PrintFormat format, std::ostream* out) const;
 
  private:
-  const common::FileSet* file_set_;
+  const common::PosFileSet* file_set_;
   std::vector<Issue> issues_;
 };
 

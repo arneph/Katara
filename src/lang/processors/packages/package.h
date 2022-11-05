@@ -31,21 +31,21 @@ class Package {
   // Returns the absolute directory containing the package, e.g. to write debug information to.
   std::filesystem::path directory() const { return directory_; }
 
-  const std::vector<common::File*>& pos_files() const { return pos_files_; }
+  const std::vector<common::PosFile*>& pos_files() const { return pos_files_; }
   ast::Package* ast_package() const { return ast_package_; }
   types::Package* types_package() const { return types_package_; }
 
   const issues::IssueTracker& issue_tracker() const { return issue_tracker_; }
 
  private:
-  Package(const common::FileSet* file_set)
+  Package(const common::PosFileSet* file_set)
       : ast_package_(nullptr), types_package_(nullptr), issue_tracker_(file_set) {}
 
   std::string name_;
   std::string path_;
   std::filesystem::path directory_;
 
-  std::vector<common::File*> pos_files_;
+  std::vector<common::PosFile*> pos_files_;
   ast::Package* ast_package_;
   types::Package* types_package_;
 

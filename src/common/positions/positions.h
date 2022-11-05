@@ -37,9 +37,9 @@ struct Position {
   const int64_t column_;
 };
 
-class FileSet;
+class PosFileSet;
 
-class File {
+class PosFile {
  public:
   std::string name() const { return name_; }
   pos_t start() const { return line_starts_.front(); }
@@ -53,24 +53,24 @@ class File {
   Position PositionFor(pos_t pos) const;
 
  private:
-  File(std::string name, pos_t start, std::string contents);
+  PosFile(std::string name, pos_t start, std::string contents);
 
   std::string name_;
   std::string contents_;
   std::vector<pos_t> line_starts_;
 
-  friend FileSet;
+  friend PosFileSet;
 };
 
-class FileSet {
+class PosFileSet {
  public:
   Position PositionFor(pos_t pos) const;
-  File* FileAt(pos_t pos) const;
+  PosFile* FileAt(pos_t pos) const;
 
-  File* AddFile(std::string name, std::string contents);
+  PosFile* AddFile(std::string name, std::string contents);
 
  private:
-  std::vector<std::unique_ptr<class File>> files_;
+  std::vector<std::unique_ptr<class PosFile>> files_;
 };
 
 }  // namespace common

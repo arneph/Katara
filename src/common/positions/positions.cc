@@ -32,7 +32,7 @@ std::string Position::ToString() const {
   return s;
 }
 
-File::File(std::string name, pos_t start, std::string contents) {
+PosFile::PosFile(std::string name, pos_t start, std::string contents) {
   name_ = name;
   contents_ = contents;
   line_starts_.push_back(start);
@@ -44,7 +44,7 @@ File::File(std::string name, pos_t start, std::string contents) {
   }
 }
 
-std::string File::contents(pos_t ps, pos_t pe) const {
+std::string PosFile::contents(pos_t ps, pos_t pe) const {
   if (ps < start() || pe > end() || pe < ps) {
     return "";
   }
@@ -55,14 +55,14 @@ std::string File::contents(pos_t ps, pos_t pe) const {
   return contents_.substr(cs, ce - cs + 1);
 }
 
-char File::at(pos_t pos) const {
+char PosFile::at(pos_t pos) const {
   if (pos == end()) {
     return '\0';
   }
   return contents_.at(pos - line_starts_.at(0));
 }
 
-int64_t File::LineNumberFor(pos_t pos) const {
+int64_t PosFile::LineNumberFor(pos_t pos) const {
   if (pos < start() || pos > end()) {
     return 0;
   }
@@ -74,7 +74,7 @@ int64_t File::LineNumberFor(pos_t pos) const {
   return line_starts_.size();
 }
 
-std::string File::LineFor(pos_t pos) const {
+std::string PosFile::LineFor(pos_t pos) const {
   int64_t line = LineNumberFor(pos);
   if (line == 0) {
     return nullptr;
@@ -87,7 +87,7 @@ std::string File::LineFor(pos_t pos) const {
   return contents_.substr(s, e - s);
 }
 
-Position File::PositionFor(pos_t pos) const {
+Position PosFile::PositionFor(pos_t pos) const {
   int64_t line = LineNumberFor(pos);
   if (line == 0) {
     return Position();
@@ -96,15 +96,15 @@ Position File::PositionFor(pos_t pos) const {
   return Position(name_, line, column);
 }
 
-Position FileSet::PositionFor(pos_t pos) const {
-  File* file = FileAt(pos);
+Position PosFileSet::PositionFor(pos_t pos) const {
+  PosFile* file = FileAt(pos);
   if (file) {
     return file->PositionFor(pos);
   }
   return Position();
 }
 
-File* FileSet::FileAt(pos_t pos) const {
+PosFile* PosFileSet::FileAt(pos_t pos) const {
   for (auto& file : files_) {
     if (file->start() <= pos && pos <= file->end()) {
       return file.get();
@@ -113,13 +113,13 @@ File* FileSet::FileAt(pos_t pos) const {
   return nullptr;
 }
 
-File* FileSet::AddFile(std::string name, std::string contents) {
+PosFile* PosFileSet::AddFile(std::string name, std::string contents) {
   pos_t p = kNoPos + 1;
   if (!files_.empty()) {
     auto& last_file = files_.back();
     p = last_file->end() + 1;
   }
-  files_.push_back(std::unique_ptr<File>(new File(name, p, contents)));
+  files_.push_back(std::unique_ptr<PosFile>(new PosFile(name, p, contents)));
   return files_.back().get();
 }
 

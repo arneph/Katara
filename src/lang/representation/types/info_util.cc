@@ -23,14 +23,15 @@
 namespace lang {
 namespace types {
 
-void TypesToText(const common::FileSet* file_set, Info* info, std::stringstream& ss);
-void ConstantExpressionsToText(const common::FileSet* file_set, Info* info, std::stringstream& ss);
-void ConstantsToText(const common::FileSet* file_set, Info* info, std::stringstream& ss);
-void DefinitionsToText(const common::FileSet* file_set, Info* info, std::stringstream& ss);
-void UsesToText(const common::FileSet* file_set, Info* info, std::stringstream& ss);
-void ImplicitsToText(const common::FileSet* file_set, Info* info, std::stringstream& ss);
+void TypesToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss);
+void ConstantExpressionsToText(const common::PosFileSet* file_set, Info* info,
+                               std::stringstream& ss);
+void ConstantsToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss);
+void DefinitionsToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss);
+void UsesToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss);
+void ImplicitsToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss);
 
-std::string InfoToText(const common::FileSet* file_set, Info* info) {
+std::string InfoToText(const common::PosFileSet* file_set, Info* info) {
   std::stringstream ss;
 
   TypesToText(file_set, info, ss);
@@ -43,7 +44,7 @@ std::string InfoToText(const common::FileSet* file_set, Info* info) {
   return ss.str();
 }
 
-void TypesToText(const common::FileSet* file_set, Info* info, std::stringstream& ss) {
+void TypesToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Types:\n";
   size_t max_pos = 0;
   size_t max_expr = 0;
@@ -58,7 +59,7 @@ void TypesToText(const common::FileSet* file_set, Info* info, std::stringstream&
   for (auto& [expr, expr_info] : info->expr_infos()) {
     if (expr_info.type() == nullptr) continue;
     common::Position pos = file_set->PositionFor(expr->start());
-    common::File* file = file_set->FileAt(expr->start());
+    common::PosFile* file = file_set->FileAt(expr->start());
 
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
     ss << std::setw(int(max_expr)) << std::left << file->contents(expr->start(), expr->end())
@@ -69,7 +70,8 @@ void TypesToText(const common::FileSet* file_set, Info* info, std::stringstream&
   ss << "\n";
 }
 
-void ConstantExpressionsToText(const common::FileSet* file_set, Info* info, std::stringstream& ss) {
+void ConstantExpressionsToText(const common::PosFileSet* file_set, Info* info,
+                               std::stringstream& ss) {
   ss << "Constant Expressions:\n";
   size_t max_pos = 0;
   size_t max_expr = 0;
@@ -88,7 +90,7 @@ void ConstantExpressionsToText(const common::FileSet* file_set, Info* info, std:
       continue;
     }
     common::Position pos = file_set->PositionFor(expr->start());
-    common::File* file = file_set->FileAt(expr->start());
+    common::PosFile* file = file_set->FileAt(expr->start());
 
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
     ss << std::setw(int(max_expr)) << std::left << file->contents(expr->start(), expr->end())
@@ -98,7 +100,7 @@ void ConstantExpressionsToText(const common::FileSet* file_set, Info* info, std:
   ss << "\n";
 }
 
-void ConstantsToText(const common::FileSet* file_set, Info* info, std::stringstream& ss) {
+void ConstantsToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Constants:\n";
   size_t max_pos = 0;
   size_t max_ident = 0;
@@ -115,7 +117,7 @@ void ConstantsToText(const common::FileSet* file_set, Info* info, std::stringstr
     if (obj->object_kind() != ObjectKind::kConstant) continue;
     Constant* constant = static_cast<Constant*>(obj);
     common::Position pos = file_set->PositionFor(expr->start());
-    common::File* file = file_set->FileAt(expr->start());
+    common::PosFile* file = file_set->FileAt(expr->start());
 
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
     ss << std::setw(int(max_ident)) << std::left << file->contents(expr->start(), expr->end())
@@ -125,7 +127,7 @@ void ConstantsToText(const common::FileSet* file_set, Info* info, std::stringstr
   ss << "\n";
 }
 
-void DefinitionsToText(const common::FileSet* file_set, Info* info, std::stringstream& ss) {
+void DefinitionsToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Definitions:\n";
   size_t max_pos = 0;
   size_t max_ident = 0;
@@ -146,7 +148,7 @@ void DefinitionsToText(const common::FileSet* file_set, Info* info, std::strings
   ss << "\n";
 }
 
-void UsesToText(const common::FileSet* file_set, Info* info, std::stringstream& ss) {
+void UsesToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Uses:\n";
   size_t max_pos = 0;
   size_t max_ident = 0;
@@ -167,7 +169,7 @@ void UsesToText(const common::FileSet* file_set, Info* info, std::stringstream& 
   ss << "\n";
 }
 
-void ImplicitsToText(const common::FileSet* file_set, Info* info, std::stringstream& ss) {
+void ImplicitsToText(const common::PosFileSet* file_set, Info* info, std::stringstream& ss) {
   ss << "Implicits:\n";
   size_t max_pos = 0;
   size_t max_obj = 0;

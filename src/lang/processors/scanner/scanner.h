@@ -19,7 +19,7 @@ namespace scanner {
 
 class Scanner {
  public:
-  Scanner(common::File* file);
+  Scanner(common::PosFile* file);
 
   tokens::Token token() const;
   common::pos_t token_start() const;
@@ -30,7 +30,7 @@ class Scanner {
   void SkipPastLine();
 
  private:
-  const common::File* file_;
+  const common::PosFile* file_;
 
   common::pos_t pos_;
 

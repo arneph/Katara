@@ -27,7 +27,7 @@ namespace parser {
 
 class Parser {
  public:
-  static ast::File* ParseFile(common::File* file, ast::ASTBuilder& ast_builder,
+  static ast::File* ParseFile(common::PosFile* file, ast::ASTBuilder& ast_builder,
                               issues::IssueTracker& issues);
 
  private:

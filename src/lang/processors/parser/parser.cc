@@ -13,7 +13,7 @@
 namespace lang {
 namespace parser {
 
-ast::File* Parser::ParseFile(common::File* file, ast::ASTBuilder& builder,
+ast::File* Parser::ParseFile(common::PosFile* file, ast::ASTBuilder& builder,
                              issues::IssueTracker& issues) {
   scanner::Scanner scanner(file);
   Parser parser(scanner, builder, issues);

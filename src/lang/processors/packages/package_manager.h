@@ -37,7 +37,7 @@ class PackageManager {
   std::filesystem::path stdlib_path() const { return stdlib_path_; }
   std::filesystem::path src_path() const { return src_path_; }
 
-  const common::FileSet* file_set() const { return &file_set_; }
+  const common::PosFileSet* file_set() const { return &file_set_; }
   const issues::IssueTracker* issue_tracker() const { return &issue_tracker_; }
   const ast::AST* ast() const { return &ast_; }
   const types::Info* type_info() const { return &type_info_; }
@@ -75,7 +75,7 @@ class PackageManager {
   std::filesystem::path stdlib_path_;
   std::filesystem::path src_path_;
 
-  common::FileSet file_set_;
+  common::PosFileSet file_set_;
   issues::IssueTracker issue_tracker_;
   ast::AST ast_;
   types::Info type_info_;
