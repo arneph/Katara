@@ -1,5 +1,5 @@
 //
-//  parser_fuzz_test.cpp
+//  parser_fuzz_test.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 12/19/20.
@@ -12,7 +12,6 @@
 #include <vector>
 
 #include "src/common/positions/positions.h"
-#include "src/lang/processors/issues/issues.h"
 #include "src/lang/processors/scanner/scanner.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
