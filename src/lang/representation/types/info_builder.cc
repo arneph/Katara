@@ -87,7 +87,7 @@ void InfoBuilder::CreatePredeclaredTypes() {
     }
 
     std::unique_ptr<types::TypeName> type_name(
-        new types::TypeName(info_->universe(), nullptr, pos::kNoPos, predeclared_type.name));
+        new types::TypeName(info_->universe(), nullptr, common::kNoPos, predeclared_type.name));
     type_name->type_ = basic_ptr;
 
     types::TypeName* type_name_ptr = type_name.get();
@@ -109,7 +109,7 @@ void InfoBuilder::CreatePredeclaredConstants() {
   });
   for (auto predeclared_const : predeclared_consts) {
     std::unique_ptr<types::Constant> constant(
-        new Constant(info_->universe(), nullptr, pos::kNoPos, predeclared_const.name));
+        new Constant(info_->universe(), nullptr, common::kNoPos, predeclared_const.name));
     constant->type_ = info_->basic_types_.at(predeclared_const.kind);
     constant->value_ = predeclared_const.value;
 
@@ -568,7 +568,7 @@ void InfoBuilder::SetInterfaceMembers(Interface* interface,
 }
 
 TypeName* InfoBuilder::CreateTypeNameForTypeParameter(Scope* parent, Package* package,
-                                                      pos::pos_t position, std::string name) {
+                                                      common::pos_t position, std::string name) {
   CheckObjectArgs(parent, package);
   std::unique_ptr<TypeName> type_name(new TypeName(parent, package, position, name));
   type_name->type_ = CreateTypeParameter(name);
@@ -578,7 +578,7 @@ TypeName* InfoBuilder::CreateTypeNameForTypeParameter(Scope* parent, Package* pa
 }
 
 TypeName* InfoBuilder::CreateTypeNameForNamedType(Scope* parent, Package* package,
-                                                  pos::pos_t position, std::string name,
+                                                  common::pos_t position, std::string name,
                                                   bool is_alias) {
   CheckObjectArgs(parent, package);
   std::unique_ptr<TypeName> type_name(new TypeName(parent, package, position, name));
@@ -588,7 +588,7 @@ TypeName* InfoBuilder::CreateTypeNameForNamedType(Scope* parent, Package* packag
   return type_name_ptr;
 }
 
-Constant* InfoBuilder::CreateConstant(Scope* parent, Package* package, pos::pos_t position,
+Constant* InfoBuilder::CreateConstant(Scope* parent, Package* package, common::pos_t position,
                                       std::string name) {
   CheckObjectArgs(parent, package);
   std::unique_ptr<Constant> constant(new Constant(parent, package, position, name));
@@ -597,7 +597,7 @@ Constant* InfoBuilder::CreateConstant(Scope* parent, Package* package, pos::pos_
   return constant_ptr;
 }
 
-Variable* InfoBuilder::CreateVariable(Scope* parent, Package* package, pos::pos_t position,
+Variable* InfoBuilder::CreateVariable(Scope* parent, Package* package, common::pos_t position,
                                       std::string name, bool is_embedded, bool is_field) {
   CheckObjectArgs(parent, package);
   std::unique_ptr<Variable> variable(
@@ -607,7 +607,7 @@ Variable* InfoBuilder::CreateVariable(Scope* parent, Package* package, pos::pos_
   return variable_ptr;
 }
 
-Func* InfoBuilder::CreateFunc(Scope* parent, Package* package, pos::pos_t position,
+Func* InfoBuilder::CreateFunc(Scope* parent, Package* package, common::pos_t position,
                               std::string name) {
   CheckObjectArgs(parent, package);
   std::unique_ptr<Func> func(new Func(parent, package, position, name));
@@ -616,7 +616,7 @@ Func* InfoBuilder::CreateFunc(Scope* parent, Package* package, pos::pos_t positi
   return func_ptr;
 }
 
-Label* InfoBuilder::CreateLabel(Scope* parent, Package* package, pos::pos_t position,
+Label* InfoBuilder::CreateLabel(Scope* parent, Package* package, common::pos_t position,
                                 std::string name) {
   std::unique_ptr<Label> label(new Label(parent, package, position, name));
   Label* label_ptr = label.get();
@@ -624,7 +624,7 @@ Label* InfoBuilder::CreateLabel(Scope* parent, Package* package, pos::pos_t posi
   return label_ptr;
 }
 
-PackageName* InfoBuilder::CreatePackageName(Scope* parent, Package* package, pos::pos_t position,
+PackageName* InfoBuilder::CreatePackageName(Scope* parent, Package* package, common::pos_t position,
                                             std::string name, Package* referenced_package) {
   CheckObjectArgs(parent, package);
   std::unique_ptr<PackageName> package_name(

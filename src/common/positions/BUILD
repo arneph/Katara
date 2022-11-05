@@ -3,10 +3,10 @@ load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "positions",
-    srcs = glob(["*.cc"]),
-    hdrs = glob(["*.h"]),
+    srcs = ["positions.cc"],
+    hdrs = ["positions.h"],
     copts = COPTS,
     visibility = [
-        "//src/lang/representation:__subpackages__",
+        "//visibility:public",
     ],
 )

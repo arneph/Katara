@@ -11,9 +11,9 @@
 
 #include <string>
 
+#include "src/common/positions/positions.h"
 #include "src/lang/processors/docs/common.h"
 #include "src/lang/representation/ast/ast.h"
-#include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/info.h"
 
 namespace lang {
@@ -25,7 +25,7 @@ struct FileDoc {
 };
 
 FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
-                                     const pos::FileSet* pos_file_set, types::Info* type_info);
+                                     const common::FileSet* pos_file_set, types::Info* type_info);
 
 }  // namespace docs
 }  // namespace lang

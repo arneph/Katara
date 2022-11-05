@@ -12,8 +12,8 @@
 #include <optional>
 #include <string>
 
+#include "src/common/positions/positions.h"
 #include "src/lang/representation/ast/ast.h"
-#include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/info.h"
 
 namespace lang {

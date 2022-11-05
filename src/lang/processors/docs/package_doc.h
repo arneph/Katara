@@ -12,10 +12,10 @@
 #include <string>
 #include <vector>
 
+#include "src/common/positions/positions.h"
 #include "src/lang/processors/docs/common.h"
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/packages/package.h"
-#include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/info.h"
 
 namespace lang {
@@ -29,7 +29,7 @@ struct PackageDoc {
 };
 
 PackageDoc GenerateDocumentationForPackage(packages::Package* package,
-                                           const pos::FileSet* pos_file_set,
+                                           const common::FileSet* pos_file_set,
                                            types::Info* type_info);
 
 }  // namespace docs

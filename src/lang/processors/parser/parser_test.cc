@@ -10,9 +10,9 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "src/common/positions/positions.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/ast/nodes.h"
-#include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/tokens/tokens.h"
 
 using ::testing::IsEmpty;
@@ -21,7 +21,7 @@ using ::testing::SizeIs;
 class ExprParsingTest : public ::testing::Test {
  protected:
   lang::ast::Expr* ParseExprUnderTest(std::string expr_under_test) {
-    lang::pos::File* pos_file =
+    common::File* pos_file =
         pos_file_set_.AddFile("test.kat", "package main\nvar t = " + expr_under_test + "\n");
     lang::ast::ASTBuilder ast_builder = ast_.builder();
     lang::issues::IssueTracker issues(&pos_file_set_);
@@ -33,7 +33,7 @@ class ExprParsingTest : public ::testing::Test {
   }
 
  private:
-  lang::pos::FileSet pos_file_set_;
+  common::FileSet pos_file_set_;
   lang::ast::AST ast_;
 };
 

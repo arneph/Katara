@@ -6,15 +6,14 @@
 //  Copyright © 2020 Arne Philipeit. All rights reserved.
 //
 
-#ifndef lang_positions_h
-#define lang_positions_h
+#ifndef common_positions_h
+#define common_positions_h
 
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace lang {
-namespace pos {
+namespace common {
 
 typedef int64_t pos_t;
 
@@ -74,7 +73,6 @@ class FileSet {
   std::vector<std::unique_ptr<class File>> files_;
 };
 
-}  // namespace pos
-}  // namespace lang
+}  // namespace common
 
-#endif /* lang_positions_h */
+#endif /* common_positions_h */

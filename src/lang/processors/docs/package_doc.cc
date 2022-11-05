@@ -16,7 +16,7 @@ namespace docs {
 namespace {
 
 void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package,
-                              const pos::FileSet* pos_file_set) {
+                              const common::FileSet* pos_file_set) {
   ss << "Issues:<br><dl>\n";
   for (issues::Issue issue : package->issue_tracker().issues()) {
     ss << "<dt>";
@@ -30,10 +30,10 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
         break;
     }
     ss << issue.message() << "\n";
-    for (pos::pos_t pos : issue.positions()) {
+    for (common::pos_t pos : issue.positions()) {
       ss << "<dd>\n";
-      pos::Position position = pos_file_set->PositionFor(pos);
-      pos::File* pos_file = pos_file_set->FileAt(pos);
+      common::Position position = pos_file_set->PositionFor(pos);
+      common::File* pos_file = pos_file_set->FileAt(pos);
       std::string line = pos_file->LineFor(pos);
       size_t whitespace = 0;
       for (; whitespace < line.length(); whitespace++) {
@@ -57,10 +57,10 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
 }
 
 void GeneratePackageDescription(std::ostringstream& ss, packages::Package* package,
-                                const pos::FileSet* pos_file_set) {
+                                const common::FileSet* pos_file_set) {
   ss << "Path: " << package->path() << "<br>\n"
      << "Package files:<dl>\n";
-  for (pos::File* pos_file : package->pos_files()) {
+  for (common::File* pos_file : package->pos_files()) {
     ss << "<dt>"
        << "<a href=\"" << pos_file->name() << ".html\">" << pos_file->name() << "</a>"
        << "</dt>\n";
@@ -74,7 +74,7 @@ void GeneratePackageDescription(std::ostringstream& ss, packages::Package* packa
 }  // namespace
 
 PackageDoc GenerateDocumentationForPackage(packages::Package* package,
-                                           const pos::FileSet* pos_file_set,
+                                           const common::FileSet* pos_file_set,
                                            types::Info* type_info) {
   std::ostringstream ss;
   ss << "<!DOCTYPE html>\n"

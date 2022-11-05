@@ -14,12 +14,12 @@
 #include <string>
 #include <vector>
 
+#include "src/common/positions/positions.h"
 #include "src/lang/processors/issues/issues.h"
 #include "src/lang/processors/scanner/scanner.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/ast/ast_builder.h"
 #include "src/lang/representation/ast/nodes.h"
-#include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/tokens/tokens.h"
 
 namespace lang {
@@ -27,7 +27,7 @@ namespace parser {
 
 class Parser {
  public:
-  static ast::File* ParseFile(pos::File* file, ast::ASTBuilder& ast_builder,
+  static ast::File* ParseFile(common::File* file, ast::ASTBuilder& ast_builder,
                               issues::IssueTracker& issues);
 
  private:
@@ -79,15 +79,15 @@ class Parser {
 
   ast::Expr* ParsePrimaryExpr(ExprOptions expr_options);
   ast::Expr* ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_options);
-  ast::Expr* ParsePrimaryExpr(ast::Expr* primary_expr, pos::pos_t l_brack,
-                              std::vector<ast::Expr*> type_args, pos::pos_t r_brack,
+  ast::Expr* ParsePrimaryExpr(ast::Expr* primary_expr, common::pos_t l_brack,
+                              std::vector<ast::Expr*> type_args, common::pos_t r_brack,
                               ExprOptions expr_options);
   ast::ParenExpr* ParseParenExpr();
   ast::SelectionExpr* ParseSelectionExpr(ast::Expr* accessed);
   ast::TypeAssertExpr* ParseTypeAssertExpr(ast::Expr* x);
   ast::IndexExpr* ParseIndexExpr(ast::Expr* accessed);
-  ast::CallExpr* ParseCallExpr(ast::Expr* func, pos::pos_t l_brack,
-                               std::vector<ast::Expr*> type_args, pos::pos_t r_brack);
+  ast::CallExpr* ParseCallExpr(ast::Expr* func, common::pos_t l_brack,
+                               std::vector<ast::Expr*> type_args, common::pos_t r_brack);
   ast::FuncLit* ParseFuncLit(ast::FuncType* type);
   ast::CompositeLit* ParseCompositeLit(ast::Expr* type);
   ast::Expr* ParseCompositeLitElement();
@@ -117,7 +117,7 @@ class Parser {
   std::vector<ast::Ident*> ParseIdentList(bool split_shift_ops = false);
   ast::Ident* ParseIdent(bool split_shift_ops = false);
 
-  std::optional<pos::pos_t> Consume(tokens::Token tok, bool split_shift_ops = false);
+  std::optional<common::pos_t> Consume(tokens::Token tok, bool split_shift_ops = false);
 
   scanner::Scanner& scanner_;
   ast::ASTBuilder& ast_builder_;

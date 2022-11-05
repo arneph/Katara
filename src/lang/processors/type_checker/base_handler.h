@@ -33,9 +33,7 @@ class BaseHandler {
   types::InfoBuilder& info_builder() { return info_builder_; }
   issues::IssueTracker& issues() { return issues_; }
 
-  class TypeResolver& type_resolver() const {
-    return type_resolver_;
-  }
+  class TypeResolver& type_resolver() const { return type_resolver_; }
 
  private:
   types::Info* info_;

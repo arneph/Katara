@@ -8,12 +8,12 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
+        "//src/common/positions",
         "//src/lang/representation/ast",
         "//src/lang/representation/ast:ast_util",
         "//src/lang/representation/ast:nodes",
         "//src/lang/representation/constants",
         "//src/lang/representation/ir_extension",
-        "//src/lang/representation/positions",
         "//src/lang/representation/tokens",
         "//src/lang/representation/types:base",
         "//src/lang/representation/types:info",

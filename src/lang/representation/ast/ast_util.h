@@ -12,13 +12,13 @@
 #include <functional>
 
 #include "src/common/graph/graph.h"
+#include "src/common/positions/positions.h"
 #include "src/lang/representation/ast/nodes.h"
-#include "src/lang/representation/positions/positions.h"
 
 namespace lang {
 namespace ast {
 
-common::Graph NodeToTree(const pos::FileSet* file_set, Node* node);
+common::Graph NodeToTree(const common::FileSet* file_set, Node* node);
 
 class WalkFunction {
  public:

@@ -19,10 +19,10 @@ cc_library(
         "//src/lang/representation:__subpackages__",
     ],
     deps = [
+        "//src/common/positions",
         "//src/ir/representation:types",
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
-        "//src/lang/representation/positions",
     ],
 )
 
@@ -42,8 +42,8 @@ cc_library(
         ":base",
         ":info",
         "//src/common/graph",
+        "//src/common/positions",
         "//src/lang/representation/ast",
-        "//src/lang/representation/positions",
     ],
 )
 
@@ -112,9 +112,9 @@ cc_library(
         ":expr_info",
         ":initializer",
         ":selection",
+        "//src/common/positions",
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
-        "//src/lang/representation/positions",
     ],
 )
 
@@ -136,8 +136,8 @@ cc_library(
         ":info",
         ":initializer",
         ":selection",
+        "//src/common/positions",
         "//src/lang/representation/ast",
         "//src/lang/representation/constants",
-        "//src/lang/representation/positions",
     ],
 )

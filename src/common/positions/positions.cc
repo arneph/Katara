@@ -8,8 +8,7 @@
 
 #include "positions.h"
 
-namespace lang {
-namespace pos {
+namespace common {
 
 bool Position::IsValid() const { return line_ > 0; }
 
@@ -124,5 +123,4 @@ File* FileSet::AddFile(std::string name, std::string contents) {
   return files_.back().get();
 }
 
-}  // namespace pos
-}  // namespace lang
+}  // namespace common

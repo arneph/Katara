@@ -203,7 +203,7 @@ void IdentifierResolver::AddDefinedObjectFromTypeSpec(ast::TypeSpec* type_spec,
     return;
   }
 
-  bool is_alias = type_spec->assign() != pos::kNoPos;
+  bool is_alias = type_spec->assign() != common::kNoPos;
   types::TypeName* type_name = info_builder_.CreateTypeNameForNamedType(
       scope, package_, type_spec->name()->start(), type_spec->name()->name(), is_alias);
   info_builder_.SetDefinedObject(type_spec->name(), type_name);

@@ -11,13 +11,13 @@
 
 #include <string>
 
-#include "src/lang/representation/positions/positions.h"
+#include "src/common/positions/positions.h"
 #include "src/lang/representation/types/info.h"
 
 namespace lang {
 namespace types {
 
-std::string InfoToText(const pos::FileSet* file_set, Info* info);
+std::string InfoToText(const common::FileSet* file_set, Info* info);
 
 }
 }  // namespace lang

@@ -393,7 +393,7 @@ void Coordinator::ReportLoopInActions(const std::vector<Action*>& actions) {
     }
   }
 
-  std::vector<pos::pos_t> loop_member_positions;
+  std::vector<common::pos_t> loop_member_positions;
   std::string message = "encountered dependency loop involving: ";
   for (types::Object* loop_member : loop_members) {
     loop_member_positions.push_back(loop_member->position());

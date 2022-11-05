@@ -11,6 +11,7 @@
 #include "gtest/gtest.h"
 #include "src/common/filesystem/filesystem.h"
 #include "src/common/filesystem/test_filesystem.h"
+#include "src/common/positions/positions.h"
 #include "src/ir/representation/program.h"
 #include "src/lang/processors/docs/file_doc.h"
 #include "src/lang/processors/docs/package_doc.h"
@@ -19,7 +20,6 @@
 #include "src/lang/processors/packages/package_manager.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/ast/ast_util.h"
-#include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/info_util.h"
 
 namespace {

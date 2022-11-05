@@ -13,9 +13,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include "src/common/positions/positions.h"
 #include "src/lang/representation/ast/ast.h"
 #include "src/lang/representation/constants/constants.h"
-#include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/expr_info.h"
 #include "src/lang/representation/types/info.h"
 #include "src/lang/representation/types/initializer.h"
@@ -67,16 +67,17 @@ class InfoBuilder {
   void SetInterfaceMembers(Interface* interface, std::vector<NamedType*> embdedded_interfaces,
                            std::vector<Func*> methods);
 
-  TypeName* CreateTypeNameForTypeParameter(Scope* parent, Package* package, pos::pos_t position,
+  TypeName* CreateTypeNameForTypeParameter(Scope* parent, Package* package, common::pos_t position,
                                            std::string name);
-  TypeName* CreateTypeNameForNamedType(Scope* parent, Package* package, pos::pos_t position,
+  TypeName* CreateTypeNameForNamedType(Scope* parent, Package* package, common::pos_t position,
                                        std::string name, bool is_alias);
-  Constant* CreateConstant(Scope* parent, Package* package, pos::pos_t position, std::string name);
-  Variable* CreateVariable(Scope* parent, Package* package, pos::pos_t position, std::string name,
-                           bool is_embedded, bool is_field);
-  Func* CreateFunc(Scope* parent, Package* package, pos::pos_t position, std::string name);
-  Label* CreateLabel(Scope* parent, Package* package, pos::pos_t position, std::string name);
-  PackageName* CreatePackageName(Scope* parent, Package* package, pos::pos_t position,
+  Constant* CreateConstant(Scope* parent, Package* package, common::pos_t position,
+                           std::string name);
+  Variable* CreateVariable(Scope* parent, Package* package, common::pos_t position,
+                           std::string name, bool is_embedded, bool is_field);
+  Func* CreateFunc(Scope* parent, Package* package, common::pos_t position, std::string name);
+  Label* CreateLabel(Scope* parent, Package* package, common::pos_t position, std::string name);
+  PackageName* CreatePackageName(Scope* parent, Package* package, common::pos_t position,
                                  std::string name, Package* referenced_package);
 
   void SetObjectType(TypedObject* object, Type* type);

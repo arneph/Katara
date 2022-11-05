@@ -11,17 +11,17 @@
 #include <string>
 #include <vector>
 
+#include "src/common/positions/positions.h"
 #include "src/lang/processors/issues/issues.h"
 #include "src/lang/processors/scanner/scanner.h"
-#include "src/lang/representation/positions/positions.h"
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   using namespace lang;
 
   std::string contents(reinterpret_cast<const char*>(data), size);
 
-  pos::FileSet pos_file_set;
-  pos::File* pos_file = pos_file_set.AddFile("test_file.kat", contents);
+  common::FileSet pos_file_set;
+  common::File* pos_file = pos_file_set.AddFile("test_file.kat", contents);
 
   scanner::Scanner scanner(pos_file);
 

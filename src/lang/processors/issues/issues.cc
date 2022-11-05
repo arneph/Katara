@@ -69,11 +69,11 @@ bool IssueTracker::has_fatal_errors() const {
   return false;
 }
 
-void IssueTracker::Add(IssueKind kind, pos::pos_t position, std::string message) {
-  Add(kind, std::vector<pos::pos_t>{position}, message);
+void IssueTracker::Add(IssueKind kind, common::pos_t position, std::string message) {
+  Add(kind, std::vector<common::pos_t>{position}, message);
 }
 
-void IssueTracker::Add(IssueKind kind, std::vector<pos::pos_t> positions, std::string message) {
+void IssueTracker::Add(IssueKind kind, std::vector<common::pos_t> positions, std::string message) {
   issues_.push_back(Issue(kind, positions, message));
 }
 
@@ -109,8 +109,8 @@ void IssueTracker::PrintIssues(PrintFormat format, std::ostream* out) const {
         break;
     }
     *out << issue.message() << " [" << issue.kind_id() << "]\n";
-    for (lang::pos::pos_t pos : issue.positions()) {
-      lang::pos::Position position = file_set_->PositionFor(pos);
+    for (common::pos_t pos : issue.positions()) {
+      common::Position position = file_set_->PositionFor(pos);
       std::string line = file_set_->FileAt(pos)->LineFor(pos);
       size_t whitespace = 0;
       for (; whitespace < line.length(); whitespace++) {

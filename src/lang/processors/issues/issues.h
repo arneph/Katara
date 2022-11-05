@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "src/lang/representation/positions/positions.h"
+#include "src/common/positions/positions.h"
 
 namespace lang {
 namespace issues {
@@ -221,19 +221,19 @@ Severity SeverityOf(IssueKind issue_kind);
 
 class Issue {
  public:
-  Issue(IssueKind kind, std::vector<pos::pos_t> positions, std::string message)
+  Issue(IssueKind kind, std::vector<common::pos_t> positions, std::string message)
       : kind_(kind), positions_(positions), message_(message) {}
 
   int64_t kind_id() const { return static_cast<int64_t>(kind_); }
   IssueKind kind() { return kind_; }
   Origin origin() const { return OriginOf(kind_); }
   Severity severity() const { return SeverityOf(kind_); }
-  const std::vector<pos::pos_t>& positions() const { return positions_; }
+  const std::vector<common::pos_t>& positions() const { return positions_; }
   std::string message() const { return message_; }
 
  private:
   IssueKind kind_;
-  std::vector<pos::pos_t> positions_;
+  std::vector<common::pos_t> positions_;
   std::string message_;
 };
 
@@ -244,7 +244,7 @@ class IssueTracker {
     kTerminal,
   };
 
-  IssueTracker(const pos::FileSet* file_set) : file_set_(file_set) {}
+  IssueTracker(const common::FileSet* file_set) : file_set_(file_set) {}
 
   bool has_warnings() const;
   bool has_errors() const;
@@ -252,13 +252,13 @@ class IssueTracker {
 
   const std::vector<Issue>& issues() const { return issues_; }
 
-  void Add(IssueKind kind, pos::pos_t position, std::string message);
-  void Add(IssueKind kind, std::vector<pos::pos_t> positions, std::string message);
+  void Add(IssueKind kind, common::pos_t position, std::string message);
+  void Add(IssueKind kind, std::vector<common::pos_t> positions, std::string message);
 
   void PrintIssues(PrintFormat format, std::ostream* out) const;
 
  private:
-  const pos::FileSet* file_set_;
+  const common::FileSet* file_set_;
   std::vector<Issue> issues_;
 };
 

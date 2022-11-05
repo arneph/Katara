@@ -11,7 +11,7 @@ cc_library(
     ],
     deps = [
         "//src/common/logging",
-        "//src/lang/representation/positions",
+        "//src/common/positions",
         "//src/lang/representation/tokens",
     ],
 )
@@ -46,6 +46,6 @@ cc_library(
     deps = [
         ":nodes",
         "//src/common/graph",
-        "//src/lang/representation/positions",
+        "//src/common/positions",
     ],
 )

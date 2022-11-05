@@ -13,9 +13,9 @@
 #include <string>
 #include <vector>
 
+#include "src/common/positions/positions.h"
 #include "src/lang/processors/issues/issues.h"
 #include "src/lang/representation/ast/ast.h"
-#include "src/lang/representation/positions/positions.h"
 #include "src/lang/representation/types/info.h"
 #include "src/lang/representation/types/package.h"
 
@@ -31,21 +31,21 @@ class Package {
   // Returns the absolute directory containing the package, e.g. to write debug information to.
   std::filesystem::path directory() const { return directory_; }
 
-  const std::vector<pos::File*>& pos_files() const { return pos_files_; }
+  const std::vector<common::File*>& pos_files() const { return pos_files_; }
   ast::Package* ast_package() const { return ast_package_; }
   types::Package* types_package() const { return types_package_; }
 
   const issues::IssueTracker& issue_tracker() const { return issue_tracker_; }
 
  private:
-  Package(const pos::FileSet* file_set)
+  Package(const common::FileSet* file_set)
       : ast_package_(nullptr), types_package_(nullptr), issue_tracker_(file_set) {}
 
   std::string name_;
   std::string path_;
   std::filesystem::path directory_;
 
-  std::vector<pos::File*> pos_files_;
+  std::vector<common::File*> pos_files_;
   ast::Package* ast_package_;
   types::Package* types_package_;
 
