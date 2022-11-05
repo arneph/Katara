@@ -8,6 +8,7 @@ cc_binary(
     copts = COPTS,
     deps = [
         "//src/common/data_view",
+        "//src/common/memory",
         "//src/x86_64:x86_64_lib",
     ],
 )

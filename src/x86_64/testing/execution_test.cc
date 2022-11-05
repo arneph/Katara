@@ -7,6 +7,7 @@
 //
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/mman.h>
 
 #include <iomanip>
@@ -14,6 +15,7 @@
 #include <memory>
 
 #include "src/common/data_view/data_view.h"
+#include "src/common/memory/memory.h"
 #include "src/x86_64/block.h"
 #include "src/x86_64/func.h"
 #include "src/x86_64/instrs/arithmetic_logic_instrs.h"
@@ -40,7 +42,7 @@ int main() {
   x86_64::Imm str_c((int64_t(str)));
 
   const int64_t buffer_size = 100;
-  char buffer[buffer_size];
+  char buffer[buffer_size] = {0};
   x86_64::Imm buffer_c((int64_t(buffer)));
 
   x86_64::Program program;
@@ -51,6 +53,10 @@ int main() {
     x86_64::Block* prolog_block = main_func->AddBlock();
     prolog_block->AddInstr<x86_64::Push>(x86_64::rbp);
     prolog_block->AddInstr<x86_64::Mov>(x86_64::rbp, x86_64::rsp);
+    prolog_block->AddInstr<x86_64::Push>(x86_64::r12);
+    prolog_block->AddInstr<x86_64::Push>(x86_64::r13);
+    prolog_block->AddInstr<x86_64::Push>(x86_64::r14);
+    prolog_block->AddInstr<x86_64::Push>(x86_64::r15);
   }
 
   // Fibonacci numbers:
@@ -82,7 +88,6 @@ int main() {
     hello_block->AddInstr<x86_64::Mov>(x86_64::rsi, str_c);                            // const char
     hello_block->AddInstr<x86_64::Mov>(x86_64::rdx, x86_64::Imm(int32_t{13}));         // size
     hello_block->AddInstr<x86_64::Syscall>();
-    // hello_block->AddInstr(std::make_unique<x86_64::Jmp>(hello_block.block()->GetBlockRef()));
   }
 
   // Read syscall test:
@@ -93,7 +98,6 @@ int main() {
     hello_block->AddInstr<x86_64::Mov>(x86_64::rsi, buffer_c);                         // const char
     hello_block->AddInstr<x86_64::Mov>(x86_64::rdx, x86_64::Imm(int32_t{buffer_size - 1}));  // size
     hello_block->AddInstr<x86_64::Syscall>();
-    // hello_block->AddInstr(std::make_unique<x86_64::Jmp>(hello_block.block()->GetBlockRef()));
   }
 
   // Addition & C calling convention test:
@@ -116,6 +120,10 @@ int main() {
   // Epilog:
   {
     x86_64::Block* epilog_block = main_func->AddBlock();
+    epilog_block->AddInstr<x86_64::Pop>(x86_64::r15);
+    epilog_block->AddInstr<x86_64::Pop>(x86_64::r14);
+    epilog_block->AddInstr<x86_64::Pop>(x86_64::r13);
+    epilog_block->AddInstr<x86_64::Pop>(x86_64::r12);
     epilog_block->AddInstr<x86_64::Mov>(x86_64::rsp, x86_64::rbp);
     epilog_block->AddInstr<x86_64::Pop>(x86_64::rbp);
     epilog_block->AddInstr<x86_64::Ret>();
@@ -125,13 +133,17 @@ int main() {
   std::cout << program.ToString();
   std::cout << "END assembly\n";
 
-  int64_t page_size = 1 << 12;
-  uint8_t* base =
-      (uint8_t*)mmap(NULL, page_size, PROT_EXEC | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, 0, 0);
-  common::DataView code(base, page_size);
+  std::cout << "BEGIN memory allocation\n";
+  common::Memory memory(common::Memory::kPageSize,
+                        common::Memory::Permissions(common::Memory::Permissions::kRead |
+                                                    common::Memory::Permissions::kWrite));
+  common::DataView code = memory.data();
+  std::cout << "END memory setup\n";
 
+  std::cout << "BEGIN writing program\n";
   int64_t program_size = program.Encode(linker, code);
   linker.ApplyPatches();
+  std::cout << "END writing program\n";
 
   std::cout << "BEGIN machine code\n";
   for (int64_t j = 0; j < program_size; j++) {
@@ -142,10 +154,18 @@ int main() {
   }
   std::cout << "END machine code\n";
 
+  std::cout << "BEGIN memory permission change\n";
+  memory.ChangePermissions(common::Memory::Permissions::kExecute);
+  std::cout << "END memory permission change\n";
+
   std::cout << "BEGIN program output\n" << std::flush;
-  void (*func)(void) = (void (*)(void))base;
+  void (*func)(void) = (void (*)(void))code.base();
   func();
   std::cout << "END program output\n" << std::flush;
+
+  std::cout << "BEGIN memory deallocation\n";
+  memory.Free();
+  std::cout << "END memory deallocation\n";
 
   std::cout << "BEGIN read buffer\n" << std::flush;
   std::cout << buffer;
