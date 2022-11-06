@@ -10,6 +10,8 @@
 
 #include <sys/mman.h>
 
+#include <utility>
+
 namespace common {
 namespace {
 
@@ -29,6 +31,8 @@ bool ValidatePermissions(Memory::Permissions permissions) {
 }
 
 }  // namespace
+
+const int64_t Memory::kPageSize = 1 << 12;
 
 Memory::Memory(int64_t size, Permissions permissions) {
   if (size < 0) {

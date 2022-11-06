@@ -27,7 +27,7 @@ class Memory {
     kExecute = PROT_EXEC,
   };
 
-  static const int64_t kPageSize = 1 << 12;
+  static const int64_t kPageSize;
 
   Memory() : base_(nullptr), size_(0), permissions_(kNone) {}
   Memory(int64_t size, Permissions permissions);
