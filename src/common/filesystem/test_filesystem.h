@@ -12,8 +12,9 @@
 #include <filesystem>
 #include <functional>
 #include <iostream>
+#include <memory>
+#include <string>
 #include <unordered_map>
-#include <variant>
 
 #include "src/common/filesystem/filesystem.h"
 
@@ -45,25 +46,40 @@ class TestFilesystem : public Filesystem {
   void RemoveAll(std::filesystem::path path) override;
 
  private:
-  struct File {
+  struct Entry {
+    enum class Kind {
+      kFile,
+      kDirectory,
+    };
+    virtual ~Entry() = default;
+    virtual Kind kind() const = 0;
+  };
+  struct File : Entry {
+    Kind kind() const override { return Entry::Kind::kFile; }
+
     std::string contents;
   };
-  struct Directory {
-    std::unordered_map<std::string, std::variant<File, Directory>> entries;
+  struct Directory : Entry {
+    Kind kind() const override { return Entry::Kind::kDirectory; }
+
+    std::unordered_map<std::string, std::unique_ptr<Entry>> entries;
   };
 
-  typedef std::variant<std::monostate, const File*, const Directory*> ConstEntry;
-  typedef std::variant<std::monostate, File*, Directory*> Entry;
-
-  static void Visit(Entry entry, std::function<void()> not_present_handler,
+  static void Visit(Entry* entry, std::function<void()> not_present_handler,
                     std::function<void(File*)> file_handler,
                     std::function<void(Directory*)> directory_handler);
 
-  static ConstEntry GetEntryInDirectory(const Directory* directory, std::string name);
-  static Entry GetEntryInDirectory(Directory* directory, std::string name);
+  static const Entry* GetEntryInDirectory(const Directory* directory, std::string name);
+  static Entry* GetEntryInDirectory(Directory* directory, std::string name);
 
-  ConstEntry GetEntry(std::filesystem::path path) const;
-  Entry GetEntry(std::filesystem::path path);
+  const Entry* GetEntry(std::filesystem::path path) const;
+  Entry* GetEntry(std::filesystem::path path);
+
+  const Directory* GetDirectory(std::filesystem::path path) const;
+  Directory* GetDirectory(std::filesystem::path path);
+
+  const File* GetFile(std::filesystem::path path) const;
+  File* GetFile(std::filesystem::path path);
 
   void CreateFile(std::filesystem::path path);
   void RemoveEntries(Directory* directory);

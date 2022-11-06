@@ -9,99 +9,117 @@
 #include "test_filesystem.h"
 
 #include <sstream>
-#include <type_traits>
 
 #include "src/common/logging/logging.h"
 
 namespace common {
 
-void TestFilesystem::Visit(Entry entry, std::function<void()> not_present_handler,
+void TestFilesystem::Visit(Entry* entry, std::function<void()> not_present_handler,
                            std::function<void(File*)> file_handler,
                            std::function<void(Directory*)> directory_handler) {
-  std::visit(
-      [&](auto&& entry) {
-        using T = std::decay_t<decltype(entry)>;
-        if constexpr (std::is_same_v<T, std::monostate>) {
-          not_present_handler();
-        } else if constexpr (std::is_same_v<T, File*>) {
-          file_handler(entry);
-        } else if constexpr (std::is_same_v<T, Directory*>) {
-          directory_handler(entry);
-        }
-      },
-      entry);
+  if (entry == nullptr) {
+    not_present_handler();
+  } else {
+    switch (entry->kind()) {
+      case Entry::Kind::kFile:
+        file_handler(static_cast<File*>(entry));
+        break;
+      case Entry::Kind::kDirectory:
+        directory_handler(static_cast<Directory*>(entry));
+        break;
+      default:
+        fail("unexpected test filesystem entry kind");
+    }
+  }
 }
 
-std::variant<std::monostate, const TestFilesystem::File*, const TestFilesystem::Directory*>
-TestFilesystem::GetEntryInDirectory(const Directory* directory, std::string name) {
+const TestFilesystem::Entry* TestFilesystem::GetEntryInDirectory(const Directory* directory,
+                                                                 std::string name) {
   auto it = directory->entries.find(name);
   if (it == directory->entries.end()) {
-    return std::monostate();
-  }
-  auto& entry = it->second;
-  if (std::holds_alternative<File>(entry)) {
-    return &std::get<File>(entry);
-  } else if (std::holds_alternative<Directory>(entry)) {
-    return &std::get<Directory>(entry);
+    return nullptr;
   } else {
-    fail("unexpected test filesystem directory entry");
+    return it->second.get();
   }
 }
 
-std::variant<std::monostate, TestFilesystem::File*, TestFilesystem::Directory*>
-TestFilesystem::GetEntryInDirectory(Directory* directory, std::string name) {
+TestFilesystem::Entry* TestFilesystem::GetEntryInDirectory(Directory* directory, std::string name) {
   auto it = directory->entries.find(name);
   if (it == directory->entries.end()) {
-    return std::monostate();
-  }
-  auto& entry = it->second;
-  if (std::holds_alternative<File>(entry)) {
-    return &std::get<File>(entry);
-  } else if (std::holds_alternative<Directory>(entry)) {
-    return &std::get<Directory>(entry);
+    return nullptr;
   } else {
-    fail("unexpected test filesystem directory entry");
+    return it->second.get();
   }
 }
 
-std::variant<std::monostate, const TestFilesystem::File*, const TestFilesystem::Directory*>
-TestFilesystem::GetEntry(std::filesystem::path path) const {
+const TestFilesystem::Entry* TestFilesystem::GetEntry(std::filesystem::path path) const {
   if (path.empty()) {
-    return std::monostate();
+    return nullptr;
   }
   path = Absolute(path);
-  std::variant<std::monostate, const TestFilesystem::File*, const TestFilesystem::Directory*> entry;
+  const TestFilesystem::Entry* entry = nullptr;
   for (auto element : path) {
     if (element.string() == "/") {
       entry = &root_;
       continue;
     }
-    if (!std::holds_alternative<const Directory*>(entry)) {
-      return std::monostate();
+    if (entry == nullptr || entry->kind() != Entry::Kind::kDirectory) {
+      return nullptr;
     }
-    entry = GetEntryInDirectory(std::get<const Directory*>(entry), element.string());
+    entry = GetEntryInDirectory(static_cast<const Directory*>(entry), element.string());
   }
   return entry;
 }
 
-std::variant<std::monostate, TestFilesystem::File*, TestFilesystem::Directory*>
-TestFilesystem::GetEntry(std::filesystem::path path) {
+TestFilesystem::Entry* TestFilesystem::GetEntry(std::filesystem::path path) {
   if (path.empty()) {
-    return std::monostate();
+    return nullptr;
   }
   path = Absolute(path);
-  std::variant<std::monostate, TestFilesystem::File*, TestFilesystem::Directory*> entry;
+  TestFilesystem::Entry* entry = nullptr;
   for (auto element : path) {
     if (element.string() == "/") {
       entry = &root_;
       continue;
     }
-    if (!std::holds_alternative<Directory*>(entry)) {
-      return std::monostate();
+    if (entry->kind() != Entry::Kind::kDirectory) {
+      return nullptr;
     }
-    entry = GetEntryInDirectory(std::get<Directory*>(entry), element.string());
+    entry = GetEntryInDirectory(static_cast<Directory*>(entry), element.string());
   }
   return entry;
+}
+
+const TestFilesystem::Directory* TestFilesystem::GetDirectory(std::filesystem::path path) const {
+  const Entry* entry = GetEntry(path);
+  if (entry == nullptr || entry->kind() != Entry::Kind::kDirectory) {
+    fail("the given path does not refer to an existing directory");
+  }
+  return static_cast<const Directory*>(entry);
+}
+
+TestFilesystem::Directory* TestFilesystem::GetDirectory(std::filesystem::path path) {
+  Entry* entry = GetEntry(path);
+  if (entry == nullptr || entry->kind() != Entry::Kind::kDirectory) {
+    fail("the given path does not refer to an existing directory");
+  }
+  return static_cast<Directory*>(entry);
+}
+
+const TestFilesystem::File* TestFilesystem::GetFile(std::filesystem::path path) const {
+  const Entry* entry = GetEntry(path);
+  if (entry == nullptr || entry->kind() != Entry::Kind::kFile) {
+    fail("the given path does not refer to an existing file");
+  }
+  return static_cast<const File*>(entry);
+}
+
+TestFilesystem::File* TestFilesystem::GetFile(std::filesystem::path path) {
+  Entry* entry = GetEntry(path);
+  if (entry == nullptr || entry->kind() != Entry::Kind::kFile) {
+    fail("the given path does not refer to an existing file");
+  }
+  return static_cast<File*>(entry);
 }
 
 std::filesystem::path TestFilesystem::Absolute(std::filesystem::path path) const {
@@ -114,9 +132,7 @@ std::filesystem::path TestFilesystem::Absolute(std::filesystem::path path) const
   }
 }
 
-bool TestFilesystem::Exists(std::filesystem::path path) const {
-  return !std::holds_alternative<std::monostate>(GetEntry(path));
-}
+bool TestFilesystem::Exists(std::filesystem::path path) const { return GetEntry(path) != nullptr; }
 
 bool TestFilesystem::Equivalent(std::filesystem::path path_a, std::filesystem::path path_b) const {
   if (path_a.string() == path_b.string() ||
@@ -125,20 +141,20 @@ bool TestFilesystem::Equivalent(std::filesystem::path path_a, std::filesystem::p
   }
   auto entry_a = GetEntry(path_a);
   auto entry_b = GetEntry(path_b);
-  if (!std::holds_alternative<std::monostate>(entry_a) &&
-      !std::holds_alternative<std::monostate>(entry_b)) {
+  if (entry_a != nullptr && entry_b != nullptr) {
     return entry_a == entry_b;
   }
   return false;
 }
 
 bool TestFilesystem::IsDirectory(std::filesystem::path path) const {
-  return std::holds_alternative<const Directory*>(GetEntry(path));
+  const Entry* entry = GetEntry(path);
+  return entry != nullptr && entry->kind() == Entry::Kind::kDirectory;
 }
 
 void TestFilesystem::ForEntriesInDirectory(std::filesystem::path path,
                                            std::function<void(std::filesystem::path)> func) const {
-  for (const auto& [name, entry] : std::get<const Directory*>(GetEntry(path))->entries) {
+  for (const auto& [name, entry] : GetDirectory(path)->entries) {
     func(path / name);
   }
 }
@@ -148,12 +164,12 @@ void TestFilesystem::CreateDirectory(std::filesystem::path path) {
   if (path.empty()) {
     return;
   }
-  Directory* parent = std::get<Directory*>(GetEntry(path.parent_path()));
+  Directory* parent = GetDirectory(path.parent_path());
   std::string name = path.filename();
   Visit(
       GetEntryInDirectory(parent, name),
       [&] {
-        parent->entries.insert({name, Directory()});
+        parent->entries.insert({name, std::make_unique<Directory>()});
       },
       [&](File*) {
         fail("could not create directory " + path.string() +
@@ -177,8 +193,10 @@ void TestFilesystem::CreateDirectories(std::filesystem::path path) {
     Visit(
         GetEntryInDirectory(parent, name),
         [&] {
-          parent->entries.insert({name, Directory()});
-          parent = &std::get<Directory>(parent->entries.at(name));
+          std::unique_ptr<Directory> child = std::make_unique<Directory>();
+          Directory* child_ptr = child.get();
+          parent->entries.insert({name, std::move(child)});
+          parent = child_ptr;
         },
         [&](File*) {
           fail("could not create directory " + path.string() +
@@ -190,7 +208,7 @@ void TestFilesystem::CreateDirectories(std::filesystem::path path) {
 
 void TestFilesystem::ReadFile(std::filesystem::path path,
                               std::function<void(std::istream*)> reader) const {
-  const File* file = std::get<const File*>(GetEntry(path));
+  const File* file = GetFile(path);
   std::stringstream ss;
   ss << file->contents;
   reader(&ss);
@@ -201,12 +219,12 @@ void TestFilesystem::CreateFile(std::filesystem::path path) {
   if (path.empty()) {
     return;
   }
-  Directory* parent = std::get<Directory*>(GetEntry(path.parent_path()));
+  Directory* parent = GetDirectory(path.parent_path());
   std::string name = path.filename();
   Visit(
       GetEntryInDirectory(parent, name),
       [&] {
-        parent->entries.insert({name, File()});
+        parent->entries.insert({name, std::make_unique<File>()});
       },
       [](File*) {},
       [&](Directory*) {
@@ -218,7 +236,7 @@ void TestFilesystem::CreateFile(std::filesystem::path path) {
 void TestFilesystem::WriteFile(std::filesystem::path path,
                                std::function<void(std::ostream*)> writer) {
   CreateFile(path);
-  File* file = std::get<File*>(GetEntry(path));
+  File* file = GetFile(path);
   std::stringstream ss;
   writer(&ss);
   file->contents = ss.str();
@@ -226,7 +244,7 @@ void TestFilesystem::WriteFile(std::filesystem::path path,
 
 void TestFilesystem::Remove(std::filesystem::path path) {
   path = Absolute(path);
-  Directory* parent = std::get<Directory*>(GetEntry(path.parent_path()));
+  Directory* parent = GetDirectory(path.parent_path());
   std::string name = path.filename();
   Visit(
       GetEntry(path), [] {}, [](File*) {},
@@ -240,7 +258,7 @@ void TestFilesystem::Remove(std::filesystem::path path) {
 
 void TestFilesystem::RemoveAll(std::filesystem::path path) {
   path = Absolute(path);
-  Directory* parent = std::get<Directory*>(GetEntry(path.parent_path()));
+  Directory* parent = GetDirectory(path.parent_path());
   std::string name = path.filename();
   Visit(
       GetEntry(path), [] {}, [](File*) {}, [&](Directory* directory) { RemoveEntries(directory); });
