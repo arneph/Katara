@@ -320,7 +320,7 @@ void LowerMovSharedPointerInstr(
 
 struct PhiInstrLoweringInfo {
   ir::value_num_t result_shared_pointer_num;
-  std::unordered_map<ir::block_num_t, ir::value_num_t> arg_shared_pointer_nums;
+  std::vector<std::pair<ir::block_num_t, ir::value_num_t>> arg_shared_pointer_nums;
   ir::PhiInstr* control_block_pointer_phi_instr;
   ir::PhiInstr* underlying_pointer_phi_instr;
 };
@@ -335,7 +335,7 @@ std::optional<PhiInstrLoweringInfo> LowerSharedPointerDefinitionsInPhiInstr(
   PhiInstrLoweringInfo info;
   info.result_shared_pointer_num = old_phi_instr->result()->number();
   for (std::shared_ptr<ir::InheritedValue>& arg : old_phi_instr->args()) {
-    info.arg_shared_pointer_nums.try_emplace(
+    info.arg_shared_pointer_nums.emplace_back(
         arg->origin(), static_cast<ir::Computed*>(arg->value().get())->number());
   }
   DecomposedShared decomposed_result{
