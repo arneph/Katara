@@ -1,5 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
@@ -32,5 +33,14 @@ cc_test(
         ":flag_values",
         ":flags",
         "@gtest//:gtest_main",
+    ],
+)
+
+cc_fuzz_test(
+    name = "flags_fuzz_test",
+    srcs = ["flags_fuzz_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":flags",
     ],
 )

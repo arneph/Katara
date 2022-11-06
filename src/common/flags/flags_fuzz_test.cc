@@ -43,12 +43,12 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   std::string string_flag_b = "hey";
 
   FlagSet flags;
-  flags.Add<bool>("a", "bool_flag_a usage", false, bool_flag_a);
-  flags.Add<bool>("b", "bool_flag_b usage", false, bool_flag_b);
-  flags.Add<int64_t>("c", "int_flag_a usage", 111, int_flag_a);
-  flags.Add<int64_t>("d", "int_flag_b usage", 999, int_flag_b);
-  flags.Add<std::string>("e", "string_flag_a usage", "sup", string_flag_a);
-  flags.Add<std::string>("f", "string_flag_b usage", "hi", string_flag_b);
+  flags.Add<bool>("a", "bool_flag_a usage", bool_flag_a);
+  flags.Add<bool>("b", "bool_flag_b usage", bool_flag_b);
+  flags.Add<int64_t>("c", "int_flag_a usage", int_flag_a);
+  flags.Add<int64_t>("d", "int_flag_b usage", int_flag_b);
+  flags.Add<std::string>("e", "string_flag_a usage", string_flag_a);
+  flags.Add<std::string>("f", "string_flag_b usage", string_flag_b);
   flags.Parse(args, &ss);
 
   return 0;
