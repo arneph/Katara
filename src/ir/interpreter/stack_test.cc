@@ -73,7 +73,7 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
   frame_a->exec_point().AdvanceToNextInstr();
 
   EXPECT_FALSE(frame_a->exec_point().is_at_block_entry());
-  EXPECT_FALSE(frame_a->exec_point().is_at_func_exit());
+  EXPECT_TRUE(frame_a->exec_point().is_at_func_exit());
   EXPECT_THAT(frame_a->computed_values(), SizeIs(3));
 
   stack.PushFrame(func_a);
@@ -93,7 +93,7 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
 
   EXPECT_EQ(frame_a->parent(), nullptr);
   EXPECT_FALSE(frame_a->exec_point().is_at_block_entry());
-  EXPECT_FALSE(frame_a->exec_point().is_at_func_exit());
+  EXPECT_TRUE(frame_a->exec_point().is_at_func_exit());
   EXPECT_THAT(frame_a->computed_values(), SizeIs(3));
 
   frame_b->computed_values().insert({0, ir::ToIntConstant(common::Int(25))});
@@ -105,7 +105,7 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
   EXPECT_THAT(frame_b->computed_values(), SizeIs(2));
 
   EXPECT_FALSE(frame_a->exec_point().is_at_block_entry());
-  EXPECT_FALSE(frame_a->exec_point().is_at_func_exit());
+  EXPECT_TRUE(frame_a->exec_point().is_at_func_exit());
   EXPECT_THAT(frame_a->computed_values(), SizeIs(3));
 
   stack.PopCurrentFrame();
@@ -117,7 +117,7 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
   EXPECT_EQ(frame_a->parent(), nullptr);
   EXPECT_EQ(frame_a->func(), func_a);
   EXPECT_FALSE(frame_a->exec_point().is_at_block_entry());
-  EXPECT_FALSE(frame_a->exec_point().is_at_func_exit());
+  EXPECT_TRUE(frame_a->exec_point().is_at_func_exit());
   EXPECT_THAT(frame_a->computed_values(), SizeIs(3));
 
   frame_a->exec_point().AdvanceToNextInstr();

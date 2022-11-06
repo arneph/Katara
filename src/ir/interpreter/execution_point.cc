@@ -17,31 +17,28 @@ namespace ir_interpreter {
 ExecutionPoint ExecutionPoint::AtFuncEntry(ir::Func* func) {
   return ExecutionPoint(/*previous_block=*/nullptr,
                         /*current_block=*/func->entry_block(),
-                        /*next_instr=*/func->entry_block()->instrs().front().get(),
+                        /*next_instr=*/0,
                         /*results=*/{});
 }
 
-std::size_t ExecutionPoint::next_instr_index() const {
-  auto it = std::find_if(current_block_->instrs().begin(), current_block_->instrs().end(),
-                         [this](auto& instr) { return instr.get() == next_instr_; });
-  return it - current_block_->instrs().begin();
+ir::Instr* ExecutionPoint::next_instr() const {
+  if (next_instr_index_ < current_block_->instrs().size()) {
+    return current_block_->instrs().at(next_instr_index_).get();
+  } else {
+    return nullptr;
+  }
 }
 
-void ExecutionPoint::AdvanceToNextInstr() {
-  auto it = std::find_if(current_block_->instrs().begin(), current_block_->instrs().end(),
-                         [this](auto& instr) { return instr.get() == next_instr_; });
-  ++it;
-  next_instr_ = it->get();
-}
+void ExecutionPoint::AdvanceToNextInstr() { next_instr_index_++; }
 
 void ExecutionPoint::AdvanceToNextBlock(ir::Block* next_block) {
   previous_block_ = current_block_;
   current_block_ = next_block;
-  next_instr_ = current_block_->instrs().front().get();
+  next_instr_index_ = 0;
 }
 
 void ExecutionPoint::AdvanceToFuncExit(std::vector<std::shared_ptr<ir::Constant>> results) {
-  next_instr_ = nullptr;
+  next_instr_index_ = current_block_->instrs().size();
   results_ = results;
 }
 

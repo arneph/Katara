@@ -23,12 +23,12 @@ class ExecutionPoint {
  public:
   static ExecutionPoint AtFuncEntry(ir::Func* func);
 
-  bool is_at_block_entry() const { return current_block_->instrs().front().get() == next_instr_; }
-  bool is_at_func_exit() const { return next_instr_ == nullptr; }
+  bool is_at_block_entry() const { return next_instr_index_ == 0; }
+  bool is_at_func_exit() const { return next_instr_index_ == current_block_->instrs().size(); }
   ir::Block* previous_block() const { return previous_block_; }
   ir::Block* current_block() const { return current_block_; }
-  ir::Instr* next_instr() const { return next_instr_; }
-  std::size_t next_instr_index() const;
+  std::size_t next_instr_index() const { return next_instr_index_; }
+  ir::Instr* next_instr() const;
   const std::vector<std::shared_ptr<ir::Constant>>& results() const;
 
   void AdvanceToNextInstr();
@@ -36,16 +36,16 @@ class ExecutionPoint {
   void AdvanceToFuncExit(std::vector<std::shared_ptr<ir::Constant>> results);
 
  private:
-  ExecutionPoint(ir::Block* previous_block, ir::Block* current_block, ir::Instr* next_instr,
+  ExecutionPoint(ir::Block* previous_block, ir::Block* current_block, std::size_t next_instr_index,
                  std::vector<std::shared_ptr<ir::Constant>> results)
       : previous_block_(previous_block),
         current_block_(current_block),
-        next_instr_(next_instr),
+        next_instr_index_(next_instr_index),
         results_(results) {}
 
   ir::Block* previous_block_;
   ir::Block* current_block_;
-  ir::Instr* next_instr_;
+  std::size_t next_instr_index_;
   std::vector<std::shared_ptr<ir::Constant>> results_;
 };
 
