@@ -3,14 +3,12 @@ load("//src:katara.bzl", "COPTS")
 
 cc_library(
     name = "issues",
-    srcs = ["issues.cc"],
     hdrs = ["issues.h"],
     copts = COPTS,
     visibility = [
-        "//src/lang/processors:__subpackages__",
+        "//visibility:public",
     ],
     deps = [
-        "//src/common/issues",
-        "//src/lang/representation",
+        "//src/common/positions",
     ],
 )

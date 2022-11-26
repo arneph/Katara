@@ -10,6 +10,8 @@
 
 #include <sstream>
 
+#include "src/common/issues/issues.h"
+
 namespace lang {
 namespace docs {
 
@@ -21,11 +23,11 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
   for (issues::Issue issue : package->issue_tracker().issues()) {
     ss << "<dt>";
     switch (issue.severity()) {
-      case lang::issues::Severity::kWarning:
+      case common::Severity::kWarning:
         ss << html::TagsForText("Warning: ", formats::kWarning);
         break;
-      case lang::issues::Severity::kError:
-      case lang::issues::Severity::kFatal:
+      case common::Severity::kError:
+      case common::Severity::kFatal:
         ss << html::TagsForText("Error: ", formats::kError);
         break;
     }

@@ -8,6 +8,7 @@
 
 #include "type_checker.h"
 
+#include "src/lang/processors/issues/issues.h"
 #include "src/lang/processors/type_checker/coordinator.h"
 #include "src/lang/processors/type_checker/identifier_resolver.h"
 #include "src/lang/representation/types/info_builder.h"
@@ -29,7 +30,7 @@ types::Package* Check(std::string package_path, ast::Package* ast_package,
       package_path, ast_files, importer, info_builder, issues);
   for (const issues::Issue& issue : issues.issues()) {
     if (issue.origin() == issues::Origin::kIdentifierResolver &&
-        issue.severity() == issues::Severity::kFatal) {
+        issue.severity() == common::Severity::kFatal) {
       return nullptr;
     }
   }

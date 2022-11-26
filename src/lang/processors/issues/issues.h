@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "src/common/issues/issues.h"
 #include "src/common/positions/positions.h"
 
 namespace lang {
@@ -23,12 +24,6 @@ enum class Origin {
   kIdentifierResolver,
   kTypeResolver,
   kPackageManager,
-};
-
-enum class Severity {
-  kWarning,  // compilation can still complete
-  kError,    // compilation can partially continue but not complete
-  kFatal,    // compilation can not continue
 };
 
 enum IssueKind {
@@ -216,51 +211,16 @@ enum IssueKind {
   kPackageManagerEnd,
 };
 
-Origin OriginOf(IssueKind issue_kind);
-Severity SeverityOf(IssueKind issue_kind);
-
-class Issue {
+class Issue : public common::Issue<IssueKind, Origin> {
  public:
   Issue(IssueKind kind, std::vector<common::pos_t> positions, std::string message)
-      : kind_(kind), positions_(positions), message_(message) {}
+      : common::Issue<IssueKind, Origin>(kind, positions, message) {}
 
-  int64_t kind_id() const { return static_cast<int64_t>(kind_); }
-  IssueKind kind() { return kind_; }
-  Origin origin() const { return OriginOf(kind_); }
-  Severity severity() const { return SeverityOf(kind_); }
-  const std::vector<common::pos_t>& positions() const { return positions_; }
-  std::string message() const { return message_; }
-
- private:
-  IssueKind kind_;
-  std::vector<common::pos_t> positions_;
-  std::string message_;
+  Origin origin() const override;
+  common::Severity severity() const override;
 };
 
-class IssueTracker {
- public:
-  enum class PrintFormat {
-    kPlain,
-    kTerminal,
-  };
-
-  IssueTracker(const common::PosFileSet* file_set) : file_set_(file_set) {}
-
-  bool has_warnings() const;
-  bool has_errors() const;
-  bool has_fatal_errors() const;
-
-  const std::vector<Issue>& issues() const { return issues_; }
-
-  void Add(IssueKind kind, common::pos_t position, std::string message);
-  void Add(IssueKind kind, std::vector<common::pos_t> positions, std::string message);
-
-  void PrintIssues(PrintFormat format, std::ostream* out) const;
-
- private:
-  const common::PosFileSet* file_set_;
-  std::vector<Issue> issues_;
-};
+typedef common::IssueTracker<IssueKind, Origin, Issue> IssueTracker;
 
 }  // namespace issues
 }  // namespace lang
