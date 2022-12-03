@@ -117,6 +117,7 @@ cc_library(
     deps = [
         ":func_parser",
         ":scanner",
+        "//src/ir/representation",
     ],
 )
 
@@ -128,6 +129,18 @@ cc_test(
         ":parse",
         "//src/ir/checker",
         "@gtest//:gtest_main",
+    ],
+)
+
+cc_fuzz_test(
+    name = "parse_fuzz_test",
+    srcs = ["parse_fuzz_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":parse",
+        "//src/common/positions",
+        "//src/ir/issues",
+        "//src/ir/representation",
     ],
 )
 
