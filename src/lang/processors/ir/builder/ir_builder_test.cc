@@ -378,7 +378,7 @@ TEST_P(IRBuilderTest, BuildsIR) {
 
   // Check IR is as expected:
   std::unique_ptr<ir::Program> expected_ir_program =
-      lang::ir_serialization::ParseProgram(GetParam().expected_ir_program);
+      lang::ir_serialization::ParseProgramOrDie(GetParam().expected_ir_program);
   lang::ir_checker::AssertProgramIsOkay(expected_ir_program.get());
   EXPECT_TRUE(ir::IsEqual(actual_ir_program.get(), expected_ir_program.get()))
       << "For Katara program:" << GetParam().input_lang_program

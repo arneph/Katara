@@ -333,9 +333,9 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
 
 TEST_P(SharedPointerLowererTest, LowersProgram) {
   std::unique_ptr<ir::Program> lowered_program =
-      lang::ir_serialization::ParseProgram(GetParam().input_program);
+      lang::ir_serialization::ParseProgramOrDie(GetParam().input_program);
   std::unique_ptr<ir::Program> expected_program =
-      lang::ir_serialization::ParseProgram(GetParam().expected_program);
+      lang::ir_serialization::ParseProgramOrDie(GetParam().expected_program);
   lang::ir_checker::AssertProgramIsOkay(lowered_program.get());
   ASSERT_THAT(lang::ir_checker::CheckProgram(expected_program.get()),
               Each(Property(&ir_checker::Issue::kind,

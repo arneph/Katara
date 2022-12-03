@@ -31,7 +31,7 @@ using ::testing::SizeIs;
 using ::testing::UnorderedElementsAre;
 
 TEST(ParseTest, ParsesEmptyProgram) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram("");
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie("");
 
   EXPECT_THAT(program->funcs(), IsEmpty());
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -39,7 +39,7 @@ TEST(ParseTest, ParsesEmptyProgram) {
 }
 
 TEST(ParseTest, ParsesWhitespaceProgram) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram("\t\n\n    \t\t\t \n");
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie("\t\n\n    \t\t\t \n");
 
   EXPECT_THAT(ir_checker::CheckProgram(program.get()), IsEmpty());
   EXPECT_THAT(program->funcs(), IsEmpty());
@@ -48,7 +48,7 @@ TEST(ParseTest, ParsesWhitespaceProgram) {
 }
 
 TEST(ParseTest, ParsesProgramWithEmptyFunc) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 () => () {
 }
 )ir");
@@ -69,7 +69,7 @@ TEST(ParseTest, ParsesProgramWithEmptyFunc) {
 }
 
 TEST(ParseTest, ParsesProgramWithSimpleFunc) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 () => () {
 {0}
   ret
@@ -112,7 +112,7 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
 }
 
 TEST(ParseTest, ParsesFuncWithOneResult) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 () => (b) {
 {0}
   ret #f
@@ -163,7 +163,7 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
 }
 
 TEST(ParseTest, ParsesFuncWithMultipleResult) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 () => (u32, func, ptr, b) {
 {0}
   ret #42:u32, @0, 0x0, #t
@@ -230,7 +230,7 @@ TEST(ParseTest, ParsesFuncWithMultipleResult) {
 }
 
 TEST(ParseTest, ParsesFuncWithOneArgument) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 (%0:i16) => () {
 {0}
   ret
@@ -277,7 +277,7 @@ TEST(ParseTest, ParsesFuncWithOneArgument) {
 }
 
 TEST(ParseTest, ParsesFuncWithMultipleArguments) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 (%0:u32, %1:ptr, %2:b) => () {
 {0}
   ret
@@ -332,7 +332,7 @@ TEST(ParseTest, ParsesFuncWithMultipleArguments) {
 }
 
 TEST(ParseTest, ParsesFuncWithMultipleBlocks) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 (%0:i64, %1:i64, %2:b) => (i64) {
 {0}
   jcc %2, {1}, {2}
@@ -414,7 +414,7 @@ TEST(ParseTest, ParsesFuncWithMultipleBlocks) {
 }
 
 TEST(ParseTest, ParsesFuncWithIfStatement) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 (%0:func, %1:func, %2:b) => (func) {
 {0}
   jcc %2, {1}, {2}
@@ -460,7 +460,7 @@ TEST(ParseTest, ParsesFuncWithIfStatement) {
 }
 
 TEST(ParseTest, ParsesFuncWithForLoop) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 (%0:i64) => (i64) {
 {0}
   jmp {1}
@@ -570,7 +570,7 @@ TEST(ParseTest, ParsesFuncWithForLoop) {
 }
 
 TEST(ParseTest, ParsesFuncWithRecursiveCall) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @42 fib(%0:u64) => (u64) {
 {0}
   %1:b = ieq %0:u64, #1
@@ -670,7 +670,7 @@ TEST(ParseTest, ParsesFuncWithRecursiveCall) {
 }
 
 TEST(ParseTest, ParsesMultipleFuncs) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @123 () => (u16) {
 {23}
   ret #47:u16
@@ -844,7 +844,7 @@ TEST(ParseTest, ParsesMultipleFuncs) {
 }
 
 TEST(ParseTest, ParsesSyscall) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 (%0:i64, %1:i64) => (i64) {
 {0}
   %2:i64 = syscall #42:i64, %1, #123, %0
@@ -901,7 +901,7 @@ TEST(ParseTest, ParsesSyscall) {
 }
 
 TEST(ParseTest, ParsesAdditionalFuncs) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 (%0:i64, %1:i64, %2:func) => (ptr, i64) {
 {0}
   %3:i64, %4:ptr = call %2, #42:i64, %1, #123:u16, %0
@@ -917,7 +917,7 @@ TEST(ParseTest, ParsesAdditionalFuncs) {
   ir::Func* func_a = program->GetFunc(0);
   ir::Func* func_b = program->GetFunc(1);
   std::vector<ir::Func*> additional_funcs =
-      ir_serialization::ParseAdditionalFuncsForProgram(program.get(), R"ir(
+      ir_serialization::ParseAdditionalFuncsForProgramOrDie(program.get(), R"ir(
 @0 toast(%2:func) => (b) {
 {0}
   %0:i64 = call %2, #987:i64, #-1:i64

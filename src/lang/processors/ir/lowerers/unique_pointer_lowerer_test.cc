@@ -16,7 +16,7 @@
 #include "src/lang/processors/ir/serialization/parse.h"
 
 TEST(UniquePointerLowererTest, LowersSimpleProgram) {
-  std::unique_ptr<ir::Program> lowered_program = lang::ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> lowered_program = lang::ir_serialization::ParseProgramOrDie(R"ir(
 @0 main() => (i16) {
 {0}
   %0:lunique_ptr<i16> = make_unique #1:i64
@@ -29,7 +29,7 @@ TEST(UniquePointerLowererTest, LowersSimpleProgram) {
   ret %3
 }
 )ir");
-  std::unique_ptr<ir::Program> expected_program = lang::ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> expected_program = lang::ir_serialization::ParseProgramOrDie(R"ir(
 @0 main () => (i16) {
 {0}
   %0:ptr = malloc #8:i64

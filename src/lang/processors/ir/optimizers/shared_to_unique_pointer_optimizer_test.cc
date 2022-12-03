@@ -83,8 +83,10 @@ INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationImpossibleTestInstance
 )ir"));
 
 TEST_P(SharedToUniquePointerOptimizationImpossibleTest, DoesNotOptimizeProgram) {
-  std::unique_ptr<ir::Program> input_program = lang::ir_serialization::ParseProgram(GetParam());
-  std::unique_ptr<ir::Program> expected_program = lang::ir_serialization::ParseProgram(GetParam());
+  std::unique_ptr<ir::Program> input_program =
+      lang::ir_serialization::ParseProgramOrDie(GetParam());
+  std::unique_ptr<ir::Program> expected_program =
+      lang::ir_serialization::ParseProgramOrDie(GetParam());
   lang::ir_checker::AssertProgramIsOkay(expected_program.get());
 
   lang::ir_optimizers::ConvertSharedToUniquePointersInProgram(input_program.get());
@@ -209,9 +211,9 @@ INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationPossibleTestInstance,
 
 TEST_P(SharedToUniquePointerOptimizationPossibleTest, OptimizesProgram) {
   std::unique_ptr<ir::Program> optimized_program =
-      lang::ir_serialization::ParseProgram(GetParam().input_program);
+      lang::ir_serialization::ParseProgramOrDie(GetParam().input_program);
   std::unique_ptr<ir::Program> expected_program =
-      lang::ir_serialization::ParseProgram(GetParam().expected_program);
+      lang::ir_serialization::ParseProgramOrDie(GetParam().expected_program);
   lang::ir_checker::AssertProgramIsOkay(optimized_program.get());
   lang::ir_checker::AssertProgramIsOkay(expected_program.get());
 

@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -29,9 +30,10 @@ namespace ir_serialization {
 
 class FuncParser {
  public:
-  FuncParser(Scanner& scanner, TypeParser* type_parser, ConstantParser* constant_parser,
-             ir::Program* program, int64_t func_num_offset)
+  FuncParser(Scanner& scanner, ir_issues::IssueTracker& issue_tracker, TypeParser* type_parser,
+             ConstantParser* constant_parser, ir::Program* program, int64_t func_num_offset)
       : scanner_(scanner),
+        issue_tracker_(issue_tracker),
         type_parser_(type_parser),
         constant_parser_(constant_parser),
         program_(program),
@@ -50,6 +52,7 @@ class FuncParser {
   std::shared_ptr<ir::Computed> ParseComputedValue(const ir::Type* expected_type);
 
   Scanner& scanner() { return scanner_; }
+  ir_issues::IssueTracker& issue_tracker() { return issue_tracker_; }
   TypeParser* type_parser() { return type_parser_; }
   ConstantParser* constant_parser() { return constant_parser_; }
   ir::Program* program() { return program_; }
@@ -94,6 +97,7 @@ class FuncParser {
   ir::block_num_t ParseBlockValue();
 
   Scanner& scanner_;
+  ir_issues::IssueTracker& issue_tracker_;
   TypeParser* type_parser_;
   ConstantParser* constant_parser_;
   ir::Program* program_;

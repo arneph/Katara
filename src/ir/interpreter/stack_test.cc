@@ -23,7 +23,7 @@ using testing::IsEmpty;
 using testing::SizeIs;
 
 TEST(StackTest, HandlesStackFramesCorrectly) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 (%0:u8, %1:u8) => (u8) {
 {0}
   %2:u8 = iadd %0, %1

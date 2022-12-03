@@ -9,13 +9,13 @@
 #ifndef ir_serialization_parse_h
 #define ir_serialization_parse_h
 
-#include <istream>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <vector>
 
 #include "src/common/logging/logging.h"
+#include "src/common/positions/positions.h"
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/constant_parser.h"
 #include "src/ir/serialization/func_parser.h"
@@ -26,14 +26,14 @@ namespace ir_serialization {
 
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
-std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program,
-                                                      std::istream& in_stream) {
-  Scanner scanner(in_stream);
+std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, common::PosFile* file,
+                                                      ir_issues::IssueTracker& issue_tracker) {
+  Scanner scanner(file, issue_tracker);
   scanner.Next();
 
   int64_t func_num_offset = program->funcs().size();
-  TypeParser type_parser(scanner, program);
-  ConstantParser constant_parser(scanner, &type_parser, program, func_num_offset);
+  TypeParser type_parser(scanner, issue_tracker, program);
+  ConstantParser constant_parser(scanner, issue_tracker, &type_parser, program, func_num_offset);
   std::vector<ir::Func*> parsed_funcs;
 
   // Program ::= (Func | NL)*
@@ -41,12 +41,14 @@ std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program,
     if (scanner.token() == Scanner::kNewLine) {
       scanner.Next();
     } else if (scanner.token() == Scanner::kAtSign) {
-      FuncParser func_parser(scanner, &type_parser, &constant_parser, program, func_num_offset);
+      FuncParser func_parser(scanner, issue_tracker, &type_parser, &constant_parser, program,
+                             func_num_offset);
       parsed_funcs.push_back(func_parser.ParseFunc());
     } else if (scanner.token() == Scanner::kEoF) {
       break;
     } else {
-      scanner.FailForUnexpectedToken({Scanner::kNewLine, Scanner::kAtSign, Scanner::kEoF});
+      scanner.AddErrorForUnexpectedToken({Scanner::kNewLine, Scanner::kAtSign, Scanner::kEoF});
+      scanner.SkipPastTokenSequence({Scanner::kNewLine});
     }
   }
   return parsed_funcs;
@@ -54,26 +56,45 @@ std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program,
 
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
-std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, std::string text) {
-  std::stringstream ss;
-  ss << text;
-  return ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(program, ss);
+std::vector<ir::Func*> ParseAdditionalFuncsForProgramOrDie(ir::Program* program, std::string text) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("unknown.ir", text);
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  std::vector<ir::Func*> funcs =
+      ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(program, file,
+                                                                             issue_tracker);
+  if (!issue_tracker.issues().empty()) {
+    common::error("Parsing IR failed:");
+    issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, &std::cerr);
+    common::fail("");
+  }
+  return funcs;
 }
 
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
-std::unique_ptr<ir::Program> ParseProgram(std::istream& in_stream) {
+std::unique_ptr<ir::Program> ParseProgram(common::PosFile* file,
+                                          ir_issues::IssueTracker& issue_tracker) {
   auto program = std::make_unique<ir::Program>();
-  ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(program.get(), in_stream);
+  ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(program.get(), file,
+                                                                         issue_tracker);
   return program;
 }
 
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
-std::unique_ptr<ir::Program> ParseProgram(std::string text) {
-  std::stringstream ss;
-  ss << text;
-  return ParseProgram<TypeParser, ConstantParser, FuncParser>(ss);
+std::unique_ptr<ir::Program> ParseProgramOrDie(std::string text) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("unknown.ir", text);
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  std::unique_ptr<ir::Program> program =
+      ParseProgram<TypeParser, ConstantParser, FuncParser>(file, issue_tracker);
+  if (!issue_tracker.issues().empty()) {
+    common::error("Parsing IR failed:");
+    issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, &std::cerr);
+    common::fail("");
+  }
+  return program;
 }
 
 }  // namespace ir_serialization

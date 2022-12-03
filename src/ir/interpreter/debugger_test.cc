@@ -83,7 +83,7 @@ INSTANTIATE_TEST_SUITE_P(DebuggerTestInstance, DebuggerTest,
                              }));
 
 TEST_P(DebuggerTest, RunsCorrectlyWithoutSanityCheck) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
   ir_checker::AssertProgramIsOkay(program.get());
@@ -95,7 +95,7 @@ TEST_P(DebuggerTest, RunsCorrectlyWithoutSanityCheck) {
 }
 
 TEST_P(DebuggerTest, RunsCorrectlyWithSanityCheck) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
   ir_checker::AssertProgramIsOkay(program.get());
@@ -112,7 +112,7 @@ class TerminationObserverMock {
 };
 
 TEST_P(DebuggerTest, CallsTerminationObserver) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
   ir_checker::AssertProgramIsOkay(program.get());
@@ -129,7 +129,7 @@ TEST_P(DebuggerTest, CallsTerminationObserver) {
 }
 
 TEST_P(DebuggerTest, StepsInCorrectly) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
   ir_checker::AssertProgramIsOkay(program.get());
@@ -143,7 +143,7 @@ TEST_P(DebuggerTest, StepsInCorrectly) {
 }
 
 TEST_P(DebuggerTest, StepsOverCorrectly) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
   ir_checker::AssertProgramIsOkay(program.get());
@@ -157,7 +157,7 @@ TEST_P(DebuggerTest, StepsOverCorrectly) {
 }
 
 TEST_P(DebuggerTest, StepsOutCorrectly) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
   ir_checker::AssertProgramIsOkay(program.get());

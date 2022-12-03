@@ -85,7 +85,7 @@ INSTANTIATE_TEST_SUITE_P(InterpreterTestInstance, InterpreterTest,
                              }));
 
 TEST_P(InterpreterTest, InterpretsCorrectlyWithoutSanityCheck) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
   ir_checker::AssertProgramIsOkay(program.get());
@@ -96,7 +96,7 @@ TEST_P(InterpreterTest, InterpretsCorrectlyWithoutSanityCheck) {
 }
 
 TEST_P(InterpreterTest, InterpretsCorrectlyWithSanityCheck) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(GetParam().program);
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
   ir_checker::AssertProgramIsOkay(program.get());

@@ -25,7 +25,7 @@ std::shared_ptr<ir::Constant> ConstantParser::ParseConstant(const ir::Type* expe
 
 std::shared_ptr<ir_ext::StringConstant> ConstantParser::ParseStringConstant() {
   if (scanner().token() != ::ir_serialization::Scanner::kString) {
-    common::fail(scanner().PositionString() + ": expected string constant");
+    common::fail("expected string constant");
   }
   std::string str = scanner().token_string();
   scanner().Next();

@@ -8,8 +8,6 @@
 
 #include "func_parser.h"
 
-#include "src/common/logging/logging.h"
-
 namespace lang {
 namespace ir_serialization {
 
@@ -17,47 +15,66 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
     std::vector<std::shared_ptr<ir::Computed>> results, std::string instr_name) {
   if (instr_name == "panic") {
     if (results.size() != 0) {
-      common::fail(scanner().PositionString() + ": expected no results for panic instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
+                          "expected no results for panic instruction");
+      scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
+      return nullptr;
     }
     return ParsePanicInstr();
   } else if (instr_name == "make_shared") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() +
-                   ": expected one results for make_shared instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
+                          "expected one result for make_shared instruction");
+      scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
+      return nullptr;
     }
     return ParseMakeSharedInstr(results.front());
   } else if (instr_name == "copy_shared") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() +
-                   ": expected one results for copy_shared instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
+                          "expected one result for copy_shared instruction");
+      scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
+      return nullptr;
     }
     return ParseCopySharedInstr(results.front());
   } else if (instr_name == "delete_shared") {
     if (results.size() != 0) {
-      common::fail(scanner().PositionString() +
-                   ": expected no results for delete_shared instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
+                          "expected no results for delete_shared instruction");
+      scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
+      return nullptr;
     }
     return ParseDeleteSharedInstr();
   } else if (instr_name == "make_unique") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() +
-                   ": expected one results for make_unique instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
+                          "expected one result for make_unique instruction");
+      scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
+      return nullptr;
     }
     return ParseMakeUniqueInstr(results.front());
   } else if (instr_name == "delete_unique") {
     if (results.size() != 0) {
-      common::fail(scanner().PositionString() +
-                   ": expected no results for delete_unique instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
+                          "expected no results for delete_unique instruction");
+      scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
+      return nullptr;
     }
     return ParseDeleteUniqueInstr();
   } else if (instr_name == "str_index") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one results for str_index instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
+                          "expected one result for str_index instruction");
+      scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
+      return nullptr;
     }
     return ParseStringIndexInstr(results.front());
   } else if (instr_name == "str_cat") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one results for str_cat instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
+                          "expected one result for str_cat instruction");
+      scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
+      return nullptr;
     }
     return ParseStringConcatInstr(results.front());
   } else {

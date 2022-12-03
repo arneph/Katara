@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <sstream>
 
 #include "src/ir/analyzers/interference_graph_builder.h"
 #include "src/ir/analyzers/live_range_analyzer.h"
@@ -42,8 +43,10 @@ void run_ir_test(std::filesystem::path test_dir) {
     return;
   }
 
-  std::ifstream in_stream(in_file, std::ios::in);
-  std::unique_ptr<ir::Program> ir_program = ir_serialization::ParseProgram(in_stream);
+  std::ifstream in_fstream(in_file, std::ios::in);
+  std::stringstream in_sstream;
+  in_sstream << in_fstream.rdbuf();
+  std::unique_ptr<ir::Program> ir_program = ir_serialization::ParseProgramOrDie(in_sstream.str());
 
   ir_serialization::Print(ir_program.get(), std::cout);
   std::cout << "\n";

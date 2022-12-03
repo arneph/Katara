@@ -8,18 +8,19 @@
 
 #include "func_parser.h"
 
-#include "src/common/logging/logging.h"
-
 namespace ir_serialization {
 
 // Func ::= '@' Number Identifier? FuncArgs '=>' FuncResultTypes FuncBody
 ir::Func* FuncParser::ParseFunc() {
-  scanner().ConsumeToken(Scanner::kAtSign);
+  if (!scanner().ConsumeToken(Scanner::kAtSign)) {
+    scanner().SkipPastTokenSequence({Scanner::kNewLine, Scanner::kCurlyBracketClose});
+    return nullptr;
+  }
 
-  func_ = program()->AddFunc(scanner().ConsumeInt64() + func_num_offset_);
+  func_ = program()->AddFunc(scanner().ConsumeInt64().value_or(ir::kNoFuncNum) + func_num_offset_);
 
   if (scanner().token() == Scanner::kIdentifier) {
-    func_->set_name(scanner().ConsumeIdentifier());
+    func_->set_name(scanner().ConsumeIdentifier().value_or(""));
     if (func_->name() == "main") {
       program_->set_entry_func_num(func_->number());
     }
@@ -34,7 +35,9 @@ ir::Func* FuncParser::ParseFunc() {
 
 // FuncArgs ::= '(' (Computed (',' Computed)*)? ')'
 void FuncParser::ParseFuncArgs() {
-  scanner().ConsumeToken(Scanner::kParenOpen);
+  if (!scanner().ConsumeToken(Scanner::kParenOpen)) {
+    return;
+  }
   if (scanner().token() != Scanner::kParenClose) {
     func_->args() = ParseComputedValues(/*expected_type=*/nullptr);
   }
@@ -43,7 +46,9 @@ void FuncParser::ParseFuncArgs() {
 
 // FuncResultTypes ::= '(' (Type (',' Type)*)? ')'
 void FuncParser::ParseFuncResultTypes() {
-  scanner().ConsumeToken(Scanner::kParenOpen);
+  if (!scanner().ConsumeToken(Scanner::kParenOpen)) {
+    return;
+  }
   if (scanner().token() != Scanner::kParenClose) {
     func_->result_types() = type_parser()->ParseTypes();
   }
@@ -72,6 +77,9 @@ void FuncParser::ParseFuncBody() {
 
 void FuncParser::ConnectBlocks() {
   for (auto& block : func_->blocks()) {
+    if (block->instrs().empty()) {
+      continue;
+    }
     ir::Instr* last_instr = block->instrs().back().get();
 
     if (last_instr->instr_kind() == ir::InstrKind::kJump) {
@@ -95,7 +103,7 @@ void FuncParser::ConnectBlocks() {
 void FuncParser::ParseBlock() {
   scanner().ConsumeToken(Scanner::kCurlyBracketOpen);
 
-  int64_t bnum = scanner().ConsumeInt64();
+  ir::block_num_t bnum = scanner().ConsumeInt64().value_or(ir::kNoBlockNum);
 
   scanner().ConsumeToken(Scanner::kCurlyBracketClose);
 
@@ -104,7 +112,7 @@ void FuncParser::ParseBlock() {
     func_->set_entry_block_num(bnum);
   }
   if (scanner().token() == Scanner::kIdentifier) {
-    block->set_name(scanner().ConsumeIdentifier());
+    block->set_name(scanner().ConsumeIdentifier().value());
   }
 
   scanner().ConsumeToken(Scanner::kNewLine);
@@ -114,7 +122,10 @@ void FuncParser::ParseBlock() {
         scanner().token() == Scanner::kCurlyBracketClose) {
       break;
     } else {
-      block->instrs().push_back(ParseInstr());
+      std::unique_ptr<ir::Instr> instr = ParseInstr();
+      if (instr != nullptr) {
+        block->instrs().push_back(std::move(instr));
+      }
     }
   }
 }
@@ -122,7 +133,12 @@ void FuncParser::ParseBlock() {
 // Instr ::= InstrResults '=' Idenifier (Value (',' Value)*)? NL
 std::unique_ptr<ir::Instr> FuncParser::ParseInstr() {
   std::vector<std::shared_ptr<ir::Computed>> results = ParseInstrResults();
-  std::string instr_name = scanner().ConsumeIdentifier();
+  if (scanner().token() != Scanner::kIdentifier) {
+    scanner().AddErrorForUnexpectedToken({Scanner::kIdentifier});
+    scanner().SkipPastTokenSequence({Scanner::kNewLine});
+    return nullptr;
+  }
+  std::string instr_name = scanner().ConsumeIdentifier().value();
   return ParseInstrWithResults(results, instr_name);
 }
 
@@ -131,113 +147,167 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
     std::vector<std::shared_ptr<ir::Computed>> results, std::string instr_name) {
   if (instr_name == "mov") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for mov instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kMovInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for mov instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseMovInstr(results.front());
 
   } else if (instr_name == "phi") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for phi instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPhiInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for phi instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParsePhiInstr(results.front());
 
   } else if (instr_name == "conv") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for conv instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kConvInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for conv instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseConversionInstr(results.front());
 
   } else if (instr_name == "bnot") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for bool not instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kBoolNotInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for bool not instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseBoolNotInstr(results.front());
 
   } else if (auto bool_binary_op = common::ToBoolBinaryOp(instr_name); bool_binary_op) {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() +
-                   ": expected one result for bool binary instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kBoolBinaryInstrDoesNotHaveOneResult,
+                          scanner().token_start(),
+                          "expected one result for bool binary instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseBoolBinaryInstr(results.front(), bool_binary_op.value());
 
   } else if (auto int_unary_op = common::ToIntUnaryOp(instr_name); int_unary_op) {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for int unary instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kIntUnaryInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for int unary instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseIntUnaryInstr(results.front(), int_unary_op.value());
 
   } else if (auto int_compare_op = common::ToIntCompareOp(instr_name); int_compare_op) {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() +
-                   ": expected one result for int compare instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kIntCompareInstrDoesNotHaveOneResult,
+                          scanner().token_start(),
+                          "expected one result for int compare instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseIntCompareInstr(results.front(), int_compare_op.value());
 
   } else if (auto int_binary_op = common::ToIntBinaryOp(instr_name); int_binary_op) {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for int binary instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kIntBinaryInstrDoesNotHaveOneResult,
+                          scanner().token_start(),
+                          "expected one result for int binary instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseIntBinaryInstr(results.front(), int_binary_op.value());
 
   } else if (auto int_shift_op = common::ToIntShiftOp(instr_name); int_shift_op) {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for int shift instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kIntShiftInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for int shift instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseIntShiftInstr(results.front(), int_shift_op.value());
 
   } else if (instr_name == "poff") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() +
-                   ": expected one result for pointer offset instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kPointerOffsetInstrDoesNotHaveOneResult,
+                          scanner().token_start(),
+                          "expected one result for pointer offset instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParsePointerOffsetInstr(results.front());
 
   } else if (instr_name == "niltest") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for nil test instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kNilTestInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for nil test instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseNilTestInstr(results.front());
 
   } else if (instr_name == "malloc") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for malloc instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kMallocInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for malloc instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseMallocInstr(results.front());
 
   } else if (instr_name == "load") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for load instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kLoadInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for load instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseLoadInstr(results.front());
 
   } else if (instr_name == "store") {
     if (results.size() != 0) {
-      common::fail(scanner().PositionString() + ": did not expect results for store instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kStoreInstrHasResults, scanner().token_start(),
+                          "did not expect results for store instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseStoreInstr();
 
   } else if (instr_name == "free") {
     if (results.size() != 0) {
-      common::fail(scanner().PositionString() + ": did not expect results for free instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kFreeInstrHasResults, scanner().token_start(),
+                          "did not expect results for free instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseFreeInstr();
 
   } else if (instr_name == "jmp") {
     if (results.size() != 0) {
-      common::fail(scanner().PositionString() + ": did not expect results for jump instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kJumpInstrHasResults, scanner().token_start(),
+                          "did not expect results for jump instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseJumpInstr();
 
   } else if (instr_name == "jcc") {
     if (results.size() != 0) {
-      common::fail(scanner().PositionString() +
-                   ": did not expect results for jump conditional  instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kJumpCondInstrHasResults, scanner().token_start(),
+                          "did not expect results for jump conditional instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseJumpCondInstr();
 
   } else if (instr_name == "syscall") {
     if (results.size() != 1) {
-      common::fail(scanner().PositionString() + ": expected one result for syscall instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kSyscallInstrDoesNotHaveOneResult,
+                          scanner().token_start(), "expected one result for syscall instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseSyscallInstr(results.front());
 
@@ -246,12 +316,18 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
 
   } else if (instr_name == "ret") {
     if (results.size() != 0) {
-      common::fail(scanner().PositionString() + ": did not expect results for return instruction");
+      issue_tracker().Add(ir_issues::IssueKind::kReturnInstrHasResults, scanner().token_start(),
+                          "did not expect results for return instruction");
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
     return ParseReturnInstr();
 
   } else {
-    common::fail(scanner().PositionString() + ": unknown operation: " + instr_name);
+    issue_tracker().Add(ir_issues::IssueKind::kUnknownInstructionName, scanner().token_start(),
+                        "unknown instruction name");
+    scanner().SkipPastTokenSequence({Scanner::kNewLine});
+    return nullptr;
   }
 }
 
@@ -280,13 +356,16 @@ std::unique_ptr<ir::PhiInstr> FuncParser::ParsePhiInstr(std::shared_ptr<ir::Comp
       args.push_back(ParseInheritedValue(result->type()));
 
     } else {
-      scanner().FailForUnexpectedToken({Scanner::kNewLine, Scanner::kComma});
+      scanner().AddErrorForUnexpectedToken({Scanner::kNewLine, Scanner::kComma});
+      scanner().SkipPastTokenSequence({Scanner::kNewLine});
+      return nullptr;
     }
   }
 
   if (args.size() < 2) {
-    common::fail(scanner().PositionString() +
-                 ": expected at least two arguments for phi instruction");
+    issue_tracker().Add(ir_issues::IssueKind::kPhiInstrHasLessThanTwoResults,
+                        scanner().token_start(),
+                        "expected at least two arguments for phi instruction");
   }
 
   return std::make_unique<ir::PhiInstr>(result, args);
@@ -537,21 +616,24 @@ std::vector<std::shared_ptr<ir::Computed>> FuncParser::ParseComputedValues(
 // Computed ::= '%' Identifier (':' Type)?
 std::shared_ptr<ir::Computed> FuncParser::ParseComputedValue(const ir::Type* expected_type) {
   scanner().ConsumeToken(Scanner::kPercentSign);
-  ir::value_num_t number = scanner().ConsumeInt64();
+  ir::value_num_t number = scanner().ConsumeInt64().value_or(ir::kNoValueNum);
   bool known = computed_values_.contains(number);
 
   const ir::Type* type;
   if (scanner().token() == Scanner::kColon) {
     scanner().ConsumeToken(Scanner::kColon);
+    common::pos_t type_pos = scanner().token_start();
     type = type_parser()->ParseType();
 
     if (expected_type != nullptr && expected_type != type) {
-      common::fail(scanner().PositionString() + ": expected '" + expected_type->RefString() +
-                   "'; got '" + type->RefString() + "'");
+      issue_tracker().Add(
+          ir_issues::IssueKind::kUnexpectedType, type_pos,
+          "expected '" + expected_type->RefString() + "'; got '" + type->RefString() + "'");
+      type = expected_type;
     }
   } else {
     if (expected_type == nullptr && !known) {
-      scanner().FailForUnexpectedToken({Scanner::kColon});
+      scanner().AddErrorForUnexpectedToken({Scanner::kColon});
     }
     type = expected_type;
   }
@@ -570,7 +652,7 @@ std::shared_ptr<ir::Computed> FuncParser::ParseComputedValue(const ir::Type* exp
 // BlockValue ::= '{' Number '}'
 ir::block_num_t FuncParser::ParseBlockValue() {
   scanner().ConsumeToken(Scanner::kCurlyBracketOpen);
-  ir::block_num_t number = scanner().ConsumeInt64();
+  ir::block_num_t number = scanner().ConsumeInt64().value_or(ir::kNoBlockNum);
   scanner().ConsumeToken(Scanner::kCurlyBracketClose);
   return number;
 }

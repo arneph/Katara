@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/object.h"
@@ -32,11 +33,12 @@ namespace ir_serialization {
 
 class FuncParser : public ::ir_serialization::FuncParser {
  public:
-  FuncParser(::ir_serialization::Scanner& scanner, ::ir_serialization::TypeParser* type_parser,
+  FuncParser(::ir_serialization::Scanner& scanner, ir_issues::IssueTracker& issue_tracker,
+             ::ir_serialization::TypeParser* type_parser,
              ::ir_serialization::ConstantParser* constant_parser, ir::Program* program,
              int64_t func_num_offset)
-      : ::ir_serialization::FuncParser(scanner, type_parser, constant_parser, program,
-                                       func_num_offset) {}
+      : ::ir_serialization::FuncParser(scanner, issue_tracker, type_parser, constant_parser,
+                                       program, func_num_offset) {}
 
  private:
   std::unique_ptr<ir::Instr> ParseInstrWithResults(

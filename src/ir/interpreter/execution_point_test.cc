@@ -22,7 +22,7 @@
 using testing::SizeIs;
 
 TEST(ExeuctionPointTest, AdvancesCorrectly) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(R"ir(
+  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
 @0 () => (i64) {
 {0}
   jmp {1}

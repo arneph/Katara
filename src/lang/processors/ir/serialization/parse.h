@@ -14,16 +14,19 @@
 #include <string>
 #include <vector>
 
+#include "src/common/positions/positions.h"
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/program.h"
 
 namespace lang {
 namespace ir_serialization {
 
-std::unique_ptr<ir::Program> ParseProgram(std::istream& in_stream);
-std::unique_ptr<ir::Program> ParseProgram(std::string text);
-std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program,
-                                                      std::istream& in_stream);
-std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, std::string text);
+std::unique_ptr<ir::Program> ParseProgram(common::PosFile* file,
+                                          ir_issues::IssueTracker& issue_tracker);
+std::unique_ptr<ir::Program> ParseProgramOrDie(std::string text);
+std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, common::PosFile* file,
+                                                      ir_issues::IssueTracker& issue_tracker);
+std::vector<ir::Func*> ParseAdditionalFuncsForProgramOrDie(ir::Program* program, std::string text);
 
 }  // namespace ir_serialization
 }  // namespace lang

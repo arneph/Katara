@@ -9,6 +9,7 @@
 #ifndef lang_ir_serialization_type_parser_h
 #define lang_ir_serialization_type_parser_h
 
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/representation/types.h"
 #include "src/ir/representation/values.h"
@@ -21,8 +22,9 @@ namespace ir_serialization {
 
 class TypeParser : public ::ir_serialization::TypeParser {
  public:
-  TypeParser(::ir_serialization::Scanner& scanner, ir::Program* program)
-      : ::ir_serialization::TypeParser(scanner, program) {}
+  TypeParser(::ir_serialization::Scanner& scanner, ir_issues::IssueTracker& issue_tracker,
+             ir::Program* program)
+      : ::ir_serialization::TypeParser(scanner, issue_tracker, program) {}
 
  private:
   const ir::Type* ParseType() override;

@@ -22,8 +22,10 @@ TEST(IrFileTest, ProgramsParseAndAreOkay) {
   for (const std::filesystem::directory_entry& entry :
        std::filesystem::recursive_directory_iterator(std::filesystem::current_path())) {
     if (entry.path().extension() != ".ir") continue;
-    std::ifstream stream(entry.path());
-    std::unique_ptr<ir::Program> program = lang::ir_serialization::ParseProgram(stream);
+    std::ifstream fstream(entry.path());
+    std::stringstream sstream;
+    sstream << fstream.rdbuf();
+    std::unique_ptr<ir::Program> program = lang::ir_serialization::ParseProgramOrDie(sstream.str());
     lang::ir_checker::AssertProgramIsOkay(program.get());
   }
 }

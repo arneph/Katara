@@ -12,25 +12,35 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "src/common/positions/positions.h"
+#include "src/ir/issues/issues.h"
 
 namespace {
 
 using ::testing::IsEmpty;
+using ::testing::SizeIs;
 
 TEST(ScannerTest, HandlesEmptyStream) {
-  std::stringstream ss;
-  ir_serialization::Scanner scanner(ss);
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
 
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kUnknown);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
 TEST(ScannerTest, ScansIdentifier) {
-  std::stringstream ss;
-  ss << "something";
-  ir_serialization::Scanner scanner(ss);
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "something");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kIdentifier);
@@ -38,12 +48,16 @@ TEST(ScannerTest, ScansIdentifier) {
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
 TEST(ScannerTest, ScansIdentifierWithNumbersAndUnderscores) {
-  std::stringstream ss;
-  ss << "Something_Else_42";
-  ir_serialization::Scanner scanner(ss);
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "Something_Else_42");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kIdentifier);
@@ -51,12 +65,16 @@ TEST(ScannerTest, ScansIdentifierWithNumbersAndUnderscores) {
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
 TEST(ScannerTest, ScansNumber) {
-  std::stringstream ss;
-  ss << "123";
-  ir_serialization::Scanner scanner(ss);
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "123");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNumber);
@@ -65,12 +83,16 @@ TEST(ScannerTest, ScansNumber) {
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
 TEST(ScannerTest, ScansAddress) {
-  std::stringstream ss;
-  ss << "0x123";
-  ir_serialization::Scanner scanner(ss);
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "0x123");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAddress);
@@ -79,12 +101,16 @@ TEST(ScannerTest, ScansAddress) {
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
 TEST(ScannerTest, ScansString) {
-  std::stringstream ss;
-  ss << "\"\\\"hello\\\" \\--\\\\-- \\\"world\\\"\"";
-  ir_serialization::Scanner scanner(ss);
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "\"\\\"hello\\\" \\--\\\\-- \\\"world\\\"\"");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kString);
@@ -93,12 +119,55 @@ TEST(ScannerTest, ScansString) {
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
+TEST(ScannerTest, HandlesEOFInsteadOfEscapedCharacter) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "\"abc\\");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kUnknown);
+
+  ASSERT_THAT(issue_tracker.issues(), SizeIs(1));
+  EXPECT_EQ(issue_tracker.issues().at(0).kind(),
+            ir_issues::IssueKind::kEOFInsteadOfEscapedCharacter);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+}
+
+TEST(ScannerTest, HandlesEOFInsteadOfStringEndQuote) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "\"abc");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kUnknown);
+
+  ASSERT_THAT(issue_tracker.issues(), SizeIs(1));
+  EXPECT_EQ(issue_tracker.issues().at(0).kind(), ir_issues::IssueKind::kEOFInsteadOfStringEndQuote);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
 }
 
 TEST(ScannerTest, ScansCharacterTokens) {
-  std::stringstream ss;
-  ss << ")(,@}{:%#\n==>><=";
-  ir_serialization::Scanner scanner(ss);
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", ")(,@}{:%#\n==>><=");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenClose);
@@ -162,84 +231,174 @@ TEST(ScannerTest, ScansCharacterTokens) {
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
 TEST(ScannerTest, ProvidesCorrectPositions) {
-  std::stringstream ss;
-  ss << "@0 main () => () {\n"
-     << "  ret\n"
-     << "}";
-  ir_serialization::Scanner scanner(ss);
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir",
+                                           "@0 main () => () {\n"
+                                           "  ret\n"
+                                           "}");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAtSign);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 0);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNumber);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 1);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kIdentifier);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 4);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 3);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column_, 6);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenOpen);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 9);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 8);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenClose);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 10);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 9);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kArrow);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 12);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 11);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column_, 12);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenOpen);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 15);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 14);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenClose);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 16);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 15);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kCurlyBracketOpen);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 18);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 17);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNewLine);
-  EXPECT_EQ(scanner.line(), 1);
-  EXPECT_EQ(scanner.column(), 19);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 18);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kIdentifier);
-  EXPECT_EQ(scanner.line(), 2);
-  EXPECT_EQ(scanner.column(), 3);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line_, 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column_, 4);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNewLine);
-  EXPECT_EQ(scanner.line(), 2);
-  EXPECT_EQ(scanner.column(), 6);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 5);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kCurlyBracketClose);
-  EXPECT_EQ(scanner.line(), 3);
-  EXPECT_EQ(scanner.column(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 3);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 0);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
-  EXPECT_EQ(scanner.line(), 3);
-  EXPECT_EQ(scanner.column(), 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 3);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 1);
+  EXPECT_EQ(scanner.token_start(), scanner.token_end());
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
+TEST(ScannerTest, HandlesUnexpectedToken) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "hello");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  scanner.ConsumeToken(::ir_serialization::Scanner::Token::kAtSign);
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  ASSERT_THAT(issue_tracker.issues(), SizeIs(1));
+  EXPECT_EQ(issue_tracker.issues().at(0).kind(), ir_issues::IssueKind::kUnexpectedToken);
+
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+}
+
+TEST(ScannerTest, SkipsPastOneToken) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "@{hello}42");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  scanner.SkipPastTokenSequence({::ir_serialization::Scanner::Token::kCurlyBracketClose});
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNumber);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
+TEST(ScannerTest, SkipsPastMultipleTokens) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "@{(hello)hello}42");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  scanner.SkipPastTokenSequence({::ir_serialization::Scanner::Token::kIdentifier,
+                                 ::ir_serialization::Scanner::Token::kCurlyBracketClose});
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNumber);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
+TEST(ScannerTest, SkipsToEOF) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "@{hello}42");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  scanner.SkipPastTokenSequence({::ir_serialization::Scanner::Token::kParenOpen});
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
 }  // namespace

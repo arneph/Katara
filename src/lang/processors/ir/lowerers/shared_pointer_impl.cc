@@ -9,6 +9,7 @@
 #include "shared_pointer_impl.h"
 
 #include <fstream>
+#include <sstream>
 #include <vector>
 
 #include "src/lang/processors/ir/serialization/parse.h"
@@ -17,9 +18,11 @@ namespace lang {
 namespace ir_lowerers {
 
 SharedPointerLoweringFuncs AddSharedPointerLoweringFuncsToProgram(ir::Program* program) {
-  std::ifstream stream("src/lang/processors/ir/lowerers/shared_pointer_impl.ir");
+  std::ifstream fstream("src/lang/processors/ir/lowerers/shared_pointer_impl.ir");
+  std::stringstream sstream;
+  sstream << fstream.rdbuf();
   std::vector<ir::Func*> funcs =
-      lang::ir_serialization::ParseAdditionalFuncsForProgram(program, stream);
+      lang::ir_serialization::ParseAdditionalFuncsForProgramOrDie(program, sstream.str());
   return SharedPointerLoweringFuncs{
       .make_shared_func_num = funcs.at(0)->number(),
       .strong_copy_shared_func_num = funcs.at(1)->number(),

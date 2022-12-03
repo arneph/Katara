@@ -54,14 +54,14 @@ class Issue {
 template <class T, typename IssueKind, typename Origin>
 concept IssueSubclass = std::is_base_of<Issue<IssueKind, Origin>, T>::value;
 
+enum class IssuePrintFormat {
+  kPlain,
+  kTerminal,
+};
+
 template <IssueKindType IssueKind, OriginType Origin, IssueSubclass<IssueKind, Origin> Issue>
 class IssueTracker {
  public:
-  enum class PrintFormat {
-    kPlain,
-    kTerminal,
-  };
-
   IssueTracker(const PosFileSet* file_set) : file_set_(file_set) {}
 
   bool has_warnings() const {
@@ -87,10 +87,10 @@ class IssueTracker {
     issues_.push_back(Issue(kind, positions, message));
   }
 
-  void PrintIssues(PrintFormat format, std::ostream* out) const {
+  void PrintIssues(IssuePrintFormat format, std::ostream* out) const {
     for (auto& issue : issues_) {
       switch (format) {
-        case PrintFormat::kPlain:
+        case IssuePrintFormat::kPlain:
           switch (issue.severity()) {
             case Severity::kWarning:
               *out << "Warning:";
@@ -100,7 +100,7 @@ class IssueTracker {
               *out << "Error:";
           }
           break;
-        case PrintFormat::kTerminal:
+        case IssuePrintFormat::kTerminal:
           switch (issue.severity()) {
             case Severity::kWarning:
               *out << "\033[93;1m"

@@ -90,8 +90,10 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationImpossibleTestInst
 )ir"));
 
 TEST_P(UniquePointerToLocalValueOptimizationImpossibleTest, DoesNotOptimizeProgram) {
-  std::unique_ptr<ir::Program> input_program = lang::ir_serialization::ParseProgram(GetParam());
-  std::unique_ptr<ir::Program> expected_program = lang::ir_serialization::ParseProgram(GetParam());
+  std::unique_ptr<ir::Program> input_program =
+      lang::ir_serialization::ParseProgramOrDie(GetParam());
+  std::unique_ptr<ir::Program> expected_program =
+      lang::ir_serialization::ParseProgramOrDie(GetParam());
   lang::ir_checker::AssertProgramIsOkay(expected_program.get());
 
   lang::ir_optimizers::ConvertUniquePointersToLocalValuesInProgram(input_program.get());
@@ -264,9 +266,9 @@ INSTANTIATE_TEST_SUITE_P(UniquePointerToLocalValueOptimizationPossibleTestInstan
 
 TEST_P(UniquePointerToLocalValueOptimizationPossibleTest, OptimizesProgram) {
   std::unique_ptr<ir::Program> optimized_program =
-      lang::ir_serialization::ParseProgram(GetParam().input_program);
+      lang::ir_serialization::ParseProgramOrDie(GetParam().input_program);
   std::unique_ptr<ir::Program> expected_program =
-      lang::ir_serialization::ParseProgram(GetParam().expected_program);
+      lang::ir_serialization::ParseProgramOrDie(GetParam().expected_program);
   lang::ir_checker::AssertProgramIsOkay(optimized_program.get());
   lang::ir_checker::AssertProgramIsOkay(expected_program.get());
 

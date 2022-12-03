@@ -37,15 +37,15 @@ const ir::Type* TypeParser::ParseType() {
 
 const ir_ext::SharedPointer* TypeParser::ParseSharedPointer() {
   if (scanner().ConsumeIdentifier() != "lshared_ptr") {
-    common::fail(scanner().PositionString() + ": expected lshared_ptr");
+    common::fail("expected lshared_ptr");
   }
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleOpen);
   const ir::Type* element = ParseType();
   scanner().ConsumeToken(::ir_serialization::Scanner::kComma);
 
-  std::string c = scanner().ConsumeIdentifier();
+  std::string c = scanner().ConsumeIdentifier().value_or("s");
   if (c != "s" && c != "w") {
-    common::fail(scanner().PositionString() + ": expected 's' or 'w'");
+    common::fail("expected 's' or 'w'");
   }
   bool is_strong = c == "s";
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleClose);
@@ -58,7 +58,7 @@ const ir_ext::SharedPointer* TypeParser::ParseSharedPointer() {
 
 const ir_ext::UniquePointer* TypeParser::ParseUniquePointer() {
   if (scanner().ConsumeIdentifier() != "lunique_ptr") {
-    common::fail(scanner().PositionString() + ": expected lunique_ptr");
+    common::fail("expected lunique_ptr");
   }
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleOpen);
   const ir::Type* element = ParseType();
@@ -72,14 +72,14 @@ const ir_ext::UniquePointer* TypeParser::ParseUniquePointer() {
 
 const ir_ext::Array* TypeParser::ParseArray() {
   if (scanner().ConsumeIdentifier() != "larray") {
-    common::fail(scanner().PositionString() + ": expected larray");
+    common::fail("expected larray");
   }
   ir_ext::ArrayBuilder builder;
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleOpen);
   builder.SetElement(ParseType());
   if (scanner().token() == ::ir_serialization::Scanner::kComma) {
     scanner().ConsumeToken(::ir_serialization::Scanner::kComma);
-    builder.SetFixedCount(scanner().ConsumeInt64());
+    builder.SetFixedCount(scanner().ConsumeInt64().value_or(0));
   }
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleClose);
 
@@ -90,7 +90,7 @@ const ir_ext::Array* TypeParser::ParseArray() {
 
 const ir_ext::Struct* TypeParser::ParseStruct() {
   if (scanner().ConsumeIdentifier() != "lstruct") {
-    common::fail(scanner().PositionString() + ": expected lstruct");
+    common::fail("expected lstruct");
   }
   if (scanner().token() != ::ir_serialization::Scanner::kAngleOpen) {
     return ir_ext::empty_struct();
@@ -110,7 +110,12 @@ const ir_ext::Struct* TypeParser::ParseStruct() {
 }
 
 void TypeParser::ParseStructField(ir_ext::StructBuilder& builder) {
-  std::string name = scanner().ConsumeIdentifier();
+  if (scanner().token() != ::ir_serialization::Scanner::kIdentifier) {
+    scanner().AddErrorForUnexpectedToken({::ir_serialization::Scanner::kIdentifier});
+    scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kComma});
+    return;
+  }
+  std::string name = scanner().ConsumeIdentifier().value();
   scanner().ConsumeToken(::ir_serialization::Scanner::kColon);
   const ir::Type* type = ParseType();
   builder.AddField(name, type);
@@ -118,7 +123,7 @@ void TypeParser::ParseStructField(ir_ext::StructBuilder& builder) {
 
 const ir_ext::Interface* TypeParser::ParseInterface() {
   if (scanner().ConsumeIdentifier() != "linterface") {
-    common::fail(scanner().PositionString() + ": expected linterface");
+    common::fail("expected linterface");
   }
   if (scanner().token() != ::ir_serialization::Scanner::kAngleOpen) {
     return ir_ext::empty_interface();
@@ -138,7 +143,12 @@ const ir_ext::Interface* TypeParser::ParseInterface() {
 }
 
 void TypeParser::ParseInterfaceMethod(ir_ext::InterfaceBuilder& builder) {
-  std::string name = scanner().ConsumeIdentifier();
+  if (scanner().token() != ::ir_serialization::Scanner::kIdentifier) {
+    scanner().AddErrorForUnexpectedToken({::ir_serialization::Scanner::kIdentifier});
+    scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kComma});
+    return;
+  }
+  std::string name = scanner().ConsumeIdentifier().value();
   scanner().ConsumeToken(::ir_serialization::Scanner::kColon);
   scanner().ConsumeToken(::ir_serialization::Scanner::kParenOpen);
   std::vector<const ir::Type*> parameters;

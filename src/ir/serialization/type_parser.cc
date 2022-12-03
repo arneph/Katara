@@ -24,7 +24,11 @@ std::vector<const ir::Type*> TypeParser::ParseTypes() {
 
 // Type ::= Identifier
 const ir::Type* TypeParser::ParseType() {
-  std::string name = scanner().ConsumeIdentifier();
+  if (scanner().token() != Scanner::kIdentifier) {
+    return nullptr;
+  }
+  common::pos_t name_pos = scanner().token_start();
+  std::string name = scanner().ConsumeIdentifier().value();
 
   if (name == "b") {
     return ir::bool_type();
@@ -35,7 +39,8 @@ const ir::Type* TypeParser::ParseType() {
   } else if (name == "func") {
     return ir::func_type();
   } else {
-    common::fail(scanner().PositionString() + ": unexpected type '" + name + "'");
+    issue_tracker().Add(ir_issues::IssueKind::kUnknownTypeName, name_pos, "unknown type name");
+    return nullptr;
   }
 }
 

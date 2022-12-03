@@ -9,12 +9,14 @@
 #ifndef ir_serialization_scanner_h
 #define ir_serialization_scanner_h
 
-#include <istream>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "src/common/atomics/atomics.h"
+#include "src/common/positions/positions.h"
+#include "src/ir/issues/issues.h"
 
 namespace ir_serialization {
 
@@ -45,13 +47,12 @@ class Scanner {
 
   static std::string TokenToString(Token token);
 
-  Scanner(std::istream& in_stream) : in_stream_(in_stream) {}
-
-  int64_t line() const { return line_; }
-  int64_t column() const { return column_; }
-  std::string PositionString() const;
+  Scanner(common::PosFile* file, ir_issues::IssueTracker& issue_tracker)
+      : file_(file), issue_tracker_(issue_tracker), pos_(file->start()) {}
 
   Token token() const { return token_; }
+  common::pos_t token_start() const { return token_start_; }
+  common::pos_t token_end() const { return token_end_; }
   std::string token_text() const;
   common::Int token_number() const;
   common::Int token_address() const;
@@ -59,11 +60,12 @@ class Scanner {
 
   void Next();
 
-  int64_t ConsumeInt64();
-  std::string ConsumeIdentifier();
-  void ConsumeToken(Token token);
+  std::optional<int64_t> ConsumeInt64();
+  std::optional<std::string> ConsumeIdentifier();
+  bool ConsumeToken(Token token);
 
-  void FailForUnexpectedToken(std::vector<Token> expected_tokens);
+  void AddErrorForUnexpectedToken(std::vector<Token> expected_tokens);
+  void SkipPastTokenSequence(std::vector<Token> sequence);
 
  private:
   void SkipWhitespace();
@@ -71,12 +73,14 @@ class Scanner {
   void NextNumberOrAddress();
   void NextString();
 
-  std::istream& in_stream_;
+  const common::PosFile* file_;
+  ir_issues::IssueTracker& issue_tracker_;
 
-  int64_t line_ = 1;
-  int64_t column_ = 1;
+  common::pos_t pos_;
+
   Token token_ = kUnknown;
-  std::string token_text_;
+  common::pos_t token_start_ = common::kNoPos;
+  common::pos_t token_end_ = common::kNoPos;
 };
 
 }  // namespace ir_serialization

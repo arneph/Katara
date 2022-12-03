@@ -16,23 +16,25 @@
 namespace lang {
 namespace ir_serialization {
 
-std::unique_ptr<ir::Program> ParseProgram(std::istream& in_stream) {
-  return ::ir_serialization::ParseProgram<TypeParser, ConstantParser, FuncParser>(in_stream);
+std::unique_ptr<ir::Program> ParseProgram(common::PosFile* file,
+                                          ir_issues::IssueTracker& issue_tracker) {
+  return ::ir_serialization::ParseProgram<TypeParser, ConstantParser, FuncParser>(file,
+                                                                                  issue_tracker);
 }
 
-std::unique_ptr<ir::Program> ParseProgram(std::string text) {
-  return ::ir_serialization::ParseProgram<TypeParser, ConstantParser, FuncParser>(text);
+std::unique_ptr<ir::Program> ParseProgramOrDie(std::string text) {
+  return ::ir_serialization::ParseProgramOrDie<TypeParser, ConstantParser, FuncParser>(text);
 }
 
-std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program,
-                                                      std::istream& in_stream) {
+std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, common::PosFile* file,
+                                                      ir_issues::IssueTracker& issue_tracker) {
   return ::ir_serialization::ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(
-      program, in_stream);
+      program, file, issue_tracker);
 }
 
-std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, std::string text) {
-  return ::ir_serialization::ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(
-      program, text);
+std::vector<ir::Func*> ParseAdditionalFuncsForProgramOrDie(ir::Program* program, std::string text) {
+  return ::ir_serialization::ParseAdditionalFuncsForProgramOrDie<TypeParser, ConstantParser,
+                                                                 FuncParser>(program, text);
 }
 
 }  // namespace ir_serialization

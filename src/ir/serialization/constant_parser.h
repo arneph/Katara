@@ -11,6 +11,7 @@
 
 #include <memory>
 
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/representation/types.h"
 #include "src/ir/representation/values.h"
@@ -21,9 +22,10 @@ namespace ir_serialization {
 
 class ConstantParser {
  public:
-  ConstantParser(Scanner& scanner, TypeParser* type_parser, ir::Program* program,
-                 int64_t func_num_offset)
+  ConstantParser(Scanner& scanner, ir_issues::IssueTracker& issue_tracker, TypeParser* type_parser,
+                 ir::Program* program, int64_t func_num_offset)
       : scanner_(scanner),
+        issue_tracker_(issue_tracker),
         type_parser_(type_parser),
         program_(program),
         func_num_offset_(func_num_offset) {}
@@ -33,6 +35,7 @@ class ConstantParser {
 
  protected:
   Scanner& scanner() { return scanner_; }
+  ir_issues::IssueTracker& issue_tracker() { return issue_tracker_; }
   TypeParser* type_parser() { return type_parser_; }
   ir::Program* program() { return program_; }
 
@@ -42,6 +45,7 @@ class ConstantParser {
   std::shared_ptr<ir::Constant> ParseBoolOrIntConstant(const ir::Type* expected_type);
 
   Scanner& scanner_;
+  ir_issues::IssueTracker& issue_tracker_;
   TypeParser* type_parser_;
   ir::Program* program_;
   int64_t func_num_offset_;
