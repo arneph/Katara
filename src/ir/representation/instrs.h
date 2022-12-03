@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "src/common/atomics/atomics.h"
+#include "src/common/positions/positions.h"
 #include "src/ir/representation/object.h"
 #include "src/ir/representation/values.h"
 
@@ -56,7 +57,7 @@ enum class InstrKind {
 
 class Instr : public Object {
  public:
-  virtual ~Instr() {}
+  virtual ~Instr() = default;
 
   virtual std::vector<std::shared_ptr<Computed>> DefinedValues() const = 0;
   virtual std::vector<std::shared_ptr<Value>> UsedValues() const = 0;
@@ -65,10 +66,19 @@ class Instr : public Object {
   constexpr virtual InstrKind instr_kind() const = 0;
   bool IsControlFlowInstr() const;
 
+  common::pos_t start() const { return start_; }
+  common::pos_t end() const { return end_; }
+  void SetPositions(common::pos_t start, common::pos_t end);
+  void ClearPositions() { SetPositions(common::kNoPos, common::kNoPos); }
+
   virtual std::string OperationString() const = 0;
   virtual void WriteRefString(std::ostream& os) const override;
 
   constexpr virtual bool operator==(const Instr& that) const = 0;
+
+ private:
+  common::pos_t start_ = common::kNoPos;
+  common::pos_t end_ = common::kNoPos;
 };
 
 constexpr bool IsEqual(const Instr* instr_a, const Instr* instr_b) {

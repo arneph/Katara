@@ -27,6 +27,11 @@ bool Instr::IsControlFlowInstr() const {
   }
 }
 
+void Instr::SetPositions(common::pos_t start, common::pos_t end) {
+  start_ = start;
+  end_ = end;
+}
+
 void Instr::WriteRefString(std::ostream& os) const {
   bool wrote_first_defined_value = false;
   for (std::shared_ptr<Computed>& defined_value : DefinedValues()) {

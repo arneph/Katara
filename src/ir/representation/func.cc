@@ -109,6 +109,11 @@ void Func::ForBlocksInDominanceOrder(std::function<void(Block*)> f) const {
   }
 }
 
+void Func::SetPositions(common::pos_t start, common::pos_t end) {
+  start_ = start;
+  end_ = end;
+}
+
 void Func::WriteRefString(std::ostream& os) const {
   os << "@" << number_;
   if (!name_.empty()) {

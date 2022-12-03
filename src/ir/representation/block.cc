@@ -68,6 +68,11 @@ void Block::ForEachNonPhiInstrReverse(std::function<void(Instr*)> f) const {
   }
 }
 
+void Block::SetPositions(common::pos_t start, common::pos_t end) {
+  start_ = start;
+  end_ = end;
+}
+
 void Block::WriteRefString(std::ostream& os) const {
   os << "{" << number_ << "}";
   if (!name_.empty()) {
