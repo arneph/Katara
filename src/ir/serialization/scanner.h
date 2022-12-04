@@ -59,6 +59,7 @@ class Scanner {
   std::string token_string() const;
 
   void Next();
+  void NextIfPossible();
 
   std::optional<int64_t> ConsumeInt64();
   std::optional<std::string> ConsumeIdentifier();

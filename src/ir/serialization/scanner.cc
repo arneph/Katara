@@ -87,6 +87,13 @@ void Scanner::Next() {
   if (token_ == kEoF) {
     common::fail("can not advance Scanner at EoF");
   }
+  NextIfPossible();
+}
+
+void Scanner::NextIfPossible() {
+  if (token_ == kEoF) {
+    return;
+  }
   SkipWhitespace();
   token_start_ = pos_;
   if (pos_ == file_->end()) {
@@ -194,7 +201,7 @@ void Scanner::NextString() {
 std::optional<int64_t> Scanner::ConsumeInt64() {
   if (token_ != Scanner::kNumber) {
     AddErrorForUnexpectedToken({kNumber});
-    Next();
+    NextIfPossible();
     return std::nullopt;
   }
   int64_t number = token_number().AsInt64();
@@ -205,7 +212,7 @@ std::optional<int64_t> Scanner::ConsumeInt64() {
 std::optional<std::string> Scanner::ConsumeIdentifier() {
   if (token_ != Scanner::kIdentifier) {
     AddErrorForUnexpectedToken({kIdentifier});
-    Next();
+    NextIfPossible();
     return std::nullopt;
   }
   std::string identifier = token_text();
@@ -216,7 +223,7 @@ std::optional<std::string> Scanner::ConsumeIdentifier() {
 bool Scanner::ConsumeToken(Scanner::Token token) {
   if (token_ != token) {
     AddErrorForUnexpectedToken({token});
-    Next();
+    NextIfPossible();
     return false;
   }
   Next();

@@ -35,6 +35,27 @@ TEST(ScannerTest, HandlesEmptyStream) {
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
+TEST(ScannerTest, HandlesConsumeTokenFailure) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "@");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAtSign);
+  EXPECT_EQ(scanner.token_text(), "@");
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+
+  scanner.ConsumeToken(::ir_serialization::Scanner::Token::kParenOpen);
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+
+  scanner.ConsumeToken(::ir_serialization::Scanner::Token::kParenClose);
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(2));
+}
+
 TEST(ScannerTest, ScansIdentifier) {
   common::PosFileSet file_set;
   common::PosFile* file = file_set.AddFile("test.ir", "something");
@@ -69,6 +90,56 @@ TEST(ScannerTest, ScansIdentifierWithNumbersAndUnderscores) {
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
+TEST(ScannerTest, ConsumesIdentifier) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "something");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kIdentifier);
+  EXPECT_EQ(scanner.token_text(), "something");
+
+  std::optional<std::string> ident = scanner.ConsumeIdentifier();
+  EXPECT_TRUE(ident.has_value());
+  EXPECT_EQ(*ident, "something");
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
+TEST(ScannerTest, HandlesConsumeIdentifierFailure) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "@");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAtSign);
+  EXPECT_EQ(scanner.token_text(), "@");
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+
+  std::optional<std::string> ident = scanner.ConsumeIdentifier();
+  EXPECT_FALSE(ident.has_value());
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+}
+
+TEST(ScannerTest, HandlesConsumeIdentifierFailureDueToEoF) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  std::optional<std::string> ident = scanner.ConsumeIdentifier();
+  EXPECT_FALSE(ident.has_value());
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+}
+
 TEST(ScannerTest, ScansNumber) {
   common::PosFileSet file_set;
   common::PosFile* file = file_set.AddFile("test.ir", "123");
@@ -85,6 +156,57 @@ TEST(ScannerTest, ScansNumber) {
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
 
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
+TEST(ScannerTest, ConsumesInt64) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "12345");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNumber);
+  EXPECT_EQ(scanner.token_text(), "12345");
+  EXPECT_EQ(scanner.token_number().AsInt64(), 12345);
+
+  std::optional<int64_t> int64 = scanner.ConsumeInt64();
+  EXPECT_TRUE(int64.has_value());
+  EXPECT_EQ(*int64, 12345);
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
+TEST(ScannerTest, HandlesConsumeInt64Failure) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "@");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAtSign);
+  EXPECT_EQ(scanner.token_text(), "@");
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+
+  std::optional<int64_t> int64 = scanner.ConsumeInt64();
+  EXPECT_FALSE(int64.has_value());
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+}
+
+TEST(ScannerTest, HandlesConsumeInt64FailureDueToEoF) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  std::optional<int64_t> int64 = scanner.ConsumeInt64();
+  EXPECT_FALSE(int64.has_value());
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
 }
 
 TEST(ScannerTest, ScansAddress) {
