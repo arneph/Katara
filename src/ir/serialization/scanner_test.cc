@@ -158,6 +158,24 @@ TEST(ScannerTest, ScansNumber) {
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
+TEST(ScannerTest, ScansNegativeNumber) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "-123");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNumber);
+  EXPECT_EQ(scanner.token_text(), "-123");
+  EXPECT_EQ(scanner.token_number().AsInt64(), -123);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
 TEST(ScannerTest, ConsumesInt64) {
   common::PosFileSet file_set;
   common::PosFile* file = file_set.AddFile("test.ir", "12345");
