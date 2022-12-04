@@ -176,6 +176,24 @@ TEST(ScannerTest, ScansNegativeNumber) {
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
+TEST(ScannerTest, HandlesUnrepresentableNumber) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "+");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNumber);
+  EXPECT_EQ(scanner.token_text(), "+");
+  EXPECT_EQ(scanner.token_number().AsInt64(), 0);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+}
+
 TEST(ScannerTest, ConsumesInt64) {
   common::PosFileSet file_set;
   common::PosFile* file = file_set.AddFile("test.ir", "12345");
@@ -243,6 +261,24 @@ TEST(ScannerTest, ScansAddress) {
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
 
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());
+}
+
+TEST(ScannerTest, HandlesUnrepresentableAddress) {
+  common::PosFileSet file_set;
+  common::PosFile* file = file_set.AddFile("test.ir", "0x");
+  ir_issues::IssueTracker issue_tracker(&file_set);
+
+  ir_serialization::Scanner scanner(file, issue_tracker);
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAddress);
+  EXPECT_EQ(scanner.token_text(), "0x");
+  EXPECT_EQ(scanner.token_address().AsUint64(), 0);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
+
+  scanner.Next();
+  EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
+  EXPECT_THAT(issue_tracker.issues(), SizeIs(1));
 }
 
 TEST(ScannerTest, ScansString) {

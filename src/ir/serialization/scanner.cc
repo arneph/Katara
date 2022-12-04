@@ -51,10 +51,13 @@ common::Int Scanner::token_number() const {
     return *number;
   }
   number = common::ToU64(token_text());
-  if (number.has_value()) {
+  if (!number.has_value()) {
+    issue_tracker_.Add(ir_issues::IssueKind::kNumberCannotBeRepresented, token_start_,
+                       "The token cannot be represented as a number");
+    return common::Int(uint8_t{0});
+  } else {
     return *number;
   }
-  common::fail("number can not be represented");
 }
 
 common::Int Scanner::token_address() const {
@@ -63,9 +66,12 @@ common::Int Scanner::token_address() const {
   }
   std::optional<common::Int> address = common::ToU64(token_text(), /*base=*/16);
   if (!address.has_value()) {
-    common::fail("address can not be represented");
+    issue_tracker_.Add(ir_issues::IssueKind::kAddressCannotBeRepresented, token_start_,
+                       "The token cannot be represented as an address");
+    return common::Int(uint8_t{0});
+  } else {
+    return *address;
   }
-  return *address;
 }
 
 std::string Scanner::token_string() const {

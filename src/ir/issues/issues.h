@@ -26,6 +26,8 @@ enum class Origin {
 enum class IssueKind {
   kScannerStart = 1000,
   kUnexpectedToken,
+  kNumberCannotBeRepresented,
+  kAddressCannotBeRepresented,
   kEOFInsteadOfEscapedCharacter,
   kEOFInsteadOfStringEndQuote,
   kScannerEnd,
