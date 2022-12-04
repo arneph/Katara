@@ -666,7 +666,9 @@ std::shared_ptr<ir::Computed> FuncParser::ParseComputedValue(const ir::Type* exp
     common::pos_t type_pos = scanner().token_start();
     type = type_parser()->ParseType();
 
-    if (expected_type != nullptr && expected_type != type) {
+    if (type == nullptr) {
+      type = expected_type;
+    } else if (expected_type != nullptr && expected_type != type) {
       issue_tracker().Add(
           ir_issues::IssueKind::kUnexpectedType, type_pos,
           "expected '" + expected_type->RefString() + "'; got '" + type->RefString() + "'");
