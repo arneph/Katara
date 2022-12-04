@@ -17,7 +17,17 @@ ir::Func* FuncParser::ParseFunc() {
     return nullptr;
   }
 
-  func_ = program()->AddFunc(scanner().ConsumeInt64().value_or(ir::kNoFuncNum) + func_num_offset_);
+  common::pos_t func_num_pos = scanner().token_start();
+  ir::func_num_t func_num = scanner().ConsumeInt64().value_or(ir::kNoFuncNum);
+  if (func_num != ir::kNoFuncNum) {
+    func_num += func_num_offset_;
+  }
+  if (func_num != ir::kNoFuncNum && program()->HasFunc(func_num)) {
+    issue_tracker().Add(ir_issues::IssueKind::kDuplicateFuncNumber, func_num_pos,
+                        "@" + std::to_string(func_num) + " is already used.");
+    func_num = ir::kNoFuncNum;
+  }
+  func_ = program()->AddFunc(func_num);
 
   if (scanner().token() == Scanner::kIdentifier) {
     func_->set_name(scanner().ConsumeIdentifier().value_or(""));
@@ -107,13 +117,19 @@ void FuncParser::ConnectBlocks() {
 void FuncParser::ParseBlock() {
   scanner().ConsumeToken(Scanner::kCurlyBracketOpen);
 
-  ir::block_num_t bnum = scanner().ConsumeInt64().value_or(ir::kNoBlockNum);
+  common::pos_t block_num_pos = scanner().token_start();
+  ir::block_num_t block_num = scanner().ConsumeInt64().value_or(ir::kNoBlockNum);
+  if (block_num != ir::kNoBlockNum && func_->HasBlock(block_num)) {
+    issue_tracker().Add(ir_issues::IssueKind::kDuplicateBlockNumber, block_num_pos,
+                        "{" + std::to_string(block_num) + "} is already used.");
+    block_num = ir::kNoBlockNum;
+  }
 
   scanner().ConsumeToken(Scanner::kCurlyBracketClose);
 
-  ir::Block* block = func_->AddBlock(bnum);
+  ir::Block* block = func_->AddBlock(block_num);
   if (func_->entry_block() == nullptr) {
-    func_->set_entry_block_num(bnum);
+    func_->set_entry_block_num(block_num);
   }
   if (scanner().token() == Scanner::kIdentifier) {
     block->set_name(scanner().ConsumeIdentifier().value());
