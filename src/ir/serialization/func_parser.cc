@@ -457,7 +457,8 @@ std::unique_ptr<ir::IntCompareInstr> FuncParser::ParseIntCompareInstr(
   std::shared_ptr<ir::Value> operand_a = ParseValue(/*expected_type=*/nullptr);
   scanner().ConsumeToken(Scanner::kComma);
 
-  std::shared_ptr<ir::Value> operand_b = ParseValue(operand_a->type());
+  std::shared_ptr<ir::Value> operand_b =
+      ParseValue(operand_a != nullptr ? operand_a->type() : nullptr);
   scanner().ConsumeToken(Scanner::kNewLine);
 
   return std::make_unique<ir::IntCompareInstr>(result, op, operand_a, operand_b);
