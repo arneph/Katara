@@ -66,8 +66,12 @@ void FuncParser::ParseFuncBody() {
       break;
     } else if (scanner().token() == Scanner::kNewLine) {
       scanner().ConsumeToken(Scanner::kNewLine);
-    } else {
+    } else if (scanner().token() == Scanner::kCurlyBracketOpen) {
       ParseBlock();
+    } else {
+      scanner().AddErrorForUnexpectedToken(
+          {Scanner::kCurlyBracketOpen, Scanner::kCurlyBracketClose, Scanner::kNewLine});
+      break;
     }
   }
 
@@ -121,11 +125,16 @@ void FuncParser::ParseBlock() {
     if (scanner().token() == Scanner::kCurlyBracketOpen ||
         scanner().token() == Scanner::kCurlyBracketClose) {
       break;
-    } else {
+    } else if (scanner().token() == Scanner::kPercentSign ||
+               scanner().token() == Scanner::kIdentifier) {
       std::unique_ptr<ir::Instr> instr = ParseInstr();
       if (instr != nullptr) {
         block->instrs().push_back(std::move(instr));
       }
+    } else {
+      scanner().AddErrorForUnexpectedToken({Scanner::kCurlyBracketOpen, Scanner::kCurlyBracketClose,
+                                            Scanner::kPercentSign, Scanner::kNewLine});
+      break;
     }
   }
 }
