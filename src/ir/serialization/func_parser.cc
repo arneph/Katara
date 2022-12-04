@@ -100,15 +100,30 @@ void FuncParser::ConnectBlocks() {
       ir::JumpInstr* jump = static_cast<ir::JumpInstr*>(last_instr);
       ir::block_num_t child_num = jump->destination();
 
-      func_->AddControlFlow(block->number(), child_num);
-
+      if (!func_->HasBlock(child_num)) {
+        issue_tracker_.Add(ir_issues::IssueKind::kUndefinedJumpDestination, jump->start(),
+                           "{" + std::to_string(child_num) + "} does not exist");
+        return;
+      } else {
+        func_->AddControlFlow(block->number(), child_num);
+      }
     } else if (last_instr->instr_kind() == ir::InstrKind::kJumpCond) {
       ir::JumpCondInstr* jump_cond = static_cast<ir::JumpCondInstr*>(last_instr);
       ir::block_num_t child_a_num = jump_cond->destination_true();
       ir::block_num_t child_b_num = jump_cond->destination_false();
 
-      func_->AddControlFlow(block->number(), child_a_num);
-      func_->AddControlFlow(block->number(), child_b_num);
+      if (!func_->HasBlock(child_a_num)) {
+        issue_tracker_.Add(ir_issues::IssueKind::kUndefinedJumpDestination, jump_cond->start(),
+                           "{" + std::to_string(child_a_num) + "} does not exist");
+      } else {
+        func_->AddControlFlow(block->number(), child_a_num);
+      }
+      if (!func_->HasBlock(child_b_num)) {
+        issue_tracker_.Add(ir_issues::IssueKind::kUndefinedJumpDestination, jump_cond->start(),
+                           "{" + std::to_string(child_b_num) + "} does not exist");
+      } else {
+        func_->AddControlFlow(block->number(), child_b_num);
+      }
     }
   }
 }

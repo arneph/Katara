@@ -35,6 +35,7 @@ enum class IssueKind {
   kParserStart = 2000,
   kDuplicateFuncNumber,
   kDuplicateBlockNumber,
+  kUndefinedJumpDestination,
   kUnknownTypeName,
   kUnexpectedAddress,
   kUnexpectedBoolConstant,
