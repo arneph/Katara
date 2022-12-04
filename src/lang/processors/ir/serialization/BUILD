@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
@@ -80,5 +81,17 @@ cc_library(
         "//src/ir/representation",
         "//src/ir/serialization",
         "//src/lang/representation",
+    ],
+)
+
+cc_fuzz_test(
+    name = "parse_fuzz_test",
+    srcs = ["parse_fuzz_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":parse",
+        "//src/common/positions",
+        "//src/ir/issues",
+        "//src/ir/representation",
     ],
 )
