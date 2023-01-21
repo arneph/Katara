@@ -19,7 +19,7 @@
 
 #include "src/common/flags/flag_values.h"
 
-namespace common {
+namespace common::flags {
 
 class AbstractFlag {
  public:
@@ -104,6 +104,6 @@ class FlagSet {
   std::map<std::string, AbstractFlag*> flag_lookup_;
 };
 
-}  // namespace common
+}  // namespace common::flags
 
 #endif /* common_flags_flag_set_h */

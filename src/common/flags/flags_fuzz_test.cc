@@ -30,7 +30,7 @@ std::vector<std::string> InputToArgs(const uint8_t* data, size_t size) {
 }
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
-  using namespace common;
+  using namespace common::flags;
 
   std::vector<std::string> args = InputToArgs(data, size);
   std::stringstream ss;

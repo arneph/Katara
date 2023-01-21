@@ -17,7 +17,7 @@
 
 using ::testing::IsEmpty;
 
-namespace common {
+namespace common::flags {
 
 TEST(FlagsParseTest, NoDefinedFlagsHandlesNoArgs) {
   std::vector<std::string> args;
@@ -608,4 +608,4 @@ TEST(FlagsTest, PrintsDefaults) {
             "  -x  int_flag_b usage\n");
 }
 
-}  // namespace common
+}  // namespace common::flags

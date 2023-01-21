@@ -15,7 +15,7 @@
 #include <optional>
 #include <string>
 
-namespace common {
+namespace common::flags {
 
 template <typename ValueT>
 std::optional<ValueT> ParseFlagValue(std::string value_string);
@@ -104,6 +104,6 @@ inline std::filesystem::path ZeroFlagValue<std::filesystem::path>() {
   return "";
 }
 
-}  // namespace common
+}  // namespace common::flags
 
 #endif /* common_flags_flag_values_h */

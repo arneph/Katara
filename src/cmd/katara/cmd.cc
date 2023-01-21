@@ -24,6 +24,9 @@
 
 namespace cmd {
 namespace katara {
+
+using ::common::flags::FlagSet;
+
 namespace {
 
 enum class Command {
@@ -54,11 +57,11 @@ std::optional<Command> ParseCommand(std::string command) {
 }
 
 struct FlagSets {
-  common::FlagSet debug_flags;
-  common::FlagSet build_flags;
-  common::FlagSet doc_flags;
-  common::FlagSet interpret_flags;
-  common::FlagSet run_flags;
+  FlagSet debug_flags;
+  FlagSet build_flags;
+  FlagSet doc_flags;
+  FlagSet interpret_flags;
+  FlagSet run_flags;
 };
 
 void GenerateFlagSets(DebugConfig& debug_config, BuildOptions& build_options,
@@ -120,7 +123,7 @@ void PrintGeneralHelp(Context* ctx) {
          "\n";
 }
 
-void PrintHelpForCommand(std::string command, bool has_args, common::FlagSet* flags, Context* ctx) {
+void PrintHelpForCommand(std::string command, bool has_args, FlagSet* flags, Context* ctx) {
   *ctx->stdout() << "Usage: katara " << command;
   if (has_args) {
     *ctx->stdout() << " [arguments]";

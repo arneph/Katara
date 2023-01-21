@@ -10,7 +10,7 @@
 
 #include <iomanip>
 
-namespace common {
+namespace common::flags {
 
 AbstractFlag* FlagSet::FlagWithName(std::string name) const {
   auto it = flag_lookup_.find(name);
@@ -109,4 +109,4 @@ void FlagSet::PrintDefaults(std::ostream* output_stream) const {
   }
 }
 
-}  // namespace common
+}  // namespace common::flags
