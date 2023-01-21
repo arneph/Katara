@@ -8,7 +8,7 @@
 
 #include "logging.h"
 
-namespace common {
+namespace common::logging {
 
 void info(const std::string message) { std::cerr << "internal info: " << message << "\n"; }
 
@@ -21,4 +21,4 @@ void error(const std::string message) { std::cerr << "internal error: " << messa
   std::exit(-1);
 }
 
-}  // namespace common
+}  // namespace common::logging

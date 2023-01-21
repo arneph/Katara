@@ -13,6 +13,9 @@
 #include "src/common/logging/logging.h"
 
 namespace common::filesystem {
+
+using ::common::logging::fail;
+
 namespace {
 
 std::string ErrorCodeToString(std::error_code& ec) {

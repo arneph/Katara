@@ -42,6 +42,7 @@
 namespace ir_to_x86_64_translator {
 
 using ::common::atomics::Int;
+using ::common::logging::fail;
 using ::testing::Contains;
 
 class GenerateMovsTest : public InstrTranslatorTest {
@@ -101,7 +102,7 @@ class GenerateMovsTest : public InstrTranslatorTest {
         }
         return mem_values.at(src.mem().disp());
       } else {
-        common::fail("unexpect src kind");
+        fail("unexpect src kind");
       }
     };
     auto write = [&](x86_64::RM dst, value_t value) {
@@ -111,7 +112,7 @@ class GenerateMovsTest : public InstrTranslatorTest {
         CheckMem(dst.mem());
         mem_values[dst.mem().disp()] = value;
       } else {
-        common::fail("unexpect dst kind");
+        fail("unexpect dst kind");
       }
     };
 
@@ -155,7 +156,7 @@ class GenerateMovsTest : public InstrTranslatorTest {
       } else if (op.origin().is_mem()) {
         expected_value = original_mem_values.at(op.origin().mem().disp());
       } else {
-        common::fail("unexpected origin kind");
+        fail("unexpected origin kind");
       }
       value_t actual_value = 0;
       if (op.result().is_reg()) {
@@ -163,7 +164,7 @@ class GenerateMovsTest : public InstrTranslatorTest {
       } else if (op.result().is_mem()) {
         actual_value = mem_values.at(op.result().mem().disp());
       } else {
-        common::fail("unexpected result kind");
+        fail("unexpected result kind");
       }
       EXPECT_EQ(actual_value, expected_value) << "expected (value of) " << op.origin().ToString()
                                               << " to end up in " << op.result().ToString();

@@ -28,6 +28,7 @@ namespace ir_to_x86_64_translator {
 
 using ::common::atomics::Bool;
 using ::common::atomics::Int;
+using ::common::logging::fail;
 
 void TranslateBoolNotInstr(ir::BoolNotInstr* ir_bool_not_instr, BlockContext& ctx) {
   x86_64::RM x86_64_result = TranslateComputed(ir_bool_not_instr->result().get(), ctx.func_ctx());
@@ -62,7 +63,7 @@ void TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compare_instr, Block
       case Bool::BinaryOp::kNeq:
         return x86_64::InstrCond::kNotEqual;
       default:
-        common::fail("unexpected bool compare op");
+        fail("unexpected bool compare op");
     }
   }(ir_bool_compare_instr->operation());
   x86_64::RM x86_64_result =
@@ -117,7 +118,7 @@ void TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_instr, BlockCont
       ctx.x86_64_block()->AddInstr<x86_64::Or>(x86_64_result, x86_64_operand_b);
       break;
     default:
-      common::fail("unexpexted bool logic op");
+      fail("unexpexted bool logic op");
   }
 
   if (tmp.has_value()) {
@@ -142,7 +143,7 @@ void TranslateIntUnaryInstr(ir::IntUnaryInstr* ir_int_unary_instr, BlockContext&
       ctx.x86_64_block()->AddInstr<x86_64::Neg>(x86_64_operand);
       break;
     default:
-      common::fail("unexpected unary int op");
+      fail("unexpected unary int op");
   }
 }
 
@@ -219,7 +220,7 @@ void TranslateIntBinaryInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockConte
       TranslateIntDivOrRemInstr(ir_int_binary_instr, ctx);
       break;
     case Int::BinaryOp::kAndNot:
-      common::fail("int andnot operation was not decomposed into separate instrs");
+      fail("int andnot operation was not decomposed into separate instrs");
   }
 }
 
@@ -264,7 +265,7 @@ void TranslateIntCommutativeALInstr(ir::IntBinaryInstr* ir_int_binary_instr, Blo
       ctx.x86_64_block()->AddInstr<x86_64::Xor>(x86_64_result, x86_64_operand_b);
       break;
     default:
-      common::fail("unexpexted simple int binary operation");
+      fail("unexpexted simple int binary operation");
   }
 
   if (tmp.has_value()) {

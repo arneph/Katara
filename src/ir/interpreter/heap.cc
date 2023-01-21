@@ -15,10 +15,12 @@
 
 namespace ir_interpreter {
 
+using ::common::logging::fail;
+
 Heap::~Heap() {
   if (sanitize_) {
     if (!allocated_.empty()) {
-      common::fail("not all memory was freed");
+      fail("not all memory was freed");
     }
     for (MemoryRange range : freed_) {
       free((void*)(range.address));
@@ -29,7 +31,7 @@ Heap::~Heap() {
 int64_t Heap::Malloc(int64_t size) {
   if (sanitize_) {
     if (size <= 0) {
-      common::fail("attempted malloc with non-positive size");
+      fail("attempted malloc with non-positive size");
     }
   }
   int64_t address = int64_t(malloc(size));
@@ -81,22 +83,21 @@ bool Heap::Overlap(MemoryRange range_a, MemoryRange range_b) {
 
 Heap::Memory* Heap::CheckExists(MemoryRange range) {
   if (0 <= range.address && range.address < 100) {
-    common::fail("attempted to access memory at or near 0x0");
+    fail("attempted to access memory at or near 0x0");
   }
   for (auto& memory : allocated_) {
     if (IsContained(/*contained=*/range, /*container=*/memory->range)) {
       return memory.get();
     } else if (Overlap(range, memory->range)) {
-      common::fail(
-          "attempted to access memory range that only partially overlaps allocated memory");
+      fail("attempted to access memory range that only partially overlaps allocated memory");
     }
   }
   for (MemoryRange& freed_range : freed_) {
     if (Overlap(range, freed_range)) {
-      common::fail("attempted to access memory range that was freed");
+      fail("attempted to access memory range that was freed");
     }
   }
-  common::fail("attempted to access memory range that doesn't exist");
+  fail("attempted to access memory range that doesn't exist");
 }
 
 void Heap::CheckWasInitialized(Memory* memory, MemoryRange range) {
@@ -104,7 +105,7 @@ void Heap::CheckWasInitialized(Memory* memory, MemoryRange range) {
   int64_t range_index_end = range_index_begin + range.size;
   for (int64_t i = range_index_begin; i < range_index_end; i++) {
     if (memory->initialization.at(i) == false) {
-      common::fail("attempted to read uninitialized memory");
+      fail("attempted to read uninitialized memory");
     }
   }
 }
@@ -114,15 +115,15 @@ void Heap::CheckCanBeFreed(int64_t address) {
     if (memory->range.address == address) {
       return;
     } else if (IsContained(address, memory->range)) {
-      common::fail("address to be freed does not point to start of allocated block");
+      fail("address to be freed does not point to start of allocated block");
     }
   }
   for (MemoryRange& range : freed_) {
     if (range.address == address) {
-      common::fail("memory was already freed");
+      fail("memory was already freed");
     }
   }
-  common::fail("memory was never allocated");
+  fail("memory was never allocated");
 }
 
 void Heap::MarkAsInitialized(Memory* memory, MemoryRange range) {
@@ -135,7 +136,7 @@ void Heap::MarkAsInitialized(Memory* memory, MemoryRange range) {
 
 std::string Heap::ToDebuggerString() const {
   if (!sanitize_) {
-    common::fail("requested debugger string of heap without santization turned on");
+    fail("requested debugger string of heap without santization turned on");
   }
   std::stringstream ss;
   if (allocated_.empty()) {
@@ -164,7 +165,7 @@ std::string Heap::ToDebuggerString() const {
 
 std::string Heap::ToDebuggerString(int64_t address) const {
   if (!sanitize_) {
-    common::fail("requested debugger string of heap without santization turned on");
+    fail("requested debugger string of heap without santization turned on");
   }
   for (const auto& allocated : allocated_) {
     if (!IsContained(address, allocated->range)) {

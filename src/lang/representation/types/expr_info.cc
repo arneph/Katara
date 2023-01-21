@@ -13,10 +13,12 @@
 namespace lang {
 namespace types {
 
+using ::common::logging::fail;
+
 ExprInfo::ExprInfo(Kind kind, Type* type, std::optional<constants::Value> constant_value)
     : kind_(kind), type_(type), constant_value_(constant_value) {
   if (kind == Kind::kConstant && !constant_value.has_value()) {
-    common::fail("attempted to create ExprInfo for constant without constant value");
+    fail("attempted to create ExprInfo for constant without constant value");
   }
 }
 

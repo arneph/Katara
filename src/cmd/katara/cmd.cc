@@ -26,6 +26,7 @@ namespace cmd {
 namespace katara {
 
 using ::common::flags::FlagSet;
+using ::common::logging::fail;
 
 namespace {
 
@@ -226,7 +227,7 @@ ErrorCode Execute(std::vector<std::string> args, Context* ctx) {
       return Run(paths, build_options, debug_handler, ctx);
     }
     default:
-      common::fail("unexpected command");
+      fail("unexpected command");
   }
 }
 

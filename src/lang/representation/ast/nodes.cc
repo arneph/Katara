@@ -13,6 +13,8 @@
 namespace lang {
 namespace ast {
 
+using ::common::logging::fail;
+
 bool Node::is_decl() const {
   NodeKind kind = node_kind();
   return NodeKind::kDeclStart <= kind && kind <= NodeKind::kDeclEnd;
@@ -67,14 +69,14 @@ common::pos_t TypeSpec::end() const { return type_->end(); }
 
 ExprReceiver* FuncDecl::expr_receiver() const {
   if (kind_ != Kind::kInstanceMethod) {
-    common::fail("attempted to access expr receiver of non-instance-method func");
+    fail("attempted to access expr receiver of non-instance-method func");
   }
   return expr_receiver_;
 }
 
 TypeReceiver* FuncDecl::type_receiver() const {
   if (kind_ != Kind::kTypeMethod) {
-    common::fail("attempted to access type receiver of non-type-method func");
+    fail("attempted to access type receiver of non-type-method func");
   }
   return type_receiver_;
 }
@@ -114,7 +116,7 @@ common::pos_t BranchStmt::end() const {
     case tokens::kBreak:
       return tok_start_ + 4;
     default:
-      common::fail("unexpected ast::BranchStmt token");
+      fail("unexpected ast::BranchStmt token");
   }
 }
 

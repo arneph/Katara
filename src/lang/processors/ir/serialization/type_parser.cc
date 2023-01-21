@@ -13,6 +13,8 @@
 namespace lang {
 namespace ir_serialization {
 
+using ::common::logging::fail;
+
 const ir::Type* TypeParser::ParseType() {
   if (scanner().token() == ::ir_serialization::Scanner::kIdentifier) {
     std::string name = scanner().token_text();
@@ -37,7 +39,7 @@ const ir::Type* TypeParser::ParseType() {
 
 const ir_ext::SharedPointer* TypeParser::ParseSharedPointer() {
   if (scanner().ConsumeIdentifier() != "lshared_ptr") {
-    common::fail("expected lshared_ptr");
+    fail("expected lshared_ptr");
   }
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleOpen);
   const ir::Type* element = ParseType();
@@ -45,7 +47,7 @@ const ir_ext::SharedPointer* TypeParser::ParseSharedPointer() {
 
   std::string c = scanner().ConsumeIdentifier().value_or("s");
   if (c != "s" && c != "w") {
-    common::fail("expected 's' or 'w'");
+    fail("expected 's' or 'w'");
   }
   bool is_strong = c == "s";
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleClose);
@@ -58,7 +60,7 @@ const ir_ext::SharedPointer* TypeParser::ParseSharedPointer() {
 
 const ir_ext::UniquePointer* TypeParser::ParseUniquePointer() {
   if (scanner().ConsumeIdentifier() != "lunique_ptr") {
-    common::fail("expected lunique_ptr");
+    fail("expected lunique_ptr");
   }
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleOpen);
   const ir::Type* element = ParseType();
@@ -72,7 +74,7 @@ const ir_ext::UniquePointer* TypeParser::ParseUniquePointer() {
 
 const ir_ext::Array* TypeParser::ParseArray() {
   if (scanner().ConsumeIdentifier() != "larray") {
-    common::fail("expected larray");
+    fail("expected larray");
   }
   ir_ext::ArrayBuilder builder;
   scanner().ConsumeToken(::ir_serialization::Scanner::kAngleOpen);
@@ -90,7 +92,7 @@ const ir_ext::Array* TypeParser::ParseArray() {
 
 const ir_ext::Struct* TypeParser::ParseStruct() {
   if (scanner().ConsumeIdentifier() != "lstruct") {
-    common::fail("expected lstruct");
+    fail("expected lstruct");
   }
   if (scanner().token() != ::ir_serialization::Scanner::kAngleOpen) {
     return ir_ext::empty_struct();
@@ -123,7 +125,7 @@ void TypeParser::ParseStructField(ir_ext::StructBuilder& builder) {
 
 const ir_ext::Interface* TypeParser::ParseInterface() {
   if (scanner().ConsumeIdentifier() != "linterface") {
-    common::fail("expected linterface");
+    fail("expected linterface");
   }
   if (scanner().token() != ::ir_serialization::Scanner::kAngleOpen) {
     return ir_ext::empty_interface();

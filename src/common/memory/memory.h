@@ -14,7 +14,6 @@
 #include <cstdint>
 
 #include "src/common/data/data_view.h"
-#include "src/common/logging/logging.h"
 
 namespace common::memory {
 

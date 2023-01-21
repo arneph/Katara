@@ -16,6 +16,7 @@ namespace lang {
 namespace type_checker {
 
 using ::common::atomics::Int;
+using ::common::logging::fail;
 
 bool DeclHandler::ProcessTypeName(types::TypeName* type_name, ast::TypeSpec* type_spec) {
   if (!ProcessTypeParametersOfTypeName(type_name, type_spec)) {
@@ -116,7 +117,7 @@ bool DeclHandler::ProcessConstant(types::Constant* constant, ast::Expr* type_exp
       case types::Basic::kUntypedString:
         value = constants::Value("");
       default:
-        common::fail("unexpected basic type");
+        fail("unexpected basic type");
     }
 
   } else {
@@ -304,7 +305,7 @@ types::Variable* DeclHandler::EvaluateExprReceiver(ast::ExprReceiver* expr_recei
       case tokens::kRem:
         kind = types::Pointer::Kind::kWeak;
       default:
-        common::fail("unexpected pointer type");
+        fail("unexpected pointer type");
     }
 
     types::Pointer* pointer_type = info_builder().CreatePointer(kind, type);

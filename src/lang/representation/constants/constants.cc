@@ -15,6 +15,7 @@ namespace constants {
 
 using ::common::atomics::Bool;
 using ::common::atomics::Int;
+using ::common::logging::fail;
 
 std::string Value::ToString() const {
   switch (kind()) {
@@ -29,7 +30,7 @@ std::string Value::ToString() const {
 
 bool Compare(Value x, tokens::Token tok, Value y) {
   if (x.kind() != y.kind()) {
-    common::fail("incompatible operand types");
+    fail("incompatible operand types");
   }
   switch (x.kind()) {
     case Value::Kind::kBool: {
@@ -40,7 +41,7 @@ bool Compare(Value x, tokens::Token tok, Value y) {
           case tokens::kNeq:
             return Bool::BinaryOp::kNeq;
           default:
-            common::fail("unexpected compare op");
+            fail("unexpected compare op");
         }
       }();
       return Bool::Compute(x.AsBool(), op, y.AsBool());
@@ -64,7 +65,7 @@ bool Compare(Value x, tokens::Token tok, Value y) {
           case tokens::kGtr:
             return Int::CompareOp::kGtr;
           default:
-            common::fail("unexpected compare op");
+            fail("unexpected compare op");
         }
       }();
       return Int::Compare(x.AsInt(), op, y.AsInt());
@@ -84,14 +85,14 @@ bool Compare(Value x, tokens::Token tok, Value y) {
         case tokens::kGtr:
           return x.AsString() > y.AsString();
         default:
-          common::fail("unexpected compare op");
+          fail("unexpected compare op");
       }
   }
 }
 
 Value BinaryOp(Value x, tokens::Token tok, Value y) {
   if (x.kind() != y.kind()) {
-    common::fail("incompatible operand types");
+    fail("incompatible operand types");
   }
   switch (x.kind()) {
     case Value::Kind::kBool: {
@@ -102,14 +103,14 @@ Value BinaryOp(Value x, tokens::Token tok, Value y) {
           case tokens::kLOr:
             return Bool::BinaryOp::kOr;
           default:
-            common::fail("unexpected binary op");
+            fail("unexpected binary op");
         }
       }();
       return constants::Value(Bool::Compute(x.AsBool(), op, y.AsBool()));
     }
     case Value::Kind::kInt: {
       if (!Int::CanCompute(x.AsInt(), y.AsInt())) {
-        common::fail("disallowed operation");
+        fail("disallowed operation");
       }
       Int::BinaryOp op = [tok]() {
         switch (tok) {
@@ -132,7 +133,7 @@ Value BinaryOp(Value x, tokens::Token tok, Value y) {
           case tokens::kAndNot:
             return Int::BinaryOp::kAndNot;
           default:
-            common::fail("unexpected binary op");
+            fail("unexpected binary op");
         }
       }();
       return constants::Value(Int::Compute(x.AsInt(), op, y.AsInt()));
@@ -142,7 +143,7 @@ Value BinaryOp(Value x, tokens::Token tok, Value y) {
         case tokens::kAdd:
           return constants::Value(x.AsString() + y.AsString());
         default:
-          common::fail("unexpected compare op");
+          fail("unexpected compare op");
       }
   }
 }
@@ -150,7 +151,7 @@ Value BinaryOp(Value x, tokens::Token tok, Value y) {
 Value ShiftOp(Value x, tokens::Token tok, Value y) {
   if (x.kind() != Value::Kind::kInt || y.kind() != Value::Kind::kInt ||
       !common::atomics::IsUnsigned(y.AsInt().type())) {
-    common::fail("unexpected shift operand type");
+    fail("unexpected shift operand type");
   }
   Int::ShiftOp op = [tok]() {
     switch (tok) {
@@ -159,7 +160,7 @@ Value ShiftOp(Value x, tokens::Token tok, Value y) {
       case tokens::kShr:
         return Int::ShiftOp::kRight;
       default:
-        common::fail("unexpected shift op");
+        fail("unexpected shift op");
     }
   }();
   return constants::Value(Int::Shift(x.AsInt(), op, y.AsInt()));
@@ -172,7 +173,7 @@ Value UnaryOp(tokens::Token tok, Value x) {
         case tokens::kNot:
           return constants::Value(!x.AsBool());
         default:
-          common::fail("unexpected unary op");
+          fail("unexpected unary op");
       }
     case Value::Kind::kInt: {
       if (tok == tokens::kAdd) {
@@ -185,16 +186,16 @@ Value UnaryOp(tokens::Token tok, Value x) {
           case tokens::kXor:
             return Int::UnaryOp::kNot;
           default:
-            common::fail("unexpected unary op");
+            fail("unexpected unary op");
         }
       }();
       if (!Int::CanCompute(op, x.AsInt())) {
-        common::fail("disallowed operation");
+        fail("disallowed operation");
       }
       return constants::Value(Int::Compute(op, x.AsInt()));
     }
     case Value::Kind::kString:
-      common::fail("unexpected unary operand type");
+      fail("unexpected unary operand type");
   }
 }
 

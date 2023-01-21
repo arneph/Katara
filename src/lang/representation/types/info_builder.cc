@@ -15,6 +15,7 @@ namespace lang {
 namespace types {
 
 using ::common::atomics::Int;
+using ::common::logging::fail;
 
 InfoBuilder::InfoBuilder(Info* info) : info_(info) {}
 
@@ -146,7 +147,7 @@ void InfoBuilder::CreatePredeclaredFuncs() {
 
 Pointer* InfoBuilder::CreatePointer(Pointer::Kind kind, Type* element_type) {
   if (element_type == nullptr) {
-    common::fail("attempted to create pointer without element type");
+    fail("attempted to create pointer without element type");
   }
 
   std::unique_ptr<Pointer> pointer(new Pointer(kind, element_type));
@@ -157,7 +158,7 @@ Pointer* InfoBuilder::CreatePointer(Pointer::Kind kind, Type* element_type) {
 
 Array* InfoBuilder::CreateArray(Type* element_type, uint64_t length) {
   if (element_type == nullptr) {
-    common::fail("attempted to create array without element type");
+    fail("attempted to create array without element type");
   }
 
   std::unique_ptr<Array> array(new Array(element_type, length));
@@ -168,7 +169,7 @@ Array* InfoBuilder::CreateArray(Type* element_type, uint64_t length) {
 
 Slice* InfoBuilder::CreateSlice(Type* element_type) {
   if (element_type == nullptr) {
-    common::fail("attempted to create slice without element type");
+    fail("attempted to create slice without element type");
   }
 
   std::unique_ptr<Slice> slice(new Slice(element_type));
@@ -194,11 +195,11 @@ NamedType* InfoBuilder::CreateNamedType(bool is_alias, std::string name) {
 TypeInstance* InfoBuilder::CreateTypeInstance(NamedType* instantiated_type,
                                               std::vector<Type*> type_args) {
   if (instantiated_type == nullptr) {
-    common::fail("attempted to create type instance without instantiated type");
+    fail("attempted to create type instance without instantiated type");
   } else if (type_args.empty()) {
-    common::fail("attempted to create type instance without type arguments");
+    fail("attempted to create type instance without type arguments");
   } else if (instantiated_type->type_parameters().size() != type_args.size()) {
-    common::fail("attempted to create type instance with mismatched type arguments");
+    fail("attempted to create type instance with mismatched type arguments");
   }
 
   std::unique_ptr<TypeInstance> type_instance(new TypeInstance(instantiated_type, type_args));
@@ -263,9 +264,9 @@ Interface* InfoBuilder::CreateInterface() {
 Signature* InfoBuilder::InstantiateFuncSignature(Signature* parameterized_signature,
                                                  TypeParamsToArgsMap& type_params_to_args) {
   if (parameterized_signature->type_parameters().empty()) {
-    common::fail("attempted to instantiate func signature without type parameters");
+    fail("attempted to instantiate func signature without type parameters");
   } else if (parameterized_signature->expr_receiver() != nullptr) {
-    common::fail("attempted to instantiate func signature with expr receiver");
+    fail("attempted to instantiate func signature with expr receiver");
   }
   Tuple* parameters = parameterized_signature->parameters();
   if (parameters != nullptr) {
@@ -282,7 +283,7 @@ Signature* InfoBuilder::InstantiateMethodSignature(Signature* parameterized_sign
                                                    TypeParamsToArgsMap& type_params_to_args,
                                                    bool receiver_to_arg) {
   if (!parameterized_signature->type_parameters().empty()) {
-    common::fail("attempted to instantiate method signature with type parameters");
+    fail("attempted to instantiate method signature with type parameters");
   }
   Tuple* parameters = parameterized_signature->parameters();
   if (parameters != nullptr) {
@@ -294,7 +295,7 @@ Signature* InfoBuilder::InstantiateMethodSignature(Signature* parameterized_sign
   }
   if (receiver_to_arg) {
     if (parameterized_signature->expr_receiver() == nullptr) {
-      common::fail("attempted to instantiate missing expr receiver");
+      fail("attempted to instantiate missing expr receiver");
     }
     Variable* receiver = parameterized_signature->expr_receiver();
     Type* receiver_type = receiver->type();
@@ -367,14 +368,14 @@ Slice* InfoBuilder::InstantiateSlice(Slice* slice, TypeParamsToArgsMap& type_par
 Type* InfoBuilder::InstantiateTypeParameter(TypeParameter* type_parameter,
                                             TypeParamsToArgsMap& type_params_to_args) {
   if (!type_params_to_args.contains(type_parameter)) {
-    common::fail("type argument for type parameter not found");
+    fail("type argument for type parameter not found");
   }
   return type_params_to_args.at(type_parameter);
 }
 
 NamedType* InfoBuilder::InstantiateNamedType(NamedType* named_type) {
   if (!named_type->type_parameters().empty()) {
-    common::fail("attempted to instantiate nested named type with type parameters");
+    fail("attempted to instantiate nested named type with type parameters");
   }
   return named_type;
 }
@@ -423,9 +424,9 @@ Tuple* InfoBuilder::InstantiateTuple(Tuple* tuple, TypeParamsToArgsMap& type_par
 Signature* InfoBuilder::InstantiateSignature(Signature* signature,
                                              TypeParamsToArgsMap& type_params_to_args) {
   if (!signature->type_parameters().empty()) {
-    common::fail("attempted to instantiate nested signature with type parameters");
+    fail("attempted to instantiate nested signature with type parameters");
   } else if (signature->expr_receiver() != nullptr || signature->type_receiver() != nullptr) {
-    common::fail("attempted to instantiate nested signature with receiver");
+    fail("attempted to instantiate nested signature with receiver");
   }
 
   Tuple* parameters = signature->parameters();
@@ -496,21 +497,21 @@ Interface* InfoBuilder::InstantiateInterface(Interface* interface,
 
 void InfoBuilder::SetTypeParameterInstance(TypeParameter* instantiated, TypeParameter* instance) {
   if (instantiated == instance) {
-    common::fail(
+    fail(
         "attempted to set instantiated type parameter of type parameter to "
         "itself");
   } else if (instantiated->instantiated_type_parameter() != nullptr) {
-    common::fail(
+    fail(
         "attempted to set instantiated type parameter of type parameter to type "
         "parameter with its own instantiated type parameter");
   } else if (instance->instantiated_type_parameter() != nullptr) {
-    common::fail("attempted to set instantiated type parameter of type parameter twice");
+    fail("attempted to set instantiated type parameter of type parameter twice");
   } else if (instantiated->interface() == nullptr) {
-    common::fail(
+    fail(
         "attempted to set instantiated type parameter of type parameter to type "
         "parameter without interface");
   } else if (instance->interface() != nullptr) {
-    common::fail(
+    fail(
         "attempted to set instantiated type parameter of type parameter with "
         "already set interface");
   }
@@ -520,9 +521,9 @@ void InfoBuilder::SetTypeParameterInstance(TypeParameter* instantiated, TypePara
 
 void InfoBuilder::SetTypeParameterInterface(TypeParameter* type_parameter, Interface* interface) {
   if (type_parameter->interface() != nullptr) {
-    common::fail("attempted to set interface of type parameter twice");
+    fail("attempted to set interface of type parameter twice");
   } else if (interface == nullptr) {
-    common::fail("attempted to set interface of type parameter to nullptr");
+    fail("attempted to set interface of type parameter to nullptr");
   }
   type_parameter->interface_ = interface;
 }
@@ -530,23 +531,23 @@ void InfoBuilder::SetTypeParameterInterface(TypeParameter* type_parameter, Inter
 void InfoBuilder::SetTypeParametersOfNamedType(NamedType* named_type,
                                                std::vector<TypeParameter*> type_parameters) {
   if (!named_type->type_parameters().empty()) {
-    common::fail("attempted to set type parameters of named type twice");
+    fail("attempted to set type parameters of named type twice");
   }
   named_type->type_parameters_ = type_parameters;
 }
 
 void InfoBuilder::SetUnderlyingTypeOfNamedType(NamedType* named_type, Type* underlying_type) {
   if (named_type->underlying() != nullptr) {
-    common::fail("attempted to set underlying type of named type twice");
+    fail("attempted to set underlying type of named type twice");
   } else if (underlying_type == nullptr) {
-    common::fail("attempted to set underlying type of named type to nullptr");
+    fail("attempted to set underlying type of named type to nullptr");
   }
   named_type->underlying_ = underlying_type;
 }
 
 void InfoBuilder::AddMethodToNamedType(NamedType* named_type, Func* method) {
   if (named_type->methods().contains(method->name())) {
-    common::fail("attempted to add two methods with the same name to named type");
+    fail("attempted to add two methods with the same name to named type");
   }
   named_type->methods_[method->name()] = method;
 }
@@ -560,10 +561,10 @@ void InfoBuilder::SetInterfaceMembers(Interface* interface,
                                       std::vector<NamedType*> embdedded_interfaces,
                                       std::vector<Func*> methods) {
   if (!interface->embedded_interfaces().empty()) {
-    common::fail("attempted to add set embdedded interfaces twice");
+    fail("attempted to add set embdedded interfaces twice");
   }
   if (!interface->methods().empty()) {
-    common::fail("attempted to add set interface methods twice");
+    fail("attempted to add set interface methods twice");
   }
   interface->embedded_interfaces_ = embdedded_interfaces;
   interface->methods_ = methods;
@@ -638,18 +639,18 @@ PackageName* InfoBuilder::CreatePackageName(Scope* parent, Package* package, com
 
 void InfoBuilder::CheckObjectArgs(Scope* parent, Package* package) const {
   if (parent == nullptr) {
-    common::fail("attemtped to create object without parent scope");
+    fail("attemtped to create object without parent scope");
   }
   if (package == nullptr) {
-    common::fail("attempted to create object without package");
+    fail("attempted to create object without package");
   }
 }
 
 void InfoBuilder::SetObjectType(TypedObject* object, Type* type) {
   if (object->object_kind() == ObjectKind::kTypeName) {
-    common::fail("attempted to set type name type as regular object type");
+    fail("attempted to set type name type as regular object type");
   } else if (object->type() != nullptr) {
-    common::fail("attempted to set object type twice");
+    fail("attempted to set object type twice");
   }
   object->type_ = type;
 }
@@ -660,38 +661,38 @@ void InfoBuilder::SetConstantValue(Constant* constant, constants::Value value) {
 
 void InfoBuilder::SetExprInfo(ast::Expr* expr, ExprInfo kind) {
   if (info_->expr_infos().contains(expr)) {
-    common::fail("attempted to set expression info twice");
+    fail("attempted to set expression info twice");
   }
   info_->expr_infos_.insert({expr, kind});
 }
 
 void InfoBuilder::SetDefinedObject(ast::Ident* ident, Object* object) {
   if (info_->definitions().contains(ident)) {
-    common::fail("attempted to set defined object of identifier twice");
+    fail("attempted to set defined object of identifier twice");
   }
   info_->definitions_.insert({ident, object});
 }
 
 void InfoBuilder::SetUsedObject(ast::Ident* ident, Object* object) {
   if (info_->uses().contains(ident)) {
-    common::fail("attempted to set used object of identifier twice");
+    fail("attempted to set used object of identifier twice");
   }
   info_->uses_.insert({ident, object});
 }
 
 void InfoBuilder::SetImplicitObject(ast::Node* node, Object* object) {
   if (info_->implicits().contains(node)) {
-    common::fail("attempted to set implicit object of node twice");
+    fail("attempted to set implicit object of node twice");
   }
   info_->implicits_.insert({node, object});
 }
 
 Scope* InfoBuilder::CreateScope(ast::Node* node, Scope* parent) {
   if (node == nullptr) {
-    common::fail("attempted to create scope without associated node");
+    fail("attempted to create scope without associated node");
   }
   if (parent == nullptr) {
-    common::fail("attempted to create scope without parent");
+    fail("attempted to create scope without parent");
   }
 
   std::unique_ptr<Scope> scope(new Scope());
@@ -707,7 +708,7 @@ Scope* InfoBuilder::CreateScope(ast::Node* node, Scope* parent) {
 
 void InfoBuilder::AddObjectToScope(Scope* scope, Object* object) {
   if (!object->name().empty() && scope->named_objects().contains(object->name())) {
-    common::fail("attempted to add two objects with the same name to scope");
+    fail("attempted to add two objects with the same name to scope");
   }
 
   if (object->name().empty()) {
@@ -719,7 +720,7 @@ void InfoBuilder::AddObjectToScope(Scope* scope, Object* object) {
 
 Package* InfoBuilder::CreatePackage(std::string path, std::string name) {
   if (name.empty()) {
-    common::fail("attempted to create package with empty name");
+    fail("attempted to create package with empty name");
   }
 
   std::unique_ptr<Scope> package_scope(new Scope());
@@ -747,7 +748,7 @@ void InfoBuilder::AddImportToPackage(Package* importer, Package* imported) {
 
 void InfoBuilder::SetSelection(ast::SelectionExpr* selection_expr, types::Selection selection) {
   if (info_->selections_.contains(selection_expr)) {
-    common::fail("attempted to set selection of selection expr twice");
+    fail("attempted to set selection of selection expr twice");
   }
   info_->selections_.insert({selection_expr, selection});
 }

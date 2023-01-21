@@ -11,6 +11,9 @@
 #include "src/common/logging/logging.h"
 
 namespace ir_analyzers {
+
+using ::common::logging::fail;
+
 namespace {
 
 void AddDynamicCalleesFromValues(const auto& values,
@@ -69,7 +72,7 @@ const ir_info::FuncCallGraph BuildFuncCallGraphForProgram(const ir::Program* pro
           fcg.AddFuncCall(
               std::make_unique<ir_info::FuncCall>(call_instr, caller_func_num, dynamic_callees));
         } else {
-          common::fail("unexpected ir value kind");
+          fail("unexpected ir value kind");
         }
       }
     }

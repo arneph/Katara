@@ -15,17 +15,18 @@ namespace ir_interpreter {
 using ::common::atomics::Bool;
 using ::common::atomics::Int;
 using ::common::atomics::IntType;
+using ::common::logging::fail;
 
 Interpreter::Interpreter(ir::Program* program, bool sanitize) : heap_(sanitize), program_(program) {
   if (program_->entry_func_num() == ir::kNoFuncNum) {
-    common::fail("program has no entry function");
+    fail("program has no entry function");
   }
   ir::Func* entry_func = program_->entry_func();
   if (!entry_func->args().empty()) {
     // TODO: support argc, argv
-    common::fail("entry function has arguments");
+    fail("entry function has arguments");
   } else if (entry_func->result_types().size() != 1) {
-    common::fail("entry function does not have one result");
+    fail("entry function does not have one result");
   }
 
   stack_.PushFrame(entry_func);
@@ -33,7 +34,7 @@ Interpreter::Interpreter(ir::Program* program, bool sanitize) : heap_(sanitize),
 
 int64_t Interpreter::exit_code() const {
   if (!HasProgramCompleted()) {
-    common::fail("program has not terminated");
+    fail("program has not terminated");
   }
   return exit_code_.value();
 }
@@ -124,7 +125,7 @@ void Interpreter::ExecuteInstr(ir::Instr* instr) {
       ExecuteReturnInstr(static_cast<ir::ReturnInstr*>(instr));
       return;
     default:
-      common::fail("interpreter does not support instruction: " + instr->RefString());
+      fail("interpreter does not support instruction: " + instr->RefString());
   }
   stack_.current_frame()->exec_point().AdvanceToNextInstr();
 }
@@ -144,7 +145,7 @@ void Interpreter::ExecutePhiInstr(ir::PhiInstr* instr) {
       return;
     }
   }
-  common::fail("could not find inherited value for previous block");
+  fail("could not find inherited value for previous block");
 }
 
 void Interpreter::ExecuteConversion(ir::Conversion* instr) {
@@ -173,7 +174,7 @@ void Interpreter::ExecuteConversion(ir::Conversion* instr) {
     } else if (operand_type_kind == ir::TypeKind::kInt) {
       Int operand = EvaluateInt(instr->operand());
       if (!operand.CanConvertTo(result_int_type)) {
-        common::fail("can not handle conversion instr");
+        fail("can not handle conversion instr");
       }
       Int result = operand.ConvertTo(result_int_type);
       stack_.current_frame()->computed_values().insert_or_assign(result_num,
@@ -182,14 +183,14 @@ void Interpreter::ExecuteConversion(ir::Conversion* instr) {
     }
   }
 
-  common::fail("interpreter does not support conversion");
+  fail("interpreter does not support conversion");
 }
 
 void Interpreter::ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr) {
   Int a = EvaluateInt(instr->operand_a());
   Int b = EvaluateInt(instr->operand_b());
   if (!Int::CanCompute(a, b)) {
-    common::fail("can not compute binary instr");
+    fail("can not compute binary instr");
   }
   Int result = Int::Compute(a, instr->operation(), b);
   stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
@@ -200,7 +201,7 @@ void Interpreter::ExecuteIntCompareInstr(ir::IntCompareInstr* instr) {
   Int a = EvaluateInt(instr->operand_a());
   Int b = EvaluateInt(instr->operand_b());
   if (!Int::CanCompare(a, b)) {
-    common::fail("can not compute compare instr");
+    fail("can not compute compare instr");
   }
   bool result = Int::Compare(a, instr->operation(), b);
   stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
@@ -231,7 +232,7 @@ void Interpreter::ExecuteNilTestInstr(ir::NilTestInstr* instr) {
       case ir::TypeKind::kFunc:
         return EvaluateFunc(instr->tested()) == ir::kNoFuncNum;
       default:
-        common::fail("unexpected type for niltest");
+        fail("unexpected type for niltest");
     }
   }();
   stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
@@ -281,7 +282,7 @@ void Interpreter::ExecuteLoadInstr(ir::LoadInstr* instr) {
       case ir::TypeKind::kFunc:
         return ir::ToFuncConstant(heap_.Load<ir::func_num_t>(address));
       default:
-        common::fail("can not handle type");
+        fail("can not handle type");
     }
   }();
   stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
@@ -340,7 +341,7 @@ void Interpreter::ExecuteStoreInstr(ir::StoreInstr* instr) {
     default:
       break;
   }
-  common::fail("can not handle type");
+  fail("can not handle type");
 }
 
 void Interpreter::ExecuteFreeInstr(ir::FreeInstr* instr) {
@@ -414,7 +415,7 @@ std::shared_ptr<ir::Constant> Interpreter::Evaluate(std::shared_ptr<ir::Value> i
       return stack_.current_frame()->computed_values().at(computed->number());
     }
     case ir::Value::Kind::kInherited:
-      common::fail("tried to evaluate inherited value");
+      fail("tried to evaluate inherited value");
   }
 }
 

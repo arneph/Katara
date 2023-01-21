@@ -13,6 +13,8 @@
 namespace lang {
 namespace ir_builder {
 
+using ::common::logging::fail;
+
 std::shared_ptr<ir::Computed> ASTContext::LookupAddressOfVar(types::Variable* requested_var) const {
   for (auto& [var, address] : var_addresses_) {
     if (var == requested_var) {
@@ -28,7 +30,7 @@ std::shared_ptr<ir::Computed> ASTContext::LookupAddressOfVar(types::Variable* re
 
 void ASTContext::AddAddressOfVar(types::Variable* var, std::shared_ptr<ir::Computed> address) {
   if (LookupAddressOfVar(var) != nullptr) {
-    common::fail("attempted to add var address twice");
+    fail("attempted to add var address twice");
   }
   var_addresses_.emplace_back(var, address);
 }

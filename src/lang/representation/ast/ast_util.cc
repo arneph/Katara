@@ -16,6 +16,8 @@
 namespace lang {
 namespace ast {
 
+using ::common::logging::fail;
+
 common::graph::Graph NodeToTree(const common::PosFileSet* file_set, Node* node) {
   common::graph::Graph graph(/*is_directed=*/true);
   std::vector<int64_t> stack;
@@ -276,7 +278,7 @@ void Walk(FuncDecl* func_decl, WalkFunction f) {
       Walk(func_decl->type_receiver(), g);
       break;
     default:
-      common::fail("unexpected func decl kind");
+      fail("unexpected func decl kind");
   }
   Walk(func_decl->name(), g);
   if (func_decl->type_params() != nullptr) {

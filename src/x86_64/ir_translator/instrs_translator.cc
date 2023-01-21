@@ -15,6 +15,8 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::logging::fail;
+
 void TranslateInstr(ir::Instr* ir_instr, BlockContext& ctx) {
   switch (ir_instr->instr_kind()) {
     case ir::InstrKind::kMov:
@@ -72,7 +74,7 @@ void TranslateInstr(ir::Instr* ir_instr, BlockContext& ctx) {
       // TODO: add lowering pass
       break;
     default:
-      common::fail("unexpected instr: " + ir_instr->RefString());
+      fail("unexpected instr: " + ir_instr->RefString());
   }
 }
 

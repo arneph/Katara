@@ -19,6 +19,8 @@
 namespace ir_to_x86_64_translator {
 namespace {
 
+using ::common::logging::fail;
+
 std::vector<x86_64::Reg> GetCallerSavedRegisters(ir::Instr* instr, BlockContext& ctx) {
   std::vector<x86_64::Reg> caller_saved_registers;
   for (ir::value_num_t live_value : ctx.live_ranges().GetLiveSet(instr)) {
@@ -93,7 +95,7 @@ void GenerateCallInstr(ir::Value* ir_called_func, BlockContext& ctx) {
   } else if (x86_64_called_func.is_rm()) {
     ctx.x86_64_block()->AddInstr<x86_64::Call>(x86_64_called_func.rm());
   } else {
-    common::fail("unexpected func operand");
+    fail("unexpected func operand");
   }
 }
 

@@ -14,6 +14,8 @@
 namespace lang {
 namespace type_checker {
 
+using ::common::logging::fail;
+
 types::Package* IdentifierResolver::CreatePackageAndResolveIdentifiers(
     std::string package_path, std::vector<ast::File*> package_files,
     std::function<types::Package*(std::string)> importer, types::InfoBuilder& info_builder,
@@ -53,7 +55,7 @@ void IdentifierResolver::ResolveIdentifiers() {
           AddDefinedObjectFromFuncDecl(static_cast<ast::FuncDecl*>(decl), package_->scope());
           break;
         default:
-          common::fail("unexpected declaration");
+          fail("unexpected declaration");
       }
     }
   }
@@ -69,7 +71,7 @@ void IdentifierResolver::ResolveIdentifiers() {
           ResolveIdentifiersInFuncDecl(static_cast<ast::FuncDecl*>(decl), file_scope);
           break;
         default:
-          common::fail("unexpected declaration");
+          fail("unexpected declaration");
       }
     }
   }
@@ -115,7 +117,7 @@ void IdentifierResolver::AddDefinedObjectsFromGenDecl(ast::GenDecl* gen_decl, ty
       }
       return;
     default:
-      common::fail("unexpected gen decl token");
+      fail("unexpected gen decl token");
   }
 }
 
@@ -242,7 +244,7 @@ void IdentifierResolver::ResolveIdentifiersInGenDecl(ast::GenDecl* gen_decl, typ
       }
       return;
     default:
-      common::fail("unexpected gen decl token");
+      fail("unexpected gen decl token");
   }
 }
 
@@ -420,7 +422,7 @@ void IdentifierResolver::ResolveIdentifiersInStmt(ast::Stmt* stmt, types::Scope*
       ResolveIdentifiersInBranchStmt(static_cast<ast::BranchStmt*>(stmt), scope);
       break;
     default:
-      common::fail("unexpected AST stmt");
+      fail("unexpected AST stmt");
   }
 }
 
@@ -465,7 +467,7 @@ void IdentifierResolver::ResolveIdentifiersInDeclStmt(ast::DeclStmt* decl_stmt,
       }
       return;
     default:
-      common::fail("unexpected gen decl token");
+      fail("unexpected gen decl token");
   }
 }
 
@@ -672,7 +674,7 @@ void IdentifierResolver::ResolveIdentifiersInExpr(ast::Expr* expr, types::Scope*
       ResolveIdentifier(static_cast<ast::Ident*>(expr), scope);
       break;
     default:
-      common::fail("unexpected AST expr");
+      fail("unexpected AST expr");
   }
 }
 

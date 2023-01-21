@@ -15,6 +15,8 @@
 
 namespace ir {
 
+using ::common::logging::fail;
+
 bool Instr::IsControlFlowInstr() const {
   switch (instr_kind()) {
     case InstrKind::kJump:
@@ -76,7 +78,7 @@ std::shared_ptr<Value> PhiInstr::ValueInheritedFromBlock(block_num_t bnum) const
       return arg->value();
     }
   }
-  common::fail("phi instr does not inherit from block");
+  fail("phi instr does not inherit from block");
 }
 
 std::vector<std::shared_ptr<Value>> PhiInstr::UsedValues() const {

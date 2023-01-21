@@ -14,16 +14,18 @@
 
 namespace common::data {
 
+using ::common::logging::fail;
+
 DataView::DataView(uint8_t* base, int64_t size) : base_(base), size_(size) {
   if (size < 0) {
-    common::fail("size is negative");
+    fail("size is negative");
   }
 }
 
 void DataView::CheckIndex(int64_t index) const {
   if (index < 0 || index >= size_) {
-    common::fail("index is out of bounds, size: " + std::to_string(size_) +
-                 ", index: " + std::to_string(index));
+    fail("index is out of bounds, size: " + std::to_string(size_) +
+         ", index: " + std::to_string(index));
   }
 }
 
@@ -31,7 +33,7 @@ void DataView::CheckSubViewIndices(int64_t start_index, int64_t end_index) const
   CheckIndex(start_index);
   CheckIndex(end_index);
   if (start_index > end_index) {
-    common::fail("subview start index is greater than end index");
+    fail("subview start index is greater than end index");
   }
 }
 

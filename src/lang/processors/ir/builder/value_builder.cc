@@ -15,6 +15,7 @@ namespace ir_builder {
 
 using ::common::atomics::Bool;
 using ::common::atomics::Int;
+using ::common::logging::fail;
 
 std::shared_ptr<ir::Computed> ValueBuilder::BuildBoolNot(std::shared_ptr<ir::Value> x,
                                                          IRContext& ir_ctx) {
@@ -103,7 +104,7 @@ std::shared_ptr<ir::Value> ValueBuilder::BuildConversion(std::shared_ptr<ir::Val
     ir_ctx.block()->instrs().push_back(std::make_unique<ir::Conversion>(result, value));
     return result;
   } else {
-    common::fail("unexpected conversion");
+    fail("unexpected conversion");
   }
 }
 
@@ -119,14 +120,14 @@ std::shared_ptr<ir::Value> ValueBuilder::BuildDefaultForType(types::Type* types_
         case ir::TypeKind::kLangString:
           return std::make_shared<ir_ext::StringConstant>("");
         default:
-          common::fail("unexpected ir type for basic type");
+          fail("unexpected ir type for basic type");
       }
     case types::TypeKind::kPointer:
       return ir::NilPointer();
     case types::TypeKind::kSignature:
       return ir::NilFunc();
     default:
-      common::fail("unexpected lang type");
+      fail("unexpected lang type");
       //      return std::make_shared<ir_ext::StringConstant>("");
       //      // TODO: implement more types
   }

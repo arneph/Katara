@@ -15,6 +15,7 @@
 namespace ir_serialization {
 
 using ::common::atomics::Int;
+using ::common::logging::fail;
 
 std::string Scanner::TokenToString(Token token) {
   switch (token) {
@@ -39,14 +40,14 @@ std::string Scanner::TokenToString(Token token) {
 
 std::string Scanner::token_text() const {
   if (token_ == kUnknown || token_ == kEoF) {
-    common::fail("token has no associated text");
+    fail("token has no associated text");
   }
   return file_->contents(token_start_, token_end_);
 }
 
 Int Scanner::token_number() const {
   if (token_ != kNumber) {
-    common::fail("token has no associated number");
+    fail("token has no associated number");
   }
   std::optional<Int> number = common::atomics::ToI64(token_text());
   if (number.has_value()) {
@@ -64,7 +65,7 @@ Int Scanner::token_number() const {
 
 Int Scanner::token_address() const {
   if (token_ != kAddress) {
-    common::fail("token has no associated address");
+    fail("token has no associated address");
   }
   std::optional<Int> address = common::atomics::ToU64(token_text(), /*base=*/16);
   if (!address.has_value()) {
@@ -78,7 +79,7 @@ Int Scanner::token_address() const {
 
 std::string Scanner::token_string() const {
   if (token_ != kString) {
-    common::fail("token has no associated string");
+    fail("token has no associated string");
   }
   std::string str;
   for (std::size_t i = 1; i < token_text().length() - 1; i++) {
@@ -93,7 +94,7 @@ std::string Scanner::token_string() const {
 
 void Scanner::Next() {
   if (token_ == kEoF) {
-    common::fail("can not advance Scanner at EoF");
+    fail("can not advance Scanner at EoF");
   }
   NextIfPossible();
 }

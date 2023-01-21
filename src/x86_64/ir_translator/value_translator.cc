@@ -19,6 +19,7 @@ namespace ir_to_x86_64_translator {
 
 using ::common::atomics::Int;
 using ::common::atomics::IntType;
+using ::common::logging::fail;
 
 x86_64::Operand TranslateValue(ir::Value* value, IntNarrowing narrowing, FuncContext& ctx) {
   switch (value->kind()) {
@@ -33,12 +34,12 @@ x86_64::Operand TranslateValue(ir::Value* value, IntNarrowing narrowing, FuncCon
         case ir::TypeKind::kFunc:
           return TranslateFuncConstant(static_cast<ir::FuncConstant*>(value), ctx.program_ctx());
         default:
-          common::fail("unsupported constant kind");
+          fail("unsupported constant kind");
       }
     case ir::Value::Kind::kComputed:
       return TranslateComputed(static_cast<ir::Computed*>(value), ctx);
     default:
-      common::fail("unsupported value kind");
+      fail("unsupported value kind");
   }
 }
 

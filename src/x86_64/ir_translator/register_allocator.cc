@@ -17,6 +17,8 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::logging::fail;
+
 x86_64::RM OperandForArg(int arg_index, x86_64::Size size) {
   switch (arg_index) {
     case 0:
@@ -38,7 +40,7 @@ x86_64::RM OperandForArg(int arg_index, x86_64::Size size) {
       return x86_64::Reg(size, 9);  // r9
       return x86_64::r9;
     default:
-      common::fail("can not handle functions with more than six arguments");
+      fail("can not handle functions with more than six arguments");
   }
 }
 
@@ -49,7 +51,7 @@ x86_64::RM OperandForResult(int result_index, x86_64::Size size) {
     case 1:
       return x86_64::Reg(size, 2);  // rdx
     default:
-      common::fail("can not handle functions with more than two return values");
+      fail("can not handle functions with more than two return values");
   }
 }
 
@@ -70,7 +72,7 @@ RegSavingBehaviour SavingBehaviourForReg(x86_64::Reg reg) {
 
 x86_64::RM ColorAndSizeToOperand(ir_info::color_t color, x86_64::Size size) {
   if (color == ir_info::kNoColor) {
-    common::fail("attempted to convert no color to operand");
+    fail("attempted to convert no color to operand");
   } else if (0 <= color && color <= 3) {
     return x86_64::Reg(size, color);
   } else if (4 <= color && color <= 13) {
@@ -88,13 +90,13 @@ ir_info::color_t OperandToColor(x86_64::RM operand) {
     } else if (6 <= reg && reg <= 15) {
       return ir_info::color_t(reg - 2);
     } else {
-      common::fail("attempted to convert unexpected register to interference graph color");
+      fail("attempted to convert unexpected register to interference graph color");
     }
   } else if (operand.is_mem()) {
     int32_t disp = operand.mem().disp();
     return ir_info::color_t((disp / -8) + 14);
   } else {
-    common::fail("attempted to convert unexpected x86_64 RM to interference graph color");
+    fail("attempted to convert unexpected x86_64 RM to interference graph color");
   }
 }
 

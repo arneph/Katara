@@ -18,6 +18,8 @@
 namespace lang {
 namespace packages {
 
+using ::common::logging::fail;
+
 std::vector<Package*> PackageManager::Packages() const {
   std::vector<Package*> packages;
   for (auto& [_, package] : packages_) {
@@ -51,7 +53,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path) {
 
 Package* PackageManager::LoadMainPackage(std::filesystem::path main_directory) {
   if (GetMainPackage() != nullptr) {
-    common::fail("tried to load main package twice");
+    fail("tried to load main package twice");
   }
   if (!filesystem_->IsDirectory(main_directory)) {
     issue_tracker_.Add(issues::kMainPackageDirectoryUnreadable, std::vector<common::pos_t>{},
@@ -63,7 +65,7 @@ Package* PackageManager::LoadMainPackage(std::filesystem::path main_directory) {
 
 Package* PackageManager::LoadMainPackage(std::vector<std::filesystem::path> main_file_paths) {
   if (GetMainPackage() != nullptr) {
-    common::fail("tried to load main package twice");
+    fail("tried to load main package twice");
   }
   if (!CheckAllFilesAreInMainDirectory(main_file_paths) ||
       !CheckAllFilesInMainPackageExist(main_file_paths)) {
@@ -131,7 +133,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path, std::filesystem::path
       insert_ok) {
     pkg = it->second.get();
   } else {
-    common::fail("tried to load package twice");
+    fail("tried to load package twice");
   }
   pkg->name_ = NameFromPackagePath(pkg_path);
   pkg->path_ = pkg_path;

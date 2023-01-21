@@ -25,6 +25,8 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::logging::fail;
+
 void TranslateMovInstr(ir::MovInstr* ir_mov_instr, BlockContext& ctx) {
   x86_64::RM x86_64_result = TranslateComputed(ir_mov_instr->result().get(), ctx.func_ctx());
   x86_64::Operand x86_64_origin = TranslateValue(
@@ -74,7 +76,7 @@ void TranslateLoadInstr(ir::LoadInstr* ir_load_instr, BlockContext& ctx) {
     ctx.x86_64_block()->AddInstr<x86_64::Mov>(tmp->reg(), mem);
     ctx.x86_64_block()->AddInstr<x86_64::Mov>(x86_64_result, tmp->reg());
   } else {
-    common::fail("unexpected load result operand");
+    fail("unexpected load result operand");
   }
 
   if (tmp.has_value()) {

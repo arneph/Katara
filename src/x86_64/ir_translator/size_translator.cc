@@ -12,6 +12,8 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::logging::fail;
+
 x86_64::Size TranslateSizeOfType(const ir::Type* ir_type) {
   switch (ir_type->type_kind()) {
     case ir::TypeKind::kBool:
@@ -22,7 +24,7 @@ x86_64::Size TranslateSizeOfType(const ir::Type* ir_type) {
     case ir::TypeKind::kFunc:
       return x86_64::Size::k64;
     default:
-      common::fail("unexpected int binary operand type");
+      fail("unexpected int binary operand type");
   }
 }
 

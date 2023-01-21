@@ -15,6 +15,8 @@
 
 namespace ir_check {
 
+using ::common::logging::fail;
+
 template <typename Checker = Checker>
 void CheckProgramOrDie(const ir::Program* program) {
   common::PosFileSet file_set;
@@ -24,7 +26,7 @@ void CheckProgramOrDie(const ir::Program* program) {
     return;
   }
   issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, &std::cerr);
-  common::fail("ir::Program did not pass check");
+  fail("ir::Program did not pass check");
 }
 
 }  // namespace ir_check

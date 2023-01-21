@@ -14,6 +14,8 @@
 
 namespace ir_interpreter {
 
+using ::common::logging::fail;
+
 ExecutionPoint ExecutionPoint::AtFuncEntry(ir::Func* func) {
   return ExecutionPoint(/*previous_block=*/nullptr,
                         /*current_block=*/func->entry_block(),
@@ -44,7 +46,7 @@ void ExecutionPoint::AdvanceToFuncExit(std::vector<std::shared_ptr<ir::Constant>
 
 const std::vector<std::shared_ptr<ir::Constant>>& ExecutionPoint::results() const {
   if (!is_at_func_exit()) {
-    common::fail("results are not defined at current execution point");
+    fail("results are not defined at current execution point");
   }
   return results_;
 }

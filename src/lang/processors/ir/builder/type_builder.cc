@@ -13,6 +13,8 @@
 namespace lang {
 namespace ir_builder {
 
+using ::common::logging::fail;
+
 TypeBuilder::TypeBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program)
     : type_info_(type_info), program_(program) {}
 
@@ -36,7 +38,7 @@ const ir::Type* TypeBuilder::BuildType(types::Type* types_type) {
       return BuildType(underlying);
     }
     case types::TypeKind::kTuple:
-      common::fail("attempted to convert types tuple to IR type");
+      fail("attempted to convert types tuple to IR type");
     case types::TypeKind::kSignature:
       return ir::func_type();
     case types::TypeKind::kStruct:
@@ -77,7 +79,7 @@ const ir::Type* TypeBuilder::BuildTypeForBasic(types::Basic* types_basic) {
     case types::Basic::kUntypedNil:
       return ir::pointer_type();
     default:
-      common::fail("unexpected basic type");
+      fail("unexpected basic type");
   }
 }
 

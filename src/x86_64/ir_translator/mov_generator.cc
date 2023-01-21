@@ -24,6 +24,9 @@
 #include "src/x86_64/ops.h"
 
 namespace ir_to_x86_64_translator {
+
+using ::common::logging::fail;
+
 namespace {
 
 bool IsNoOpMov(x86_64::RM x86_64_result, x86_64::Operand x86_64_origin) {
@@ -142,7 +145,7 @@ x86_64::Reg FindUninvolvedReg(const ColorSets& color_sets) {
     if (operand.is_reg()) {
       return operand.reg();
     }
-    common::fail("failed to find uninvolved reg");
+    fail("failed to find uninvolved reg");
   }
 }
 
@@ -263,7 +266,7 @@ MoveCycle RemoveMoveOperationsInMoveCycle(
                                   return current_color == operation.origin_color();
                                 });
     if (next_it == operations.end()) {
-      common::fail("move cycle is incomplete");
+      fail("move cycle is incomplete");
     }
     cycle_operands.push_back(next_it->result());
     current_color = next_it->result_color();
@@ -407,7 +410,7 @@ void GenerateMovs(std::vector<MoveOperation> move_operations, ir::Instr* instr, 
       GenerateXchg(swap_operation.value(), ctx, temporary_reg_provider);
       continue;
     }
-    common::fail("could not find any ready move or swap operation");
+    fail("could not find any ready move or swap operation");
   }
 
   if (tmp.has_value()) {

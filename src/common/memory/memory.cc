@@ -12,7 +12,12 @@
 
 #include <utility>
 
+#include "src/common/logging/logging.h"
+
 namespace common::memory {
+
+using ::common::logging::fail;
+
 namespace {
 
 bool ValidatePermissions(Permissions permissions) {

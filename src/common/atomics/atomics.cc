@@ -17,6 +17,8 @@
 
 namespace common::atomics {
 
+using ::common::logging::fail;
+
 std::optional<IntType> ToIntType(std::string_view str) {
   if (str == "i8") {
     return IntType::kI8;

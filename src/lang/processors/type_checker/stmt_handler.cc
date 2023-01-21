@@ -16,6 +16,8 @@
 namespace lang {
 namespace type_checker {
 
+using ::common::logging::fail;
+
 void StmtHandler::CheckFuncBody(ast::BlockStmt* body, types::Tuple* func_results) {
   Context ctx{
       .func_results = func_results,
@@ -82,7 +84,7 @@ void StmtHandler::CheckStmt(ast::Stmt* stmt, Context ctx) {
       CheckBranchStmt(static_cast<ast::BranchStmt*>(stmt), ctx);
       break;
     default:
-      common::fail("unexpected stmt type");
+      fail("unexpected stmt type");
   }
 }
 
@@ -145,7 +147,7 @@ void StmtHandler::CheckDeclStmt(ast::DeclStmt* stmt) {
       }
       break;
     default:
-      common::fail("unexpected lang::ast::GenDecl");
+      fail("unexpected lang::ast::GenDecl");
   }
 }
 
@@ -483,7 +485,7 @@ void StmtHandler::CheckBranchStmt(ast::BranchStmt* branch_stmt, Context ctx) {
       }
       return;
     default:
-      common::fail("unexpected branch statement");
+      fail("unexpected branch statement");
   }
 }
 

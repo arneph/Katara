@@ -25,6 +25,8 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::logging::fail;
+
 void TranslateJumpInstr(ir::JumpInstr* ir_jump_instr, BlockContext& ctx) {
   ir::block_num_t ir_destination = ir_jump_instr->destination();
   x86_64::BlockRef x86_64_destination = TranslateBlockValue(ir_destination, ctx.func_ctx());
@@ -62,7 +64,7 @@ void TranslateJumpCondInstr(ir::JumpCondInstr* ir_jump_cond_instr, BlockContext&
       return;
     }
     case ir::Value::Kind::kInherited:
-      common::fail("unexpected condition value kind");
+      fail("unexpected condition value kind");
   }
 }
 

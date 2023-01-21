@@ -16,6 +16,7 @@
 namespace x86_64 {
 
 using ::common::data::DataView;
+using ::common::logging::fail;
 
 int8_t Jcc::Encode(Linker& linker, DataView code) const {
   code[0] = 0x0f;
@@ -34,7 +35,7 @@ std::string Jcc::ToString() const { return "j" + to_suffix_string(cond_) + " " +
 
 Jmp::Jmp(RM rm) : dst_(rm) {
   if (rm.size() != Size::k64) {
-    common::fail("unsupported rm size");
+    fail("unsupported rm size");
   }
 }
 
@@ -71,7 +72,7 @@ int8_t Jmp::Encode(Linker& linker, DataView code) const {
 std::string Jmp::ToString() const { return "jmp " + dst_.ToString(); }
 
 Call::Call(RM rm) : callee_(rm) {
-  if (rm.size() != Size::k64) common::fail("unsupported rm size");
+  if (rm.size() != Size::k64) fail("unsupported rm size");
 }
 
 int8_t Call::Encode(Linker& linker, DataView code) const {

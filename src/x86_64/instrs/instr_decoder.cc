@@ -13,6 +13,7 @@
 namespace x86_64 {
 
 using ::common::data::DataView;
+using ::common::logging::fail;
 
 InstrDecoder::InstrDecoder(const DataView code) : code_(code) {
   if (code[size_] == 0x66) {
@@ -32,7 +33,7 @@ InstrDecoder::InstrDecoder(const DataView code) : code_(code) {
 void InstrDecoder::DecodeModRM() {
   if (modrm_ != nullptr) return;
   if (sib_ != nullptr || disp_ != nullptr || imm_ != nullptr)
-    common::fail("attemted to decode modRM after decoding later instruction parts");
+    fail("attemted to decode modRM after decoding later instruction parts");
 
   modrm_ = &code_[size_++];
 }
@@ -40,15 +41,14 @@ void InstrDecoder::DecodeModRM() {
 void InstrDecoder::DecodeSIB() {
   if (sib_ != nullptr) return;
   if (disp_ != nullptr || imm_ != nullptr)
-    common::fail("attemted to decode SIB after decoding later instruction parts");
+    fail("attemted to decode SIB after decoding later instruction parts");
 
   sib_ = &code_[size_++];
 }
 
 void InstrDecoder::DecodeDisp(uint8_t disp_size) {
   if (disp_ != nullptr) return;
-  if (imm_ != nullptr)
-    common::fail("attemted to decode Disp after decoding later instruction parts");
+  if (imm_ != nullptr) fail("attemted to decode Disp after decoding later instruction parts");
 
   disp_ = &code_[size_];
   size_ += disp_size / 8;
@@ -59,9 +59,9 @@ Size InstrDecoder::GetOperandSize() const { return op_size_; }
 void InstrDecoder::SetOperandSize(Size op_size) { op_size_ = op_size; }
 
 uint8_t InstrDecoder::DecodeOpcodePart() {
-  if (opcode_size_ == 3) common::fail("attempted to decode fourth opcode byte");
+  if (opcode_size_ == 3) fail("attempted to decode fourth opcode byte");
   if (modrm_ != nullptr || sib_ != nullptr || disp_ != nullptr || imm_ != nullptr)
-    common::fail("attemted to decode opcode after decoding later instruction parts");
+    fail("attemted to decode opcode after decoding later instruction parts");
 
   if (opcode_ == nullptr) {
     opcode_ = &code_[size_];
@@ -77,10 +77,9 @@ uint8_t InstrDecoder::DecodeOpcodeExt() {
 }
 
 Reg InstrDecoder::DecodeOpcodeReg(uint8_t opcode_index, uint8_t lshift) {
-  if (opcode_index >= opcode_size_)
-    common::fail("attempted to decode opcode reg in unknown opcode part");
+  if (opcode_index >= opcode_size_) fail("attempted to decode opcode reg in unknown opcode part");
   if (lshift > 5)
-    if (lshift > 5) common::fail("opcode lshift out range: " + std::to_string(lshift));
+    if (lshift > 5) fail("opcode lshift out range: " + std::to_string(lshift));
 
   uint8_t opcode_part = opcode_[opcode_index];
   uint8_t reg_index = (opcode_part >> lshift) & 0x7;
@@ -164,7 +163,7 @@ RM InstrDecoder::DecodeRM() {
   if (s == 3)
     scale = Scale::kS11;
   else
-    common::fail("unexpected scale bits");
+    fail("unexpected scale bits");
 
   if (mod != 0 || b != 5) {
     base_reg = s;
@@ -212,7 +211,7 @@ Imm InstrDecoder::DecodeImm(uint8_t imm_size) {
     case 64:
       return Imm((int64_t)imm);
     default:
-      common::fail("unknown imm size: " + std::to_string(imm_size));
+      fail("unknown imm size: " + std::to_string(imm_size));
   }
 }
 

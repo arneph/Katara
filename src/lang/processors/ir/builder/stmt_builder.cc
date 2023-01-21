@@ -14,6 +14,7 @@ namespace lang {
 namespace ir_builder {
 
 using ::common::atomics::Int;
+using ::common::logging::fail;
 
 void StmtBuilder::BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx,
                                  IRContext& ir_ctx) {
@@ -68,7 +69,7 @@ void StmtBuilder::BuildStmt(ast::Stmt* stmt, ASTContext& ast_ctx, IRContext& ir_
       BuildBranchStmt(static_cast<ast::BranchStmt*>(stmt), ast_ctx, ir_ctx);
       break;
     default:
-      common::fail("unexpected stmt");
+      fail("unexpected stmt");
   }
 }
 
@@ -82,7 +83,7 @@ void StmtBuilder::BuildDeclStmt(ast::DeclStmt* decl_stmt, ASTContext& ast_ctx, I
     case tokens::kVar:
       break;
     default:
-      common::fail("unexpected decl");
+      fail("unexpected decl");
   }
   for (ast::Spec* spec : decl->specs()) {
     ast::ValueSpec* value_spec = static_cast<ast::ValueSpec*>(spec);
@@ -122,7 +123,7 @@ void StmtBuilder::BuildAssignStmt(ast::AssignStmt* assign_stmt, ASTContext& ast_
       break;
     }
     default:
-      common::fail("unexpected assign op");
+      fail("unexpected assign op");
   }
 }
 
@@ -163,7 +164,7 @@ Int::BinaryOp OpAssignTokToIntBinaryOp(tokens::Token op_assign_tok) {
     case tokens::kAndNotAssign:
       return Int::BinaryOp::kAndNot;
     default:
-      common::fail("unexpected assign op");
+      fail("unexpected assign op");
   }
 }
 
@@ -174,7 +175,7 @@ Int::ShiftOp OpAssignTokToIntShiftOp(tokens::Token op_assign_tok) {
     case tokens::kShrAssign:
       return Int::ShiftOp::kRight;
     default:
-      common::fail("unexpected assign op");
+      fail("unexpected assign op");
   }
 }
 
@@ -337,7 +338,7 @@ void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, ASTContext& ast
       case tokens::kDec:
         return Int::BinaryOp::kSub;
       default:
-        common::fail("unexpected inc dec stmt token");
+        fail("unexpected inc dec stmt token");
     }
   }();
   ir_ctx.block()->instrs().push_back(std::make_unique<ir::LoadInstr>(old_value, address));
@@ -499,7 +500,7 @@ void StmtBuilder::BuildBranchStmt(ast::BranchStmt* branch_stmt, ASTContext& ast_
       }
       break;
     default:
-      common::fail("unexpected branch statement");
+      fail("unexpected branch statement");
   }
 
   BuildVarDeletionsForASTContextsUntilParent(&ast_ctx, branch.defining_ctx, ir_ctx);

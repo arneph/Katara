@@ -20,6 +20,7 @@ namespace lang {
 namespace type_checker {
 
 using ::common::atomics::Int;
+using ::common::logging::fail;
 
 bool ExprHandler::CheckBoolExpr(ast::Expr* expr) {
   if (!CheckValueExpr(expr)) {
@@ -118,7 +119,7 @@ bool ExprHandler::CheckExpr(ast::Expr* expr, Context ctx) {
           }
           return CheckUnaryAddressExpr(static_cast<ast::UnaryExpr*>(expr));
         default:
-          common::fail("unexpected unary op");
+          fail("unexpected unary op");
       }
     case ast::NodeKind::kBinaryExpr:
       switch (static_cast<ast::BinaryExpr*>(expr)->op()) {
@@ -139,7 +140,7 @@ bool ExprHandler::CheckExpr(ast::Expr* expr, Context ctx) {
         case tokens::kLOr:
           return CheckBinaryLogicExpr(static_cast<ast::BinaryExpr*>(expr), ctx);
         default:
-          common::fail("unexpected binary op");
+          fail("unexpected binary op");
       }
     case ast::NodeKind::kCompareExpr:
       return CheckCompareExpr(static_cast<ast::CompareExpr*>(expr), ctx);
@@ -183,7 +184,7 @@ bool ExprHandler::CheckExpr(ast::Expr* expr, Context ctx) {
     case ast::NodeKind::kIdent:
       return CheckIdent(static_cast<ast::Ident*>(expr), ctx);
     default:
-      common::fail("unexpected AST expr");
+      fail("unexpected AST expr");
   }
 }
 
@@ -267,7 +268,7 @@ bool ExprHandler::CheckUnaryAddressExpr(ast::UnaryExpr* unary_expr) {
     return true;
 
   } else {
-    common::fail("unexpected unary operand");
+    fail("unexpected unary operand");
   }
 }
 
@@ -465,7 +466,7 @@ bool ExprHandler::CheckCompareExpr(ast::CompareExpr* compare_expr, Context ctx) 
         }
         break;
       default:
-        common::fail("unexpected compare operation");
+        fail("unexpected compare operation");
     }
     if (expr_kind != types::ExprInfo::Kind::kConstant) {
       continue;
@@ -993,7 +994,7 @@ bool ExprHandler::CheckCallExprWithBuiltin(ast::CallExpr* call_expr) {
       return true;
     }
     default:
-      common::fail("interal error: unexpected builtin kind");
+      fail("interal error: unexpected builtin kind");
   }
 }
 
@@ -1159,7 +1160,7 @@ bool ExprHandler::CheckBasicLit(ast::BasicLit* basic_lit) {
       value = constants::Value(basic_lit->value().substr(1, basic_lit->value().length() - 2));
       break;
     default:
-      common::fail("unexpected basic literal kind");
+      fail("unexpected basic literal kind");
   }
 
   info_builder().SetExprInfo(basic_lit,
@@ -1211,10 +1212,10 @@ bool ExprHandler::CheckIdent(ast::Ident* ident, Context ctx) {
                    "use of package name without selector");
       return false;
     default:
-      common::fail("unexpected object type");
+      fail("unexpected object type");
   }
   if (expr_kind != types::ExprInfo::Kind::kBuiltin && type == nullptr) {
-    common::fail("expect to know type at this point");
+    fail("expect to know type at this point");
   }
 
   info_builder().SetExprInfo(ident, types::ExprInfo(expr_kind, type, value));

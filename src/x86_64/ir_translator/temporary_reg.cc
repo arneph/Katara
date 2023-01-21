@@ -19,6 +19,8 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::logging::fail;
+
 TemporaryReg TemporaryReg::ForOperand(x86_64::Operand operand, bool can_use_result_reg,
                                       const ir::Instr* instr, BlockContext& ctx) {
   TemporaryReg tmp = Prepare(operand.size(), can_use_result_reg, instr, ctx);
@@ -43,7 +45,7 @@ TemporaryReg TemporaryReg::Prepare(x86_64::Size x86_64_size, bool can_use_result
           PrepareFromLiveButNotInvolvedInInstr(x86_64_size, instr, ctx)) {
     return tmp.value();
   }
-  common::fail("temporary reg search exhausted all options");
+  fail("temporary reg search exhausted all options");
 }
 
 std::optional<TemporaryReg> TemporaryReg::PrepareFromResultReg(x86_64::Size x86_64_size,

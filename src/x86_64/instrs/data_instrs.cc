@@ -14,6 +14,7 @@
 namespace x86_64 {
 
 using ::common::data::DataView;
+using ::common::logging::fail;
 
 Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
   if (dst.is_reg()) {
@@ -21,47 +22,47 @@ Mov::Mov(RM dst, Operand src) : dst_(dst), src_(src) {
       if (dst.size() == src.size() || (dst.size() == Size::k64 && src.size() == Size::k32)) {
         mov_type_ = MovType::kREG_IMM;
       } else {
-        common::fail("unsupported reg size, imm size combination");
+        fail("unsupported reg size, imm size combination");
       }
 
     } else if (src.is_func_ref()) {
-      if (dst.size() != Size::k64) common::fail("unsupported reg size for func ref");
+      if (dst.size() != Size::k64) fail("unsupported reg size for func ref");
       mov_type_ = MovType::kREG_FuncRef;
 
     } else if (src.is_reg() || src.is_mem()) {
-      if (dst.size() != src.size()) common::fail("unsupported reg size, reg/mem size combination");
+      if (dst.size() != src.size()) fail("unsupported reg size, reg/mem size combination");
       mov_type_ = MovType::kREG_RM;
 
     } else {
-      common::fail("unexpected src operand kind");
+      fail("unexpected src operand kind");
     }
 
   } else if (dst.is_mem()) {
     if (src.is_imm()) {
-      if (src.size() == Size::k64) common::fail("unsupported imm size");
+      if (src.size() == Size::k64) fail("unsupported imm size");
       if (dst.size() == src.size() || (dst.size() == Size::k64 && src.size() == Size::k32)) {
         mov_type_ = MovType::kRM_IMM;
       } else {
-        common::fail("unsupported mem size, imm size combination");
+        fail("unsupported mem size, imm size combination");
       }
 
     } else if (src.is_func_ref()) {
-      if (dst.size() != Size::k64) common::fail("unsupported mem size for func ref");
+      if (dst.size() != Size::k64) fail("unsupported mem size for func ref");
       mov_type_ = MovType::kRM_FuncRef;
 
     } else if (src.is_reg()) {
-      if (dst.size() != src.size()) common::fail("unsupported mem size, reg size combination");
+      if (dst.size() != src.size()) fail("unsupported mem size, reg size combination");
       mov_type_ = MovType::kRM_REG;
 
     } else if (src.is_mem()) {
-      common::fail("unsupported mov: mem to mem");
+      fail("unsupported mov: mem to mem");
 
     } else {
-      common::fail("unexpected src operand kind");
+      fail("unexpected src operand kind");
     }
 
   } else {
-    common::fail("unexpected dst operand kind");
+    fail("unexpected dst operand kind");
   }
 }
 
@@ -113,7 +114,7 @@ int8_t Mov::Encode(Linker& linker, DataView code) const {
 std::string Mov::ToString() const { return "mov " + dst_.ToString() + "," + src_.ToString(); }
 
 Xchg::Xchg(RM rm, Reg reg) : op_a_(rm), op_b_(reg) {
-  if (rm.size() != reg.size()) common::fail("incompatible rm size, reg size combination");
+  if (rm.size() != reg.size()) fail("incompatible rm size, reg size combination");
 }
 
 bool Xchg::CanUseRegAShortcut() const {
@@ -147,11 +148,11 @@ int8_t Xchg::Encode(Linker&, DataView code) const {
 std::string Xchg::ToString() const { return "xchg " + op_a_.ToString() + "," + op_b_.ToString(); }
 
 Push::Push(RM rm) : op_(rm) {
-  if (rm.size() != Size::k16 && rm.size() != Size::k64) common::fail("unsupported rm size");
+  if (rm.size() != Size::k16 && rm.size() != Size::k64) fail("unsupported rm size");
 }
 
 Push::Push(Imm imm) : op_(imm) {
-  if (imm.size() == Size::k64) common::fail("unsupported imm size");
+  if (imm.size() == Size::k64) fail("unsupported imm size");
 }
 
 int8_t Push::Encode(Linker&, DataView code) const {
@@ -183,7 +184,7 @@ int8_t Push::Encode(Linker&, DataView code) const {
 std::string Push::ToString() const { return "push " + op_.ToString(); }
 
 Pop::Pop(RM rm) : op_(rm) {
-  if (rm.size() != Size::k16 && rm.size() != Size::k64) common::fail("unsupported rm size");
+  if (rm.size() != Size::k16 && rm.size() != Size::k64) fail("unsupported rm size");
 }
 
 int8_t Pop::Encode(Linker&, DataView code) const {
@@ -211,7 +212,7 @@ int8_t Pop::Encode(Linker&, DataView code) const {
 std::string Pop::ToString() const { return "pop " + op_.ToString(); }
 
 Setcc::Setcc(InstrCond cond, RM op) : cond_(cond), op_(op) {
-  if (op.size() != k8) common::fail("unsupported rm size");
+  if (op.size() != k8) fail("unsupported rm size");
 }
 
 int8_t Setcc::Encode(Linker&, DataView code) const {

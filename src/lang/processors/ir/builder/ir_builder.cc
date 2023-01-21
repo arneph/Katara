@@ -15,6 +15,8 @@
 namespace lang {
 namespace ir_builder {
 
+using ::common::logging::fail;
+
 std::unique_ptr<ir::Program> IRBuilder::TranslateProgram(packages::Package* main_package,
                                                          types::Info* type_info) {
   auto prog = std::make_unique<ir::Program>();
@@ -50,7 +52,7 @@ void IRBuilder::PrepareDeclsInFile(ast::File* file) {
     } else if (decl->node_kind() == ast::NodeKind::kFuncDecl) {
       PrepareFuncDecl(static_cast<ast::FuncDecl*>(decl));
     } else {
-      common::fail("not implemented");
+      fail("not implemented");
     }
   }
 }
@@ -77,7 +79,7 @@ void IRBuilder::BuildDeclsInFile(ast::File* file) {
     } else if (decl->node_kind() == ast::NodeKind::kFuncDecl) {
       BuildFuncDecl(static_cast<ast::FuncDecl*>(decl));
     } else {
-      common::fail("unexpected decl");
+      fail("unexpected decl");
     }
   }
 }

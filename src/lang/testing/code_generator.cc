@@ -13,6 +13,8 @@
 namespace lang {
 namespace testing {
 
+using ::common::logging::fail;
+
 Context Context::SubContextWithIncreasedDepth() const { return Context(max_depth_ - 1); }
 
 int AtomGenerator::NumOptions(Context&) const { return static_cast<int>(atoms_.size()); }
@@ -74,7 +76,7 @@ void SequenceGenerator::GenerateOption(int index, Context& ctx, std::stringstrea
     }
     return;
   }
-  common::fail("unexpected index");
+  fail("unexpected index");
 }
 
 }  // namespace testing

@@ -12,6 +12,8 @@
 
 namespace ir_interpreter {
 
+using ::common::logging::fail;
+
 Debugger::ExecutionState Debugger::execution_state() const {
   std::lock_guard<std::mutex> lock(mutex_);
   return exec_state_;
@@ -20,7 +22,7 @@ Debugger::ExecutionState Debugger::execution_state() const {
 int64_t Debugger::exit_code() const {
   std::lock_guard<std::mutex> lock(mutex_);
   if (exec_state_ != ExecutionState::kTerminated) {
-    common::fail("program has not terminated");
+    fail("program has not terminated");
   }
   return exit_code_.value();
 }
@@ -32,7 +34,7 @@ const Stack& Debugger::stack() const {
     case ExecutionState::kTerminated:
       return stack_;
     default:
-      common::fail("program is not paused");
+      fail("program is not paused");
   }
 }
 
@@ -43,7 +45,7 @@ const Heap& Debugger::heap() const {
     case ExecutionState::kTerminated:
       return heap_;
     default:
-      common::fail("program is not paused");
+      fail("program is not paused");
   }
 }
 
@@ -68,7 +70,7 @@ void Debugger::StepOut() { StartExecution(ExecutionCommand::kStepOut); }
 void Debugger::StartExecution(ExecutionCommand end) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (exec_state_ != ExecutionState::kPaused) {
-    common::fail("program is not paused");
+    fail("program is not paused");
   }
   if (exec_thread_.joinable()) {
     exec_thread_.join();

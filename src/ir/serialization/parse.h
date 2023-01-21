@@ -24,6 +24,9 @@
 
 namespace ir_serialization {
 
+using ::common::logging::error;
+using ::common::logging::fail;
+
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
 std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, common::PosFile* file,
@@ -64,9 +67,9 @@ std::vector<ir::Func*> ParseAdditionalFuncsForProgramOrDie(ir::Program* program,
       ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(program, file,
                                                                              issue_tracker);
   if (!issue_tracker.issues().empty()) {
-    common::error("Parsing IR failed:");
+    error("Parsing IR failed:");
     issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, &std::cerr);
-    common::fail("");
+    fail("");
   }
   return funcs;
 }
@@ -90,9 +93,9 @@ std::unique_ptr<ir::Program> ParseProgramOrDie(std::string text) {
   std::unique_ptr<ir::Program> program =
       ParseProgram<TypeParser, ConstantParser, FuncParser>(file, issue_tracker);
   if (!issue_tracker.issues().empty()) {
-    common::error("Parsing IR failed:");
+    error("Parsing IR failed:");
     issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, &std::cerr);
-    common::fail("");
+    fail("");
   }
   return program;
 }

@@ -13,6 +13,8 @@
 namespace lang {
 namespace parser {
 
+using ::common::logging::fail;
+
 ast::File* Parser::ParseFile(common::PosFile* file, ast::ASTBuilder& builder,
                              issues::IssueTracker& issues) {
   scanner::Scanner scanner(file);
@@ -117,7 +119,7 @@ ast::Spec* Parser::ParseSpec(tokens::Token spec_type) {
     case tokens::kType:
       return ParseTypeSpec();
     default:
-      common::fail("unexpected spec type");
+      fail("unexpected spec type");
   }
 }
 
@@ -266,7 +268,7 @@ ast::FuncDecl* Parser::ParseFuncDecl() {
     case ast::FuncDecl::Kind::kTypeMethod:
       return ast_builder_.Create<ast::FuncDecl>(type_receiver, name, type_params, func_type, body);
     default:
-      common::fail("unexpected func decl kind");
+      fail("unexpected func decl kind");
   }
 }
 
@@ -1955,7 +1957,7 @@ std::optional<common::pos_t> Parser::Consume(tokens::Token tok, bool split_shift
       scanner_.SkipPastLine();
       return std::nullopt;
     default:
-      common::fail("unexpected token to be consumed");
+      fail("unexpected token to be consumed");
   }
 }
 

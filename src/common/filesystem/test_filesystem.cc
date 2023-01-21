@@ -14,6 +14,8 @@
 
 namespace common::filesystem {
 
+using ::common::logging::fail;
+
 void TestFilesystem::Visit(Entry* entry, std::function<void()> not_present_handler,
                            std::function<void(File*)> file_handler,
                            std::function<void(Directory*)> directory_handler) {

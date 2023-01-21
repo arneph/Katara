@@ -14,6 +14,8 @@
 namespace lang {
 namespace types {
 
+using ::common::logging::fail;
+
 bool Type::is_wrapper() const {
   TypeKind kind = type_kind();
   return TypeKind::kWrapperStart <= kind && kind <= TypeKind::kWrapperEnd;
@@ -63,7 +65,7 @@ std::string Basic::ToString(StringRep) const {
       return "nil (untyped)";
 
     default:
-      common::fail("unexpected Basic::Kind");
+      fail("unexpected Basic::Kind");
   }
 }
 
@@ -93,10 +95,10 @@ std::string TypeParameter::ToString(StringRep rep) const {
 
 Type* NamedType::InstanceForTypeArgs(const std::vector<Type*>& type_args) const {
   if (type_parameters_.empty()) {
-    common::fail("attempted to access instance of named type without type parameters");
+    fail("attempted to access instance of named type without type parameters");
   }
   if (type_args.size() != type_parameters_.size()) {
-    common::fail("unexpected number of type arguments for instance");
+    fail("unexpected number of type arguments for instance");
   }
   for (auto& [instance_type_args, instance] : instances_) {
     bool match = true;
@@ -117,7 +119,7 @@ Type* NamedType::InstanceForTypeArgs(const std::vector<Type*>& type_args) const 
 
 void NamedType::SetInstanceForTypeArgs(const std::vector<Type*>& type_args, Type* instance) {
   if (InstanceForTypeArgs(type_args) != nullptr) {
-    common::fail("attempted to set named type instance for type arguments twice");
+    fail("attempted to set named type instance for type arguments twice");
   }
   instances_.push_back({type_args, instance});
 }

@@ -15,6 +15,8 @@
 namespace lang {
 namespace type_checker {
 
+using ::common::logging::fail;
+
 bool Coordinator::ProcessPackage(std::vector<ast::File*> package_files, types::Package* package,
                                  types::InfoBuilder& info_builder, issues::IssueTracker& issues) {
   Coordinator manager(package_files, package, info_builder, issues);
@@ -75,7 +77,7 @@ void Coordinator::FindActions() {
               FindActionsForVarDecl(gen_decl);
               break;
             default:
-              common::fail("unexpected lang::ast::GenDecl");
+              fail("unexpected lang::ast::GenDecl");
           }
           break;
         }
@@ -83,7 +85,7 @@ void Coordinator::FindActions() {
           FindActionsForFuncDecl(static_cast<ast::FuncDecl*>(decl));
           break;
         default:
-          common::fail("unexpected lang::ast::Decl");
+          fail("unexpected lang::ast::Decl");
       }
     }
   }

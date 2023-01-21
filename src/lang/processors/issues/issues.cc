@@ -13,6 +13,8 @@
 namespace lang {
 namespace issues {
 
+using ::common::logging::fail;
+
 Origin Issue::origin() const {
   if (IssueKind::kParserStart < kind() && kind() < IssueKind::kParserEnd) {
     return Origin::kParser;
@@ -24,7 +26,7 @@ Origin Issue::origin() const {
   } else if (IssueKind::kPackageManagerStart < kind() && kind() < IssueKind::kPackageManagerEnd) {
     return Origin::kPackageManager;
   } else {
-    common::fail("unexpected issue kind");
+    fail("unexpected issue kind");
   }
 }
 
@@ -44,7 +46,7 @@ common::Severity Issue::severity() const {
              kind() < IssueKind::kPackageManagerErrorEnd) {
     return common::Severity::kError;
   } else {
-    common::fail("unexpected issue kind");
+    fail("unexpected issue kind");
   }
 }
 

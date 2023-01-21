@@ -12,6 +12,8 @@
 
 namespace ir_issues {
 
+using ::common::logging::fail;
+
 Origin Issue::origin() const {
   if (IssueKind::kScannerStart < kind() && kind() < IssueKind::kScannerEnd) {
     return Origin::kScanner;
@@ -20,7 +22,7 @@ Origin Issue::origin() const {
   } else if (IssueKind::kCheckerStart < kind() && kind() < IssueKind::kCheckerEnd) {
     return Origin::kChecker;
   } else {
-    common::fail("unexpected issue kind");
+    fail("unexpected issue kind");
   }
 }
 
@@ -32,7 +34,7 @@ common::Severity Issue::severity() const {
   } else if (IssueKind::kCheckerStart < kind() && kind() < IssueKind::kCheckerEnd) {
     return common::Severity::kError;
   } else {
-    common::fail("unexpected issue kind");
+    fail("unexpected issue kind");
   }
 }
 

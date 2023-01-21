@@ -12,6 +12,8 @@
 
 namespace cmd {
 
+using ::common::logging::fail;
+
 const REPL::Config REPL::kDefaultConfig = Config{.prompt = "> ", .exit_command = "exit"};
 
 REPL::REPL(std::function<void(std::string)> command_executor, Context* ctx, Config cfg)
@@ -189,7 +191,7 @@ void REPL::Run() {
           case 91:
             break;
           default:
-            common::fail("unexpected character in escape sequence: " + std::to_string(d));
+            fail("unexpected character in escape sequence: " + std::to_string(d));
         }
         switch (char e = ReadChar()) {
           case 0:
@@ -201,7 +203,7 @@ void REPL::Run() {
               case 126:
                 break;
               default:
-                common::fail("unexpected character in escape sequence: " + std::to_string(f));
+                fail("unexpected character in escape sequence: " + std::to_string(f));
             }
             HandleDeleteForward();
             break;
@@ -218,7 +220,7 @@ void REPL::Run() {
             HandleArrowLeft();
             break;
           default:
-            common::fail("unexpected character in escape sequence: " + std::to_string(e));
+            fail("unexpected character in escape sequence: " + std::to_string(e));
         }
         break;
       default:

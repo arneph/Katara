@@ -12,13 +12,13 @@
 #include <iostream>
 #include <string>
 
-namespace common {
+namespace common::logging {
 
 void info(const std::string message);
 void warning(const std::string message);
 void error(const std::string message);
 [[noreturn]] void fail(const std::string message);
 
-}  // namespace common
+}  // namespace common::logging
 
 #endif /* common_logging_h */

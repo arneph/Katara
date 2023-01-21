@@ -16,6 +16,7 @@ namespace ir_builder {
 using ::common::atomics::Bool;
 using ::common::atomics::Int;
 using ::common::atomics::IntType;
+using ::common::logging::fail;
 
 std::vector<std::shared_ptr<ir::Computed>> ExprBuilder::BuildAddressesOfExprs(
     std::vector<ast::Expr*> exprs, ASTContext& ast_ctx, IRContext& ir_ctx) {
@@ -40,7 +41,7 @@ std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfExpr(ast::Expr* expr, A
     case ast::NodeKind::kIdent:
       return BuildAddressOfIdent(static_cast<ast::Ident*>(expr), ast_ctx, ir_ctx);
     default:
-      common::fail("unexpected addressable expr");
+      fail("unexpected addressable expr");
   }
 }
 
@@ -85,7 +86,7 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfExpr(ast::Expr
     case ast::NodeKind::kIdent:
       return {BuildValueOfIdent(static_cast<ast::Ident*>(expr), ast_ctx, ir_ctx)};
     default:
-      common::fail("unexpected expr");
+      fail("unexpected expr");
   }
 }
 
@@ -93,8 +94,8 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfExpr(ast::Expr* expr, ASTCon
                                                          IRContext& ir_ctx) {
   std::vector<std::shared_ptr<ir::Value>> values = BuildValuesOfExpr(expr, ast_ctx, ir_ctx);
   if (values.size() != 1) {
-    common::fail("expected exactly one value for the given expression, got: " +
-                 std::to_string(values.size()));
+    fail("expected exactly one value for the given expression, got: " +
+         std::to_string(values.size()));
   }
   return values.front();
 }
@@ -107,7 +108,7 @@ std::shared_ptr<ir::Computed> ExprBuilder::BuildAddressOfUnaryExpr(ast::UnaryExp
     case tokens::kRem:
       return std::static_pointer_cast<ir::Computed>(BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx));
     default:
-      common::fail("unexpected unary op");
+      fail("unexpected unary op");
   }
 }
 
@@ -134,7 +135,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryExpr(ast::UnaryExpr* ex
     case tokens::kNot:
       return BuildValueOfBoolNotExpr(expr, ast_ctx, ir_ctx);
     default:
-      common::fail("unexpected unary op");
+      fail("unexpected unary op");
   }
 }
 
@@ -228,7 +229,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryExpr(ast::BinaryExpr* 
     case tokens::kLOr:
       return BuildValueOfBinaryLogicExpr(expr, ast_ctx, ir_ctx);
     default:
-      common::fail("unexpected binary op");
+      fail("unexpected binary op");
   }
 }
 
@@ -296,7 +297,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryLogicExpr(ast::BinaryE
       short_circuit_value = ir::True();
       break;
     default:
-      common::fail("unexpected logic op");
+      fail("unexpected logic op");
   }
 
   x_exit_block->instrs().push_back(
@@ -436,7 +437,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBoolComparison(tokens::Token
       case tokens::kNeq:
         return Bool::BinaryOp::kNeq;
       default:
-        common::fail("unexpected bool comparison op");
+        fail("unexpected bool comparison op");
     }
   }();
   return value_builder_.BuildBoolBinaryOp(x, op, y, ir_ctx);
@@ -461,7 +462,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntComparison(tokens::Token 
       case tokens::kGtr:
         return Int::CompareOp::kGtr;
       default:
-        common::fail("unexpected int comparison op");
+        fail("unexpected int comparison op");
     }
   }();
   IntType x_type = static_cast<const ir::IntType*>(x->type())->int_type();
@@ -539,7 +540,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIndexExpr(ast::IndexExpr* ex
     // TODO: actually add load instr
     return value;
   } else {
-    common::fail("unexpected accessed value in index expr");
+    fail("unexpected accessed value in index expr");
   }
 }
 
@@ -556,7 +557,7 @@ std::vector<std::shared_ptr<ir::Value>> ExprBuilder::BuildValuesOfCallExpr(ast::
     case types::ExprInfo::Kind::kValueOk:
       return BuildValuesOfCallExprWithFuncCall(expr, ast_ctx, ir_ctx);
     default:
-      common::fail("unexpected func expr kind in call expr");
+      fail("unexpected func expr kind in call expr");
   }
 }
 
@@ -581,7 +582,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValuesOfCallExprWithBuiltin(ast::Ca
     case types::Builtin::Kind::kNew:
       return BuildValuesOfNewCall(expr, ir_ctx);
     default:
-      common::fail("unexpected builtin");
+      fail("unexpected builtin");
   }
 }
 
@@ -692,7 +693,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIdent(ast::Ident* ident, AST
     case types::ObjectKind::kNil:
       return BuildValueOfNil();
     default:
-      common::fail("unexpected object kind");
+      fail("unexpected object kind");
   }
 }
 
