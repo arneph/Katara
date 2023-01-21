@@ -5,3 +5,4 @@ tests/**/*.vcg
 tests/**/*.dot
 tests/**/*.png
 .bazelrc
+*.entitlements
