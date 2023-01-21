@@ -134,10 +134,9 @@ int main() {
   std::cout << "END assembly\n";
 
   std::cout << "BEGIN memory allocation\n";
-  common::memory::Memory memory(
-      common::memory::Memory::kPageSize,
-      common::memory::Memory::Permissions(common::memory::Memory::Permissions::kRead |
-                                          common::memory::Memory::Permissions::kWrite));
+  common::memory::Memory memory(common::memory::kPageSize,
+                                common::memory::Permissions(common::memory::Permissions::kRead |
+                                                            common::memory::Permissions::kWrite));
   common::data::DataView code = memory.data();
   std::cout << "END memory setup\n";
 
@@ -156,7 +155,7 @@ int main() {
   std::cout << "END machine code\n";
 
   std::cout << "BEGIN memory permission change\n";
-  memory.ChangePermissions(common::memory::Memory::Permissions::kExecute);
+  memory.ChangePermissions(common::memory::Permissions::kExecute);
   std::cout << "END memory permission change\n";
 
   std::cout << "BEGIN program output\n" << std::flush;

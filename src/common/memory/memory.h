@@ -18,17 +18,17 @@
 
 namespace common::memory {
 
+enum Permissions : int8_t {
+  kNone = PROT_NONE,
+  kRead = PROT_READ,
+  kWrite = PROT_WRITE,
+  kExecute = PROT_EXEC,
+};
+
+constexpr int64_t kPageSize = 1 << 12;
+
 class Memory {
  public:
-  enum Permissions : int8_t {
-    kNone = PROT_NONE,
-    kRead = PROT_READ,
-    kWrite = PROT_WRITE,
-    kExecute = PROT_EXEC,
-  };
-
-  static const int64_t kPageSize;
-
   Memory() : base_(nullptr), size_(0), permissions_(kNone) {}
   Memory(int64_t size, Permissions permissions);
   Memory(Memory&&);

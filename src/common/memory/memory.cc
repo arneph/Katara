@@ -15,15 +15,15 @@
 namespace common::memory {
 namespace {
 
-bool ValidatePermissions(Memory::Permissions permissions) {
-  if (permissions == Memory::kNone || permissions == Memory::kExecute) {
+bool ValidatePermissions(Permissions permissions) {
+  if (permissions == Permissions::kNone || permissions == Permissions::kExecute) {
     return true;
   }
-  if (permissions & Memory::kExecute) {
+  if (permissions & Permissions::kExecute) {
     // Execute can not be mixed with other permissions.
     return false;
   }
-  if (permissions & ~(Memory::kRead | Memory::kWrite)) {
+  if (permissions & ~(Permissions::kRead | Permissions::kWrite)) {
     // Unknown permissions, expected read and/or write.
     return false;
   }
@@ -31,8 +31,6 @@ bool ValidatePermissions(Memory::Permissions permissions) {
 }
 
 }  // namespace
-
-const int64_t Memory::kPageSize = 1 << 12;
 
 Memory::Memory(int64_t size, Permissions permissions) {
   if (size < 0) {

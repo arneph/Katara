@@ -16,29 +16,29 @@ TEST(MemoryTest, EmptyConstructorSucceeds) {
   Memory memory;
   EXPECT_EQ(memory.data().base(), nullptr);
   EXPECT_EQ(memory.data().size(), 0);
-  EXPECT_EQ(memory.permissions(), Memory::kNone);
+  EXPECT_EQ(memory.permissions(), Permissions::kNone);
 }
 
 TEST(MemoryTest, CreateAndDeleteZeroSizeSucceeds) {
-  Memory memory(/*size=*/0, Memory::kRead);
+  Memory memory(/*size=*/0, Permissions::kRead);
   EXPECT_EQ(memory.data().base(), nullptr);
   EXPECT_EQ(memory.data().size(), 0);
-  EXPECT_EQ(memory.permissions(), Memory::kRead);
+  EXPECT_EQ(memory.permissions(), Permissions::kRead);
 }
 
 TEST(MemoryTest, CreateAndDeleteOnePageNoPermissionsSucceeds) {
-  Memory memory(Memory::kPageSize, Memory::kNone);
+  Memory memory(kPageSize, Permissions::kNone);
   EXPECT_NE(memory.data().base(), nullptr);
-  EXPECT_EQ(memory.data().size(), Memory::kPageSize);
-  EXPECT_EQ(memory.permissions(), Memory::kNone);
+  EXPECT_EQ(memory.data().size(), kPageSize);
+  EXPECT_EQ(memory.permissions(), Permissions::kNone);
 }
 
 TEST(MemoryTest, CreateAndDeleteOnePageReadWritePermissionsSucceeds) {
-  Memory memory(Memory::kPageSize, Memory::Permissions(Memory::kRead | Memory::kWrite));
+  Memory memory(kPageSize, Permissions(Permissions::kRead | Permissions::kWrite));
   EXPECT_NE(memory.data().base(), nullptr);
-  EXPECT_EQ(memory.data().size(), Memory::kPageSize);
-  EXPECT_EQ(memory.permissions(), Memory::kRead | Memory::kWrite);
-  for (int i = 0; i < Memory::kPageSize; i++) {
+  EXPECT_EQ(memory.data().size(), kPageSize);
+  EXPECT_EQ(memory.permissions(), Permissions::kRead | Permissions::kWrite);
+  for (int i = 0; i < kPageSize; i++) {
     EXPECT_EQ(memory.data()[i], 0);
   }
   memory.data()[42] = 'A';
@@ -48,14 +48,14 @@ TEST(MemoryTest, CreateAndDeleteOnePageReadWritePermissionsSucceeds) {
   EXPECT_EQ(memory.data()[42], 'A');
   EXPECT_EQ(memory.data()[123], '0');
   EXPECT_EQ(memory.data()[1999], 42);
-  EXPECT_EQ(memory.data()[Memory::kPageSize - 1], 0);
+  EXPECT_EQ(memory.data()[kPageSize - 1], 0);
 }
 
 TEST(MemoryTest, CreateAndDeleteOnePageExecutePermissionsSucceeds) {
-  Memory memory(Memory::kPageSize, Memory::kExecute);
+  Memory memory(kPageSize, Permissions::kExecute);
   EXPECT_NE(memory.data().base(), nullptr);
-  EXPECT_EQ(memory.data().size(), Memory::kPageSize);
-  EXPECT_EQ(memory.permissions(), Memory::kExecute);
+  EXPECT_EQ(memory.data().size(), kPageSize);
+  EXPECT_EQ(memory.permissions(), Permissions::kExecute);
 }
 
 TEST(MemoryTest, MoveConstructorForEmptySucceeds) {
@@ -63,33 +63,33 @@ TEST(MemoryTest, MoveConstructorForEmptySucceeds) {
   Memory b(std::move(a));
   EXPECT_EQ(a.data().base(), nullptr);
   EXPECT_EQ(a.data().size(), 0);
-  EXPECT_EQ(a.permissions(), Memory::kNone);
+  EXPECT_EQ(a.permissions(), Permissions::kNone);
   EXPECT_EQ(b.data().base(), nullptr);
   EXPECT_EQ(b.data().size(), 0);
-  EXPECT_EQ(b.permissions(), Memory::kNone);
+  EXPECT_EQ(b.permissions(), Permissions::kNone);
 }
 
 TEST(MemoryTest, MoveConstructorForZeroSizeSucceeds) {
-  Memory a(/*size=*/0, Memory::kExecute);
+  Memory a(/*size=*/0, Permissions::kExecute);
   Memory b(std::move(a));
   EXPECT_EQ(a.data().base(), nullptr);
   EXPECT_EQ(a.data().size(), 0);
-  EXPECT_EQ(a.permissions(), Memory::kNone);
+  EXPECT_EQ(a.permissions(), Permissions::kNone);
   EXPECT_EQ(b.data().base(), nullptr);
   EXPECT_EQ(b.data().size(), 0);
-  EXPECT_EQ(b.permissions(), Memory::kExecute);
+  EXPECT_EQ(b.permissions(), Permissions::kExecute);
 }
 
 TEST(MemoryTest, MoveConstructorForOnePageSucceeds) {
-  Memory a(Memory::kPageSize, Memory::kWrite);
+  Memory a(kPageSize, Permissions::kWrite);
   uint8_t* base = a.data().base();
   Memory b(std::move(a));
   EXPECT_EQ(a.data().base(), nullptr);
   EXPECT_EQ(a.data().size(), 0);
-  EXPECT_EQ(a.permissions(), Memory::kNone);
+  EXPECT_EQ(a.permissions(), Permissions::kNone);
   EXPECT_EQ(b.data().base(), base);
-  EXPECT_EQ(b.data().size(), Memory::kPageSize);
-  EXPECT_EQ(b.permissions(), Memory::kWrite);
+  EXPECT_EQ(b.data().size(), kPageSize);
+  EXPECT_EQ(b.permissions(), Permissions::kWrite);
 }
 
 TEST(MemoryTest, MoveAssignmentOperatorForEmptySucceeds) {
@@ -98,114 +98,114 @@ TEST(MemoryTest, MoveAssignmentOperatorForEmptySucceeds) {
   b = std::move(a);
   EXPECT_EQ(b.data().base(), nullptr);
   EXPECT_EQ(b.data().size(), 0);
-  EXPECT_EQ(b.permissions(), Memory::kNone);
+  EXPECT_EQ(b.permissions(), Permissions::kNone);
 }
 
 TEST(MemoryTest, MoveAssignmentOperatorFromOnePageToEmptySucceeds) {
-  Memory a(Memory::kPageSize, Memory::kRead);
+  Memory a(kPageSize, Permissions::kRead);
   uint8_t* base = a.data().base();
   Memory b;
   b = std::move(a);
   EXPECT_EQ(a.data().base(), nullptr);
   EXPECT_EQ(a.data().size(), 0);
-  EXPECT_EQ(a.permissions(), Memory::kNone);
+  EXPECT_EQ(a.permissions(), Permissions::kNone);
   EXPECT_EQ(b.data().base(), base);
-  EXPECT_EQ(b.data().size(), Memory::kPageSize);
-  EXPECT_EQ(b.permissions(), Memory::kRead);
+  EXPECT_EQ(b.data().size(), kPageSize);
+  EXPECT_EQ(b.permissions(), Permissions::kRead);
 }
 
 TEST(MemoryTest, MoveAssignmentOperatorFromEmptyToOnePageSucceeds) {
   Memory a;
-  Memory b(Memory::kPageSize, Memory::kExecute);
+  Memory b(kPageSize, Permissions::kExecute);
   b = std::move(a);
   EXPECT_EQ(a.data().base(), nullptr);
   EXPECT_EQ(a.data().size(), 0);
-  EXPECT_EQ(a.permissions(), Memory::kNone);
+  EXPECT_EQ(a.permissions(), Permissions::kNone);
   EXPECT_EQ(b.data().base(), nullptr);
   EXPECT_EQ(b.data().size(), 0);
-  EXPECT_EQ(b.permissions(), Memory::kNone);
+  EXPECT_EQ(b.permissions(), Permissions::kNone);
 }
 
 TEST(MemoryTest, MoveAssignmentOperatorForSeveralPageSucceeds) {
-  Memory a(Memory::kPageSize * 3, Memory::kWrite);
+  Memory a(kPageSize * 3, Permissions::kWrite);
   uint8_t* base = a.data().base();
-  Memory b(Memory::kPageSize * 7, Memory::kExecute);
+  Memory b(kPageSize * 7, Permissions::kExecute);
   b = std::move(a);
   EXPECT_EQ(a.data().base(), nullptr);
   EXPECT_EQ(a.data().size(), 0);
-  EXPECT_EQ(a.permissions(), Memory::kNone);
+  EXPECT_EQ(a.permissions(), Permissions::kNone);
   EXPECT_EQ(b.data().base(), base);
-  EXPECT_EQ(b.data().size(), Memory::kPageSize * 3);
-  EXPECT_EQ(b.permissions(), Memory::kWrite);
+  EXPECT_EQ(b.data().size(), kPageSize * 3);
+  EXPECT_EQ(b.permissions(), Permissions::kWrite);
 }
 
 TEST(MemoryTest, ChangePermissionsSucceeds) {
-  Memory memory(Memory::kPageSize * 23, Memory::kNone);
+  Memory memory(kPageSize * 23, Permissions::kNone);
 
-  memory.ChangePermissions(Memory::kWrite);
+  memory.ChangePermissions(Permissions::kWrite);
   memory.data()[321] = 123;
-  memory.data()[Memory::kPageSize * 11 + 654] = 255;
-  memory.data()[Memory::kPageSize * 17 + 47] = 1;
-  memory.ChangePermissions(Memory::kExecute);
-  memory.ChangePermissions(Memory::kNone);
-  memory.ChangePermissions(Memory::Permissions(Memory::kRead | Memory::kWrite));
+  memory.data()[kPageSize * 11 + 654] = 255;
+  memory.data()[kPageSize * 17 + 47] = 1;
+  memory.ChangePermissions(Permissions::kExecute);
+  memory.ChangePermissions(Permissions::kNone);
+  memory.ChangePermissions(Permissions(Permissions::kRead | Permissions::kWrite));
 
   EXPECT_EQ(memory.data()[0], 0);
   EXPECT_EQ(memory.data()[321], 123);
-  EXPECT_EQ(memory.data()[Memory::kPageSize * 11 + 654], 255);
-  EXPECT_EQ(memory.data()[Memory::kPageSize * 17 + 47], 1);
-  EXPECT_EQ(memory.data()[Memory::kPageSize * 23 - 1], 0);
+  EXPECT_EQ(memory.data()[kPageSize * 11 + 654], 255);
+  EXPECT_EQ(memory.data()[kPageSize * 17 + 47], 1);
+  EXPECT_EQ(memory.data()[kPageSize * 23 - 1], 0);
 
   memory.data()[321] = 'X';
-  memory.ChangePermissions(Memory::kWrite);
-  memory.data()[Memory::kPageSize * 11 + 654] = 'Y';
-  memory.ChangePermissions(Memory::kNone);
-  memory.ChangePermissions(Memory::kExecute);
-  memory.ChangePermissions(Memory::kWrite);
-  memory.ChangePermissions(Memory::kRead);
-  memory.ChangePermissions(Memory::kNone);
-  memory.ChangePermissions(Memory::kRead);
+  memory.ChangePermissions(Permissions::kWrite);
+  memory.data()[kPageSize * 11 + 654] = 'Y';
+  memory.ChangePermissions(Permissions::kNone);
+  memory.ChangePermissions(Permissions::kExecute);
+  memory.ChangePermissions(Permissions::kWrite);
+  memory.ChangePermissions(Permissions::kRead);
+  memory.ChangePermissions(Permissions::kNone);
+  memory.ChangePermissions(Permissions::kRead);
 
   EXPECT_EQ(memory.data()[0], 0);
   EXPECT_EQ(memory.data()[321], 'X');
-  EXPECT_EQ(memory.data()[Memory::kPageSize * 11 + 654], 'Y');
-  EXPECT_EQ(memory.data()[Memory::kPageSize * 17 + 47], 1);
-  EXPECT_EQ(memory.data()[Memory::kPageSize * 23 - 1], 0);
+  EXPECT_EQ(memory.data()[kPageSize * 11 + 654], 'Y');
+  EXPECT_EQ(memory.data()[kPageSize * 17 + 47], 1);
+  EXPECT_EQ(memory.data()[kPageSize * 23 - 1], 0);
 
-  memory.ChangePermissions(Memory::kNone);
-  memory.ChangePermissions(Memory::kExecute);
-  memory.ChangePermissions(Memory::kWrite);
+  memory.ChangePermissions(Permissions::kNone);
+  memory.ChangePermissions(Permissions::kExecute);
+  memory.ChangePermissions(Permissions::kWrite);
 }
 
 TEST(MemoryTest, FreeForEmptySucceeds) {
-  Memory memory(/*size=*/0, Memory::kExecute);
+  Memory memory(/*size=*/0, Permissions::kExecute);
   memory.Free();
   EXPECT_EQ(memory.data().base(), nullptr);
   EXPECT_EQ(memory.data().size(), 0);
-  EXPECT_EQ(memory.permissions(), Memory::kNone);
+  EXPECT_EQ(memory.permissions(), Permissions::kNone);
 }
 
 TEST(MemoryTest, FreeForSeveralPagesSucceeds) {
-  Memory memory(/*size=*/Memory::kPageSize * 9, Memory::kExecute);
+  Memory memory(/*size=*/kPageSize * 9, Permissions::kExecute);
   memory.Free();
   EXPECT_EQ(memory.data().base(), nullptr);
   EXPECT_EQ(memory.data().size(), 0);
-  EXPECT_EQ(memory.permissions(), Memory::kNone);
+  EXPECT_EQ(memory.permissions(), Permissions::kNone);
 }
 
 TEST(MemoryTest, LessThanPageSizeSucceeds) {
-  Memory memory(/*size=*/17, Memory::kRead);
+  Memory memory(/*size=*/17, Permissions::kRead);
   EXPECT_NE(memory.data().base(), nullptr);
   EXPECT_EQ(memory.data().size(), 17);
-  EXPECT_EQ(memory.permissions(), Memory::kRead);
+  EXPECT_EQ(memory.permissions(), Permissions::kRead);
   for (int i = 0; i < 17; i++) {
     EXPECT_EQ(memory.data()[i], 0);
   }
 
-  memory.ChangePermissions(Memory::kWrite);
+  memory.ChangePermissions(Permissions::kWrite);
   memory.data()[8] = 55;
-  memory.ChangePermissions(Memory::kExecute);
-  memory.ChangePermissions(Memory::kRead);
+  memory.ChangePermissions(Permissions::kExecute);
+  memory.ChangePermissions(Permissions::kRead);
 
   EXPECT_EQ(memory.data()[0], 0);
   EXPECT_EQ(memory.data()[8], 55);
@@ -213,24 +213,24 @@ TEST(MemoryTest, LessThanPageSizeSucceeds) {
 }
 
 TEST(MemoryTest, NotMultipleOfPageSizeSucceeds) {
-  Memory memory(/*size=*/Memory::kPageSize * 3 + 17, Memory::kRead);
+  Memory memory(/*size=*/kPageSize * 3 + 17, Permissions::kRead);
   EXPECT_NE(memory.data().base(), nullptr);
-  EXPECT_EQ(memory.data().size(), Memory::kPageSize * 3 + 17);
-  EXPECT_EQ(memory.permissions(), Memory::kRead);
-  for (int i = 0; i < Memory::kPageSize * 3 + 17; i++) {
+  EXPECT_EQ(memory.data().size(), kPageSize * 3 + 17);
+  EXPECT_EQ(memory.permissions(), Permissions::kRead);
+  for (int i = 0; i < kPageSize * 3 + 17; i++) {
     EXPECT_EQ(memory.data()[i], 0);
   }
 
-  memory.ChangePermissions(Memory::kWrite);
+  memory.ChangePermissions(Permissions::kWrite);
   memory.data()[8] = 55;
-  memory.data()[Memory::kPageSize * 3 + 11] = 66;
-  memory.ChangePermissions(Memory::kExecute);
-  memory.ChangePermissions(Memory::kRead);
+  memory.data()[kPageSize * 3 + 11] = 66;
+  memory.ChangePermissions(Permissions::kExecute);
+  memory.ChangePermissions(Permissions::kRead);
 
   EXPECT_EQ(memory.data()[0], 0);
   EXPECT_EQ(memory.data()[8], 55);
-  EXPECT_EQ(memory.data()[Memory::kPageSize * 3 + 11], 66);
-  EXPECT_EQ(memory.data()[Memory::kPageSize * 3 + 16], 0);
+  EXPECT_EQ(memory.data()[kPageSize * 3 + 11], 66);
+  EXPECT_EQ(memory.data()[kPageSize * 3 + 16], 0);
 }
 
 }  // namespace common::memory

@@ -28,6 +28,7 @@ namespace cmd {
 namespace katara {
 
 using ::common::memory::Memory;
+using ::common::memory::Permissions;
 
 namespace {
 
@@ -115,11 +116,11 @@ ErrorCode Run(std::vector<std::filesystem::path>& paths, BuildOptions& options,
   linker.AddFuncAddr(x86_64_program->declared_funcs().at("malloc"), (uint8_t*)&MallocJump);
   linker.AddFuncAddr(x86_64_program->declared_funcs().at("free"), (uint8_t*)&FreeJump);
 
-  Memory memory(Memory::kPageSize, Memory::kWrite);
+  Memory memory(common::memory::kPageSize, Permissions::kWrite);
   int64_t program_size = x86_64_program->Encode(linker, memory.data());
   linker.ApplyPatches();
 
-  memory.ChangePermissions(Memory::kRead);
+  memory.ChangePermissions(Permissions::kRead);
   if (debug_handler.GenerateDebugInfo()) {
     std::ostringstream buffer;
     for (int64_t j = 0; j < program_size; j++) {
@@ -132,7 +133,7 @@ ErrorCode Run(std::vector<std::filesystem::path>& paths, BuildOptions& options,
     debug_handler.WriteToDebugFile(buffer.str(), /* subdir_name= */ "", "x86_64.hex.txt");
   }
 
-  memory.ChangePermissions(Memory::kExecute);
+  memory.ChangePermissions(Permissions::kExecute);
   x86_64::Func* x86_64_main_func = x86_64_program->DefinedFuncWithName("main");
   int (*main_func)(void) = (int (*)(void))(linker.func_addrs().at(x86_64_main_func->func_num()));
   return ErrorCode(main_func());
