@@ -11,7 +11,7 @@
 
 #include <cstdint>
 
-namespace common {
+namespace common::data {
 
 class DataView {
  public:
@@ -36,6 +36,6 @@ class DataView {
   int64_t const size_;
 };
 
-}  // namespace common
+}  // namespace common::data
 
 #endif /* common_data_h */

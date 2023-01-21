@@ -13,7 +13,7 @@
 
 #include <cstdint>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/common/logging/logging.h"
 
 namespace common {
@@ -37,7 +37,7 @@ class Memory {
   Memory& operator=(Memory&) = delete;
   ~Memory();
 
-  DataView data() const { return DataView(base_, size_); }
+  data::DataView data() const { return data::DataView(base_, size_); }
   Permissions permissions() const { return permissions_; }
   void ChangePermissions(Permissions new_permissions);
   void Free();

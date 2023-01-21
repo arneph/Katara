@@ -14,12 +14,14 @@
 
 namespace x86_64 {
 
+using ::common::data::DataView;
+
 Block* Func::AddBlock() {
   block_num_t block_num = program_->block_count_++;
   return blocks_.emplace_back(new Block(this, block_num)).get();
 }
 
-int64_t Func::Encode(Linker& linker, common::DataView code) const {
+int64_t Func::Encode(Linker& linker, DataView code) const {
   linker.AddFuncAddr(func_num_, code.base());
 
   int64_t code_index = 0;

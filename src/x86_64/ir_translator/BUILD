@@ -236,7 +236,7 @@ cc_library(
     deps = [
         ":func_translator",
         ":register_allocator",
-        "//src/common/data_view",
+        "//src/common/data:data_view",
         "//src/common/graph",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",

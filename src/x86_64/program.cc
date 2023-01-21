@@ -12,6 +12,8 @@
 
 namespace x86_64 {
 
+using ::common::data::DataView;
+
 func_num_t Program::DeclareFunc(std::string func_name) {
   func_num_t func_num = defined_funcs_.size() + declared_funcs_.size();
   declared_funcs_.emplace(func_name, func_num);
@@ -41,7 +43,7 @@ Func* Program::DefinedFuncWithName(std::string name) const {
   return nullptr;
 }
 
-int64_t Program::Encode(Linker& linker, common::DataView code) const {
+int64_t Program::Encode(Linker& linker, DataView code) const {
   int64_t c = 0;
   for (auto& func : defined_funcs_) {
     int64_t r = func->Encode(linker, code.SubView(c));

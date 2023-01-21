@@ -14,7 +14,7 @@ cc_library(
         "//src/x86_64:__subpackages__",
     ],
     deps = [
-        "//src/common/data_view",
+        "//src/common/data:data_view",
         "//src/x86_64:ops",
     ],
 )
@@ -32,7 +32,7 @@ cc_library(
         "//src/x86_64:__subpackages__",
     ],
     deps = [
-        "//src/common/data_view",
+        "//src/common/data:data_view",
         "//src/x86_64:ops",
     ],
 )

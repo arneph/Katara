@@ -15,9 +15,11 @@
 
 namespace x86_64 {
 
+using ::common::data::DataView;
+
 Program* Block::program() const { return func_->program(); }
 
-int64_t Block::Encode(Linker& linker, common::DataView code) const {
+int64_t Block::Encode(Linker& linker, DataView code) const {
   linker.AddBlockAddr(block_id_, code.base());
 
   int64_t code_index = 0;

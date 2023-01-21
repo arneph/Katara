@@ -14,7 +14,7 @@
 #include <iostream>
 #include <memory>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/common/memory/memory.h"
 #include "src/x86_64/block.h"
 #include "src/x86_64/func.h"
@@ -137,7 +137,7 @@ int main() {
   common::Memory memory(common::Memory::kPageSize,
                         common::Memory::Permissions(common::Memory::Permissions::kRead |
                                                     common::Memory::Permissions::kWrite));
-  common::DataView code = memory.data();
+  common::data::DataView code = memory.data();
   std::cout << "END memory setup\n";
 
   std::cout << "BEGIN writing program\n";

@@ -118,7 +118,7 @@ cc_library(
         ":debug",
         ":error_codes",
         "//src/cmd:context",
-        "//src/common/data_view",
+        "//src/common/data:data_view",
         "//src/common/memory",
         "//src/ir:ir_lib",
         "//src/x86_64:x86_64_lib",

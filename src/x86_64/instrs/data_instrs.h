@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/instrs/instr_cond.h"
 #include "src/x86_64/machine_code/linker.h"
@@ -27,7 +27,7 @@ class Mov final : public Instr {
   RM dst() const { return dst_; }
   Operand src() const { return src_; }
 
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -45,7 +45,7 @@ class Xchg final : public Instr {
   RM op_a() const { return op_a_; }
   Reg op_b() const { return op_b_; }
 
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -62,7 +62,7 @@ class Push final : public Instr {
 
   Operand op() const { return op_; }
 
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -75,7 +75,7 @@ class Pop final : public Instr {
 
   RM op() const { return op_; }
 
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -89,7 +89,7 @@ class Setcc final : public Instr {
   InstrCond cond() const { return cond_; }
   RM op() const { return op_; }
 
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 
  private:

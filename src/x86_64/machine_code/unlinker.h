@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {

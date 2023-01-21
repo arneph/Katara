@@ -13,7 +13,9 @@
 
 namespace x86_64 {
 
-int8_t UnaryALInstr::Encode(Linker&, common::DataView code) const {
+using ::common::data::DataView;
+
+int8_t UnaryALInstr::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_.size());
@@ -71,7 +73,7 @@ bool BinaryALInstr::CanUseRegAShortcut() const {
   return op_a_.reg().reg() == 0;
 }
 
-int8_t BinaryALInstr::Encode(Linker&, common::DataView code) const {
+int8_t BinaryALInstr::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());
@@ -279,7 +281,7 @@ uint8_t Cmp::OpcodeExt() const { return 7; }
 
 std::string Cmp::ToString() const { return "cmp " + op_a().ToString() + "," + op_b().ToString(); }
 
-int8_t Mul::Encode(Linker&, common::DataView code) const {
+int8_t Mul::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(factor_.size());
@@ -326,7 +328,7 @@ bool Imul::CanSkipImm() const {
   return factor_c_.value() == 1;
 }
 
-int8_t Imul::Encode(Linker&, common::DataView code) const {
+int8_t Imul::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(factor_b_.size());
@@ -368,7 +370,7 @@ std::string Imul::ToString() const {
   }
 }
 
-int8_t Div::Encode(Linker&, common::DataView code) const {
+int8_t Div::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(divisor_.size());
@@ -384,7 +386,7 @@ int8_t Div::Encode(Linker&, common::DataView code) const {
 
 std::string Div::ToString() const { return "div " + divisor_.ToString(); }
 
-int8_t Idiv::Encode(Linker&, common::DataView code) const {
+int8_t Idiv::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(divisor_.size());
@@ -406,7 +408,7 @@ SignExtendRegA::SignExtendRegA(Size op_size) : op_size_(op_size) {
   }
 }
 
-int8_t SignExtendRegA::Encode(Linker&, common::DataView code) const {
+int8_t SignExtendRegA::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_size_);
@@ -430,7 +432,7 @@ SignExtendRegAD::SignExtendRegAD(Size op_size) : op_size_(op_size) {
   }
 }
 
-int8_t SignExtendRegAD::Encode(Linker&, common::DataView code) const {
+int8_t SignExtendRegAD::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_size_);
@@ -470,7 +472,7 @@ bool Test::CanUseRegAShortcut() const {
   return op_a_.reg().reg() == 0;
 }
 
-int8_t Test::Encode(Linker&, common::DataView code) const {
+int8_t Test::Encode(Linker&, DataView code) const {
   InstrEncoder encoder(code);
 
   encoder.EncodeOperandSize(op_a_.size());

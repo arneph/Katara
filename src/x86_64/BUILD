@@ -46,7 +46,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//src/common/data_view",
+        "//src/common/data:data_view",
         "//src/common/graph",
         "//src/x86_64/instrs",
         "//src/x86_64/machine_code:linker",

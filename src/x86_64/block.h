@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/machine_code/linker.h"
 
@@ -44,7 +44,7 @@ class Block {
     return instrs_.insert(it, std::make_unique<T>(args...));
   }
 
-  int64_t Encode(Linker& linker, common::DataView code) const;
+  int64_t Encode(Linker& linker, common::data::DataView code) const;
   std::string ToString() const;
 
  private:

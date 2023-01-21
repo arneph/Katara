@@ -15,7 +15,9 @@
 
 namespace x86_64 {
 
-int8_t Jcc::Encode(Linker& linker, common::DataView code) const {
+using ::common::data::DataView;
+
+int8_t Jcc::Encode(Linker& linker, DataView code) const {
   code[0] = 0x0f;
   code[1] = 0x80 | cond_;
   code[2] = 0x00;
@@ -36,7 +38,7 @@ Jmp::Jmp(RM rm) : dst_(rm) {
   }
 }
 
-int8_t Jmp::Encode(Linker& linker, common::DataView code) const {
+int8_t Jmp::Encode(Linker& linker, DataView code) const {
   if (dst_.is_rm()) {
     RM rm = dst_.rm();
     InstrEncoder encoder(code);
@@ -72,7 +74,7 @@ Call::Call(RM rm) : callee_(rm) {
   if (rm.size() != Size::k64) common::fail("unsupported rm size");
 }
 
-int8_t Call::Encode(Linker& linker, common::DataView code) const {
+int8_t Call::Encode(Linker& linker, DataView code) const {
   if (callee_.is_rm()) {
     RM rm = callee_.rm();
 
@@ -105,7 +107,7 @@ int8_t Call::Encode(Linker& linker, common::DataView code) const {
 
 std::string Call::ToString() const { return "call " + callee_.ToString(); }
 
-int8_t Syscall::Encode(Linker&, common::DataView code) const {
+int8_t Syscall::Encode(Linker&, DataView code) const {
   code[0] = 0x0f;
   code[1] = 0x05;
 
@@ -114,7 +116,7 @@ int8_t Syscall::Encode(Linker&, common::DataView code) const {
 
 std::string Syscall::ToString() const { return "syscall"; }
 
-int8_t Ret::Encode(Linker&, common::DataView code) const {
+int8_t Ret::Encode(Linker&, DataView code) const {
   code[0] = 0xc3;
 
   return 1;

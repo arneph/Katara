@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/x86_64/instrs/instr.h"
 #include "src/x86_64/instrs/instr_cond.h"
 #include "src/x86_64/machine_code/linker.h"
@@ -27,7 +27,7 @@ class Jcc final : public Instr {
   InstrCond cond() const { return cond_; }
   BlockRef dst() const { return dst_; }
 
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -40,7 +40,7 @@ class Jmp final : public Instr {
   Jmp(RM rm);
   Jmp(BlockRef block_ref) : dst_(block_ref) {}
 
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -52,7 +52,7 @@ class Call final : public Instr {
   Call(RM rm);
   Call(FuncRef func_ref) : callee_(func_ref) {}
 
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 
  private:
@@ -61,13 +61,13 @@ class Call final : public Instr {
 
 class Syscall final : public Instr {
  public:
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 };
 
 class Ret final : public Instr {
  public:
-  int8_t Encode(Linker& linker, common::DataView code) const override;
+  int8_t Encode(Linker& linker, common::data::DataView code) const override;
   std::string ToString() const override;
 };
 

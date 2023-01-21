@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/x86_64/block.h"
 #include "src/x86_64/func.h"
 #include "src/x86_64/machine_code/linker.h"
@@ -32,7 +32,7 @@ class Program {
 
   int64_t block_count() const { return block_count_; }
 
-  int64_t Encode(Linker& linker, common::DataView code) const;
+  int64_t Encode(Linker& linker, common::data::DataView code) const;
   std::string ToString() const;
 
  private:

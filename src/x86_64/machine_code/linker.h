@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {
@@ -26,8 +26,8 @@ class Linker {
   void AddFuncAddr(int64_t func_id, uint8_t* func_addr);
   void AddBlockAddr(int64_t block_id, uint8_t* block_addr);
 
-  void AddFuncRef(const FuncRef& func_ref, common::DataView patch_data_view);
-  void AddBlockRef(const BlockRef& block_ref, common::DataView patch_data_view);
+  void AddFuncRef(const FuncRef& func_ref, common::data::DataView patch_data_view);
+  void AddBlockRef(const BlockRef& block_ref, common::data::DataView patch_data_view);
 
   void ApplyPatches() const;
 
@@ -37,11 +37,11 @@ class Linker {
 
   struct FuncPatch {
     FuncRef func_ref;
-    common::DataView patch_data_view;
+    common::data::DataView patch_data_view;
   };
   struct BlockPatch {
     BlockRef block_ref;
-    common::DataView patch_data_view;
+    common::data::DataView patch_data_view;
   };
 
   std::vector<FuncPatch> func_patches_;

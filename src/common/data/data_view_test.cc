@@ -6,13 +6,13 @@
 //  Copyright © 2021 Arne Philipeit. All rights reserved.
 //
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 
 #include <array>
 
 #include "gtest/gtest.h"
 
-namespace common {
+namespace common::data {
 
 TEST(DataViewTest, ConstructionAndAccessSucceeds) {
   std::array<uint8_t, 123> data;
@@ -82,4 +82,4 @@ TEST(DataViewTest, ReturnsCorrectSubViews) {
   EXPECT_EQ(data_subview_x[4], 111);
 }
 
-}  // namespace common
+}  // namespace common::data

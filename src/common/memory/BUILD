@@ -11,7 +11,7 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        "//src/common/data_view",
+        "//src/common/data:data_view",
         "//src/common/logging",
     ],
 )

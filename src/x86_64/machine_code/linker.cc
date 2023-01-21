@@ -10,24 +10,26 @@
 
 namespace x86_64 {
 
+using ::common::data::DataView;
+
 void Linker::AddFuncAddr(int64_t func_id, uint8_t* func_addr) { func_addrs_[func_id] = func_addr; }
 
 void Linker::AddBlockAddr(int64_t block_id, uint8_t* block_addr) {
   block_addrs_[block_id] = block_addr;
 }
 
-void Linker::AddFuncRef(const FuncRef& func_ref, common::DataView patch_data_view) {
+void Linker::AddFuncRef(const FuncRef& func_ref, DataView patch_data_view) {
   func_patches_.push_back(FuncPatch{func_ref, patch_data_view});
 }
 
-void Linker::AddBlockRef(const BlockRef& block_ref, common::DataView patch_data_view) {
+void Linker::AddBlockRef(const BlockRef& block_ref, DataView patch_data_view) {
   block_patches_.push_back(BlockPatch{block_ref, patch_data_view});
 }
 
 void Linker::ApplyPatches() const {
   for (auto func_patch : func_patches_) {
     FuncRef func_ref = func_patch.func_ref;
-    common::DataView patch_data_view = func_patch.patch_data_view;
+    DataView patch_data_view = func_patch.patch_data_view;
     uint8_t* dest_func_addr = func_addrs_.at(func_ref.func_id());
     int64_t offset = dest_func_addr - (patch_data_view.base() + 0x04);
 
@@ -39,7 +41,7 @@ void Linker::ApplyPatches() const {
 
   for (auto block_patch : block_patches_) {
     BlockRef block_ref = block_patch.block_ref;
-    common::DataView patch_data_view = block_patch.patch_data_view;
+    DataView patch_data_view = block_patch.patch_data_view;
     uint8_t* dest_block_addr = block_addrs_.at(block_ref.block_id());
     int64_t offset = dest_block_addr - (patch_data_view.base() + 0x04);
 

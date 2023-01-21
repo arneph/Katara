@@ -12,17 +12,17 @@
 #include <memory>
 #include <optional>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/x86_64/ops.h"
 
 namespace x86_64 {
 
 struct InstrEncoder final {
  public:
-  InstrEncoder(common::DataView code) : code_(code) {}
+  InstrEncoder(common::data::DataView code) : code_(code) {}
 
   uint8_t size() const { return size_; }
-  common::DataView imm_view() const { return imm_view_.value(); }
+  common::data::DataView imm_view() const { return imm_view_.value(); }
 
   void EncodeOperandSize(Size op_size);
 
@@ -40,7 +40,7 @@ struct InstrEncoder final {
   void EncodeImm(const Imm& imm);
 
  private:
-  common::DataView code_;
+  common::data::DataView code_;
   uint8_t size_ = 0;
 
   uint8_t* rex_ = nullptr;
@@ -49,7 +49,7 @@ struct InstrEncoder final {
   uint8_t* sib_ = nullptr;
   uint8_t* disp_ = nullptr;
   uint8_t* imm_ = nullptr;
-  std::optional<common::DataView> imm_view_;
+  std::optional<common::data::DataView> imm_view_;
 };
 
 }  // namespace x86_64

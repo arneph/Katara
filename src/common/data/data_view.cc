@@ -12,7 +12,7 @@
 
 #include "src/common/logging/logging.h"
 
-namespace common {
+namespace common::data {
 
 DataView::DataView(uint8_t* base, int64_t size) : base_(base), size_(size) {
   if (size < 0) {
@@ -65,4 +65,4 @@ DataView DataView::SubView(int64_t start_index, int64_t end_index) {
   return DataView(base_ + start_index, end_index - start_index);
 }
 
-}  // namespace common
+}  // namespace common::data

@@ -12,7 +12,7 @@
 #include <memory>
 #include <string>
 
-#include "src/common/data_view/data_view.h"
+#include "src/common/data/data_view.h"
 #include "src/x86_64/machine_code/linker.h"
 
 namespace x86_64 {
@@ -25,7 +25,7 @@ class Instr {
  public:
   virtual ~Instr() {}
 
-  virtual int8_t Encode(Linker& linker, common::DataView code) const = 0;
+  virtual int8_t Encode(Linker& linker, common::data::DataView code) const = 0;
   virtual std::string ToString() const = 0;
 };
 
