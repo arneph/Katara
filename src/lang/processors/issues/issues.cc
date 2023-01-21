@@ -13,6 +13,7 @@
 namespace lang {
 namespace issues {
 
+using ::common::issues::Severity;
 using ::common::logging::fail;
 
 Origin Issue::origin() const {
@@ -30,21 +31,21 @@ Origin Issue::origin() const {
   }
 }
 
-common::Severity Issue::severity() const {
+Severity Issue::severity() const {
   if (IssueKind::kParserFatalStart < kind() && kind() < IssueKind::kParserFatalEnd) {
-    return common::Severity::kFatal;
+    return Severity::kFatal;
   } else if (IssueKind::kIdentifierResolverErrorStart < kind() &&
              kind() < IssueKind::kIdentifierResolverErrorEnd) {
-    return common::Severity::kError;
+    return Severity::kError;
   } else if (IssueKind::kTypeResolverErrorStart < kind() &&
              kind() < IssueKind::kTypeResolverErrorEnd) {
-    return common::Severity::kError;
+    return Severity::kError;
   } else if (IssueKind::kPackageManagerWarningStart < kind() &&
              kind() < IssueKind::kPackageManagerWarningEnd) {
-    return common::Severity::kWarning;
+    return Severity::kWarning;
   } else if (IssueKind::kPackageManagerErrorStart < kind() &&
              kind() < IssueKind::kPackageManagerErrorEnd) {
-    return common::Severity::kError;
+    return Severity::kError;
   } else {
     fail("unexpected issue kind");
   }

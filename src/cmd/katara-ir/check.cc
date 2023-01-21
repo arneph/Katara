@@ -31,14 +31,14 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Check(std::filesystem::pat
                                                             Context* ctx) {
   ParseDetails parse_details = ParseWithDetails(path, ctx);
   if (parse_details.program == nullptr) {
-    parse_details.issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    parse_details.issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
     return parse_details.error_code;
   }
   ir_check::CheckProgram(parse_details.program.get(), parse_details.issue_tracker);
   if (parse_details.issue_tracker.issues().empty()) {
     return std::move(parse_details).program;
   }
-  parse_details.issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+  parse_details.issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
   if (parse_details.error_code != ErrorCode::kNoError) {
     return parse_details.error_code;
   } else {

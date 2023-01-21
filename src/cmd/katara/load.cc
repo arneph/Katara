@@ -64,9 +64,9 @@ std::variant<ArgsKind, ErrorCode> FindArgsKind(std::vector<std::filesystem::path
 ErrorCode FindAndPrintIssues(std::unique_ptr<lang::packages::PackageManager>& pkg_manager,
                              Context* ctx) {
   bool contains_issues = !pkg_manager->issue_tracker()->issues().empty();
-  pkg_manager->issue_tracker()->PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+  pkg_manager->issue_tracker()->PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
   for (auto pkg : pkg_manager->Packages()) {
-    pkg->issue_tracker().PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    pkg->issue_tracker().PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
     if (!pkg->issue_tracker().issues().empty()) {
       contains_issues = true;
     }

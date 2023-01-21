@@ -174,16 +174,16 @@ enum class IssueKind {
   kCheckerEnd,
 };
 
-class Issue : public common::Issue<IssueKind, Origin> {
+class Issue : public common::issues::Issue<IssueKind, Origin> {
  public:
   Issue(IssueKind kind, std::vector<common::positions::pos_t> positions, std::string message)
-      : common::Issue<IssueKind, Origin>(kind, positions, message) {}
+      : common::issues::Issue<IssueKind, Origin>(kind, positions, message) {}
 
   Origin origin() const override;
-  common::Severity severity() const override;
+  common::issues::Severity severity() const override;
 };
 
-typedef common::IssueTracker<IssueKind, Origin, Issue> IssueTracker;
+typedef common::issues::IssueTracker<IssueKind, Origin, Issue> IssueTracker;
 
 }  // namespace ir_issues
 

@@ -15,6 +15,7 @@
 namespace lang {
 namespace docs {
 
+using ::common::issues::Severity;
 using ::common::positions::File;
 using ::common::positions::FileSet;
 using ::common::positions::pos_t;
@@ -28,11 +29,11 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
   for (issues::Issue issue : package->issue_tracker().issues()) {
     ss << "<dt>";
     switch (issue.severity()) {
-      case common::Severity::kWarning:
+      case Severity::kWarning:
         ss << html::TagsForText("Warning: ", formats::kWarning);
         break;
-      case common::Severity::kError:
-      case common::Severity::kFatal:
+      case Severity::kError:
+      case Severity::kFatal:
         ss << html::TagsForText("Error: ", formats::kError);
         break;
     }

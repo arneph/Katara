@@ -69,7 +69,7 @@ std::vector<ir::Func*> ParseAdditionalFuncsForProgramOrDie(ir::Program* program,
                                                                              issue_tracker);
   if (!issue_tracker.issues().empty()) {
     error("Parsing IR failed:");
-    issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, &std::cerr);
+    issue_tracker.PrintIssues(common::issues::Format::kTerminal, &std::cerr);
     fail("");
   }
   return funcs;
@@ -95,7 +95,7 @@ std::unique_ptr<ir::Program> ParseProgramOrDie(std::string text) {
       ParseProgram<TypeParser, ConstantParser, FuncParser>(file, issue_tracker);
   if (!issue_tracker.issues().empty()) {
     error("Parsing IR failed:");
-    issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, &std::cerr);
+    issue_tracker.PrintIssues(common::issues::Format::kTerminal, &std::cerr);
     fail("");
   }
   return program;

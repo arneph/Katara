@@ -25,7 +25,7 @@ void CheckProgramOrDie(const ir::Program* program) {
   if (issue_tracker.issues().empty()) {
     return;
   }
-  issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, &std::cerr);
+  issue_tracker.PrintIssues(common::issues::Format::kTerminal, &std::cerr);
   fail("ir::Program did not pass check");
 }
 

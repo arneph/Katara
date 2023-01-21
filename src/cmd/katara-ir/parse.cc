@@ -37,7 +37,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Parse(std::filesystem::pat
   if (details.error_code == ErrorCode::kNoError) {
     return std::move(details).program;
   } else {
-    details.issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    details.issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
     return details.error_code;
   }
 }

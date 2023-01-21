@@ -17,7 +17,7 @@
 
 #include "src/common/positions/positions.h"
 
-namespace common {
+namespace common::issues {
 
 template <typename T>
 concept IssueKindType = std::is_enum<T>::value;
@@ -54,7 +54,7 @@ class Issue {
 template <class T, typename IssueKind, typename Origin>
 concept IssueSubclass = std::is_base_of<Issue<IssueKind, Origin>, T>::value;
 
-enum class IssuePrintFormat {
+enum class Format {
   kPlain,
   kTerminal,
 };
@@ -87,10 +87,10 @@ class IssueTracker {
     issues_.push_back(Issue(kind, positions, message));
   }
 
-  void PrintIssues(IssuePrintFormat format, std::ostream* out) const {
+  void PrintIssues(Format format, std::ostream* out) const {
     for (auto& issue : issues_) {
       switch (format) {
-        case IssuePrintFormat::kPlain:
+        case Format::kPlain:
           switch (issue.severity()) {
             case Severity::kWarning:
               *out << "Warning: ";
@@ -100,7 +100,7 @@ class IssueTracker {
               *out << "Error: ";
           }
           break;
-        case IssuePrintFormat::kTerminal:
+        case Format::kTerminal:
           switch (issue.severity()) {
             case Severity::kWarning:
               *out << "\033[93;1m"
@@ -144,6 +144,6 @@ class IssueTracker {
   std::vector<Issue> issues_;
 };
 
-}  // namespace common
+}  // namespace common::issues
 
 #endif /* lang_issues_h */

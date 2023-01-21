@@ -12,6 +12,7 @@
 
 namespace ir_issues {
 
+using ::common::issues::Severity;
 using ::common::logging::fail;
 
 Origin Issue::origin() const {
@@ -26,13 +27,13 @@ Origin Issue::origin() const {
   }
 }
 
-common::Severity Issue::severity() const {
+Severity Issue::severity() const {
   if (IssueKind::kScannerStart < kind() && kind() < IssueKind::kScannerEnd) {
-    return common::Severity::kFatal;
+    return Severity::kFatal;
   } else if (IssueKind::kParserStart < kind() && kind() < IssueKind::kParserEnd) {
-    return common::Severity::kError;
+    return Severity::kError;
   } else if (IssueKind::kCheckerStart < kind() && kind() < IssueKind::kCheckerEnd) {
-    return common::Severity::kError;
+    return Severity::kError;
   } else {
     fail("unexpected issue kind");
   }

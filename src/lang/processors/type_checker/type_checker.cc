@@ -16,6 +16,8 @@
 namespace lang {
 namespace type_checker {
 
+using ::common::issues::Severity;
+
 types::Package* Check(std::string package_path, ast::Package* ast_package,
                       std::function<types::Package*(std::string)> importer, types::Info* info,
                       issues::IssueTracker& issues) {
@@ -30,7 +32,7 @@ types::Package* Check(std::string package_path, ast::Package* ast_package,
       package_path, ast_files, importer, info_builder, issues);
   for (const issues::Issue& issue : issues.issues()) {
     if (issue.origin() == issues::Origin::kIdentifierResolver &&
-        issue.severity() == common::Severity::kFatal) {
+        issue.severity() == Severity::kFatal) {
       return nullptr;
     }
   }

@@ -100,7 +100,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
     ::lang::ir_check::CheckProgram(program.get(), issue_tracker);
     if (!issue_tracker.issues().empty()) {
       *ctx->stderr() << "init IR program has issues:\n";
-      issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+      issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
     }
   }
 
@@ -122,7 +122,7 @@ void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Con
     ::lang::ir_check::CheckProgram(program, issue_tracker);
     if (!issue_tracker.issues().empty()) {
       *ctx->stderr() << "ext_optimized IR program has issues:\n";
-      issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+      issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
     }
   }
 }
@@ -142,7 +142,7 @@ void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Contex
     ::lang::ir_check::CheckProgram(program, issue_tracker);
     if (!issue_tracker.issues().empty()) {
       *ctx->stderr() << "lowered IR program has issues:\n";
-      issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+      issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
     }
   }
 }
@@ -159,7 +159,7 @@ void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler, Contex
     ::ir_check::CheckProgram(program, issue_tracker);
     if (!issue_tracker.issues().empty()) {
       *ctx->stderr() << "optimized IR program has issues:\n";
-      issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+      issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
     }
   }
 }
