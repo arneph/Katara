@@ -93,11 +93,11 @@ class IssueTracker {
         case IssuePrintFormat::kPlain:
           switch (issue.severity()) {
             case Severity::kWarning:
-              *out << "Warning:";
+              *out << "Warning: ";
               break;
             case Severity::kError:
             case Severity::kFatal:
-              *out << "Error:";
+              *out << "Error: ";
           }
           break;
         case IssuePrintFormat::kTerminal:
