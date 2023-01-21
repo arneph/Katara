@@ -21,6 +21,8 @@
 
 namespace {
 
+using ::common::filesystem::TestFilesystem;
+
 struct ConstantIntExprTestCase {
   const std::string expr;
   const int expected_value;
@@ -51,7 +53,7 @@ func main() int {
                        R"kat(
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.WriteContentsOfFile("expr.kat", source);
   lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
@@ -88,7 +90,7 @@ func main() int {
   }
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.WriteContentsOfFile("test.kat", source);
   lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
@@ -123,7 +125,7 @@ func main() int {
         return sum
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.WriteContentsOfFile("test.kat", source);
   lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 

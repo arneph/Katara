@@ -20,7 +20,7 @@
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 
-namespace common {
+namespace common::filesystem {
 namespace {
 
 std::vector<std::filesystem::path> CollectPathsInDirectory(std::filesystem::path dir,
@@ -268,4 +268,4 @@ TEST(TestFilesystemTest, ReadingAndWritingFileInSubdirectoryWorks) {
   EXPECT_FALSE(fs.IsDirectory("/xyz/123/a"));
 }
 
-}  // namespace common
+}  // namespace common::filesystem

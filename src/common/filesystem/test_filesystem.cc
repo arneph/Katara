@@ -12,7 +12,7 @@
 
 #include "src/common/logging/logging.h"
 
-namespace common {
+namespace common::filesystem {
 
 void TestFilesystem::Visit(Entry* entry, std::function<void()> not_present_handler,
                            std::function<void(File*)> file_handler,
@@ -274,4 +274,4 @@ void TestFilesystem::RemoveEntries(Directory* directory) {
   directory->entries.clear();
 }
 
-}  // namespace common
+}  // namespace common::filesystem

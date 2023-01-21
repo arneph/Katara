@@ -15,7 +15,7 @@
 
 #include "src/common/filesystem/filesystem.h"
 
-namespace common {
+namespace common::filesystem {
 
 class RealFilesystem : public Filesystem {
  public:
@@ -41,6 +41,6 @@ class RealFilesystem : public Filesystem {
   void RemoveAll(std::filesystem::path path) override;
 };
 
-}  // namespace common
+}  // namespace common::filesystem
 
 #endif /* common_filesystem_real_filesystem_h */

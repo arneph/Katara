@@ -13,7 +13,7 @@
 #include <functional>
 #include <iostream>
 
-namespace common {
+namespace common::filesystem {
 
 class Filesystem {
  public:
@@ -44,6 +44,6 @@ class Filesystem {
   virtual void RemoveAll(std::filesystem::path path) = 0;
 };
 
-}  // namespace common
+}  // namespace common::filesystem
 
 #endif /* common_filesystem_filesystem_h */

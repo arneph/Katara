@@ -22,13 +22,13 @@ namespace cmd {
 
 class RealContext : public Context {
  public:
-  common::Filesystem* filesystem() override { return &filesystem_; }
+  common::filesystem::Filesystem* filesystem() override { return &filesystem_; }
   std::istream* stdin() override { return &std::cin; }
   std::ostream* stdout() override { return &std::cout; }
   std::ostream* stderr() override { return &std::cerr; }
 
  private:
-  common::RealFilesystem filesystem_;
+  common::filesystem::RealFilesystem filesystem_;
 };
 
 }  // namespace cmd

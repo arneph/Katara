@@ -21,7 +21,7 @@ class Context {
  public:
   virtual ~Context() {}
 
-  virtual common::Filesystem* filesystem() = 0;
+  virtual common::filesystem::Filesystem* filesystem() = 0;
   virtual std::istream* stdin() = 0;
   virtual std::ostream* stdout() = 0;
   virtual std::ostream* stderr() = 0;

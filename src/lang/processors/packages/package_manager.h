@@ -27,7 +27,7 @@ namespace packages {
 
 class PackageManager {
  public:
-  PackageManager(common::Filesystem* filesystem, std::filesystem::path stdlib_path,
+  PackageManager(common::filesystem::Filesystem* filesystem, std::filesystem::path stdlib_path,
                  std::filesystem::path src_path)
       : filesystem_(filesystem),
         stdlib_path_(stdlib_path),
@@ -71,7 +71,7 @@ class PackageManager {
   Package* LoadPackage(std::string pkg_path, std::filesystem::path pkg_directory,
                        std::vector<std::filesystem::path> file_paths);
 
-  common::Filesystem* filesystem_;
+  common::filesystem::Filesystem* filesystem_;
   std::filesystem::path stdlib_path_;
   std::filesystem::path src_path_;
 

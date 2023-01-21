@@ -18,7 +18,7 @@
 
 #include "src/common/filesystem/filesystem.h"
 
-namespace common {
+namespace common::filesystem {
 
 class TestFilesystem : public Filesystem {
  public:
@@ -88,6 +88,6 @@ class TestFilesystem : public Filesystem {
   Directory root_;
 };
 
-}  // namespace common
+}  // namespace common::filesystem
 
 #endif /* common_filesystem_test_filesystem_h */

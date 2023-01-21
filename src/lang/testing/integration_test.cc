@@ -24,6 +24,8 @@
 
 namespace {
 
+using ::common::filesystem::TestFilesystem;
+
 void LoadMainPackagesAndBuildProgram(lang::packages::PackageManager& pkg_manager) {
   // Load main package:
   lang::packages::Package* pkg = pkg_manager.LoadMainPackage("/");
@@ -134,7 +136,7 @@ func TransformedFunc(f Func, xOffset, yOffset, xScale, yScale int) Func {
    }
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.WriteContentsOfFile("vectors.kat", source);
   lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
@@ -248,7 +250,7 @@ func Test() {
     m := NewHashMap<String, List<int>>()
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.WriteContentsOfFile("containers.kat", source);
   lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
@@ -295,7 +297,7 @@ func main() {
     fmt.Println("hello")
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.CreateDirectory("stdlib");
   filesystem_.CreateDirectory("stdlib/fmt");
   filesystem_.WriteContentsOfFile("stdlib/fmt/fmt.kat", fmt_source);
@@ -323,7 +325,7 @@ type TypeC<T> struct {
         y *TypeB<T>
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.WriteContentsOfFile("types.kat", source);
   lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 
@@ -411,7 +413,7 @@ func main() {
     fmt.Println(RangeOf<Int>([]Int{2, 1, 4, 3, 5, 4, 2}).String())
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.CreateDirectory("stdlib");
   filesystem_.CreateDirectory("stdlib/fmt");
   filesystem_.WriteContentsOfFile("stdlib/fmt/fmt.kat", fmt_source);
@@ -519,7 +521,7 @@ func <Int> Sqrt(a Int) Int {
     return 0
 }
   )kat";
-  common::TestFilesystem filesystem_;
+  TestFilesystem filesystem_;
   filesystem_.CreateDirectory("stdlib");
   filesystem_.CreateDirectory("stdlib/fmt");
   filesystem_.WriteContentsOfFile("stdlib/fmt/fmt.kat", fmt_source);

@@ -10,7 +10,7 @@
 
 #include <fstream>
 
-namespace common {
+namespace common::filesystem {
 
 std::string Filesystem::ReadContentsOfFile(std::filesystem::path path) const {
   std::string contents;
@@ -24,4 +24,4 @@ void Filesystem::WriteContentsOfFile(std::filesystem::path path, std::string con
   WriteFile(path, [&](std::ostream* stream) { *stream << contents; });
 }
 
-}  // namespace common
+}  // namespace common::filesystem

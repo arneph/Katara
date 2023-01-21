@@ -359,7 +359,7 @@ func add(a *uint16, b uint16) {
                              }));
 
 TEST_P(IRBuilderTest, BuildsIR) {
-  common::TestFilesystem filesystem_;
+  common::filesystem::TestFilesystem filesystem_;
   filesystem_.WriteContentsOfFile("main.kat", GetParam().input_lang_program);
   lang::packages::PackageManager pkg_manager(&filesystem_, /*stdlib_path=*/"", /*src_path=*/"");
 

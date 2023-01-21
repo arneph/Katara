@@ -25,7 +25,7 @@ class TestContext : public Context {
  public:
   TestContext(std::string input = "") { stdin_ << input; }
 
-  common::Filesystem* filesystem() override { return &filesystem_; }
+  common::filesystem::Filesystem* filesystem() override { return &filesystem_; }
   std::istream* stdin() override { return &stdin_; }
   std::ostream* stdout() override { return &stdout_; }
   std::ostream* stderr() override { return &stderr_; }
@@ -34,7 +34,7 @@ class TestContext : public Context {
   std::string errors() const { return stderr_.str(); }
 
  private:
-  common::TestFilesystem filesystem_;
+  common::filesystem::TestFilesystem filesystem_;
   std::stringstream stdin_;
   std::stringstream stdout_;
   std::stringstream stderr_;

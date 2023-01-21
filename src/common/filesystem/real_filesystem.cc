@@ -12,7 +12,7 @@
 
 #include "src/common/logging/logging.h"
 
-namespace common {
+namespace common::filesystem {
 namespace {
 
 std::string ErrorCodeToString(std::error_code& ec) {
@@ -130,4 +130,4 @@ void RealFilesystem::RemoveAll(std::filesystem::path path) {
   }
 }
 
-}  // namespace common
+}  // namespace common::filesystem
