@@ -186,12 +186,12 @@ class BoolNotInstr : public Computation {
 
 class BoolBinaryInstr : public Computation {
  public:
-  BoolBinaryInstr(std::shared_ptr<Computed> result, common::Bool::BinaryOp operation,
+  BoolBinaryInstr(std::shared_ptr<Computed> result, common::atomics::Bool::BinaryOp operation,
                   std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
       : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
 
-  common::Bool::BinaryOp operation() const { return operation_; }
-  void set_operation(common::Bool::BinaryOp operation) { operation_ = operation; }
+  common::atomics::Bool::BinaryOp operation() const { return operation_; }
+  void set_operation(common::atomics::Bool::BinaryOp operation) { operation_ = operation; }
 
   std::shared_ptr<Value> operand_a() const { return operand_a_; }
   void set_operand_a(std::shared_ptr<Value> operand_a) { operand_a_ = operand_a; }
@@ -204,24 +204,24 @@ class BoolBinaryInstr : public Computation {
   }
 
   InstrKind instr_kind() const override { return InstrKind::kBoolBinary; }
-  std::string OperationString() const override { return common::ToString(operation_); }
+  std::string OperationString() const override { return common::atomics::ToString(operation_); }
 
   bool operator==(const Instr& that) const override;
 
  private:
-  common::Bool::BinaryOp operation_;
+  common::atomics::Bool::BinaryOp operation_;
   std::shared_ptr<Value> operand_a_;
   std::shared_ptr<Value> operand_b_;
 };
 
 class IntUnaryInstr : public Computation {
  public:
-  IntUnaryInstr(std::shared_ptr<Computed> result, common::Int::UnaryOp operation,
+  IntUnaryInstr(std::shared_ptr<Computed> result, common::atomics::Int::UnaryOp operation,
                 std::shared_ptr<Value> operand)
       : Computation(result), operation_(operation), operand_(operand) {}
 
-  common::Int::UnaryOp operation() const { return operation_; }
-  void set_operation(common::Int::UnaryOp operation) { operation_ = operation; }
+  common::atomics::Int::UnaryOp operation() const { return operation_; }
+  void set_operation(common::atomics::Int::UnaryOp operation) { operation_ = operation; }
 
   std::shared_ptr<Value> operand() const { return operand_; }
   void set_operand(std::shared_ptr<Value> operand) { operand_ = operand; }
@@ -229,23 +229,23 @@ class IntUnaryInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {operand_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kIntUnary; }
-  std::string OperationString() const override { return common::ToString(operation_); }
+  std::string OperationString() const override { return common::atomics::ToString(operation_); }
 
   bool operator==(const Instr& that) const override;
 
  private:
-  common::Int::UnaryOp operation_;
+  common::atomics::Int::UnaryOp operation_;
   std::shared_ptr<Value> operand_;
 };
 
 class IntCompareInstr : public Computation {
  public:
-  IntCompareInstr(std::shared_ptr<Computed> result, common::Int::CompareOp operation,
+  IntCompareInstr(std::shared_ptr<Computed> result, common::atomics::Int::CompareOp operation,
                   std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
       : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
 
-  common::Int::CompareOp operation() const { return operation_; }
-  void set_operation(common::Int::CompareOp operation) { operation_ = operation; }
+  common::atomics::Int::CompareOp operation() const { return operation_; }
+  void set_operation(common::atomics::Int::CompareOp operation) { operation_ = operation; }
 
   std::shared_ptr<Value> operand_a() const { return operand_a_; }
   void set_operand_a(std::shared_ptr<Value> operand_a) { operand_a_ = operand_a; }
@@ -258,24 +258,24 @@ class IntCompareInstr : public Computation {
   }
 
   InstrKind instr_kind() const override { return InstrKind::kIntCompare; }
-  std::string OperationString() const override { return common::ToString(operation_); }
+  std::string OperationString() const override { return common::atomics::ToString(operation_); }
 
   bool operator==(const Instr& that) const override;
 
  private:
-  common::Int::CompareOp operation_;
+  common::atomics::Int::CompareOp operation_;
   std::shared_ptr<Value> operand_a_;
   std::shared_ptr<Value> operand_b_;
 };
 
 class IntBinaryInstr : public Computation {
  public:
-  IntBinaryInstr(std::shared_ptr<Computed> result, common::Int::BinaryOp operation,
+  IntBinaryInstr(std::shared_ptr<Computed> result, common::atomics::Int::BinaryOp operation,
                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
       : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
 
-  common::Int::BinaryOp operation() const { return operation_; }
-  void set_operation(common::Int::BinaryOp operation) { operation_ = operation; }
+  common::atomics::Int::BinaryOp operation() const { return operation_; }
+  void set_operation(common::atomics::Int::BinaryOp operation) { operation_ = operation; }
 
   std::shared_ptr<Value> operand_a() const { return operand_a_; }
   void set_operand_a(std::shared_ptr<Value> operand_a) { operand_a_ = operand_a; }
@@ -288,24 +288,24 @@ class IntBinaryInstr : public Computation {
   }
 
   InstrKind instr_kind() const override { return InstrKind::kIntBinary; }
-  std::string OperationString() const override { return common::ToString(operation_); }
+  std::string OperationString() const override { return common::atomics::ToString(operation_); }
 
   bool operator==(const Instr& that) const override;
 
  private:
-  common::Int::BinaryOp operation_;
+  common::atomics::Int::BinaryOp operation_;
   std::shared_ptr<Value> operand_a_;
   std::shared_ptr<Value> operand_b_;
 };
 
 class IntShiftInstr : public Computation {
  public:
-  IntShiftInstr(std::shared_ptr<Computed> result, common::Int::ShiftOp operation,
+  IntShiftInstr(std::shared_ptr<Computed> result, common::atomics::Int::ShiftOp operation,
                 std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset)
       : Computation(result), operation_(operation), shifted_(shifted), offset_(offset) {}
 
-  common::Int::ShiftOp operation() const { return operation_; }
-  void set_operation(common::Int::ShiftOp operation) { operation_ = operation; }
+  common::atomics::Int::ShiftOp operation() const { return operation_; }
+  void set_operation(common::atomics::Int::ShiftOp operation) { operation_ = operation; }
 
   std::shared_ptr<Value> shifted() const { return shifted_; }
   void set_shifted(std::shared_ptr<Value> shifted) { shifted_ = shifted; }
@@ -316,12 +316,12 @@ class IntShiftInstr : public Computation {
   std::vector<std::shared_ptr<Value>> UsedValues() const override { return {shifted_, offset_}; }
 
   InstrKind instr_kind() const override { return InstrKind::kIntShift; }
-  std::string OperationString() const override { return common::ToString(operation_); }
+  std::string OperationString() const override { return common::atomics::ToString(operation_); }
 
   bool operator==(const Instr& that) const override;
 
  private:
-  common::Int::ShiftOp operation_;
+  common::atomics::Int::ShiftOp operation_;
   std::shared_ptr<Value> shifted_;
   std::shared_ptr<Value> offset_;
 };

@@ -22,6 +22,8 @@
 
 namespace {
 
+using ::common::atomics::Int;
+using ::common::atomics::IntType;
 using ::testing::Contains;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
@@ -229,9 +231,9 @@ TEST(ParseTest, ParsesFuncWithMultipleResult) {
 
   auto result_a = return_instr->args().at(0);
   ASSERT_THAT(result_a->type(), ir::u32());
-  EXPECT_EQ(static_cast<ir::IntConstant*>(result_a.get())->int_type(), common::IntType::kU32);
-  EXPECT_TRUE(common::Int::Compare(static_cast<ir::IntConstant*>(result_a.get())->value(),
-                                   common::Int::CompareOp::kEq, common::Int(uint32_t(42))));
+  EXPECT_EQ(static_cast<ir::IntConstant*>(result_a.get())->int_type(), IntType::kU32);
+  EXPECT_TRUE(Int::Compare(static_cast<ir::IntConstant*>(result_a.get())->value(),
+                           Int::CompareOp::kEq, Int(uint32_t(42))));
   auto result_b = return_instr->args().at(1);
   ASSERT_THAT(result_b->type(), ir::func_type());
   EXPECT_EQ(static_cast<ir::FuncConstant*>(result_b.get())->value(), 0);
@@ -558,7 +560,7 @@ TEST(ParseTest, ParsesFuncWithForLoop) {
   EXPECT_EQ(phi_arg_d->value().get(), value_d);
   EXPECT_EQ(phi_arg_d->origin(), 2);
 
-  EXPECT_EQ(leq_instr->operation(), common::Int::CompareOp::kLeq);
+  EXPECT_EQ(leq_instr->operation(), Int::CompareOp::kLeq);
   EXPECT_EQ(leq_instr->operand_a().get(), value_a);
   EXPECT_EQ(leq_instr->operand_b().get(), arg);
   EXPECT_EQ(value_c->type(), ir::bool_type());
@@ -567,12 +569,12 @@ TEST(ParseTest, ParsesFuncWithForLoop) {
   EXPECT_EQ(jcc_instr->destination_true(), 2);
   EXPECT_EQ(jcc_instr->destination_false(), 3);
 
-  EXPECT_EQ(add_instr_a->operation(), common::Int::BinaryOp::kAdd);
+  EXPECT_EQ(add_instr_a->operation(), Int::BinaryOp::kAdd);
   EXPECT_EQ(add_instr_a->operand_a().get(), value_b);
   EXPECT_EQ(add_instr_a->operand_b().get(), value_a);
   EXPECT_EQ(value_d->type(), ir::i64());
 
-  EXPECT_EQ(add_instr_b->operation(), common::Int::BinaryOp::kAdd);
+  EXPECT_EQ(add_instr_b->operation(), Int::BinaryOp::kAdd);
   EXPECT_EQ(add_instr_b->operand_a().get(), value_a);
   EXPECT_EQ(add_instr_b->operand_b(), ir::I64One());
   EXPECT_EQ(value_e->type(), ir::i64());
@@ -631,12 +633,12 @@ TEST(ParseTest, ParsesFuncWithRecursiveCall) {
   auto mul_instr = static_cast<ir::IntBinaryInstr*>(block_c->instrs().at(2).get());
   auto ret_instr_b = static_cast<ir::ReturnInstr*>(block_c->instrs().at(3).get());
 
-  EXPECT_EQ(eq_instr->operation(), common::Int::CompareOp::kEq);
+  EXPECT_EQ(eq_instr->operation(), Int::CompareOp::kEq);
   EXPECT_EQ(eq_instr->operand_a().get(), arg);
   ASSERT_EQ(eq_instr->operand_b()->type(), ir::u64());
   ASSERT_EQ(eq_instr->operand_b()->kind(), ir::Value::Kind::kConstant);
   auto const_a = static_cast<ir::IntConstant*>(eq_instr->operand_b().get());
-  EXPECT_EQ(const_a->int_type(), common::IntType::kU64);
+  EXPECT_EQ(const_a->int_type(), IntType::kU64);
   EXPECT_EQ(const_a->value().AsUint64(), 1);
   ir::Computed* value_a = eq_instr->result().get();
   EXPECT_EQ(value_a->type(), ir::bool_type());
@@ -649,15 +651,15 @@ TEST(ParseTest, ParsesFuncWithRecursiveCall) {
   ASSERT_EQ(ret_instr_a->args().at(0)->type(), ir::u64());
   ASSERT_EQ(ret_instr_a->args().at(0)->kind(), ir::Value::Kind::kConstant);
   auto const_b = static_cast<ir::IntConstant*>(ret_instr_a->args().at(0).get());
-  EXPECT_EQ(const_b->int_type(), common::IntType::kU64);
+  EXPECT_EQ(const_b->int_type(), IntType::kU64);
   EXPECT_EQ(const_b->value().AsUint64(), 1);
 
-  EXPECT_EQ(sub_instr->operation(), common::Int::BinaryOp::kSub);
+  EXPECT_EQ(sub_instr->operation(), Int::BinaryOp::kSub);
   EXPECT_EQ(sub_instr->operand_a().get(), arg);
   ASSERT_EQ(sub_instr->operand_b()->type(), ir::u64());
   ASSERT_EQ(sub_instr->operand_b()->kind(), ir::Value::Kind::kConstant);
   auto const_c = static_cast<ir::IntConstant*>(sub_instr->operand_b().get());
-  EXPECT_EQ(const_c->int_type(), common::IntType::kU64);
+  EXPECT_EQ(const_c->int_type(), IntType::kU64);
   EXPECT_EQ(const_c->value().AsUint64(), 1);
   ir::Computed* value_b = sub_instr->result().get();
   EXPECT_EQ(value_b->type(), ir::u64());
@@ -671,7 +673,7 @@ TEST(ParseTest, ParsesFuncWithRecursiveCall) {
   ir::Computed* value_c = call_instr->results().at(0).get();
   EXPECT_EQ(value_c->type(), ir::u64());
 
-  EXPECT_EQ(mul_instr->operation(), common::Int::BinaryOp::kMul);
+  EXPECT_EQ(mul_instr->operation(), Int::BinaryOp::kMul);
   EXPECT_EQ(mul_instr->operand_a().get(), value_c);
   EXPECT_EQ(mul_instr->operand_b().get(), arg);
   ir::Computed* value_d = mul_instr->result().get();
@@ -731,7 +733,7 @@ TEST(ParseTest, ParsesMultipleFuncs) {
     ASSERT_EQ(ret_instr->args().front()->kind(), ir::Value::Kind::kConstant);
     ASSERT_EQ(ret_instr->args().front()->type(), ir::u16());
     auto c = static_cast<ir::IntConstant*>(ret_instr->args().front().get());
-    EXPECT_EQ(c->int_type(), common::IntType::kU16);
+    EXPECT_EQ(c->int_type(), IntType::kU16);
     EXPECT_EQ(c->value().AsUint64(), 47);
   }
 
@@ -895,7 +897,7 @@ TEST(ParseTest, ParsesSyscall) {
   ASSERT_EQ(syscall_instr->syscall_num()->kind(), ir::Value::Kind::kConstant);
   ASSERT_EQ(syscall_instr->syscall_num()->type(), ir::i64());
   auto c1 = static_cast<ir::IntConstant*>(syscall_instr->syscall_num().get());
-  EXPECT_EQ(c1->int_type(), common::IntType::kI64);
+  EXPECT_EQ(c1->int_type(), IntType::kI64);
   EXPECT_EQ(c1->value().AsInt64(), 42);
 
   ASSERT_THAT(syscall_instr->args(), SizeIs(3));
@@ -904,7 +906,7 @@ TEST(ParseTest, ParsesSyscall) {
   ASSERT_EQ(syscall_instr->args().at(1)->kind(), ir::Value::Kind::kConstant);
   ASSERT_EQ(syscall_instr->args().at(1)->type(), ir::i64());
   auto c2 = static_cast<ir::IntConstant*>(syscall_instr->args().at(1).get());
-  EXPECT_EQ(c2->int_type(), common::IntType::kI64);
+  EXPECT_EQ(c2->int_type(), IntType::kI64);
   EXPECT_EQ(c2->value().AsInt64(), 123);
 
   auto return_instr = static_cast<ir::ReturnInstr*>(instr_b);

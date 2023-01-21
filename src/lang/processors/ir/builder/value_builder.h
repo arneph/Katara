@@ -32,19 +32,19 @@ class ValueBuilder {
 
   std::shared_ptr<ir::Computed> BuildBoolNot(std::shared_ptr<ir::Value> x, IRContext& ir_ctx);
   std::shared_ptr<ir::Computed> BuildBoolBinaryOp(std::shared_ptr<ir::Value> x,
-                                                  common::Bool::BinaryOp op,
+                                                  common::atomics::Bool::BinaryOp op,
                                                   std::shared_ptr<ir::Value> y, IRContext& ir_ctx);
 
-  std::shared_ptr<ir::Computed> BuildIntUnaryOp(common::Int::UnaryOp op,
+  std::shared_ptr<ir::Computed> BuildIntUnaryOp(common::atomics::Int::UnaryOp op,
                                                 std::shared_ptr<ir::Value> x, IRContext& ir_ctx);
   std::shared_ptr<ir::Computed> BuildIntBinaryOp(std::shared_ptr<ir::Value> x,
-                                                 common::Int::BinaryOp op,
+                                                 common::atomics::Int::BinaryOp op,
                                                  std::shared_ptr<ir::Value> y, IRContext& ir_ctx);
   std::shared_ptr<ir::Computed> BuildIntCompareOp(std::shared_ptr<ir::Value> x,
-                                                  common::Int::CompareOp op,
+                                                  common::atomics::Int::CompareOp op,
                                                   std::shared_ptr<ir::Value> y, IRContext& ir_ctx);
   std::shared_ptr<ir::Computed> BuildIntShiftOp(std::shared_ptr<ir::Value> x,
-                                                common::Int::ShiftOp op,
+                                                common::atomics::Int::ShiftOp op,
                                                 std::shared_ptr<ir::Value> y, IRContext& ir_ctx);
 
   std::shared_ptr<ir::Computed> BuildStringConcat(std::shared_ptr<ir::Value> x,

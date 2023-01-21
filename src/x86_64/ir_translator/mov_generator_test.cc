@@ -41,6 +41,7 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::atomics::Int;
 using ::testing::Contains;
 
 class GenerateMovsTest : public InstrTranslatorTest {
@@ -208,9 +209,9 @@ TEST_F(GenerateMovsTest, GeneratesInstrsForSimpleImmMoves) {
   const int64_t kA = 0x123456789;
   const int8_t kB = 0x47;
   const int16_t kC = 0x321;
-  ir_block_builder().Call(ir::NilFunc(), {},
-                          {ir::ToIntConstant(common::Int(kA)), ir::ToIntConstant(common::Int(kB)),
-                           ir::ToIntConstant(common::Int(kC))});
+  ir_block_builder().Call(
+      ir::NilFunc(), {},
+      {ir::ToIntConstant(Int(kA)), ir::ToIntConstant(Int(kB)), ir::ToIntConstant(Int(kC))});
   ir_block_builder().Return();
 
   ir::CallInstr* ir_call_instr = static_cast<ir::CallInstr*>(ir_block()->instrs().front().get());
@@ -280,8 +281,8 @@ TEST_F(GenerateMovsTest, GeneratesInstrsForSimpleMemMoves) {
   ir_func_builder().AddResultType(ir::u8());
 
   ir_block_builder().Call(ir::NilFunc(), {},
-                          {ir_operand_a, ir_operand_b, ir_operand_c,
-                           ir::ToIntConstant(common::Int(kD)), ir::ToIntConstant(common::Int(kE))});
+                          {ir_operand_a, ir_operand_b, ir_operand_c, ir::ToIntConstant(Int(kD)),
+                           ir::ToIntConstant(Int(kE))});
   ir_block_builder().Return({ir_operand_a, ir_operand_b, ir_operand_c});
 
   ir::CallInstr* ir_call_instr = static_cast<ir::CallInstr*>(ir_block()->instrs().front().get());
@@ -364,9 +365,8 @@ TEST_F(GenerateMovsTest, GeneratesInstrsForLargeMoveChain) {
   ir_func_builder().AddResultType(ir::bool_type());
   ir_func_builder().AddResultType(ir::u32());
 
-  ir_block_builder().Call(
-      ir::NilFunc(), {},
-      {ir_operand_a, ir_operand_b, ir_operand_c, ir::ToIntConstant(common::Int(kD))});
+  ir_block_builder().Call(ir::NilFunc(), {},
+                          {ir_operand_a, ir_operand_b, ir_operand_c, ir::ToIntConstant(Int(kD))});
   ir_block_builder().Return({ir_operand_a, ir_operand_b, ir_operand_c});
 
   ir::CallInstr* ir_call_instr = static_cast<ir::CallInstr*>(ir_block()->instrs().front().get());
@@ -456,7 +456,7 @@ TEST_F(GenerateMovsTest, GeneratesInstrsForCyclesWithAttchedAndSeparateChains) {
   ir_block_builder().Call(
       ir::NilFunc(), {},
       {ir_operand_a, ir_operand_b, ir_operand_c, ir_operand_d, ir_operand_e, ir_operand_f,
-       ir_operand_g, ir_operand_h, ir_operand_i, ir::ToIntConstant(common::Int(kJ))});
+       ir_operand_g, ir_operand_h, ir_operand_i, ir::ToIntConstant(Int(kJ))});
   ir_block_builder().Return({ir_operand_a, ir_operand_b, ir_operand_c, ir_operand_d, ir_operand_e,
                              ir_operand_f, ir_operand_g, ir_operand_h, ir_operand_i});
 

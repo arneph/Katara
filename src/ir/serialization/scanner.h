@@ -54,8 +54,8 @@ class Scanner {
   common::pos_t token_start() const { return token_start_; }
   common::pos_t token_end() const { return token_end_; }
   std::string token_text() const;
-  common::Int token_number() const;
-  common::Int token_address() const;
+  common::atomics::Int token_number() const;
+  common::atomics::Int token_address() const;
   std::string token_string() const;
 
   void Next();

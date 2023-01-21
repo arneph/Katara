@@ -28,18 +28,18 @@ class Value {
   };
 
   explicit Value(bool value) : value_(value) {}
-  explicit Value(common::Int value) : value_(value) {}
+  explicit Value(common::atomics::Int value) : value_(value) {}
   explicit Value(std::string value) : value_(value) {}
 
   Kind kind() const { return Kind(value_.index()); }
   bool AsBool() const { return std::get<bool>(value_); }
-  common::Int AsInt() const { return std::get<common::Int>(value_); }
+  common::atomics::Int AsInt() const { return std::get<common::atomics::Int>(value_); }
   std::string AsString() const { return std::get<std::string>(value_); }
 
   std::string ToString() const;
 
  private:
-  typedef std::variant<bool, common::Int, std::string> value_t;
+  typedef std::variant<bool, common::atomics::Int, std::string> value_t;
 
   value_t value_;
 };

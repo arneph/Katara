@@ -26,6 +26,9 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::atomics::Bool;
+using ::common::atomics::Int;
+
 void TranslateBoolNotInstr(ir::BoolNotInstr* ir_bool_not_instr, BlockContext& ctx) {
   x86_64::RM x86_64_result = TranslateComputed(ir_bool_not_instr->result().get(), ctx.func_ctx());
   x86_64::Operand x86_64_operand =
@@ -38,12 +41,12 @@ void TranslateBoolNotInstr(ir::BoolNotInstr* ir_bool_not_instr, BlockContext& ct
 
 void TranslateBoolBinaryInstr(ir::BoolBinaryInstr* ir_bool_binary_instr, BlockContext& ctx) {
   switch (ir_bool_binary_instr->operation()) {
-    case common::Bool::BinaryOp::kEq:
-    case common::Bool::BinaryOp::kNeq:
+    case Bool::BinaryOp::kEq:
+    case Bool::BinaryOp::kNeq:
       TranslateBoolCompareInstr(ir_bool_binary_instr, ctx);
       break;
-    case common::Bool::BinaryOp::kAnd:
-    case common::Bool::BinaryOp::kOr:
+    case Bool::BinaryOp::kAnd:
+    case Bool::BinaryOp::kOr:
       TranslateBoolLogicInstr(ir_bool_binary_instr, ctx);
       break;
   }
@@ -52,11 +55,11 @@ void TranslateBoolBinaryInstr(ir::BoolBinaryInstr* ir_bool_binary_instr, BlockCo
 void TranslateBoolCompareInstr(ir::BoolBinaryInstr* ir_bool_compare_instr, BlockContext& ctx) {
   // Note: It is assumed that neither operand is a constant. A constant folding optimization pass
   // should ensure this.
-  x86_64::InstrCond x86_64_cond = [](common::Bool::BinaryOp op) {
+  x86_64::InstrCond x86_64_cond = [](Bool::BinaryOp op) {
     switch (op) {
-      case common::Bool::BinaryOp::kEq:
+      case Bool::BinaryOp::kEq:
         return x86_64::InstrCond::kEqual;
-      case common::Bool::BinaryOp::kNeq:
+      case Bool::BinaryOp::kNeq:
         return x86_64::InstrCond::kNotEqual;
       default:
         common::fail("unexpected bool compare op");
@@ -107,10 +110,10 @@ void TranslateBoolLogicInstr(ir::BoolBinaryInstr* ir_bool_logic_instr, BlockCont
   }
 
   switch (ir_bool_logic_instr->operation()) {
-    case common::Bool::BinaryOp::kAnd:
+    case Bool::BinaryOp::kAnd:
       ctx.x86_64_block()->AddInstr<x86_64::And>(x86_64_result, x86_64_operand_b);
       break;
-    case common::Bool::BinaryOp::kOr:
+    case Bool::BinaryOp::kOr:
       ctx.x86_64_block()->AddInstr<x86_64::Or>(x86_64_result, x86_64_operand_b);
       break;
     default:
@@ -132,10 +135,10 @@ void TranslateIntUnaryInstr(ir::IntUnaryInstr* ir_int_unary_instr, BlockContext&
   GenerateMov(x86_64_result, x86_64_operand, ir_int_unary_instr, ctx);
 
   switch (ir_int_unary_instr->operation()) {
-    case common::Int::UnaryOp::kNot:
+    case Int::UnaryOp::kNot:
       ctx.x86_64_block()->AddInstr<x86_64::Not>(x86_64_operand);
       break;
-    case common::Int::UnaryOp::kNeg:
+    case Int::UnaryOp::kNeg:
       ctx.x86_64_block()->AddInstr<x86_64::Neg>(x86_64_operand);
       break;
     default:
@@ -146,31 +149,31 @@ void TranslateIntUnaryInstr(ir::IntUnaryInstr* ir_int_unary_instr, BlockContext&
 void TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_instr, BlockContext& ctx) {
   // Note: It is assumed that at least one operand is not a constant. A constant folding
   // optimization pass should ensure this.
-  common::Int::CompareOp op = ir_int_compare_instr->operation();
+  Int::CompareOp op = ir_int_compare_instr->operation();
   auto ir_result = ir_int_compare_instr->result().get();
   auto ir_operand_a = ir_int_compare_instr->operand_a().get();
   auto ir_operand_b = ir_int_compare_instr->operand_b().get();
   auto ir_type = static_cast<const ir::IntType*>(ir_operand_a->type());
-  bool is_signed = common::IsSigned(ir_type->int_type());
+  bool is_signed = common::atomics::IsSigned(ir_type->int_type());
 
   if (ir_operand_a->kind() == ir::Value::Kind::kConstant) {
-    op = common::Flipped(op);
+    op = common::atomics::Flipped(op);
     std::swap(ir_operand_a, ir_operand_b);
   }
 
   x86_64::InstrCond x86_64_cond = [op, is_signed]() {
     switch (op) {
-      case common::Int::CompareOp::kEq:
+      case Int::CompareOp::kEq:
         return x86_64::InstrCond::kEqual;
-      case common::Int::CompareOp::kNeq:
+      case Int::CompareOp::kNeq:
         return x86_64::InstrCond::kNotEqual;
-      case common::Int::CompareOp::kLss:
+      case Int::CompareOp::kLss:
         return is_signed ? x86_64::InstrCond::kLess : x86_64::InstrCond::kBelow;
-      case common::Int::CompareOp::kLeq:
+      case Int::CompareOp::kLeq:
         return is_signed ? x86_64::InstrCond::kLessOrEqual : x86_64::InstrCond::kBelowOrEqual;
-      case common::Int::CompareOp::kGeq:
+      case Int::CompareOp::kGeq:
         return is_signed ? x86_64::InstrCond::kGreaterOrEqual : x86_64::InstrCond::kAboveOrEqual;
-      case common::Int::CompareOp::kGtr:
+      case Int::CompareOp::kGtr:
         return is_signed ? x86_64::InstrCond::kGreater : x86_64::InstrCond::kAbove;
     }
   }();
@@ -199,23 +202,23 @@ void TranslateIntCompareInstr(ir::IntCompareInstr* ir_int_compare_instr, BlockCo
 
 void TranslateIntBinaryInstr(ir::IntBinaryInstr* ir_int_binary_instr, BlockContext& ctx) {
   switch (ir_int_binary_instr->operation()) {
-    case common::Int::BinaryOp::kAdd:
-    case common::Int::BinaryOp::kAnd:
-    case common::Int::BinaryOp::kOr:
-    case common::Int::BinaryOp::kXor:
+    case Int::BinaryOp::kAdd:
+    case Int::BinaryOp::kAnd:
+    case Int::BinaryOp::kOr:
+    case Int::BinaryOp::kXor:
       TranslateIntCommutativeALInstr(ir_int_binary_instr, ctx);
       break;
-    case common::Int::BinaryOp::kSub:
+    case Int::BinaryOp::kSub:
       TranslateIntSubInstr(ir_int_binary_instr, ctx);
       break;
-    case common::Int::BinaryOp::kMul:
+    case Int::BinaryOp::kMul:
       TranslateIntMulInstr(ir_int_binary_instr, ctx);
       break;
-    case common::Int::BinaryOp::kDiv:
-    case common::Int::BinaryOp::kRem:
+    case Int::BinaryOp::kDiv:
+    case Int::BinaryOp::kRem:
       TranslateIntDivOrRemInstr(ir_int_binary_instr, ctx);
       break;
-    case common::Int::BinaryOp::kAndNot:
+    case Int::BinaryOp::kAndNot:
       common::fail("int andnot operation was not decomposed into separate instrs");
   }
 }
@@ -248,16 +251,16 @@ void TranslateIntCommutativeALInstr(ir::IntBinaryInstr* ir_int_binary_instr, Blo
   }
 
   switch (ir_int_binary_instr->operation()) {
-    case common::Int::BinaryOp::kAdd:
+    case Int::BinaryOp::kAdd:
       ctx.x86_64_block()->AddInstr<x86_64::Add>(x86_64_result, x86_64_operand_b);
       break;
-    case common::Int::BinaryOp::kAnd:
+    case Int::BinaryOp::kAnd:
       ctx.x86_64_block()->AddInstr<x86_64::And>(x86_64_result, x86_64_operand_b);
       break;
-    case common::Int::BinaryOp::kOr:
+    case Int::BinaryOp::kOr:
       ctx.x86_64_block()->AddInstr<x86_64::Or>(x86_64_result, x86_64_operand_b);
       break;
-    case common::Int::BinaryOp::kXor:
+    case Int::BinaryOp::kXor:
       ctx.x86_64_block()->AddInstr<x86_64::Xor>(x86_64_result, x86_64_operand_b);
       break;
     default:

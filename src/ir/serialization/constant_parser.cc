@@ -13,6 +13,9 @@
 
 namespace ir_serialization {
 
+using ::common::atomics::Int;
+using ::common::atomics::IntType;
+
 std::shared_ptr<ir::Constant> ConstantParser::ParseConstant(const ir::Type* expected_type) {
   switch (scanner().token()) {
     case Scanner::kAddress:
@@ -86,10 +89,10 @@ std::shared_ptr<ir::Constant> ConstantParser::ParseBoolOrIntConstant(
     scanner().AddErrorForUnexpectedToken({Scanner::kNumber, Scanner::kIdentifier});
     return nullptr;
   }
-  common::Int value = scanner().token_number();
+  Int value = scanner().token_number();
   scanner().Next();
 
-  common::IntType int_type = common::IntType::kI64;
+  IntType int_type = IntType::kI64;
   if (scanner().token() == Scanner::kColon) {
     scanner().ConsumeToken(Scanner::kColon);
     common::pos_t type_pos = scanner().token_start();

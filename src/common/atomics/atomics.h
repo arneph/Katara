@@ -17,7 +17,7 @@
 #include <string_view>
 #include <variant>
 
-namespace common {
+namespace common::atomics {
 
 enum class IntType {
   kI8,
@@ -504,6 +504,6 @@ constexpr Int::CompareOp Flipped(Int::CompareOp op) {
   }
 }
 
-}  // namespace common
+}  // namespace common::atomics
 
 #endif /* common_atomics_h */

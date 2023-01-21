@@ -10,6 +10,9 @@
 
 namespace ir_builder {
 
+using ::common::atomics::Bool;
+using ::common::atomics::Int;
+
 std::shared_ptr<ir::Computed> BlockBuilder::MakeComputed(const ir::Type* type) {
   return func_builder_.MakeComputed(type);
 }
@@ -43,67 +46,67 @@ std::shared_ptr<ir::Value> BlockBuilder::BoolNot(std::shared_ptr<ir::Value> oper
   return result;
 }
 
-std::shared_ptr<ir::Value> BlockBuilder::BoolBinaryOp(common::Bool::BinaryOp op,
+std::shared_ptr<ir::Value> BlockBuilder::BoolBinaryOp(Bool::BinaryOp op,
                                                       std::shared_ptr<ir::Value> operand_a,
                                                       std::shared_ptr<ir::Value> operand_b) {
   if (operand_a->kind() == ir::Value::Kind::kConstant &&
       operand_b->kind() == ir::Value::Kind::kConstant) {
     bool a = static_cast<ir::BoolConstant*>(operand_a.get())->value();
     bool b = static_cast<ir::BoolConstant*>(operand_b.get())->value();
-    return common::Bool::Compute(a, op, b) ? ir::True() : ir::False();
+    return Bool::Compute(a, op, b) ? ir::True() : ir::False();
   }
   std::shared_ptr<ir::Computed> result = MakeComputed(ir::bool_type());
   AddInstr<ir::BoolBinaryInstr>(result, op, operand_a, operand_b);
   return result;
 }
 
-std::shared_ptr<ir::Value> BlockBuilder::IntUnaryOp(common::Int::UnaryOp op,
+std::shared_ptr<ir::Value> BlockBuilder::IntUnaryOp(Int::UnaryOp op,
                                                     std::shared_ptr<ir::Value> operand) {
   if (operand->kind() == ir::Value::Kind::kConstant) {
-    common::Int a = static_cast<ir::IntConstant*>(operand.get())->value();
-    return ir::ToIntConstant(common::Int::Compute(op, a));
+    Int a = static_cast<ir::IntConstant*>(operand.get())->value();
+    return ir::ToIntConstant(Int::Compute(op, a));
   }
   std::shared_ptr<ir::Computed> result = MakeComputed(operand->type());
   AddInstr<ir::IntUnaryInstr>(result, op, operand);
   return result;
 }
 
-std::shared_ptr<ir::Value> BlockBuilder::IntCompareOp(common::Int::CompareOp op,
+std::shared_ptr<ir::Value> BlockBuilder::IntCompareOp(Int::CompareOp op,
                                                       std::shared_ptr<ir::Value> operand_a,
                                                       std::shared_ptr<ir::Value> operand_b) {
   if (operand_a->kind() == ir::Value::Kind::kConstant &&
       operand_b->kind() == ir::Value::Kind::kConstant) {
-    common::Int a = static_cast<ir::IntConstant*>(operand_a.get())->value();
-    common::Int b = static_cast<ir::IntConstant*>(operand_b.get())->value();
-    return ir::ToBoolConstant(common::Int::Compare(a, op, b));
+    Int a = static_cast<ir::IntConstant*>(operand_a.get())->value();
+    Int b = static_cast<ir::IntConstant*>(operand_b.get())->value();
+    return ir::ToBoolConstant(Int::Compare(a, op, b));
   }
   std::shared_ptr<ir::Computed> result = MakeComputed(ir::bool_type());
   AddInstr<ir::IntCompareInstr>(result, op, operand_a, operand_b);
   return result;
 }
 
-std::shared_ptr<ir::Value> BlockBuilder::IntBinaryOp(common::Int::BinaryOp op,
+std::shared_ptr<ir::Value> BlockBuilder::IntBinaryOp(Int::BinaryOp op,
                                                      std::shared_ptr<ir::Value> operand_a,
                                                      std::shared_ptr<ir::Value> operand_b) {
   if (operand_a->kind() == ir::Value::Kind::kConstant &&
       operand_b->kind() == ir::Value::Kind::kConstant) {
-    common::Int a = static_cast<ir::IntConstant*>(operand_a.get())->value();
-    common::Int b = static_cast<ir::IntConstant*>(operand_b.get())->value();
-    return ir::ToIntConstant(common::Int::Compute(a, op, b));
+    Int a = static_cast<ir::IntConstant*>(operand_a.get())->value();
+    Int b = static_cast<ir::IntConstant*>(operand_b.get())->value();
+    return ir::ToIntConstant(Int::Compute(a, op, b));
   }
   std::shared_ptr<ir::Computed> result = MakeComputed(operand_a->type());
   AddInstr<ir::IntBinaryInstr>(result, op, operand_a, operand_b);
   return result;
 }
 
-std::shared_ptr<ir::Value> BlockBuilder::IntShift(common::Int::ShiftOp op,
+std::shared_ptr<ir::Value> BlockBuilder::IntShift(Int::ShiftOp op,
                                                   std::shared_ptr<ir::Value> operand_a,
                                                   std::shared_ptr<ir::Value> operand_b) {
   if (operand_a->kind() == ir::Value::Kind::kConstant &&
       operand_b->kind() == ir::Value::Kind::kConstant) {
-    common::Int a = static_cast<ir::IntConstant*>(operand_a.get())->value();
-    common::Int b = static_cast<ir::IntConstant*>(operand_b.get())->value();
-    return ir::ToIntConstant(common::Int::Shift(a, op, b));
+    Int a = static_cast<ir::IntConstant*>(operand_a.get())->value();
+    Int b = static_cast<ir::IntConstant*>(operand_b.get())->value();
+    return ir::ToIntConstant(Int::Shift(a, op, b));
   }
   std::shared_ptr<ir::Computed> result = MakeComputed(operand_a->type());
   AddInstr<ir::IntShiftInstr>(result, op, operand_a, operand_b);

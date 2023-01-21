@@ -18,6 +18,8 @@
 
 namespace {
 
+using ::common::atomics::Int;
+
 TEST(PhiResolverTest, ResolvesPhisAfterSimpleBranch) {
   // Define func and blocks:
   ir::Func func(/*fnum=*/0);
@@ -29,23 +31,23 @@ TEST(PhiResolverTest, ResolvesPhisAfterSimpleBranch) {
 
   // Define values involved in phi instrs:
   auto value_a = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
-  auto value_b = ir::ToIntConstant(common::Int(int64_t{123}));
+  auto value_b = ir::ToIntConstant(Int(int64_t{123}));
   auto value_c = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
 
   auto value_i = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
   auto value_j = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/3);
   auto value_k = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/4);
 
-  auto value_x = ir::ToIntConstant(common::Int(uint8_t{24}));
-  auto value_y = ir::ToIntConstant(common::Int(uint8_t{42}));
+  auto value_x = ir::ToIntConstant(Int(uint8_t{24}));
+  auto value_y = ir::ToIntConstant(Int(uint8_t{42}));
   auto value_z = std::make_shared<ir::Computed>(ir::u8(), /*vnum=*/5);
 
   // Add instrs to entry block:
-  auto instr_a = std::make_unique<ir::IntUnaryInstr>(value_a, common::Int::UnaryOp::kNeg,
-                                                     ir::ToIntConstant(common::Int(int64_t{321})));
+  auto instr_a = std::make_unique<ir::IntUnaryInstr>(value_a, Int::UnaryOp::kNeg,
+                                                     ir::ToIntConstant(Int(int64_t{321})));
   auto instr_a_ptr = instr_a.get();
-  auto instr_b = std::make_unique<ir::IntCompareInstr>(
-      value_i, common::Int::CompareOp::kLss, value_a, ir::ToIntConstant(common::Int(int64_t{222})));
+  auto instr_b = std::make_unique<ir::IntCompareInstr>(value_i, Int::CompareOp::kLss, value_a,
+                                                       ir::ToIntConstant(Int(int64_t{222})));
   auto instr_b_ptr = instr_b.get();
   auto instr_c = std::make_unique<ir::JumpCondInstr>(value_i, branch_a_block->number(),
                                                      branch_b_block->number());

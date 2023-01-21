@@ -13,6 +13,9 @@
 namespace lang {
 namespace ir_builder {
 
+using ::common::atomics::Bool;
+using ::common::atomics::Int;
+
 std::shared_ptr<ir::Computed> ValueBuilder::BuildBoolNot(std::shared_ptr<ir::Value> x,
                                                          IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
@@ -22,7 +25,7 @@ std::shared_ptr<ir::Computed> ValueBuilder::BuildBoolNot(std::shared_ptr<ir::Val
 }
 
 std::shared_ptr<ir::Computed> ValueBuilder::BuildBoolBinaryOp(std::shared_ptr<ir::Value> x,
-                                                              common::Bool::BinaryOp op,
+                                                              Bool::BinaryOp op,
                                                               std::shared_ptr<ir::Value> y,
                                                               IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
@@ -31,7 +34,7 @@ std::shared_ptr<ir::Computed> ValueBuilder::BuildBoolBinaryOp(std::shared_ptr<ir
   return result;
 }
 
-std::shared_ptr<ir::Computed> ValueBuilder::BuildIntUnaryOp(common::Int::UnaryOp op,
+std::shared_ptr<ir::Computed> ValueBuilder::BuildIntUnaryOp(Int::UnaryOp op,
                                                             std::shared_ptr<ir::Value> x,
                                                             IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
@@ -41,7 +44,7 @@ std::shared_ptr<ir::Computed> ValueBuilder::BuildIntUnaryOp(common::Int::UnaryOp
 }
 
 std::shared_ptr<ir::Computed> ValueBuilder::BuildIntBinaryOp(std::shared_ptr<ir::Value> x,
-                                                             common::Int::BinaryOp op,
+                                                             Int::BinaryOp op,
                                                              std::shared_ptr<ir::Value> y,
                                                              IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
@@ -51,7 +54,7 @@ std::shared_ptr<ir::Computed> ValueBuilder::BuildIntBinaryOp(std::shared_ptr<ir:
 }
 
 std::shared_ptr<ir::Computed> ValueBuilder::BuildIntCompareOp(std::shared_ptr<ir::Value> x,
-                                                              common::Int::CompareOp op,
+                                                              Int::CompareOp op,
                                                               std::shared_ptr<ir::Value> y,
                                                               IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =
@@ -61,7 +64,7 @@ std::shared_ptr<ir::Computed> ValueBuilder::BuildIntCompareOp(std::shared_ptr<ir
 }
 
 std::shared_ptr<ir::Computed> ValueBuilder::BuildIntShiftOp(std::shared_ptr<ir::Value> x,
-                                                            common::Int::ShiftOp op,
+                                                            Int::ShiftOp op,
                                                             std::shared_ptr<ir::Value> y,
                                                             IRContext& ir_ctx) {
   std::shared_ptr<ir::Computed> result =

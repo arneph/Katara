@@ -32,14 +32,14 @@ bool IntType::operator==(const Type& that) const {
 namespace {
 
 const BoolType kBool;
-const IntType kI8{common::IntType::kI8};
-const IntType kI16{common::IntType::kI16};
-const IntType kI32{common::IntType::kI32};
-const IntType kI64{common::IntType::kI64};
-const IntType kU8{common::IntType::kU8};
-const IntType kU16{common::IntType::kU16};
-const IntType kU32{common::IntType::kU32};
-const IntType kU64{common::IntType::kU64};
+const IntType kI8{common::atomics::IntType::kI8};
+const IntType kI16{common::atomics::IntType::kI16};
+const IntType kI32{common::atomics::IntType::kI32};
+const IntType kI64{common::atomics::IntType::kI64};
+const IntType kU8{common::atomics::IntType::kU8};
+const IntType kU16{common::atomics::IntType::kU16};
+const IntType kU32{common::atomics::IntType::kU32};
+const IntType kU64{common::atomics::IntType::kU64};
 const PointerType kPointer;
 const FuncType kFunc;
 
@@ -55,23 +55,23 @@ const IntType* u16() { return &kU16; }
 const IntType* u32() { return &kU32; }
 const IntType* u64() { return &kU64; }
 
-const IntType* IntTypeFor(common::IntType type) {
+const IntType* IntTypeFor(common::atomics::IntType type) {
   switch (type) {
-    case common::IntType::kI8:
+    case common::atomics::IntType::kI8:
       return &kI8;
-    case common::IntType::kI16:
+    case common::atomics::IntType::kI16:
       return &kI16;
-    case common::IntType::kI32:
+    case common::atomics::IntType::kI32:
       return &kI32;
-    case common::IntType::kI64:
+    case common::atomics::IntType::kI64:
       return &kI64;
-    case common::IntType::kU8:
+    case common::atomics::IntType::kU8:
       return &kU8;
-    case common::IntType::kU16:
+    case common::atomics::IntType::kU16:
       return &kU16;
-    case common::IntType::kU32:
+    case common::atomics::IntType::kU32:
       return &kU32;
-    case common::IntType::kU64:
+    case common::atomics::IntType::kU64:
       return &kU64;
   }
 }

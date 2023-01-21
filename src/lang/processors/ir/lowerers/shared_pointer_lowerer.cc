@@ -19,6 +19,8 @@ namespace lang {
 namespace ir_lowerers {
 namespace {
 
+using ::common::atomics::Int;
+
 struct DecomposedShared {
   std::shared_ptr<ir::Computed> control_block_pointer;
   std::shared_ptr<ir::Computed> underlying_pointer;
@@ -92,8 +94,8 @@ void LowerMakeSharedPointerInstr(
       std::vector<std::shared_ptr<ir::Computed>>{decomposed.control_block_pointer,
                                                  decomposed.underlying_pointer},
       std::vector<std::shared_ptr<ir::Value>>{
-          ir::ToIntConstant(common::Int(shared_pointer_type->element()->size())),
-          make_shared_instr->size(), destructor});
+          ir::ToIntConstant(Int(shared_pointer_type->element()->size())), make_shared_instr->size(),
+          destructor});
 
   it = block->instrs().erase(it);
   it = block->instrs().insert(it, std::move(call_instr));

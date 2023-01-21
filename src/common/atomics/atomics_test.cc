@@ -14,7 +14,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-namespace common {
+namespace common::atomics {
 
 using ::testing::AllOf;
 using ::testing::Optional;
@@ -900,4 +900,4 @@ TEST(ToU64Test, RejectsOverflow) {
   EXPECT_EQ(ToU64("+0x10000000000000000"), std::nullopt);
 }
 
-}  // namespace common
+}  // namespace common::atomics

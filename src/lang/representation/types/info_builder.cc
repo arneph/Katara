@@ -14,6 +14,8 @@
 namespace lang {
 namespace types {
 
+using ::common::atomics::Int;
+
 InfoBuilder::InfoBuilder(Info* info) : info_(info) {}
 
 Info* InfoBuilder::info() const { return info_; }
@@ -105,7 +107,7 @@ void InfoBuilder::CreatePredeclaredConstants() {
   auto predeclared_consts = std::vector<predeclared_const_t>({
       {types::Basic::kUntypedBool, constants::Value(false), "false"},
       {types::Basic::kUntypedBool, constants::Value(true), "true"},
-      {types::Basic::kUntypedInt, constants::Value(common::Int(int64_t{0})), "iota"},
+      {types::Basic::kUntypedInt, constants::Value(Int(int64_t{0})), "iota"},
   });
   for (auto predeclared_const : predeclared_consts) {
     std::unique_ptr<types::Constant> constant(

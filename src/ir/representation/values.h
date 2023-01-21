@@ -79,8 +79,8 @@ std::shared_ptr<BoolConstant> ToBoolConstant(bool value);
 
 class IntConstant : public Constant {
  public:
-  common::Int value() const { return value_; }
-  common::IntType int_type() const { return value_.type(); }
+  common::atomics::Int value() const { return value_; }
+  common::atomics::IntType int_type() const { return value_.type(); }
   const Type* type() const override { return IntTypeFor(value_.type()); }
 
   void WriteRefString(std::ostream& os) const override { os << "#" << value().ToString(); }
@@ -88,11 +88,11 @@ class IntConstant : public Constant {
   bool operator==(const Value& that) const override;
 
  private:
-  IntConstant(common::Int value) : value_(value) {}
+  IntConstant(common::atomics::Int value) : value_(value) {}
 
-  common::Int value_;
+  common::atomics::Int value_;
 
-  friend std::shared_ptr<IntConstant> MakeIntConstant(common::Int value);
+  friend std::shared_ptr<IntConstant> MakeIntConstant(common::atomics::Int value);
 };
 
 std::shared_ptr<IntConstant> I8Zero();
@@ -107,8 +107,8 @@ std::shared_ptr<IntConstant> U16Zero();
 std::shared_ptr<IntConstant> U32Zero();
 std::shared_ptr<IntConstant> U64Zero();
 
-std::shared_ptr<IntConstant> ZeroWithType(common::IntType type);
-std::shared_ptr<IntConstant> ToIntConstant(common::Int value);
+std::shared_ptr<IntConstant> ZeroWithType(common::atomics::IntType type);
+std::shared_ptr<IntConstant> ToIntConstant(common::atomics::Int value);
 
 class PointerConstant : public Constant {
  public:

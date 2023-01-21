@@ -86,18 +86,18 @@ const BoolType* bool_type();
 
 class IntType : public AtomicType {
  public:
-  constexpr IntType(common::IntType type) : type_(type) {}
+  constexpr IntType(common::atomics::IntType type) : type_(type) {}
 
-  constexpr int8_t bit_size() const override { return common::BitSizeOf(type_); }
-  constexpr common::IntType int_type() const { return type_; }
+  constexpr int8_t bit_size() const override { return common::atomics::BitSizeOf(type_); }
+  constexpr common::atomics::IntType int_type() const { return type_; }
   constexpr TypeKind type_kind() const override { return TypeKind::kInt; }
-  constexpr int64_t size() const override { return common::BitSizeOf(type_) / 8; }
+  constexpr int64_t size() const override { return common::atomics::BitSizeOf(type_) / 8; }
   constexpr Alignment alignment() const override { return Alignment(size()); }
   bool operator==(const Type& that) const override;
-  void WriteRefString(std::ostream& os) const override { os << common::ToString(type_); }
+  void WriteRefString(std::ostream& os) const override { os << common::atomics::ToString(type_); }
 
  private:
-  const common::IntType type_;
+  const common::atomics::IntType type_;
 };
 
 const IntType* i8();
@@ -108,7 +108,7 @@ const IntType* u8();
 const IntType* u16();
 const IntType* u32();
 const IntType* u64();
-const IntType* IntTypeFor(common::IntType type);
+const IntType* IntTypeFor(common::atomics::IntType type);
 
 class PointerType : public AtomicType {
  public:

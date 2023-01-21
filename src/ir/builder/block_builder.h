@@ -42,109 +42,110 @@ class BlockBuilder {
                                      std::shared_ptr<ir::Value> operand);
 
   std::shared_ptr<ir::Value> BoolNot(std::shared_ptr<ir::Value> operand);
-  std::shared_ptr<ir::Value> BoolBinaryOp(common::Bool::BinaryOp op,
+  std::shared_ptr<ir::Value> BoolBinaryOp(common::atomics::Bool::BinaryOp op,
                                           std::shared_ptr<ir::Value> operand_a,
                                           std::shared_ptr<ir::Value> operand_b);
   std::shared_ptr<ir::Value> BoolEq(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return BoolBinaryOp(common::Bool::BinaryOp::kEq, operand_a, operand_b);
+    return BoolBinaryOp(common::atomics::Bool::BinaryOp::kEq, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> BoolNeq(std::shared_ptr<ir::Value> operand_a,
                                      std::shared_ptr<ir::Value> operand_b) {
-    return BoolBinaryOp(common::Bool::BinaryOp::kNeq, operand_a, operand_b);
+    return BoolBinaryOp(common::atomics::Bool::BinaryOp::kNeq, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> BoolAnd(std::shared_ptr<ir::Value> operand_a,
                                      std::shared_ptr<ir::Value> operand_b) {
-    return BoolBinaryOp(common::Bool::BinaryOp::kAnd, operand_a, operand_b);
+    return BoolBinaryOp(common::atomics::Bool::BinaryOp::kAnd, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> BoolOr(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return BoolBinaryOp(common::Bool::BinaryOp::kOr, operand_a, operand_b);
+    return BoolBinaryOp(common::atomics::Bool::BinaryOp::kOr, operand_a, operand_b);
   }
 
-  std::shared_ptr<ir::Value> IntUnaryOp(common::Int::UnaryOp op,
+  std::shared_ptr<ir::Value> IntUnaryOp(common::atomics::Int::UnaryOp op,
                                         std::shared_ptr<ir::Value> operand);
   std::shared_ptr<ir::Value> IntNeg(std::shared_ptr<ir::Value> operand) {
-    return IntUnaryOp(common::Int::UnaryOp::kNeg, operand);
+    return IntUnaryOp(common::atomics::Int::UnaryOp::kNeg, operand);
   }
   std::shared_ptr<ir::Value> IntNot(std::shared_ptr<ir::Value> operand) {
-    return IntUnaryOp(common::Int::UnaryOp::kNot, operand);
+    return IntUnaryOp(common::atomics::Int::UnaryOp::kNot, operand);
   }
-  std::shared_ptr<ir::Value> IntCompareOp(common::Int::CompareOp op,
+  std::shared_ptr<ir::Value> IntCompareOp(common::atomics::Int::CompareOp op,
                                           std::shared_ptr<ir::Value> operand_a,
                                           std::shared_ptr<ir::Value> operand_b);
   std::shared_ptr<ir::Value> IntEq(std::shared_ptr<ir::Value> operand_a,
                                    std::shared_ptr<ir::Value> operand_b) {
-    return IntCompareOp(common::Int::CompareOp::kEq, operand_a, operand_b);
+    return IntCompareOp(common::atomics::Int::CompareOp::kEq, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntNeq(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntCompareOp(common::Int::CompareOp::kNeq, operand_a, operand_b);
+    return IntCompareOp(common::atomics::Int::CompareOp::kNeq, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntLss(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntCompareOp(common::Int::CompareOp::kLss, operand_a, operand_b);
+    return IntCompareOp(common::atomics::Int::CompareOp::kLss, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntLeq(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntCompareOp(common::Int::CompareOp::kLeq, operand_a, operand_b);
+    return IntCompareOp(common::atomics::Int::CompareOp::kLeq, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntGeq(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntCompareOp(common::Int::CompareOp::kGeq, operand_a, operand_b);
+    return IntCompareOp(common::atomics::Int::CompareOp::kGeq, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntGtr(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntCompareOp(common::Int::CompareOp::kGtr, operand_a, operand_b);
+    return IntCompareOp(common::atomics::Int::CompareOp::kGtr, operand_a, operand_b);
   }
-  std::shared_ptr<ir::Value> IntBinaryOp(common::Int::BinaryOp op,
+  std::shared_ptr<ir::Value> IntBinaryOp(common::atomics::Int::BinaryOp op,
                                          std::shared_ptr<ir::Value> operand_a,
                                          std::shared_ptr<ir::Value> operand_b);
   std::shared_ptr<ir::Value> IntAdd(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kAdd, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kAdd, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntSub(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kSub, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kSub, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntMul(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kMul, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kMul, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntDiv(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kDiv, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kDiv, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntRem(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kRem, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kRem, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntAnd(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kAnd, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kAnd, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntOr(std::shared_ptr<ir::Value> operand_a,
                                    std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kOr, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kOr, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntXor(std::shared_ptr<ir::Value> operand_a,
                                     std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kXor, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kXor, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntAndNot(std::shared_ptr<ir::Value> operand_a,
                                        std::shared_ptr<ir::Value> operand_b) {
-    return IntBinaryOp(common::Int::BinaryOp::kAndNot, operand_a, operand_b);
+    return IntBinaryOp(common::atomics::Int::BinaryOp::kAndNot, operand_a, operand_b);
   }
-  std::shared_ptr<ir::Value> IntShift(common::Int::ShiftOp op, std::shared_ptr<ir::Value> operand_a,
+  std::shared_ptr<ir::Value> IntShift(common::atomics::Int::ShiftOp op,
+                                      std::shared_ptr<ir::Value> operand_a,
                                       std::shared_ptr<ir::Value> operand_b);
   std::shared_ptr<ir::Value> IntShiftLeft(std::shared_ptr<ir::Value> operand_a,
                                           std::shared_ptr<ir::Value> operand_b) {
-    return IntShift(common::Int::ShiftOp::kLeft, operand_a, operand_b);
+    return IntShift(common::atomics::Int::ShiftOp::kLeft, operand_a, operand_b);
   }
   std::shared_ptr<ir::Value> IntShiftRight(std::shared_ptr<ir::Value> operand_a,
                                            std::shared_ptr<ir::Value> operand_b) {
-    return IntShift(common::Int::ShiftOp::kRight, operand_a, operand_b);
+    return IntShift(common::atomics::Int::ShiftOp::kRight, operand_a, operand_b);
   }
 
   std::shared_ptr<ir::Computed> OffsetPointer(std::shared_ptr<ir::Computed> pointer,

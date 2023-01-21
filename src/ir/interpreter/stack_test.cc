@@ -19,8 +19,9 @@
 #include "src/ir/representation/values.h"
 #include "src/ir/serialization/parse.h"
 
-using testing::IsEmpty;
-using testing::SizeIs;
+using ::common::atomics::Int;
+using ::testing::IsEmpty;
+using ::testing::SizeIs;
 
 TEST(StackTest, HandlesStackFramesCorrectly) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
@@ -66,10 +67,10 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
   EXPECT_FALSE(frame_a->exec_point().is_at_func_exit());
   EXPECT_THAT(frame_a->computed_values(), IsEmpty());
 
-  frame_a->computed_values().insert({0, ir::ToIntConstant(common::Int(40))});
-  frame_a->computed_values().insert({1, ir::ToIntConstant(common::Int(39))});
+  frame_a->computed_values().insert({0, ir::ToIntConstant(Int(40))});
+  frame_a->computed_values().insert({1, ir::ToIntConstant(Int(39))});
   frame_a->exec_point().AdvanceToNextInstr();
-  frame_a->computed_values().insert({2, ir::ToIntConstant(common::Int(38))});
+  frame_a->computed_values().insert({2, ir::ToIntConstant(Int(38))});
   frame_a->exec_point().AdvanceToNextInstr();
 
   EXPECT_FALSE(frame_a->exec_point().is_at_block_entry());
@@ -96,8 +97,8 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
   EXPECT_TRUE(frame_a->exec_point().is_at_func_exit());
   EXPECT_THAT(frame_a->computed_values(), SizeIs(3));
 
-  frame_b->computed_values().insert({0, ir::ToIntConstant(common::Int(25))});
-  frame_b->computed_values().insert({5, ir::ToIntConstant(common::Int(17))});
+  frame_b->computed_values().insert({0, ir::ToIntConstant(Int(25))});
+  frame_b->computed_values().insert({5, ir::ToIntConstant(Int(17))});
   frame_b->exec_point().AdvanceToFuncExit({frame_b->computed_values().at(5)});
 
   EXPECT_FALSE(frame_b->exec_point().is_at_block_entry());
@@ -121,9 +122,9 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
   EXPECT_THAT(frame_a->computed_values(), SizeIs(3));
 
   frame_a->exec_point().AdvanceToNextInstr();
-  frame_a->computed_values().insert({3, ir::ToIntConstant(common::Int(37))});
+  frame_a->computed_values().insert({3, ir::ToIntConstant(Int(37))});
   frame_a->exec_point().AdvanceToNextInstr();
-  frame_a->computed_values().insert({4, ir::ToIntConstant(common::Int(36))});
+  frame_a->computed_values().insert({4, ir::ToIntConstant(Int(36))});
   frame_a->exec_point().AdvanceToNextInstr();
 
   stack.PushFrame(func_b);
@@ -146,10 +147,10 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
   EXPECT_FALSE(frame_a->exec_point().is_at_func_exit());
   EXPECT_THAT(frame_a->computed_values(), SizeIs(5));
 
-  frame_c->computed_values().insert({0, ir::ToIntConstant(common::Int(111))});
-  frame_c->computed_values().insert({1, ir::ToIntConstant(common::Int(222))});
+  frame_c->computed_values().insert({0, ir::ToIntConstant(Int(111))});
+  frame_c->computed_values().insert({1, ir::ToIntConstant(Int(222))});
   frame_c->exec_point().AdvanceToNextInstr();
-  frame_c->computed_values().insert({2, ir::ToIntConstant(common::Int(77))});
+  frame_c->computed_values().insert({2, ir::ToIntConstant(Int(77))});
   frame_c->exec_point().AdvanceToFuncExit({frame_c->computed_values().at(2)});
 
   EXPECT_FALSE(frame_c->exec_point().is_at_block_entry());
@@ -173,7 +174,7 @@ TEST(StackTest, HandlesStackFramesCorrectly) {
   EXPECT_THAT(frame_a->computed_values(), SizeIs(5));
 
   frame_a->exec_point().AdvanceToNextInstr();
-  frame_a->computed_values().insert({5, ir::ToIntConstant(common::Int(35))});
+  frame_a->computed_values().insert({5, ir::ToIntConstant(Int(35))});
   frame_a->exec_point().AdvanceToFuncExit({frame_a->computed_values().at(5)});
 
   stack.PopCurrentFrame();

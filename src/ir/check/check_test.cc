@@ -26,6 +26,8 @@
 
 namespace {
 
+using ::common::atomics::Bool;
+using ::common::atomics::Int;
 using ::ir_check::CheckProgram;
 using ::ir_issues::Issue;
 using ::ir_issues::IssueKind;
@@ -402,8 +404,8 @@ TEST(CheckerTest, CatchesBoolBinaryInstrOperandDoesNotHaveBoolType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::BoolBinaryInstr>(
-                                            result, common::Bool::BinaryOp::kAnd, arg_a, arg_b));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::BoolBinaryInstr>(result, Bool::BinaryOp::kAnd, arg_a, arg_b));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -418,8 +420,8 @@ TEST(CheckerTest, CatchesBoolBinaryInstrResultDoesNotHaveBoolType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::BoolBinaryInstr>(
-                                            result, common::Bool::BinaryOp::kAnd, arg_a, arg_b));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::BoolBinaryInstr>(result, Bool::BinaryOp::kAnd, arg_a, arg_b));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -434,7 +436,7 @@ TEST(CheckerTest, CatchesIntUnaryInstrOperandDoesNotHaveIntType) {
   auto arg = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::i32(), /*vnum=*/1);
   PrepareSimpleComputationTest(
-      program, std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNeg, arg));
+      program, std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNeg, arg));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -453,7 +455,7 @@ TEST(CheckerTest, CatchesIntUnaryInstrResultDoesNotHaveIntType) {
   auto arg = std::make_shared<ir::Computed>(ir::i16(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::func_type(), /*vnum=*/1);
   PrepareSimpleComputationTest(
-      program, std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNeg, arg));
+      program, std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNeg, arg));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -470,8 +472,8 @@ TEST(CheckerTest, CatchesIntCompareInstrOperandDoesNotHaveIntType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntCompareInstr>(
-                                            result, common::Int::CompareOp::kLeq, arg_a, arg_b));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -488,8 +490,8 @@ TEST(CheckerTest, CatchesIntCompareInstrOperandsHaveDifferentTypes) {
   auto arg_a = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntCompareInstr>(
-                                            result, common::Int::CompareOp::kLeq, arg_a, arg_b));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -504,8 +506,8 @@ TEST(CheckerTest, CatchesIntCompareInstrResultDoesNotHaveBoolType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntCompareInstr>(
-                                            result, common::Int::CompareOp::kLeq, arg_a, arg_b));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -520,8 +522,8 @@ TEST(CheckerTest, CatchesIntBinaryInstrOperandDoesNotHaveIntType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntBinaryInstr>(
-                                            result, common::Int::BinaryOp::kXor, arg_a, arg_b));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -538,8 +540,8 @@ TEST(CheckerTest, CatchesIntBinaryInstrResultDoesNotHaveIntType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::func_type(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntBinaryInstr>(
-                                            result, common::Int::BinaryOp::kXor, arg_a, arg_b));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -558,8 +560,8 @@ TEST(CheckerTest, CatchesIntBinaryInstrOperandsAndResultHaveDifferentTypes) {
   auto arg_a = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntBinaryInstr>(
-                                            result, common::Int::BinaryOp::kXor, arg_a, arg_b));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -574,8 +576,8 @@ TEST(CheckerTest, CatchesIntShiftInstrOperandDoesNotHaveIntType) {
   auto shifted = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntShiftInstr>(
-                                            result, common::Int::ShiftOp::kLeft, shifted, offset));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -590,8 +592,8 @@ TEST(CheckerTest, CatchesIntShiftInstrResultDoesNotHaveIntType) {
   auto shifted = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntShiftInstr>(
-                                            result, common::Int::ShiftOp::kLeft, shifted, offset));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -608,8 +610,8 @@ TEST(CheckerTest, CatchesIntShiftInstrShiftedAndResultHaveDifferentTypes) {
   auto shifted = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/2);
-  PrepareSimpleComputationTest(program, std::make_unique<ir::IntShiftInstr>(
-                                            result, common::Int::ShiftOp::kLeft, shifted, offset));
+  PrepareSimpleComputationTest(
+      program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -1331,8 +1333,7 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpInstr) {
   func->set_entry_block_num(block_a->number());
   func->AddControlFlow(block_a->number(), block_b->number());
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
-  block_a->instrs().push_back(
-      std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNot, arg));
+  block_a->instrs().push_back(std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg));
   block_a->instrs().push_back(std::make_unique<ir::JumpInstr>(block_b->number()));
   block_a->instrs().push_back(std::make_unique<ir::JumpInstr>(block_b->number()));
   block_b->instrs().push_back(
@@ -1364,7 +1365,7 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpCondInstr) {
   block_a->instrs().push_back(
       std::make_unique<ir::JumpCondInstr>(arg_b, block_b->number(), block_c->number()));
   block_a->instrs().push_back(
-      std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNot, arg_a));
+      std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg_a));
   block_a->instrs().push_back(
       std::make_unique<ir::JumpCondInstr>(arg_b, block_b->number(), block_c->number()));
   block_b->instrs().push_back(
@@ -1389,8 +1390,7 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForReturnInstr) {
   ir::Block* block = func->AddBlock();
   func->set_entry_block_num(block->number());
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
-  block->instrs().push_back(
-      std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNot, arg));
+  block->instrs().push_back(std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg));
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
   block->instrs().push_back(
@@ -1413,8 +1413,7 @@ TEST(CheckerTest, CatchesControlFlowInstrMissingAtEndOfBlock) {
   ir::Block* block = func->AddBlock();
   func->set_entry_block_num(block->number());
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
-  block->instrs().push_back(
-      std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNot, arg));
+  block->instrs().push_back(std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg));
 
   common::PosFileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
@@ -1441,7 +1440,7 @@ TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForMissingContr
       std::make_unique<ir::JumpCondInstr>(arg_b, block_b->number(), block_c->number()));
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/2);
   block_b->instrs().push_back(
-      std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNot, arg_a));
+      std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg_a));
   block_b->instrs().push_back(std::make_unique<ir::JumpInstr>(block_c->number()));
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
@@ -1475,7 +1474,7 @@ TEST(CheckerTest,
       std::make_unique<ir::JumpCondInstr>(arg_b, block_b->number(), block_c->number()));
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/3);
   block_b->instrs().push_back(
-      std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNot, arg_a));
+      std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg_a));
   block_b->instrs().push_back(
       std::make_unique<ir::JumpCondInstr>(arg_c, block_c->number(), block_d->number()));
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
@@ -1500,8 +1499,7 @@ TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForExcessContro
   func->set_entry_block_num(block_a->number());
   func->AddControlFlow(block_a->number(), block_b->number());
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
-  block_a->instrs().push_back(
-      std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNot, arg));
+  block_a->instrs().push_back(std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg));
   block_a->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
   block_b->instrs().push_back(
@@ -1724,8 +1722,7 @@ TEST(CheckerTest, CatchesComputedValueHasMultipleDefinitions) {
   func->result_types().push_back(ir::u16());
   ir::Block* block = func->AddBlock();
   func->set_entry_block_num(block->number());
-  block->instrs().push_back(
-      std::make_unique<ir::IntUnaryInstr>(value, common::Int::UnaryOp::kNeg, value));
+  block->instrs().push_back(std::make_unique<ir::IntUnaryInstr>(value, Int::UnaryOp::kNeg, value));
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value}));
 
@@ -1801,14 +1798,14 @@ TEST(CheckerTest, FindsNoComputedValueDefinitionDoesNotDominateUseForCorrectInhe
   block_b->instrs().push_back(std::make_unique<ir::PhiInstr>(
       value_b, std::vector<std::shared_ptr<ir::InheritedValue>>{inherited_c, inherited_d}));
   block_b->instrs().push_back(std::make_unique<ir::IntCompareInstr>(
-      value_c, common::Int::CompareOp::kLeq, value_a, ir::ToIntConstant(common::Int(int64_t{10}))));
+      value_c, Int::CompareOp::kLeq, value_a, ir::ToIntConstant(Int(int64_t{10}))));
   block_b->instrs().push_back(
       std::make_unique<ir::JumpCondInstr>(value_c, block_c->number(), block_d->number()));
 
   block_c->instrs().push_back(
-      std::make_unique<ir::IntBinaryInstr>(value_d, common::Int::BinaryOp::kAdd, value_b, value_a));
-  block_c->instrs().push_back(std::make_unique<ir::IntBinaryInstr>(
-      value_e, common::Int::BinaryOp::kAdd, value_a, ir::I64One()));
+      std::make_unique<ir::IntBinaryInstr>(value_d, Int::BinaryOp::kAdd, value_b, value_a));
+  block_c->instrs().push_back(
+      std::make_unique<ir::IntBinaryInstr>(value_e, Int::BinaryOp::kAdd, value_a, ir::I64One()));
   block_c->instrs().push_back(std::make_unique<ir::JumpInstr>(block_b->number()));
 
   block_d->instrs().push_back(

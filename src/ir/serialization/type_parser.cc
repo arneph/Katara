@@ -32,7 +32,7 @@ const ir::Type* TypeParser::ParseType() {
 
   if (name == "b") {
     return ir::bool_type();
-  } else if (auto int_type = common::ToIntType(name); int_type) {
+  } else if (auto int_type = common::atomics::ToIntType(name); int_type) {
     return ir::IntTypeFor(int_type.value());
   } else if (name == "ptr") {
     return ir::pointer_type();

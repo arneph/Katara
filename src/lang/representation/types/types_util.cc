@@ -14,6 +14,9 @@
 namespace lang {
 namespace types {
 
+using ::common::atomics::Int;
+using ::common::atomics::IntType;
+
 Basic::Kind ConvertIfUntyped(Basic::Kind basic_kind) {
   switch (basic_kind) {
     case Basic::kBool:
@@ -50,26 +53,26 @@ constants::Value ConvertUntypedValue(constants::Value value, Basic::Kind typed_b
       }
       return value;
     case constants::Value::Kind::kInt: {
-      common::IntType int_type = [typed_basic_kind]() {
+      IntType int_type = [typed_basic_kind]() {
         switch (typed_basic_kind) {
           case Basic::kInt8:
-            return common::IntType::kI8;
+            return IntType::kI8;
           case Basic::kInt16:
-            return common::IntType::kI16;
+            return IntType::kI16;
           case Basic::kInt32:
-            return common::IntType::kI32;
+            return IntType::kI32;
           case Basic::kInt64:
           case Basic::kInt:
-            return common::IntType::kI64;
+            return IntType::kI64;
           case Basic::kUint8:
-            return common::IntType::kU8;
+            return IntType::kU8;
           case Basic::kUint16:
-            return common::IntType::kU16;
+            return IntType::kU16;
           case Basic::kUint32:
-            return common::IntType::kU32;
+            return IntType::kU32;
           case Basic::kUint64:
           case Basic::kUint:
-            return common::IntType::kU64;
+            return IntType::kU64;
           default:
             common::fail("internal erorr: attempted to convert int constant to non-int");
         }

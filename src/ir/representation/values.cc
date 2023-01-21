@@ -13,6 +13,8 @@
 
 namespace ir {
 
+using ::common::atomics::Int;
+
 void Value::WriteRefStringWithType(std::ostream& os) const {
   WriteRefString(os);
   os << ":";
@@ -46,90 +48,89 @@ std::shared_ptr<BoolConstant> ToBoolConstant(bool value) { return value ? True()
 bool IntConstant::operator==(const Value& that) const {
   if (that.kind() != Value::Kind::kConstant) return false;
   if (that.type() != type()) return false;
-  return common::Int::Compare(value(), common::Int::CompareOp::kEq,
-                              static_cast<const IntConstant&>(that).value());
+  return Int::Compare(value(), Int::CompareOp::kEq, static_cast<const IntConstant&>(that).value());
 }
 
-std::shared_ptr<IntConstant> MakeIntConstant(common::Int value) {
+std::shared_ptr<IntConstant> MakeIntConstant(Int value) {
   return std::shared_ptr<IntConstant>(new IntConstant(value));
 }
 
 std::shared_ptr<IntConstant> I8Zero() {
-  static auto kI8Zero = MakeIntConstant(common::Int(int8_t{0}));
+  static auto kI8Zero = MakeIntConstant(Int(int8_t{0}));
   return kI8Zero;
 }
 
 std::shared_ptr<IntConstant> I16Zero() {
-  static auto kI16Zero = MakeIntConstant(common::Int(int16_t{0}));
+  static auto kI16Zero = MakeIntConstant(Int(int16_t{0}));
   return kI16Zero;
 }
 
 std::shared_ptr<IntConstant> I32Zero() {
-  static auto kI32Zero = MakeIntConstant(common::Int(int32_t{0}));
+  static auto kI32Zero = MakeIntConstant(Int(int32_t{0}));
   return kI32Zero;
 }
 
 std::shared_ptr<IntConstant> I64Zero() {
-  static auto kI64Zero = MakeIntConstant(common::Int(int64_t{0}));
+  static auto kI64Zero = MakeIntConstant(Int(int64_t{0}));
   return kI64Zero;
 }
 
 std::shared_ptr<IntConstant> I64One() {
-  static auto kI64One = MakeIntConstant(common::Int(int64_t{1}));
+  static auto kI64One = MakeIntConstant(Int(int64_t{1}));
   return kI64One;
 }
 
 std::shared_ptr<IntConstant> I64Eight() {
-  static auto kI64Eight = MakeIntConstant(common::Int(int64_t{8}));
+  static auto kI64Eight = MakeIntConstant(Int(int64_t{8}));
   return kI64Eight;
 }
 
 std::shared_ptr<IntConstant> U8Zero() {
-  static auto kU8Zero = MakeIntConstant(common::Int(uint8_t{0}));
+  static auto kU8Zero = MakeIntConstant(Int(uint8_t{0}));
   return kU8Zero;
 }
 
 std::shared_ptr<IntConstant> U16Zero() {
-  static auto kU16Zero = MakeIntConstant(common::Int(uint16_t{0}));
+  static auto kU16Zero = MakeIntConstant(Int(uint16_t{0}));
   return kU16Zero;
 }
 
 std::shared_ptr<IntConstant> U32Zero() {
-  static auto kU32Zero = MakeIntConstant(common::Int(uint32_t{0}));
+  static auto kU32Zero = MakeIntConstant(Int(uint32_t{0}));
   return kU32Zero;
 }
 
 std::shared_ptr<IntConstant> U64Zero() {
-  static auto kU64Zero = MakeIntConstant(common::Int(uint64_t{0}));
+  static auto kU64Zero = MakeIntConstant(Int(uint64_t{0}));
   return kU64Zero;
 }
 
-std::shared_ptr<IntConstant> ZeroWithType(common::IntType type) {
+std::shared_ptr<IntConstant> ZeroWithType(common::atomics::IntType type) {
   switch (type) {
-    case common::IntType::kI8:
+    case common::atomics::IntType::kI8:
       return ir::I8Zero();
-    case common::IntType::kI16:
+    case common::atomics::IntType::kI16:
       return ir::I16Zero();
-    case common::IntType::kI32:
+    case common::atomics::IntType::kI32:
       return ir::I32Zero();
-    case common::IntType::kI64:
+    case common::atomics::IntType::kI64:
       return ir::I64Zero();
-    case common::IntType::kU8:
+    case common::atomics::IntType::kU8:
       return ir::U8Zero();
-    case common::IntType::kU16:
+    case common::atomics::IntType::kU16:
       return ir::U16Zero();
-    case common::IntType::kU32:
+    case common::atomics::IntType::kU32:
       return ir::U32Zero();
-    case common::IntType::kU64:
+    case common::atomics::IntType::kU64:
       return ir::U64Zero();
   }
 }
 
-std::shared_ptr<IntConstant> ToIntConstant(common::Int value) {
+std::shared_ptr<IntConstant> ToIntConstant(Int value) {
   if (value.IsZero()) {
     return ZeroWithType(value.type());
 
-  } else if (value.type() == common::IntType::kI64) {
+  } else if (value.type() == common::atomics::IntType::kI64) {
     switch (value.AsInt64()) {
       case 1:
         return I64One();

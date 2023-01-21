@@ -10,6 +10,9 @@
 
 namespace ir_serialization {
 
+using ::common::atomics::Bool;
+using ::common::atomics::Int;
+
 // Func ::= '@' Number Identifier? FuncArgs '=>' FuncResultTypes FuncBody
 ir::Func* FuncParser::ParseFunc() {
   common::pos_t func_start = scanner().token_start();
@@ -235,7 +238,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
     }
     return ParseBoolNotInstr(results.front());
 
-  } else if (auto bool_binary_op = common::ToBoolBinaryOp(instr_name); bool_binary_op) {
+  } else if (auto bool_binary_op = common::atomics::ToBoolBinaryOp(instr_name); bool_binary_op) {
     if (results.size() != 1) {
       issue_tracker().Add(ir_issues::IssueKind::kBoolBinaryInstrDoesNotHaveOneResult,
                           scanner().token_start(),
@@ -245,7 +248,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
     }
     return ParseBoolBinaryInstr(results.front(), bool_binary_op.value());
 
-  } else if (auto int_unary_op = common::ToIntUnaryOp(instr_name); int_unary_op) {
+  } else if (auto int_unary_op = common::atomics::ToIntUnaryOp(instr_name); int_unary_op) {
     if (results.size() != 1) {
       issue_tracker().Add(ir_issues::IssueKind::kIntUnaryInstrDoesNotHaveOneResult,
                           scanner().token_start(), "expected one result for int unary instruction");
@@ -254,7 +257,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
     }
     return ParseIntUnaryInstr(results.front(), int_unary_op.value());
 
-  } else if (auto int_compare_op = common::ToIntCompareOp(instr_name); int_compare_op) {
+  } else if (auto int_compare_op = common::atomics::ToIntCompareOp(instr_name); int_compare_op) {
     if (results.size() != 1) {
       issue_tracker().Add(ir_issues::IssueKind::kIntCompareInstrDoesNotHaveOneResult,
                           scanner().token_start(),
@@ -264,7 +267,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
     }
     return ParseIntCompareInstr(results.front(), int_compare_op.value());
 
-  } else if (auto int_binary_op = common::ToIntBinaryOp(instr_name); int_binary_op) {
+  } else if (auto int_binary_op = common::atomics::ToIntBinaryOp(instr_name); int_binary_op) {
     if (results.size() != 1) {
       issue_tracker().Add(ir_issues::IssueKind::kIntBinaryInstrDoesNotHaveOneResult,
                           scanner().token_start(),
@@ -274,7 +277,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
     }
     return ParseIntBinaryInstr(results.front(), int_binary_op.value());
 
-  } else if (auto int_shift_op = common::ToIntShiftOp(instr_name); int_shift_op) {
+  } else if (auto int_shift_op = common::atomics::ToIntShiftOp(instr_name); int_shift_op) {
     if (results.size() != 1) {
       issue_tracker().Add(ir_issues::IssueKind::kIntShiftInstrDoesNotHaveOneResult,
                           scanner().token_start(), "expected one result for int shift instruction");
@@ -446,7 +449,7 @@ std::unique_ptr<ir::BoolNotInstr> FuncParser::ParseBoolNotInstr(
 
 // BoolBinaryInstr ::= Computed '=' BinaryOp Value ',' Value NL
 std::unique_ptr<ir::BoolBinaryInstr> FuncParser::ParseBoolBinaryInstr(
-    std::shared_ptr<ir::Computed> result, common::Bool::BinaryOp op) {
+    std::shared_ptr<ir::Computed> result, Bool::BinaryOp op) {
   std::shared_ptr<ir::Value> operand_a = ParseValue(result->type());
   scanner().ConsumeToken(Scanner::kComma);
 
@@ -458,7 +461,7 @@ std::unique_ptr<ir::BoolBinaryInstr> FuncParser::ParseBoolBinaryInstr(
 
 // IntUnaryInstr ::= Computed '=' UnaryOp Value NL
 std::unique_ptr<ir::IntUnaryInstr> FuncParser::ParseIntUnaryInstr(
-    std::shared_ptr<ir::Computed> result, common::Int::UnaryOp op) {
+    std::shared_ptr<ir::Computed> result, Int::UnaryOp op) {
   std::shared_ptr<ir::Value> operand = ParseValue(result->type());
   scanner().ConsumeToken(Scanner::kNewLine);
 
@@ -467,7 +470,7 @@ std::unique_ptr<ir::IntUnaryInstr> FuncParser::ParseIntUnaryInstr(
 
 // IntCompareInstr ::= Computed '=' CompareOp Value ',' Value NL
 std::unique_ptr<ir::IntCompareInstr> FuncParser::ParseIntCompareInstr(
-    std::shared_ptr<ir::Computed> result, common::Int::CompareOp op) {
+    std::shared_ptr<ir::Computed> result, Int::CompareOp op) {
   std::shared_ptr<ir::Value> operand_a = ParseValue(/*expected_type=*/nullptr);
   scanner().ConsumeToken(Scanner::kComma);
 
@@ -480,7 +483,7 @@ std::unique_ptr<ir::IntCompareInstr> FuncParser::ParseIntCompareInstr(
 
 // IntBinaryInstr ::= Computed '=' BinaryOp Value ',' Value NL
 std::unique_ptr<ir::IntBinaryInstr> FuncParser::ParseIntBinaryInstr(
-    std::shared_ptr<ir::Computed> result, common::Int::BinaryOp op) {
+    std::shared_ptr<ir::Computed> result, Int::BinaryOp op) {
   std::shared_ptr<ir::Value> operand_a = ParseValue(result->type());
   scanner().ConsumeToken(Scanner::kComma);
 
@@ -492,7 +495,7 @@ std::unique_ptr<ir::IntBinaryInstr> FuncParser::ParseIntBinaryInstr(
 
 // IntShiftInstr ::= Computed '=' ShiftOp Value ',' Value NL
 std::unique_ptr<ir::IntShiftInstr> FuncParser::ParseIntShiftInstr(
-    std::shared_ptr<ir::Computed> result, common::Int::ShiftOp op) {
+    std::shared_ptr<ir::Computed> result, Int::ShiftOp op) {
   std::shared_ptr<ir::Value> operand_a = ParseValue(/*expected_type=*/nullptr);
   scanner().ConsumeToken(Scanner::kComma);
 

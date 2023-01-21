@@ -70,15 +70,15 @@ class FuncParser {
   std::unique_ptr<ir::Conversion> ParseConversionInstr(std::shared_ptr<ir::Computed> result);
   std::unique_ptr<ir::BoolNotInstr> ParseBoolNotInstr(std::shared_ptr<ir::Computed> result);
   std::unique_ptr<ir::BoolBinaryInstr> ParseBoolBinaryInstr(std::shared_ptr<ir::Computed> result,
-                                                            common::Bool::BinaryOp op);
+                                                            common::atomics::Bool::BinaryOp op);
   std::unique_ptr<ir::IntUnaryInstr> ParseIntUnaryInstr(std::shared_ptr<ir::Computed> result,
-                                                        common::Int::UnaryOp op);
+                                                        common::atomics::Int::UnaryOp op);
   std::unique_ptr<ir::IntCompareInstr> ParseIntCompareInstr(std::shared_ptr<ir::Computed> result,
-                                                            common::Int::CompareOp op);
+                                                            common::atomics::Int::CompareOp op);
   std::unique_ptr<ir::IntBinaryInstr> ParseIntBinaryInstr(std::shared_ptr<ir::Computed> result,
-                                                          common::Int::BinaryOp op);
+                                                          common::atomics::Int::BinaryOp op);
   std::unique_ptr<ir::IntShiftInstr> ParseIntShiftInstr(std::shared_ptr<ir::Computed> result,
-                                                        common::Int::ShiftOp op);
+                                                        common::atomics::Int::ShiftOp op);
   std::unique_ptr<ir::PointerOffsetInstr> ParsePointerOffsetInstr(
       std::shared_ptr<ir::Computed> result);
   std::unique_ptr<ir::NilTestInstr> ParseNilTestInstr(std::shared_ptr<ir::Computed> result);

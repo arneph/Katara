@@ -14,6 +14,8 @@
 
 namespace ir_serialization {
 
+using ::common::atomics::Int;
+
 std::string Scanner::TokenToString(Token token) {
   switch (token) {
     case kUnknown:
@@ -42,33 +44,33 @@ std::string Scanner::token_text() const {
   return file_->contents(token_start_, token_end_);
 }
 
-common::Int Scanner::token_number() const {
+Int Scanner::token_number() const {
   if (token_ != kNumber) {
     common::fail("token has no associated number");
   }
-  std::optional<common::Int> number = common::ToI64(token_text());
+  std::optional<Int> number = common::atomics::ToI64(token_text());
   if (number.has_value()) {
     return *number;
   }
-  number = common::ToU64(token_text());
+  number = common::atomics::ToU64(token_text());
   if (!number.has_value()) {
     issue_tracker_.Add(ir_issues::IssueKind::kNumberCannotBeRepresented, token_start_,
                        "The token cannot be represented as a number");
-    return common::Int(uint8_t{0});
+    return Int(uint8_t{0});
   } else {
     return *number;
   }
 }
 
-common::Int Scanner::token_address() const {
+Int Scanner::token_address() const {
   if (token_ != kAddress) {
     common::fail("token has no associated address");
   }
-  std::optional<common::Int> address = common::ToU64(token_text(), /*base=*/16);
+  std::optional<Int> address = common::atomics::ToU64(token_text(), /*base=*/16);
   if (!address.has_value()) {
     issue_tracker_.Add(ir_issues::IssueKind::kAddressCannotBeRepresented, token_start_,
                        "The token cannot be represented as an address");
-    return common::Int(uint8_t{0});
+    return Int(uint8_t{0});
   } else {
     return *address;
   }

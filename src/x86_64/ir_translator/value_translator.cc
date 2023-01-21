@@ -17,6 +17,9 @@
 
 namespace ir_to_x86_64_translator {
 
+using ::common::atomics::Int;
+using ::common::atomics::IntType;
+
 x86_64::Operand TranslateValue(ir::Value* value, IntNarrowing narrowing, FuncContext& ctx) {
   switch (value->kind()) {
     case ir::Value::Kind::kConstant:
@@ -45,28 +48,26 @@ x86_64::Imm TranslateBoolConstant(ir::BoolConstant* constant) {
 
 x86_64::Imm TranslateIntConstant(ir::IntConstant* constant, IntNarrowing narrowing) {
   switch (constant->value().type()) {
-    case common::IntType::kI8:
-    case common::IntType::kU8:
+    case IntType::kI8:
+    case IntType::kU8:
       return x86_64::Imm(int8_t(constant->value().AsInt64()));
-    case common::IntType::kI16:
-    case common::IntType::kU16:
+    case IntType::kI16:
+    case IntType::kU16:
       return x86_64::Imm(int16_t(constant->value().AsInt64()));
-    case common::IntType::kI32:
-    case common::IntType::kU32:
+    case IntType::kI32:
+    case IntType::kU32:
       return x86_64::Imm(int32_t(constant->value().AsInt64()));
-    case common::IntType::kI64: {
-      common::Int value = constant->value();
-      if (narrowing == IntNarrowing::k64To32BitIfPossible &&
-          value.CanConvertTo(common::IntType::kI32)) {
+    case IntType::kI64: {
+      Int value = constant->value();
+      if (narrowing == IntNarrowing::k64To32BitIfPossible && value.CanConvertTo(IntType::kI32)) {
         return x86_64::Imm(int32_t(value.AsInt64()));
       } else {
         return x86_64::Imm(int64_t(value.AsInt64()));
       }
     }
-    case common::IntType::kU64: {
-      common::Int value = constant->value();
-      if (narrowing == IntNarrowing::k64To32BitIfPossible &&
-          value.CanConvertTo(common::IntType::kU32)) {
+    case IntType::kU64: {
+      Int value = constant->value();
+      if (narrowing == IntNarrowing::k64To32BitIfPossible && value.CanConvertTo(IntType::kU32)) {
         return x86_64::Imm(int32_t(value.AsInt64()));
       } else {
         return x86_64::Imm(int64_t(value.AsInt64()));

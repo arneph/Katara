@@ -61,7 +61,8 @@ class ExprBuilder {
                                                    IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfBoolNotExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
                                                      IRContext& ir_ctx);
-  std::shared_ptr<ir::Value> BuildValueOfIntUnaryExpr(ast::UnaryExpr* expr, common::Int::UnaryOp op,
+  std::shared_ptr<ir::Value> BuildValueOfIntUnaryExpr(ast::UnaryExpr* expr,
+                                                      common::atomics::Int::UnaryOp op,
                                                       ASTContext& ast_ctx, IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfRefExpr(ast::UnaryExpr* expr, ASTContext& ast_ctx,
                                                  IRContext& ir_ctx);
@@ -77,11 +78,11 @@ class ExprBuilder {
   std::shared_ptr<ir::Value> BuildValueOfStringConcatExpr(ast::BinaryExpr* expr,
                                                           ASTContext& ast_ctx, IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfIntBinaryExpr(ast::BinaryExpr* expr,
-                                                       common::Int::BinaryOp op,
+                                                       common::atomics::Int::BinaryOp op,
                                                        ASTContext& ast_ctx, IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfIntShiftExpr(ast::BinaryExpr* expr,
-                                                      common::Int::ShiftOp op, ASTContext& ast_ctx,
-                                                      IRContext& ir_ctx);
+                                                      common::atomics::Int::ShiftOp op,
+                                                      ASTContext& ast_ctx, IRContext& ir_ctx);
   std::shared_ptr<ir::Value> BuildValueOfBinaryLogicExpr(ast::BinaryExpr* expr, ASTContext& ast_ctx,
                                                          IRContext& ir_ctx);
 

@@ -73,7 +73,7 @@ class Interpreter {
   void ExecuteReturnInstr(ir::ReturnInstr* instr);
 
   bool EvaluateBool(std::shared_ptr<ir::Value> ir_value);
-  common::Int EvaluateInt(std::shared_ptr<ir::Value> ir_value);
+  common::atomics::Int EvaluateInt(std::shared_ptr<ir::Value> ir_value);
   int64_t EvaluatePointer(std::shared_ptr<ir::Value> ir_value);
   ir::func_num_t EvaluateFunc(std::shared_ptr<ir::Value> ir_value);
 

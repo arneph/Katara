@@ -15,7 +15,7 @@
 
 #include "src/common/logging/logging.h"
 
-namespace common {
+namespace common::atomics {
 
 std::optional<IntType> ToIntType(std::string_view str) {
   if (str == "i8") {
@@ -120,7 +120,7 @@ std::optional<Int> ToI64(std::string_view str, Int::Base base) {
     errno = 0;
     return std::nullopt;
   }
-  return common::Int(result);
+  return Int(result);
 }
 
 std::optional<Int> ToU64(std::string_view str, Int::Base base) {
@@ -137,7 +137,7 @@ std::optional<Int> ToU64(std::string_view str, Int::Base base) {
     errno = 0;
     return std::nullopt;
   }
-  return common::Int(result);
+  return Int(result);
 }
 
 std::optional<Int::UnaryOp> ToIntUnaryOp(std::string_view str) {
@@ -260,4 +260,4 @@ std::string ToString(Int::ShiftOp op) {
   }
 }
 
-}  // namespace common
+}  // namespace common::atomics

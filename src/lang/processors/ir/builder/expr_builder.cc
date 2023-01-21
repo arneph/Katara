@@ -13,6 +13,10 @@
 namespace lang {
 namespace ir_builder {
 
+using ::common::atomics::Bool;
+using ::common::atomics::Int;
+using ::common::atomics::IntType;
+
 std::vector<std::shared_ptr<ir::Computed>> ExprBuilder::BuildAddressesOfExprs(
     std::vector<ast::Expr*> exprs, ASTContext& ast_ctx, IRContext& ir_ctx) {
   std::vector<std::shared_ptr<ir::Computed>> addresses;
@@ -124,9 +128,9 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfUnaryExpr(ast::UnaryExpr* ex
     case tokens::kAdd:
       return BuildValueOfExpr(expr->x(), ast_ctx, ir_ctx);
     case tokens::kSub:
-      return BuildValueOfIntUnaryExpr(expr, common::Int::UnaryOp::kNeg, ast_ctx, ir_ctx);
+      return BuildValueOfIntUnaryExpr(expr, Int::UnaryOp::kNeg, ast_ctx, ir_ctx);
     case tokens::kXor:
-      return BuildValueOfIntUnaryExpr(expr, common::Int::UnaryOp::kNot, ast_ctx, ir_ctx);
+      return BuildValueOfIntUnaryExpr(expr, Int::UnaryOp::kNot, ast_ctx, ir_ctx);
     case tokens::kNot:
       return BuildValueOfBoolNotExpr(expr, ast_ctx, ir_ctx);
     default:
@@ -142,7 +146,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBoolNotExpr(ast::UnaryExpr* 
 }
 
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntUnaryExpr(ast::UnaryExpr* expr,
-                                                                 common::Int::UnaryOp op,
+                                                                 Int::UnaryOp op,
                                                                  ASTContext& ast_ctx,
                                                                  IRContext& ir_ctx) {
   types::Basic* basic_type =
@@ -199,27 +203,27 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBinaryExpr(ast::BinaryExpr* 
           basic_type->kind() == types::Basic::kString) {
         return BuildValueOfStringConcatExpr(expr, ast_ctx, ir_ctx);
       }
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kAdd, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kAdd, ast_ctx, ir_ctx);
     case tokens::kSub:
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kSub, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kSub, ast_ctx, ir_ctx);
     case tokens::kMul:
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kMul, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kMul, ast_ctx, ir_ctx);
     case tokens::kQuo:
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kDiv, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kDiv, ast_ctx, ir_ctx);
     case tokens::kRem:
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kRem, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kRem, ast_ctx, ir_ctx);
     case tokens::kAnd:
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kAnd, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kAnd, ast_ctx, ir_ctx);
     case tokens::kOr:
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kOr, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kOr, ast_ctx, ir_ctx);
     case tokens::kXor:
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kXor, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kXor, ast_ctx, ir_ctx);
     case tokens::kAndNot:
-      return BuildValueOfIntBinaryExpr(expr, common::Int::BinaryOp::kAndNot, ast_ctx, ir_ctx);
+      return BuildValueOfIntBinaryExpr(expr, Int::BinaryOp::kAndNot, ast_ctx, ir_ctx);
     case tokens::kShl:
-      return BuildValueOfIntShiftExpr(expr, common::Int::ShiftOp::kLeft, ast_ctx, ir_ctx);
+      return BuildValueOfIntShiftExpr(expr, Int::ShiftOp::kLeft, ast_ctx, ir_ctx);
     case tokens::kShr:
-      return BuildValueOfIntShiftExpr(expr, common::Int::ShiftOp::kRight, ast_ctx, ir_ctx);
+      return BuildValueOfIntShiftExpr(expr, Int::ShiftOp::kRight, ast_ctx, ir_ctx);
     case tokens::kLAnd:
     case tokens::kLOr:
       return BuildValueOfBinaryLogicExpr(expr, ast_ctx, ir_ctx);
@@ -237,7 +241,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfStringConcatExpr(ast::Binary
 }
 
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntBinaryExpr(ast::BinaryExpr* expr,
-                                                                  common::Int::BinaryOp op,
+                                                                  Int::BinaryOp op,
                                                                   ASTContext& ast_ctx,
                                                                   IRContext& ir_ctx) {
   types::Basic* basic_type =
@@ -251,7 +255,7 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntBinaryExpr(ast::BinaryExp
 }
 
 std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntShiftExpr(ast::BinaryExpr* expr,
-                                                                 common::Int::ShiftOp op,
+                                                                 Int::ShiftOp op,
                                                                  ASTContext& ast_ctx,
                                                                  IRContext& ir_ctx) {
   types::Basic* basic_type =
@@ -425,12 +429,12 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfBoolComparison(tokens::Token
                                                                    std::shared_ptr<ir::Value> x,
                                                                    std::shared_ptr<ir::Value> y,
                                                                    IRContext& ir_ctx) {
-  common::Bool::BinaryOp op = [tok]() {
+  Bool::BinaryOp op = [tok]() {
     switch (tok) {
       case tokens::kEql:
-        return common::Bool::BinaryOp::kEq;
+        return Bool::BinaryOp::kEq;
       case tokens::kNeq:
-        return common::Bool::BinaryOp::kNeq;
+        return Bool::BinaryOp::kNeq;
       default:
         common::fail("unexpected bool comparison op");
     }
@@ -442,27 +446,28 @@ std::shared_ptr<ir::Value> ExprBuilder::BuildValueOfIntComparison(tokens::Token 
                                                                   std::shared_ptr<ir::Value> x,
                                                                   std::shared_ptr<ir::Value> y,
                                                                   IRContext& ir_ctx) {
-  common::Int::CompareOp op = [tok]() {
+  Int::CompareOp op = [tok]() {
     switch (tok) {
       case tokens::kEql:
-        return common::Int::CompareOp::kEq;
+        return Int::CompareOp::kEq;
       case tokens::kNeq:
-        return common::Int::CompareOp::kNeq;
+        return Int::CompareOp::kNeq;
       case tokens::kLss:
-        return common::Int::CompareOp::kLss;
+        return Int::CompareOp::kLss;
       case tokens::kLeq:
-        return common::Int::CompareOp::kLeq;
+        return Int::CompareOp::kLeq;
       case tokens::kGeq:
-        return common::Int::CompareOp::kGeq;
+        return Int::CompareOp::kGeq;
       case tokens::kGtr:
-        return common::Int::CompareOp::kGtr;
+        return Int::CompareOp::kGtr;
       default:
         common::fail("unexpected int comparison op");
     }
   }();
-  common::IntType x_type = static_cast<const ir::IntType*>(x->type())->int_type();
-  common::IntType y_type = static_cast<const ir::IntType*>(y->type())->int_type();
-  if (common::BitSizeOf(x_type) > common::BitSizeOf(y_type) || common::IsUnsigned(x_type)) {
+  IntType x_type = static_cast<const ir::IntType*>(x->type())->int_type();
+  IntType y_type = static_cast<const ir::IntType*>(y->type())->int_type();
+  if (common::atomics::BitSizeOf(x_type) > common::atomics::BitSizeOf(y_type) ||
+      common::atomics::IsUnsigned(x_type)) {
     y = value_builder_.BuildConversion(y, ir::IntTypeFor(x_type), ir_ctx);
   } else {
     x = value_builder_.BuildConversion(x, ir::IntTypeFor(y_type), ir_ctx);

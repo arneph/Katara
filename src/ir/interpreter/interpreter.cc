@@ -12,6 +12,10 @@
 
 namespace ir_interpreter {
 
+using ::common::atomics::Bool;
+using ::common::atomics::Int;
+using ::common::atomics::IntType;
+
 Interpreter::Interpreter(ir::Program* program, bool sanitize) : heap_(sanitize), program_(program) {
   if (program_->entry_func_num() == ir::kNoFuncNum) {
     common::fail("program has no entry function");
@@ -150,28 +154,28 @@ void Interpreter::ExecuteConversion(ir::Conversion* instr) {
   ir::TypeKind operand_type_kind = instr->operand()->type()->type_kind();
 
   if (result_type_kind == ir::TypeKind::kBool && operand_type_kind == ir::TypeKind::kInt) {
-    common::Int operand = EvaluateInt(instr->operand());
+    Int operand = EvaluateInt(instr->operand());
     bool result = operand.ConvertToBool();
     stack_.current_frame()->computed_values().insert_or_assign(result_num,
                                                                ir::ToBoolConstant(result));
     return;
 
   } else if (result_type_kind == ir::TypeKind::kInt) {
-    common::IntType result_int_type = static_cast<const ir::IntType*>(result_type)->int_type();
+    IntType result_int_type = static_cast<const ir::IntType*>(result_type)->int_type();
 
     if (operand_type_kind == ir::TypeKind::kBool) {
       bool operand = EvaluateBool(instr->operand());
-      common::Int result = common::Bool::ConvertTo(result_int_type, operand);
+      Int result = Bool::ConvertTo(result_int_type, operand);
       stack_.current_frame()->computed_values().insert_or_assign(result_num,
                                                                  ir::ToIntConstant(result));
       return;
 
     } else if (operand_type_kind == ir::TypeKind::kInt) {
-      common::Int operand = EvaluateInt(instr->operand());
+      Int operand = EvaluateInt(instr->operand());
       if (!operand.CanConvertTo(result_int_type)) {
         common::fail("can not handle conversion instr");
       }
-      common::Int result = operand.ConvertTo(result_int_type);
+      Int result = operand.ConvertTo(result_int_type);
       stack_.current_frame()->computed_values().insert_or_assign(result_num,
                                                                  ir::ToIntConstant(result));
       return;
@@ -182,31 +186,31 @@ void Interpreter::ExecuteConversion(ir::Conversion* instr) {
 }
 
 void Interpreter::ExecuteIntBinaryInstr(ir::IntBinaryInstr* instr) {
-  common::Int a = EvaluateInt(instr->operand_a());
-  common::Int b = EvaluateInt(instr->operand_b());
-  if (!common::Int::CanCompute(a, b)) {
+  Int a = EvaluateInt(instr->operand_a());
+  Int b = EvaluateInt(instr->operand_b());
+  if (!Int::CanCompute(a, b)) {
     common::fail("can not compute binary instr");
   }
-  common::Int result = common::Int::Compute(a, instr->operation(), b);
+  Int result = Int::Compute(a, instr->operation(), b);
   stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
                                                              ir::ToIntConstant(result));
 }
 
 void Interpreter::ExecuteIntCompareInstr(ir::IntCompareInstr* instr) {
-  common::Int a = EvaluateInt(instr->operand_a());
-  common::Int b = EvaluateInt(instr->operand_b());
-  if (!common::Int::CanCompare(a, b)) {
+  Int a = EvaluateInt(instr->operand_a());
+  Int b = EvaluateInt(instr->operand_b());
+  if (!Int::CanCompare(a, b)) {
     common::fail("can not compute compare instr");
   }
-  bool result = common::Int::Compare(a, instr->operation(), b);
+  bool result = Int::Compare(a, instr->operation(), b);
   stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
                                                              ir::ToBoolConstant(result));
 }
 
 void Interpreter::ExecuteIntShiftInstr(ir::IntShiftInstr* instr) {
-  common::Int shifted = EvaluateInt(instr->shifted());
-  common::Int offset = EvaluateInt(instr->offset());
-  common::Int result = common::Int::Shift(shifted, instr->operation(), offset);
+  Int shifted = EvaluateInt(instr->shifted());
+  Int offset = EvaluateInt(instr->offset());
+  Int result = Int::Shift(shifted, instr->operation(), offset);
   stack_.current_frame()->computed_values().insert_or_assign(instr->result()->number(),
                                                              ir::ToIntConstant(result));
 }
@@ -250,24 +254,24 @@ void Interpreter::ExecuteLoadInstr(ir::LoadInstr* instr) {
       case ir::TypeKind::kBool:
         return ir::ToBoolConstant(heap_.Load<bool>(address));
       case ir::TypeKind::kInt: {
-        common::Int result = [this, address](common::IntType int_type) {
+        Int result = [this, address](IntType int_type) {
           switch (int_type) {
-            case common::IntType::kI8:
-              return common::Int(heap_.Load<int8_t>(address));
-            case common::IntType::kI16:
-              return common::Int(heap_.Load<int16_t>(address));
-            case common::IntType::kI32:
-              return common::Int(heap_.Load<int32_t>(address));
-            case common::IntType::kI64:
-              return common::Int(heap_.Load<int64_t>(address));
-            case common::IntType::kU8:
-              return common::Int(heap_.Load<uint8_t>(address));
-            case common::IntType::kU16:
-              return common::Int(heap_.Load<uint16_t>(address));
-            case common::IntType::kU32:
-              return common::Int(heap_.Load<uint32_t>(address));
-            case common::IntType::kU64:
-              return common::Int(heap_.Load<uint64_t>(address));
+            case IntType::kI8:
+              return Int(heap_.Load<int8_t>(address));
+            case IntType::kI16:
+              return Int(heap_.Load<int16_t>(address));
+            case IntType::kI32:
+              return Int(heap_.Load<int32_t>(address));
+            case IntType::kI64:
+              return Int(heap_.Load<int64_t>(address));
+            case IntType::kU8:
+              return Int(heap_.Load<uint8_t>(address));
+            case IntType::kU16:
+              return Int(heap_.Load<uint16_t>(address));
+            case IntType::kU32:
+              return Int(heap_.Load<uint32_t>(address));
+            case IntType::kU64:
+              return Int(heap_.Load<uint64_t>(address));
           }
         }(static_cast<const ir::IntType*>(result_type)->int_type());
         return ir::ToIntConstant(result);
@@ -294,30 +298,30 @@ void Interpreter::ExecuteStoreInstr(ir::StoreInstr* instr) {
       return;
     }
     case ir::TypeKind::kInt: {
-      common::Int value = EvaluateInt(instr->value());
+      Int value = EvaluateInt(instr->value());
       switch (value.type()) {
-        case common::IntType::kI8:
+        case IntType::kI8:
           heap_.Store(address, int8_t(value.AsInt64()));
           return;
-        case common::IntType::kI16:
+        case IntType::kI16:
           heap_.Store(address, int16_t(value.AsInt64()));
           return;
-        case common::IntType::kI32:
+        case IntType::kI32:
           heap_.Store(address, int32_t(value.AsInt64()));
           return;
-        case common::IntType::kI64:
+        case IntType::kI64:
           heap_.Store(address, value.AsInt64());
           return;
-        case common::IntType::kU8:
+        case IntType::kU8:
           heap_.Store(address, uint8_t(value.AsUint64()));
           return;
-        case common::IntType::kU16:
+        case IntType::kU16:
           heap_.Store(address, uint16_t(value.AsUint64()));
           return;
-        case common::IntType::kU32:
+        case IntType::kU32:
           heap_.Store(address, uint32_t(value.AsUint64()));
           return;
-        case common::IntType::kU64:
+        case IntType::kU64:
           heap_.Store(address, value.AsUint64());
           return;
       }
@@ -379,7 +383,7 @@ bool Interpreter::EvaluateBool(std::shared_ptr<ir::Value> ir_value) {
   return static_cast<ir::BoolConstant*>(Evaluate(ir_value).get())->value();
 }
 
-common::Int Interpreter::EvaluateInt(std::shared_ptr<ir::Value> ir_value) {
+Int Interpreter::EvaluateInt(std::shared_ptr<ir::Value> ir_value) {
   return static_cast<ir::IntConstant*>(Evaluate(ir_value).get())->value();
 }
 

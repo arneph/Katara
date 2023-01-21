@@ -17,7 +17,7 @@ namespace ir_to_x86_64_translator {
 
 x86_64::Size TranslateSizeOfType(const ir::Type* ir_type);
 x86_64::Size TranslateSizeOfIntType(const ir::IntType* ir_int_type);
-x86_64::Size TranslateSizeOfIntType(common::IntType common_int_type);
+x86_64::Size TranslateSizeOfIntType(common::atomics::IntType common_int_type);
 
 }  // namespace ir_to_x86_64_translator
 

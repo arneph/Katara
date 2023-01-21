@@ -15,6 +15,8 @@
 namespace lang {
 namespace type_checker {
 
+using ::common::atomics::Int;
+
 bool DeclHandler::ProcessTypeName(types::TypeName* type_name, ast::TypeSpec* type_spec) {
   if (!ProcessTypeParametersOfTypeName(type_name, type_spec)) {
     return false;
@@ -83,32 +85,32 @@ bool DeclHandler::ProcessConstant(types::Constant* constant, ast::Expr* type_exp
         value = constants::Value(false);
         break;
       case types::Basic::kInt8:
-        value = constants::Value(common::Int(int8_t{0}));
+        value = constants::Value(Int(int8_t{0}));
         break;
       case types::Basic::kInt16:
-        value = constants::Value(common::Int(int16_t{0}));
+        value = constants::Value(Int(int16_t{0}));
         break;
       case types::Basic::kInt32:
       case types::Basic::kUntypedRune:
-        value = constants::Value(common::Int(int32_t{0}));
+        value = constants::Value(Int(int32_t{0}));
         break;
       case types::Basic::kInt64:
       case types::Basic::kInt:
       case types::Basic::kUntypedInt:
-        value = constants::Value(common::Int(int64_t{0}));
+        value = constants::Value(Int(int64_t{0}));
         break;
       case types::Basic::kUint8:
-        value = constants::Value(common::Int(uint8_t{0}));
+        value = constants::Value(Int(uint8_t{0}));
         break;
       case types::Basic::kUint16:
-        value = constants::Value(common::Int(uint16_t{0}));
+        value = constants::Value(Int(uint16_t{0}));
         break;
       case types::Basic::kUint32:
-        value = constants::Value(common::Int(uint32_t{0}));
+        value = constants::Value(Int(uint32_t{0}));
         break;
       case types::Basic::kUint64:
       case types::Basic::kUint:
-        value = constants::Value(common::Int(uint64_t{0}));
+        value = constants::Value(Int(uint64_t{0}));
         break;
       case types::Basic::kString:
       case types::Basic::kUntypedString:

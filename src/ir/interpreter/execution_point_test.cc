@@ -19,7 +19,8 @@
 #include "src/ir/representation/values.h"
 #include "src/ir/serialization/parse.h"
 
-using testing::SizeIs;
+using ::common::atomics::Int;
+using ::testing::SizeIs;
 
 TEST(ExeuctionPointTest, AdvancesCorrectly) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
@@ -95,7 +96,7 @@ TEST(ExeuctionPointTest, AdvancesCorrectly) {
   EXPECT_EQ(exec_point.next_instr(), block_d->instrs().at(0).get());
 
   exec_point.AdvanceToFuncExit(
-      std::vector<std::shared_ptr<ir::Constant>>{ir::ToIntConstant(common::Int(int64_t{55}))});
+      std::vector<std::shared_ptr<ir::Constant>>{ir::ToIntConstant(Int(int64_t{55}))});
 
   EXPECT_FALSE(exec_point.is_at_block_entry());
   EXPECT_TRUE(exec_point.is_at_func_exit());
@@ -103,6 +104,6 @@ TEST(ExeuctionPointTest, AdvancesCorrectly) {
   EXPECT_EQ(exec_point.current_block(), block_d);
   EXPECT_EQ(exec_point.next_instr(), nullptr);
   ASSERT_THAT(exec_point.results(), SizeIs(1));
-  EXPECT_TRUE(ir::IsEqual(exec_point.results().at(0).get(),
-                          ir::ToIntConstant(common::Int(int64_t{55})).get()));
+  EXPECT_TRUE(
+      ir::IsEqual(exec_point.results().at(0).get(), ir::ToIntConstant(Int(int64_t{55})).get()));
 }

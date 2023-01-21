@@ -30,8 +30,8 @@ x86_64::Size TranslateSizeOfIntType(const ir::IntType* ir_int_type) {
   return TranslateSizeOfIntType(ir_int_type->int_type());
 }
 
-x86_64::Size TranslateSizeOfIntType(common::IntType common_int_type) {
-  return x86_64::Size(common::BitSizeOf(common_int_type));
+x86_64::Size TranslateSizeOfIntType(common::atomics::IntType common_int_type) {
+  return x86_64::Size(common::atomics::BitSizeOf(common_int_type));
 }
 
 }  // namespace ir_to_x86_64_translator

@@ -13,6 +13,8 @@
 namespace lang {
 namespace ir_builder {
 
+using ::common::atomics::Int;
+
 void StmtBuilder::BuildBlockStmt(ast::BlockStmt* block_stmt, ASTContext& ast_ctx,
                                  IRContext& ir_ctx) {
   ASTContext child_ast_ctx = ast_ctx.ChildContext();
@@ -140,37 +142,37 @@ std::vector<std::shared_ptr<ir::Value>> StmtBuilder::BuildAssignedValuesForOpAss
 
 namespace {
 
-common::Int::BinaryOp OpAssignTokToIntBinaryOp(tokens::Token op_assign_tok) {
+Int::BinaryOp OpAssignTokToIntBinaryOp(tokens::Token op_assign_tok) {
   switch (op_assign_tok) {
     case tokens::kAddAssign:
-      return common::Int::BinaryOp::kAdd;
+      return Int::BinaryOp::kAdd;
     case tokens::kSubAssign:
-      return common::Int::BinaryOp::kSub;
+      return Int::BinaryOp::kSub;
     case tokens::kMulAssign:
-      return common::Int::BinaryOp::kMul;
+      return Int::BinaryOp::kMul;
     case tokens::kQuoAssign:
-      return common::Int::BinaryOp::kDiv;
+      return Int::BinaryOp::kDiv;
     case tokens::kRemAssign:
-      return common::Int::BinaryOp::kRem;
+      return Int::BinaryOp::kRem;
     case tokens::kAndAssign:
-      return common::Int::BinaryOp::kAnd;
+      return Int::BinaryOp::kAnd;
     case tokens::kOrAssign:
-      return common::Int::BinaryOp::kOr;
+      return Int::BinaryOp::kOr;
     case tokens::kXorAssign:
-      return common::Int::BinaryOp::kXor;
+      return Int::BinaryOp::kXor;
     case tokens::kAndNotAssign:
-      return common::Int::BinaryOp::kAndNot;
+      return Int::BinaryOp::kAndNot;
     default:
       common::fail("unexpected assign op");
   }
 }
 
-common::Int::ShiftOp OpAssignTokToIntShiftOp(tokens::Token op_assign_tok) {
+Int::ShiftOp OpAssignTokToIntShiftOp(tokens::Token op_assign_tok) {
   switch (op_assign_tok) {
     case tokens::kShlAssign:
-      return common::Int::ShiftOp::kLeft;
+      return Int::ShiftOp::kLeft;
     case tokens::kShrAssign:
-      return common::Int::ShiftOp::kRight;
+      return Int::ShiftOp::kRight;
     default:
       common::fail("unexpected assign op");
   }
@@ -191,12 +193,12 @@ std::shared_ptr<ir::Value> StmtBuilder::BuildAssignedValueForOpAssignment(
     return value_builder_.BuildStringConcat(lhs_value, rhs_value, ir_ctx);
 
   } else if (op_assign_tok == tokens::kShlAssign || op_assign_tok == tokens::kShrAssign) {
-    common::Int::ShiftOp op = OpAssignTokToIntShiftOp(op_assign_tok);
+    Int::ShiftOp op = OpAssignTokToIntShiftOp(op_assign_tok);
     rhs_value = value_builder_.BuildConversion(rhs_value, ir::u64(), ir_ctx);
     return value_builder_.BuildIntShiftOp(lhs_value, op, rhs_value, ir_ctx);
 
   } else {
-    common::Int::BinaryOp op = OpAssignTokToIntBinaryOp(op_assign_tok);
+    Int::BinaryOp op = OpAssignTokToIntBinaryOp(op_assign_tok);
     rhs_value = value_builder_.BuildConversion(rhs_value, lhs_type, ir_ctx);
     return value_builder_.BuildIntBinaryOp(lhs_value, op, rhs_value, ir_ctx);
   }
@@ -327,13 +329,13 @@ void StmtBuilder::BuildIncDecStmt(ast::IncDecStmt* inc_dec_stmt, ASTContext& ast
       expr_builder_.BuildAddressOfExpr(inc_dec_stmt->x(), ast_ctx, ir_ctx);
   auto old_value = std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
   auto new_value = std::make_shared<ir::Computed>(type, ir_ctx.func()->next_computed_number());
-  auto one = ir::ToIntConstant(common::Int(1).ConvertTo(type->int_type()));
-  common::Int::BinaryOp op = [inc_dec_stmt]() {
+  auto one = ir::ToIntConstant(Int(1).ConvertTo(type->int_type()));
+  Int::BinaryOp op = [inc_dec_stmt]() {
     switch (inc_dec_stmt->tok()) {
       case tokens::kInc:
-        return common::Int::BinaryOp::kAdd;
+        return Int::BinaryOp::kAdd;
       case tokens::kDec:
-        return common::Int::BinaryOp::kSub;
+        return Int::BinaryOp::kSub;
       default:
         common::fail("unexpected inc dec stmt token");
     }
