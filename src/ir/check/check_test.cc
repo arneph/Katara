@@ -6,7 +6,7 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#include "src/ir/checker/checker.h"
+#include "src/ir/check/check.h"
 
 #include <memory>
 #include <vector>
@@ -14,7 +14,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "src/common/atomics/atomics.h"
-#include "src/ir/checker/issues.h"
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -26,8 +26,9 @@
 
 namespace {
 
-using ::ir_checker::CheckProgram;
-using ::ir_checker::Issue;
+using ::ir_check::CheckProgram;
+using ::ir_issues::Issue;
+using ::ir_issues::IssueKind;
 using ::testing::AllOf;
 using ::testing::AnyOf;
 using ::testing::Contains;
@@ -46,11 +47,11 @@ TEST(CheckerTest, CatchesValueHasNullptrTypeForArg) {
   func->set_entry_block_num(block->number());
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(Property("kind", &Issue::kind, Issue::Kind::kValueHasNullptrType),
-                        Property("scope_object", &Issue::scope_object, arg.get()),
-                        Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kValueHasNullptrType)));
 }
 
 TEST(CheckerTest, CatchesValueHasNullptrTypeForValue) {
@@ -64,11 +65,11 @@ TEST(CheckerTest, CatchesValueHasNullptrTypeForValue) {
   block->instrs().push_back(std::make_unique<ir::LoadInstr>(value, arg));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(Property("kind", &Issue::kind, Issue::Kind::kValueHasNullptrType),
-                        Property("scope_object", &Issue::scope_object, value.get()),
-                        Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kValueHasNullptrType)));
 }
 
 TEST(CheckerTest, CatchesInstrDefinesNullptrValue) {
@@ -81,11 +82,11 @@ TEST(CheckerTest, CatchesInstrDefinesNullptrValue) {
   block->instrs().push_back(std::make_unique<ir::LoadInstr>(/*result=*/nullptr, arg));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kInstrDefinesNullptrValue),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kInstrDefinesNullptrValue)));
 }
 
 TEST(CheckerTest, CatchesInstrUsesNullptrValue) {
@@ -97,11 +98,11 @@ TEST(CheckerTest, CatchesInstrUsesNullptrValue) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{nullptr}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kInstrUsesNullptrValue),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kInstrUsesNullptrValue)));
 }
 
 TEST(CheckerTest, CatchesInstrUsesNullptrValueForInheritedValue) {
@@ -130,11 +131,11 @@ TEST(CheckerTest, CatchesInstrUsesNullptrValueForInheritedValue) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{arg_c}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kInstrUsesNullptrValue),
-                  Property("scope_object", &Issue::scope_object, block_c->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kInstrUsesNullptrValue)));
 }
 
 TEST(CheckerTest, CatchesNonPhiInstrUsesInheritedValue) {
@@ -149,12 +150,12 @@ TEST(CheckerTest, CatchesNonPhiInstrUsesInheritedValue) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{value}));
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kNonPhiInstrUsesInheritedValue),
-                Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                Property("involved_objects", &Issue::involved_objects, ElementsAre(value.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kNonPhiInstrUsesInheritedValue)));
 }
 
 TEST(CheckerTest, CatchesMovInstrOriginAndResultHaveMismatchedTypes) {
@@ -170,13 +171,12 @@ TEST(CheckerTest, CatchesMovInstrOriginAndResultHaveMismatchedTypes) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{value}));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kMovInstrOriginAndResultHaveMismatchedTypes),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(arg.get(), value.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kMovInstrOriginAndResultHaveMismatchedTypes)));
 }
 
 TEST(CheckerTest, CatchesPhiInstrOriginAndResultHaveMismatchedTypesForConstantValue) {
@@ -205,13 +205,12 @@ TEST(CheckerTest, CatchesPhiInstrOriginAndResultHaveMismatchedTypesForConstantVa
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kPhiInstrArgAndResultHaveMismatchedTypes),
-          Property("scope_object", &Issue::scope_object, block_c->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(inherited_b.get(), result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kPhiInstrArgAndResultHaveMismatchedTypes)));
 }
 
 TEST(CheckerTest, CatchesPhiInstrOriginAndResultHaveMismatchedTypesForComputedValue) {
@@ -240,13 +239,12 @@ TEST(CheckerTest, CatchesPhiInstrOriginAndResultHaveMismatchedTypesForComputedVa
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kPhiInstrArgAndResultHaveMismatchedTypes),
-          Property("scope_object", &Issue::scope_object, block_c->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(inherited_a.get(), result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kPhiInstrArgAndResultHaveMismatchedTypes)));
 }
 
 TEST(CheckerTest, CatchesPhiInstrHasNoArgumentForParentBlock) {
@@ -274,11 +272,12 @@ TEST(CheckerTest, CatchesPhiInstrHasNoArgumentForParentBlock) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kPhiInstrHasNoArgumentForParentBlock),
-                  Property("scope_object", &Issue::scope_object, block_c->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects, ElementsAre(block_b)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kPhiInstrHasNoArgumentForParentBlock)));
 }
 
 TEST(CheckerTest, CatchesPhiInstrHasMultipleArgumentsForParentBlock) {
@@ -309,13 +308,12 @@ TEST(CheckerTest, CatchesPhiInstrHasMultipleArgumentsForParentBlock) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kPhiInstrHasMultipleArgumentsForParentBlock),
-          Property("scope_object", &Issue::scope_object, block_c->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(inherited_b.get(), inherited_c.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kPhiInstrHasMultipleArgumentsForParentBlock)));
 }
 
 TEST(CheckerTest, CatchesPhiInstrHasArgumentForNonParentBlock) {
@@ -346,16 +344,15 @@ TEST(CheckerTest, CatchesPhiInstrHasArgumentForNonParentBlock) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kPhiInstrHasArgumentForNonParentBlock),
-          Property("scope_object", &Issue::scope_object, block_c->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(inherited_c.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kPhiInstrHasArgumentForNonParentBlock)));
 }
 
-ir::Instr* PrepareSimpleComputationTest(ir::Program& program,
-                                        std::unique_ptr<ir::Computation> instr) {
+void PrepareSimpleComputationTest(ir::Program& program, std::unique_ptr<ir::Computation> instr) {
   ir::Func* func = program.AddFunc();
   for (auto& arg : instr->UsedValues()) {
     if (arg->kind() != ir::Value::Kind::kComputed) {
@@ -370,37 +367,34 @@ ir::Instr* PrepareSimpleComputationTest(ir::Program& program,
   block->instrs().push_back(std::move(instr));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
       /*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
-  return block->instrs().front().get();
 }
 
 TEST(CheckerTest, CatchesBoolNotInstrOperandDoesNotHaveBoolType) {
   ir::Program program;
   auto arg = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
-  ir::Instr* instr =
-      PrepareSimpleComputationTest(program, std::make_unique<ir::BoolNotInstr>(result, arg));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::BoolNotInstr>(result, arg));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kBoolNotInstrOperandDoesNotHaveBoolType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(arg.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kBoolNotInstrOperandDoesNotHaveBoolType)));
 }
 
 TEST(CheckerTest, CatchesBoolNotInstrResultDoesNotHaveBoolType) {
   ir::Program program;
   auto arg = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/1);
-  ir::Instr* instr =
-      PrepareSimpleComputationTest(program, std::make_unique<ir::BoolNotInstr>(result, arg));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::BoolNotInstr>(result, arg));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kBoolNotInstrResultDoesNotHaveBoolType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kBoolNotInstrResultDoesNotHaveBoolType)));
 }
 
 TEST(CheckerTest, CatchesBoolBinaryInstrOperandDoesNotHaveBoolType) {
@@ -408,16 +402,15 @@ TEST(CheckerTest, CatchesBoolBinaryInstrOperandDoesNotHaveBoolType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::BoolBinaryInstr>(result, common::Bool::BinaryOp::kAnd, arg_a, arg_b));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::BoolBinaryInstr>(
+                                            result, common::Bool::BinaryOp::kAnd, arg_a, arg_b));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kBoolBinaryInstrOperandDoesNotHaveBoolType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(arg_a.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kBoolBinaryInstrOperandDoesNotHaveBoolType)));
 }
 
 TEST(CheckerTest, CatchesBoolBinaryInstrResultDoesNotHaveBoolType) {
@@ -425,57 +418,51 @@ TEST(CheckerTest, CatchesBoolBinaryInstrResultDoesNotHaveBoolType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::BoolBinaryInstr>(result, common::Bool::BinaryOp::kAnd, arg_a, arg_b));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::BoolBinaryInstr>(
+                                            result, common::Bool::BinaryOp::kAnd, arg_a, arg_b));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kBoolBinaryInstrResultDoesNotHaveBoolType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kBoolBinaryInstrResultDoesNotHaveBoolType)));
 }
 
 TEST(CheckerTest, CatchesIntUnaryInstrOperandDoesNotHaveIntType) {
   ir::Program program;
   auto arg = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::i32(), /*vnum=*/1);
-  ir::Instr* instr = PrepareSimpleComputationTest(
+  PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNeg, arg));
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
+      issue_tracker.issues(),
       ElementsAre(
-          AllOf(
-              Property("kind", &Issue::kind, Issue::Kind::kIntUnaryInstrOperandDoesNotHaveIntType),
-              Property("scope_object", &Issue::scope_object, instr),
-              Property("involved_objects", &Issue::involved_objects, ElementsAre(arg.get()))),
-          AllOf(Property("kind", &Issue::kind,
-                         Issue::Kind::kIntUnaryInstrResultAndOperandHaveDifferentTypes),
-                Property("scope_object", &Issue::scope_object, instr),
-                Property("involved_objects", &Issue::involved_objects,
-                         ElementsAre(result.get(), arg.get())))));
+
+          Property("kind", &Issue::kind, IssueKind::kIntUnaryInstrOperandDoesNotHaveIntType),
+          Property("kind", &Issue::kind,
+                   IssueKind::kIntUnaryInstrResultAndOperandHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesIntUnaryInstrResultDoesNotHaveIntType) {
   ir::Program program;
   auto arg = std::make_shared<ir::Computed>(ir::i16(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::func_type(), /*vnum=*/1);
-  ir::Instr* instr = PrepareSimpleComputationTest(
+  PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNeg, arg));
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kIntUnaryInstrResultDoesNotHaveIntType),
-                Property("scope_object", &Issue::scope_object, instr),
-                Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get()))),
-          AllOf(Property("kind", &Issue::kind,
-                         Issue::Kind::kIntUnaryInstrResultAndOperandHaveDifferentTypes),
-                Property("scope_object", &Issue::scope_object, instr),
-                Property("involved_objects", &Issue::involved_objects,
-                         ElementsAre(result.get(), arg.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kIntUnaryInstrResultDoesNotHaveIntType),
+                  Property("kind", &Issue::kind,
+                           IssueKind::kIntUnaryInstrResultAndOperandHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesIntCompareInstrOperandDoesNotHaveIntType) {
@@ -483,21 +470,17 @@ TEST(CheckerTest, CatchesIntCompareInstrOperandDoesNotHaveIntType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntCompareInstr>(result, common::Int::CompareOp::kLeq, arg_a, arg_b));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntCompareInstr>(
+                                            result, common::Int::CompareOp::kLeq, arg_a, arg_b));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kIntCompareInstrOperandDoesNotHaveIntType),
-                                Property("scope_object", &Issue::scope_object, instr),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(arg_b.get()))),
-                          AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kIntCompareInstrOperandsHaveDifferentTypes),
-                                Property("scope_object", &Issue::scope_object, instr),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(arg_a.get(), arg_b.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(
+          Property("kind", &Issue::kind, IssueKind::kIntCompareInstrOperandDoesNotHaveIntType),
+          Property("kind", &Issue::kind, IssueKind::kIntCompareInstrOperandsHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesIntCompareInstrOperandsHaveDifferentTypes) {
@@ -505,16 +488,15 @@ TEST(CheckerTest, CatchesIntCompareInstrOperandsHaveDifferentTypes) {
   auto arg_a = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntCompareInstr>(result, common::Int::CompareOp::kLeq, arg_a, arg_b));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntCompareInstr>(
+                                            result, common::Int::CompareOp::kLeq, arg_a, arg_b));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kIntCompareInstrOperandsHaveDifferentTypes),
-                                Property("scope_object", &Issue::scope_object, instr),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(arg_a.get(), arg_b.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kIntCompareInstrOperandsHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesIntCompareInstrResultDoesNotHaveBoolType) {
@@ -522,16 +504,15 @@ TEST(CheckerTest, CatchesIntCompareInstrResultDoesNotHaveBoolType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntCompareInstr>(result, common::Int::CompareOp::kLeq, arg_a, arg_b));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntCompareInstr>(
+                                            result, common::Int::CompareOp::kLeq, arg_a, arg_b));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kIntCompareInstrResultDoesNotHaveBoolType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kIntCompareInstrResultDoesNotHaveBoolType)));
 }
 
 TEST(CheckerTest, CatchesIntBinaryInstrOperandDoesNotHaveIntType) {
@@ -539,22 +520,17 @@ TEST(CheckerTest, CatchesIntBinaryInstrOperandDoesNotHaveIntType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntBinaryInstr>(result, common::Int::BinaryOp::kXor, arg_a, arg_b));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntBinaryInstr>(
+                                            result, common::Int::BinaryOp::kXor, arg_a, arg_b));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(
-              Property("kind", &Issue::kind, Issue::Kind::kIntBinaryInstrOperandDoesNotHaveIntType),
-              Property("scope_object", &Issue::scope_object, instr),
-              Property("involved_objects", &Issue::involved_objects, ElementsAre(arg_a.get()))),
-          AllOf(Property("kind", &Issue::kind,
-                         Issue::Kind::kIntBinaryInstrOperandsAndResultHaveDifferentTypes),
-                Property("scope_object", &Issue::scope_object, instr),
-                Property("involved_objects", &Issue::involved_objects,
-                         ElementsAre(result.get(), arg_a.get(), arg_b.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kIntBinaryInstrOperandDoesNotHaveIntType),
+                          Property("kind", &Issue::kind,
+                                   IssueKind::kIntBinaryInstrOperandsAndResultHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesIntBinaryInstrResultDoesNotHaveIntType) {
@@ -562,22 +538,19 @@ TEST(CheckerTest, CatchesIntBinaryInstrResultDoesNotHaveIntType) {
   auto arg_a = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::func_type(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntBinaryInstr>(result, common::Int::BinaryOp::kXor, arg_a, arg_b));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntBinaryInstr>(
+                                            result, common::Int::BinaryOp::kXor, arg_a, arg_b));
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
+      issue_tracker.issues(),
       ElementsAre(
-          AllOf(
-              Property("kind", &Issue::kind, Issue::Kind::kIntBinaryInstrResultDoesNotHaveIntType),
-              Property("scope_object", &Issue::scope_object, instr),
-              Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get()))),
-          AllOf(Property("kind", &Issue::kind,
-                         Issue::Kind::kIntBinaryInstrOperandsAndResultHaveDifferentTypes),
-                Property("scope_object", &Issue::scope_object, instr),
-                Property("involved_objects", &Issue::involved_objects,
-                         ElementsAre(result.get(), arg_a.get(), arg_b.get())))));
+
+          Property("kind", &Issue::kind, IssueKind::kIntBinaryInstrResultDoesNotHaveIntType),
+          Property("kind", &Issue::kind,
+                   IssueKind::kIntBinaryInstrOperandsAndResultHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesIntBinaryInstrOperandsAndResultHaveDifferentTypes) {
@@ -585,17 +558,15 @@ TEST(CheckerTest, CatchesIntBinaryInstrOperandsAndResultHaveDifferentTypes) {
   auto arg_a = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto arg_b = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntBinaryInstr>(result, common::Int::BinaryOp::kXor, arg_a, arg_b));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntBinaryInstr>(
+                                            result, common::Int::BinaryOp::kXor, arg_a, arg_b));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                 Issue::Kind::kIntBinaryInstrOperandsAndResultHaveDifferentTypes),
-                        Property("scope_object", &Issue::scope_object, instr),
-                        Property("involved_objects", &Issue::involved_objects,
-                                 ElementsAre(result.get(), arg_a.get(), arg_b.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kIntBinaryInstrOperandsAndResultHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesIntShiftInstrOperandDoesNotHaveIntType) {
@@ -603,16 +574,15 @@ TEST(CheckerTest, CatchesIntShiftInstrOperandDoesNotHaveIntType) {
   auto shifted = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntShiftInstr>(result, common::Int::ShiftOp::kLeft, shifted, offset));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntShiftInstr>(
+                                            result, common::Int::ShiftOp::kLeft, shifted, offset));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kIntShiftInstrOperandDoesNotHaveIntType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(offset.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kIntShiftInstrOperandDoesNotHaveIntType)));
 }
 
 TEST(CheckerTest, CatchesIntShiftInstrResultDoesNotHaveIntType) {
@@ -620,21 +590,17 @@ TEST(CheckerTest, CatchesIntShiftInstrResultDoesNotHaveIntType) {
   auto shifted = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntShiftInstr>(result, common::Int::ShiftOp::kLeft, shifted, offset));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntShiftInstr>(
+                                            result, common::Int::ShiftOp::kLeft, shifted, offset));
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kIntShiftInstrResultDoesNotHaveIntType),
-                Property("scope_object", &Issue::scope_object, instr),
-                Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get()))),
-          AllOf(Property("kind", &Issue::kind,
-                         Issue::Kind::kIntShiftInstrShiftedAndResultHaveDifferentTypes),
-                Property("scope_object", &Issue::scope_object, instr),
-                Property("involved_objects", &Issue::involved_objects,
-                         ElementsAre(result.get(), shifted.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kIntShiftInstrResultDoesNotHaveIntType),
+                  Property("kind", &Issue::kind,
+                           IssueKind::kIntShiftInstrShiftedAndResultHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesIntShiftInstrShiftedAndResultHaveDifferentTypes) {
@@ -642,17 +608,15 @@ TEST(CheckerTest, CatchesIntShiftInstrShiftedAndResultHaveDifferentTypes) {
   auto shifted = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program,
-      std::make_unique<ir::IntShiftInstr>(result, common::Int::ShiftOp::kLeft, shifted, offset));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::IntShiftInstr>(
+                                            result, common::Int::ShiftOp::kLeft, shifted, offset));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                 Issue::Kind::kIntShiftInstrShiftedAndResultHaveDifferentTypes),
-                        Property("scope_object", &Issue::scope_object, instr),
-                        Property("involved_objects", &Issue::involved_objects,
-                                 ElementsAre(result.get(), shifted.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kIntShiftInstrShiftedAndResultHaveDifferentTypes)));
 }
 
 TEST(CheckerTest, CatchesPointerOffsetInstrPointerDoesNotHavePointerType) {
@@ -660,16 +624,15 @@ TEST(CheckerTest, CatchesPointerOffsetInstrPointerDoesNotHavePointerType) {
   auto pointer = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program, std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
+  PrepareSimpleComputationTest(program,
+                               std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kPointerOffsetInstrPointerDoesNotHavePointerType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(pointer.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kPointerOffsetInstrPointerDoesNotHavePointerType)));
 }
 
 TEST(CheckerTest, CatchesPointerOffsetInstrOffsetDoesNotHaveI64Type) {
@@ -677,15 +640,15 @@ TEST(CheckerTest, CatchesPointerOffsetInstrOffsetDoesNotHaveI64Type) {
   auto pointer = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program, std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
+  PrepareSimpleComputationTest(program,
+                               std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kPointerOffsetInstrOffsetDoesNotHaveI64Type),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(offset.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kPointerOffsetInstrOffsetDoesNotHaveI64Type)));
 }
 
 TEST(CheckerTest, CatchesPointerOffsetInstrResultDoesNotHavePointerType) {
@@ -693,92 +656,85 @@ TEST(CheckerTest, CatchesPointerOffsetInstrResultDoesNotHavePointerType) {
   auto pointer = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/0);
   auto offset = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/2);
-  ir::Instr* instr = PrepareSimpleComputationTest(
-      program, std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
+  PrepareSimpleComputationTest(program,
+                               std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kPointerOffsetInstrResultDoesNotHavePointerType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kPointerOffsetInstrResultDoesNotHavePointerType)));
 }
 
 TEST(CheckerTest, CatchesNilTestInstrTestedDoesNotHavePointerOrFuncType) {
   ir::Program program;
   auto tested = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
-  ir::Instr* instr =
-      PrepareSimpleComputationTest(program, std::make_unique<ir::NilTestInstr>(result, tested));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::NilTestInstr>(result, tested));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kNilTestInstrTestedDoesNotHavePointerOrFuncType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(tested.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kNilTestInstrTestedDoesNotHavePointerOrFuncType)));
 }
 
 TEST(CheckerTest, CatchesNilTestInstrResultDoesNotHaveBoolType) {
   ir::Program program;
   auto tested = std::make_shared<ir::Computed>(ir::func_type(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/1);
-  ir::Instr* instr =
-      PrepareSimpleComputationTest(program, std::make_unique<ir::NilTestInstr>(result, tested));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::NilTestInstr>(result, tested));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kNilTestInstrResultDoesNotHaveBoolType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kNilTestInstrResultDoesNotHaveBoolType)));
 }
 
 TEST(CheckerTest, CatchesMallocInstrSizeDoesNotHaveI64Type) {
   ir::Program program;
   auto size = std::make_shared<ir::Computed>(ir::u64(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/1);
-  ir::Instr* instr =
-      PrepareSimpleComputationTest(program, std::make_unique<ir::MallocInstr>(result, size));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::MallocInstr>(result, size));
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kMallocInstrSizeDoesNotHaveI64Type),
-                Property("scope_object", &Issue::scope_object, instr),
-                Property("involved_objects", &Issue::involved_objects, ElementsAre(size.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kMallocInstrSizeDoesNotHaveI64Type)));
 }
 
 TEST(CheckerTest, CatchesMallocInstrResultDoesNotHavePointerType) {
   ir::Program program;
   auto size = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
-  ir::Instr* instr =
-      PrepareSimpleComputationTest(program, std::make_unique<ir::MallocInstr>(result, size));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::MallocInstr>(result, size));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kMallocInstrResultDoesNotHavePointerType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kMallocInstrResultDoesNotHavePointerType)));
 }
 
 TEST(CheckerTest, CatchesLoadInstrAddressDoesNotHavePointerType) {
   ir::Program program;
   auto address = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/0);
   auto result = std::make_shared<ir::Computed>(ir::func_type(), /*vnum=*/1);
-  ir::Instr* instr =
-      PrepareSimpleComputationTest(program, std::make_unique<ir::LoadInstr>(result, address));
+  PrepareSimpleComputationTest(program, std::make_unique<ir::LoadInstr>(result, address));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kLoadInstrAddressDoesNotHavePointerType),
-          Property("scope_object", &Issue::scope_object, instr),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(address.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kLoadInstrAddressDoesNotHavePointerType)));
 }
 
 TEST(CheckerTest, CatchesStoreInstrAddressDoesNotHavePointerType) {
@@ -793,12 +749,12 @@ TEST(CheckerTest, CatchesStoreInstrAddressDoesNotHavePointerType) {
   block->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kStoreInstrAddressDoesNotHavePointerType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(address.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kStoreInstrAddressDoesNotHavePointerType)));
 }
 
 TEST(CheckerTest, CatchesFreeInstrAddressDoesNotHavePointerType) {
@@ -811,12 +767,12 @@ TEST(CheckerTest, CatchesFreeInstrAddressDoesNotHavePointerType) {
   block->instrs().push_back(std::make_unique<ir::FreeInstr>(address));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kFreeInstrAddressDoesNotHavePointerType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(address.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kFreeInstrAddressDoesNotHavePointerType)));
 }
 
 TEST(CheckerTest, CatchesJumpInstrDestinationIsNotChildBlock) {
@@ -829,12 +785,12 @@ TEST(CheckerTest, CatchesJumpInstrDestinationIsNotChildBlock) {
   block_a->instrs().push_back(std::make_unique<ir::JumpInstr>(/*destination=*/123));
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kJumpInstrDestinationIsNotChildBlock),
-                  Property("scope_object", &Issue::scope_object, block_a),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(block_a->instrs().front().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kJumpInstrDestinationIsNotChildBlock)));
 }
 
 TEST(CheckerTest, CatchesJumpCondInstrConditionDoesNotHaveBoolType) {
@@ -853,12 +809,12 @@ TEST(CheckerTest, CatchesJumpCondInstrConditionDoesNotHaveBoolType) {
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kJumpCondInstrConditionDoesNotHaveBoolType),
-          Property("scope_object", &Issue::scope_object, block_a->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(cond.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kJumpCondInstrConditionDoesNotHaveBoolType)));
 }
 
 TEST(CheckerTest, CatchesJumpCondInstrHasDuplicateDestinations) {
@@ -877,12 +833,12 @@ TEST(CheckerTest, CatchesJumpCondInstrHasDuplicateDestinations) {
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kJumpCondInstrHasDuplicateDestinations),
-                Property("scope_object", &Issue::scope_object, block_a->instrs().front().get()),
-                Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kJumpCondInstrHasDuplicateDestinations)));
 }
 
 TEST(CheckerTest, CatchesJumpCondInstrDestinationIsNotChildBlock) {
@@ -901,12 +857,12 @@ TEST(CheckerTest, CatchesJumpCondInstrDestinationIsNotChildBlock) {
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kJumpCondInstrDestinationIsNotChildBlock),
-                                Property("scope_object", &Issue::scope_object, block_a),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(block_a->instrs().front().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kJumpCondInstrDestinationIsNotChildBlock)));
 }
 
 TEST(CheckerTest, CatchesSyscallInstrResultDoesNotHaveI64Type) {
@@ -919,12 +875,12 @@ TEST(CheckerTest, CatchesSyscallInstrResultDoesNotHaveI64Type) {
       result, /*syscall_num=*/ir::I64Zero(), /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kSyscallInstrResultDoesNotHaveI64Type),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kSyscallInstrResultDoesNotHaveI64Type)));
 }
 
 TEST(CheckerTest, CatchesSyscallInstrSyscallNumDoesNotHaveI64Type) {
@@ -938,12 +894,12 @@ TEST(CheckerTest, CatchesSyscallInstrSyscallNumDoesNotHaveI64Type) {
       result, syscall_num, /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kSyscallInstrSyscallNumberDoesNotHaveI64Type),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(syscall_num.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kSyscallInstrSyscallNumberDoesNotHaveI64Type)));
 }
 
 TEST(CheckerTest, CatchesSyscallInstrArgDoesNotHaveI64Type) {
@@ -960,12 +916,12 @@ TEST(CheckerTest, CatchesSyscallInstrArgDoesNotHaveI64Type) {
       result, syscall_num, /*args=*/std::vector<std::shared_ptr<ir::Value>>{arg_a, arg_b, arg_c}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kSyscallInstrArgDoesNotHaveI64Type),
-                Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                Property("involved_objects", &Issue::involved_objects, ElementsAre(arg_b.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kSyscallInstrArgDoesNotHaveI64Type)));
 }
 
 TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForConstant) {
@@ -979,12 +935,12 @@ TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForConstant) {
       /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrCalleeDoesNotHaveFuncType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(callee.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kCallInstrCalleeDoesNotHaveFuncType)));
 }
 
 TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForComputed) {
@@ -999,12 +955,12 @@ TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForComputed) {
       /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrCalleeDoesNotHaveFuncType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(callee.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kCallInstrCalleeDoesNotHaveFuncType)));
 }
 
 TEST(CheckerTest, CatchesCallInstrStaticCalleeDoesNotExist) {
@@ -1018,12 +974,12 @@ TEST(CheckerTest, CatchesCallInstrStaticCalleeDoesNotExist) {
       /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrStaticCalleeDoesNotExist),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(callee.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kCallInstrStaticCalleeDoesNotExist)));
 }
 
 ir::Func* PrepareCalleeFuncForCallInstrTest(ir::Program& program) {
@@ -1057,12 +1013,12 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMissingArg
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrDoesNotMatchStaticCalleeSignature),
-          Property("scope_object", &Issue::scope_object, caller_block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(callee)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
 }
 
 TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForExcessArg) {
@@ -1080,12 +1036,12 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForExcessArg)
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero(), ir::NilPointer(), ir::U8Zero()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrDoesNotMatchStaticCalleeSignature),
-          Property("scope_object", &Issue::scope_object, caller_block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(callee)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
 }
 
 TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMismatchedArg) {
@@ -1105,13 +1061,12 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMismatched
       std::vector<std::shared_ptr<ir::Value>>{mismatched_arg, ir::NilPointer()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrDoesNotMatchStaticCalleeSignature),
-          Property("scope_object", &Issue::scope_object, caller_block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(callee, mismatched_arg.get(), mismatched_param.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
 }
 
 TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMissingResult) {
@@ -1128,12 +1083,12 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMissingRes
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero(), ir::NilPointer()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrDoesNotMatchStaticCalleeSignature),
-          Property("scope_object", &Issue::scope_object, caller_block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(callee)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
 }
 
 TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForExcessResult) {
@@ -1152,12 +1107,12 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForExcessResu
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero(), ir::NilPointer()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrDoesNotMatchStaticCalleeSignature),
-          Property("scope_object", &Issue::scope_object, caller_block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(callee)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
 }
 
 TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMismatchedResult) {
@@ -1175,13 +1130,12 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMismatched
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero(), ir::NilPointer()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kCallInstrDoesNotMatchStaticCalleeSignature),
-          Property("scope_object", &Issue::scope_object, caller_block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(callee, result_b.get(), callee->result_types().at(1))))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
 }
 
 TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForMissingResult) {
@@ -1196,12 +1150,12 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForMissingResult) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{ir::NilPointer()}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kReturnInstrDoesNotMatchFuncSignature),
-                                Property("scope_object", &Issue::scope_object, func),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(block->instrs().front().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kReturnInstrDoesNotMatchFuncSignature)));
 }
 
 TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForExcessResult) {
@@ -1216,12 +1170,12 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForExcessResult) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
       std::vector<std::shared_ptr<ir::Value>>{ir::NilPointer(), arg, ir::True()}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kReturnInstrDoesNotMatchFuncSignature),
-                                Property("scope_object", &Issue::scope_object, func),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(block->instrs().front().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kReturnInstrDoesNotMatchFuncSignature)));
 }
 
 TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForMismatchedResult) {
@@ -1238,14 +1192,12 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForMismatchedResult
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
       std::vector<std::shared_ptr<ir::Value>>{mismatched_result, arg}));
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kReturnInstrDoesNotMatchFuncSignature),
-                Property("scope_object", &Issue::scope_object, func),
-                Property("involved_objects", &Issue::involved_objects,
-                         ElementsAre(block->instrs().front().get(), mismatched_result.get(),
-                                     mismatched_result_type)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kReturnInstrDoesNotMatchFuncSignature)));
 }
 
 TEST(CheckerTest, CatchesEntryBlockHasParents) {
@@ -1256,11 +1208,11 @@ TEST(CheckerTest, CatchesEntryBlockHasParents) {
   func->AddControlFlow(block->number(), block->number());
   block->instrs().push_back(std::make_unique<ir::JumpInstr>(block->number()));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kEntryBlockHasParents),
-                  Property("scope_object", &Issue::scope_object, func),
-                  Property("involved_objects", &Issue::involved_objects, ElementsAre(block)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kEntryBlockHasParents)));
 }
 
 TEST(CheckerTest, CatchesNonEntryBlockHasNoParents) {
@@ -1276,11 +1228,11 @@ TEST(CheckerTest, CatchesNonEntryBlockHasNoParents) {
   block_b->instrs().push_back(std::make_unique<ir::JumpInstr>(block_c->number()));
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kNonEntryBlockHasNoParents),
-                  Property("scope_object", &Issue::scope_object, func),
-                  Property("involved_objects", &Issue::involved_objects, ElementsAre(block_b)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kNonEntryBlockHasNoParents)));
 }
 
 TEST(CheckerTest, CatchesBlockContainsNoInstrs) {
@@ -1289,11 +1241,11 @@ TEST(CheckerTest, CatchesBlockContainsNoInstrs) {
   ir::Block* block = func->AddBlock();
   func->set_entry_block_num(block->number());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(Property("kind", &Issue::kind, Issue::Kind::kBlockContainsNoInstrs),
-                        Property("scope_object", &Issue::scope_object, block),
-                        Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kBlockContainsNoInstrs)));
 }
 
 TEST(CheckerTest, CatchesPhiInBlockWithoutMultipleParentsInEntryBlock) {
@@ -1306,12 +1258,12 @@ TEST(CheckerTest, CatchesPhiInBlockWithoutMultipleParentsInEntryBlock) {
       phi_result, std::vector<std::shared_ptr<ir::InheritedValue>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kPhiInBlockWithoutMultipleParents),
-                  Property("scope_object", &Issue::scope_object, block),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(block->instrs().front().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kPhiInBlockWithoutMultipleParents)));
 }
 
 TEST(CheckerTest, CatchesPhiInBlockWithoutMultipleParentsInBlockWithSingleParent) {
@@ -1328,12 +1280,12 @@ TEST(CheckerTest, CatchesPhiInBlockWithoutMultipleParentsInBlockWithSingleParent
                       std::make_shared<ir::InheritedValue>(ir::I64One(), block_a->number())}));
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kPhiInBlockWithoutMultipleParents),
-                  Property("scope_object", &Issue::scope_object, block_b),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(block_b->instrs().front().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kPhiInBlockWithoutMultipleParents)));
 }
 
 TEST(CheckerTest, CatchesPhiAfterRegularInstrInBlock) {
@@ -1361,13 +1313,11 @@ TEST(CheckerTest, CatchesPhiAfterRegularInstrInBlock) {
                       std::make_shared<ir::InheritedValue>(ir::I64Eight(), block_b->number())}));
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kPhiAfterRegularInstrInBlock),
-          Property("scope_object", &Issue::scope_object, block_c),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(block_c->instrs().at(0).get(), block_c->instrs().at(1).get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kPhiAfterRegularInstrInBlock)));
 }
 
 TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpInstr) {
@@ -1388,12 +1338,12 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpInstr) {
   block_b->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kControlFlowInstrBeforeEndOfBlock),
-                  Property("scope_object", &Issue::scope_object, block_a),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(block_a->instrs().at(1).get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kControlFlowInstrBeforeEndOfBlock)));
 }
 
 TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpCondInstr) {
@@ -1422,12 +1372,12 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpCondInstr) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kControlFlowInstrBeforeEndOfBlock),
-                  Property("scope_object", &Issue::scope_object, block_a),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(block_a->instrs().at(0).get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kControlFlowInstrBeforeEndOfBlock)));
 }
 
 TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForReturnInstr) {
@@ -1446,12 +1396,12 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForReturnInstr) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kControlFlowInstrBeforeEndOfBlock),
-                  Property("scope_object", &Issue::scope_object, block),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(block->instrs().at(1).get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kControlFlowInstrBeforeEndOfBlock)));
 }
 
 TEST(CheckerTest, CatchesControlFlowInstrMissingAtEndOfBlock) {
@@ -1466,12 +1416,12 @@ TEST(CheckerTest, CatchesControlFlowInstrMissingAtEndOfBlock) {
   block->instrs().push_back(
       std::make_unique<ir::IntUnaryInstr>(result, common::Int::UnaryOp::kNot, arg));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kControlFlowInstrMissingAtEndOfBlock),
-                  Property("scope_object", &Issue::scope_object, block),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(block->instrs().back().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kControlFlowInstrMissingAtEndOfBlock)));
 }
 
 TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForMissingControlFlowOfJumpInstr) {
@@ -1495,12 +1445,12 @@ TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForMissingContr
   block_b->instrs().push_back(std::make_unique<ir::JumpInstr>(block_c->number()));
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kControlFlowInstrMismatchedWithBlockGraph),
-                                Property("scope_object", &Issue::scope_object, block_b),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(block_b->instrs().back().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kControlFlowInstrMismatchedWithBlockGraph)));
 }
 
 TEST(CheckerTest,
@@ -1531,12 +1481,12 @@ TEST(CheckerTest,
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   block_d->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kControlFlowInstrMismatchedWithBlockGraph),
-                                Property("scope_object", &Issue::scope_object, block_b),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(block_b->instrs().back().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kControlFlowInstrMismatchedWithBlockGraph)));
 }
 
 TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForExcessControlFlow) {
@@ -1557,12 +1507,12 @@ TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForExcessContro
   block_b->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kControlFlowInstrMismatchedWithBlockGraph),
-                                Property("scope_object", &Issue::scope_object, block_a),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(block_a->instrs().back().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kControlFlowInstrMismatchedWithBlockGraph)));
 }
 
 TEST(CheckerTest, CatchesFuncDefinesNullptrArg) {
@@ -1577,11 +1527,11 @@ TEST(CheckerTest, CatchesFuncDefinesNullptrArg) {
   func->set_entry_block_num(block->number());
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(Property("kind", &Issue::kind, Issue::Kind::kFuncDefinesNullptrArg),
-                        Property("scope_object", &Issue::scope_object, func),
-                        Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kFuncDefinesNullptrArg)));
 }
 
 TEST(CheckerTest, CatchesFuncHasNullptrResultType) {
@@ -1595,28 +1545,24 @@ TEST(CheckerTest, CatchesFuncHasNullptrResultType) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
       std::vector<std::shared_ptr<ir::Value>>{ir::False(), mismatched_result}));
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kReturnInstrDoesNotMatchFuncSignature),
-                Property("scope_object", &Issue::scope_object, func),
-                Property(
-                    "involved_objects", &Issue::involved_objects,
-                    ElementsAre(block->instrs().front().get(), mismatched_result.get(), nullptr))),
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kFuncHasNullptrResultType),
-                Property("scope_object", &Issue::scope_object, func),
-                Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kReturnInstrDoesNotMatchFuncSignature),
+                  Property("kind", &Issue::kind, IssueKind::kFuncHasNullptrResultType)));
 }
 
 TEST(CheckerTest, CatchesFuncHasNoEntryBlock) {
   ir::Program program;
-  ir::Func* func = program.AddFunc();
+  program.AddFunc();
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(Property("kind", &Issue::kind, Issue::Kind::kFuncHasNoEntryBlock),
-                        Property("scope_object", &Issue::scope_object, func),
-                        Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind, IssueKind::kFuncHasNoEntryBlock)));
 }
 
 TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForSharedArg) {
@@ -1635,12 +1581,12 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForSharedArg) {
   func_b->set_entry_block_num(block_b->number());
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kComputedValueUsedInMultipleFunctions),
-                                Property("scope_object", &Issue::scope_object, &program),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         UnorderedElementsAre(arg.get(), func_a, func_b)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kComputedValueUsedInMultipleFunctions)));
 }
 
 TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForSharedComputationResult) {
@@ -1659,12 +1605,12 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForSharedComputatio
   block_b->instrs().push_back(std::make_unique<ir::MallocInstr>(result, ir::I64Eight()));
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kComputedValueUsedInMultipleFunctions),
-                                Property("scope_object", &Issue::scope_object, &program),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         UnorderedElementsAre(result.get(), func_a, func_b)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kComputedValueUsedInMultipleFunctions)));
 }
 
 TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForArgAndComputationResult) {
@@ -1684,12 +1630,12 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForArgAndComputatio
   block_b->instrs().push_back(std::make_unique<ir::FreeInstr>(value));
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kComputedValueUsedInMultipleFunctions),
-                                Property("scope_object", &Issue::scope_object, &program),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         UnorderedElementsAre(value.get(), func_a, func_b)))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kComputedValueUsedInMultipleFunctions)));
 }
 
 TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForArgs) {
@@ -1703,17 +1649,13 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForArgs) {
   func->set_entry_block_num(block->number());
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kComputedValueNumberUsedMultipleTimes),
-                Property("scope_object", &Issue::scope_object, func),
-                Property("involved_objects", &Issue::involved_objects,
-                         UnorderedElementsAre(arg_a.get(), arg_b.get()))),
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kComputedValueHasMultipleDefinitions),
-                Property("scope_object", &Issue::scope_object, func),
-                Property("involved_objects", &Issue::involved_objects,
-                         Contains(AnyOf(arg_a.get(), arg_b.get()))))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueNumberUsedMultipleTimes),
+                  Property("kind", &Issue::kind, IssueKind::kComputedValueHasMultipleDefinitions)));
 }
 
 TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForComputations) {
@@ -1727,17 +1669,13 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForComputations) {
   block->instrs().push_back(std::make_unique<ir::MallocInstr>(result_b, ir::I64Eight()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kComputedValueNumberUsedMultipleTimes),
-                Property("scope_object", &Issue::scope_object, func),
-                Property("involved_objects", &Issue::involved_objects,
-                         UnorderedElementsAre(result_a.get(), result_b.get()))),
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kComputedValueHasMultipleDefinitions),
-                Property("scope_object", &Issue::scope_object, func),
-                Property("involved_objects", &Issue::involved_objects,
-                         Contains(AnyOf(result_a.get(), result_b.get()))))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueNumberUsedMultipleTimes),
+                  Property("kind", &Issue::kind, IssueKind::kComputedValueHasMultipleDefinitions)));
 }
 
 TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForArgAndComputation) {
@@ -1751,17 +1689,13 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForArgAndComputatio
   block->instrs().push_back(std::make_unique<ir::MallocInstr>(result, ir::I64Eight()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kComputedValueNumberUsedMultipleTimes),
-                Property("scope_object", &Issue::scope_object, func),
-                Property("involved_objects", &Issue::involved_objects,
-                         UnorderedElementsAre(arg.get(), result.get()))),
-          AllOf(Property("kind", &Issue::kind, Issue::Kind::kComputedValueHasMultipleDefinitions),
-                Property("scope_object", &Issue::scope_object, func),
-                Property("involved_objects", &Issue::involved_objects,
-                         Contains(AnyOf(arg.get(), result.get()))))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueNumberUsedMultipleTimes),
+                  Property("kind", &Issue::kind, IssueKind::kComputedValueHasMultipleDefinitions)));
 }
 
 TEST(CheckerTest, CatchesComputedValueHasNoDefinition) {
@@ -1774,12 +1708,12 @@ TEST(CheckerTest, CatchesComputedValueHasNoDefinition) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kComputedValueHasNoDefinition),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueHasNoDefinition)));
 }
 
 TEST(CheckerTest, CatchesComputedValueHasMultipleDefinitions) {
@@ -1795,12 +1729,12 @@ TEST(CheckerTest, CatchesComputedValueHasMultipleDefinitions) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind, Issue::Kind::kComputedValueHasMultipleDefinitions),
-                  Property("scope_object", &Issue::scope_object, func),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(value.get(), block->instrs().front().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueHasMultipleDefinitions)));
 }
 
 TEST(CheckerTest, CatchesComputedValueDefinitionDoesNotDominateUse) {
@@ -1824,13 +1758,12 @@ TEST(CheckerTest, CatchesComputedValueDefinitionDoesNotDominateUse) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value}));
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(Property("kind", &Issue::kind,
-                                         Issue::Kind::kComputedValueDefinitionDoesNotDominateUse),
-                                Property("scope_object", &Issue::scope_object, func),
-                                Property("involved_objects", &Issue::involved_objects,
-                                         ElementsAre(block_b->instrs().front().get(),
-                                                     block_c->instrs().front().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(Property("kind", &Issue::kind,
+                                   IssueKind::kComputedValueDefinitionDoesNotDominateUse)));
 }
 
 TEST(CheckerTest, FindsNoComputedValueDefinitionDoesNotDominateUseForCorrectInheritedValues) {
@@ -1881,8 +1814,10 @@ TEST(CheckerTest, FindsNoComputedValueDefinitionDoesNotDominateUseForCorrectInhe
   block_d->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value_b}));
 
-  EXPECT_THAT(CheckProgram(&program), IsEmpty());
-  ir_checker::AssertProgramIsOkay(&program);
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 
 }  // namespace

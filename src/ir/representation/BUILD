@@ -83,6 +83,7 @@ cc_library(
         ":object",
         ":types",
         "//src/common/atomics",
+        "//src/common/positions",
     ],
 )
 

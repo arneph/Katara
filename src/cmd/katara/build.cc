@@ -14,7 +14,7 @@
 #include "src/ir/analyzers/func_call_graph_builder.h"
 #include "src/ir/analyzers/interference_graph_builder.h"
 #include "src/ir/analyzers/live_range_analyzer.h"
-#include "src/ir/checker/checker.h"
+#include "src/ir/check/check.h"
 #include "src/ir/info/func_call_graph.h"
 #include "src/ir/info/func_live_ranges.h"
 #include "src/ir/info/interference_graph.h"
@@ -23,7 +23,7 @@
 #include "src/ir/representation/num_types.h"
 #include "src/ir/serialization/print.h"
 #include "src/lang/processors/ir/builder/ir_builder.h"
-#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/check/check.h"
 #include "src/lang/processors/ir/lowerers/shared_pointer_lowerer.h"
 #include "src/lang/processors/ir/lowerers/unique_pointer_lowerer.h"
 #include "src/lang/processors/ir/optimizers/shared_to_unique_pointer_optimizer.h"
@@ -94,13 +94,20 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
     GenerateIrDebugInfo(program.get(), "init", debug_handler);
   }
   if (debug_handler.CheckIr()) {
-    ::lang::ir_checker::AssertProgramIsOkay(program.get());
+    // TODO: actually generate IR positions
+    common::PosFileSet ir_file_set;
+    ir_issues::IssueTracker issue_tracker(&ir_file_set);
+    ::lang::ir_check::CheckProgram(program.get(), issue_tracker);
+    if (!issue_tracker.issues().empty()) {
+      *ctx->stderr() << "init IR program has issues:\n";
+      issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    }
   }
 
   return program;
 }
 
-void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
+void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Context* ctx) {
   lang::ir_optimizers::ConvertSharedToUniquePointersInProgram(program);
   lang::ir_optimizers::ConvertUniquePointersToLocalValuesInProgram(program);
   if (debug_handler.GenerateDebugInfo()) {
@@ -109,11 +116,18 @@ void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
   if (debug_handler.CheckIr()) {
     // TODO: implement lowering for panic and other instructions, then revert to using plain IR
     // checker here.
-    ::lang::ir_checker::AssertProgramIsOkay(program);
+    // TODO: actually generate IR positions
+    common::PosFileSet ir_file_set;
+    ir_issues::IssueTracker issue_tracker(&ir_file_set);
+    ::lang::ir_check::CheckProgram(program, issue_tracker);
+    if (!issue_tracker.issues().empty()) {
+      *ctx->stderr() << "ext_optimized IR program has issues:\n";
+      issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    }
   }
 }
 
-void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
+void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Context* ctx) {
   lang::ir_lowerers::LowerSharedPointersInProgram(program);
   lang::ir_lowerers::LowerUniquePointersInProgram(program);
   if (debug_handler.GenerateDebugInfo()) {
@@ -122,17 +136,31 @@ void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler) {
   if (debug_handler.CheckIr()) {
     // TODO: implement lowering for panic and other instructions, then revert to using plain IR
     // checker here.
-    ::lang::ir_checker::AssertProgramIsOkay(program);
+    // TODO: actually generate IR positions
+    common::PosFileSet ir_file_set;
+    ir_issues::IssueTracker issue_tracker(&ir_file_set);
+    ::lang::ir_check::CheckProgram(program, issue_tracker);
+    if (!issue_tracker.issues().empty()) {
+      *ctx->stderr() << "lowered IR program has issues:\n";
+      issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    }
   }
 }
 
-void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler) {
+void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler, Context* ctx) {
   ir_optimizers::RemoveUnusedFunctions(program);
   if (debug_handler.GenerateDebugInfo()) {
     GenerateIrDebugInfo(program, "optimized", debug_handler);
   }
   if (debug_handler.CheckIr()) {
-    ::ir_checker::AssertProgramIsOkay(program);
+    // TODO: actually generate IR positions
+    common::PosFileSet ir_file_set;
+    ir_issues::IssueTracker issue_tracker(&ir_file_set);
+    ::ir_check::CheckProgram(program, issue_tracker);
+    if (!issue_tracker.issues().empty()) {
+      *ctx->stderr() << "optimized IR program has issues:\n";
+      issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    }
   }
 }
 
@@ -149,11 +177,11 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
   auto ir_program = std::get<std::unique_ptr<ir::Program>>(std::move(program_or_error));
 
   if (options.optimize_ir_ext) {
-    OptimizeIrExtProgram(ir_program.get(), debug_handler);
+    OptimizeIrExtProgram(ir_program.get(), debug_handler, ctx);
   }
-  LowerIrExtProgram(ir_program.get(), debug_handler);
+  LowerIrExtProgram(ir_program.get(), debug_handler, ctx);
   if (options.optimize_ir) {
-    OptimizeIrProgram(ir_program.get(), debug_handler);
+    OptimizeIrProgram(ir_program.get(), debug_handler, ctx);
   }
 
   return std::move(ir_program);

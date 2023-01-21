@@ -12,6 +12,7 @@ namespace ir_serialization {
 
 // Func ::= '@' Number Identifier? FuncArgs '=>' FuncResultTypes FuncBody
 ir::Func* FuncParser::ParseFunc() {
+  common::pos_t func_start = scanner().token_start();
   if (!scanner().ConsumeToken(Scanner::kAtSign)) {
     scanner().SkipPastTokenSequence({Scanner::kNewLine, Scanner::kCurlyBracketClose});
     return nullptr;
@@ -39,7 +40,8 @@ ir::Func* FuncParser::ParseFunc() {
   ParseFuncArgs();
   scanner().ConsumeToken(Scanner::kArrow);
   ParseFuncResultTypes();
-  ParseFuncBody();
+  common::pos_t func_end = ParseFuncBody();
+  func_->SetPositions(func_start, func_end);
   return func_;
 }
 
@@ -66,12 +68,14 @@ void FuncParser::ParseFuncResultTypes() {
 }
 
 // FuncBody ::= '{' NL (NL | Block)* '}' NL
-void FuncParser::ParseFuncBody() {
+common::pos_t FuncParser::ParseFuncBody() {
+  common::pos_t func_end;
   scanner().ConsumeToken(Scanner::kCurlyBracketOpen);
   scanner().ConsumeToken(Scanner::kNewLine);
 
   for (;;) {
     if (scanner().token() == Scanner::kCurlyBracketClose) {
+      func_end = scanner().token_end();
       scanner().ConsumeToken(Scanner::kCurlyBracketClose);
       break;
     } else if (scanner().token() == Scanner::kNewLine) {
@@ -79,6 +83,7 @@ void FuncParser::ParseFuncBody() {
     } else if (scanner().token() == Scanner::kCurlyBracketOpen) {
       ParseBlock();
     } else {
+      func_end = scanner().token_end();
       scanner().AddErrorForUnexpectedToken(
           {Scanner::kCurlyBracketOpen, Scanner::kCurlyBracketClose, Scanner::kNewLine});
       break;
@@ -87,6 +92,7 @@ void FuncParser::ParseFuncBody() {
 
   scanner().ConsumeToken(Scanner::kNewLine);
   ConnectBlocks();
+  return func_end;
 }
 
 void FuncParser::ConnectBlocks() {
@@ -130,6 +136,7 @@ void FuncParser::ConnectBlocks() {
 
 // Block ::= '{' Number '}' Identifier? NL Instr*
 void FuncParser::ParseBlock() {
+  common::pos_t block_start = scanner().token_start();
   scanner().ConsumeToken(Scanner::kCurlyBracketOpen);
 
   common::pos_t block_num_pos = scanner().token_start();
@@ -152,6 +159,7 @@ void FuncParser::ParseBlock() {
 
   scanner().ConsumeToken(Scanner::kNewLine);
 
+  common::pos_t block_end = scanner().token_start() - 1;
   for (;;) {
     if (scanner().token() == Scanner::kCurlyBracketOpen ||
         scanner().token() == Scanner::kCurlyBracketClose) {
@@ -162,16 +170,19 @@ void FuncParser::ParseBlock() {
       if (instr != nullptr) {
         block->instrs().push_back(std::move(instr));
       }
+      block_end = scanner().token_start() - 1;
     } else {
       scanner().AddErrorForUnexpectedToken({Scanner::kCurlyBracketOpen, Scanner::kCurlyBracketClose,
                                             Scanner::kPercentSign, Scanner::kNewLine});
       break;
     }
   }
+  block->SetPositions(block_start, block_end);
 }
 
 // Instr ::= InstrResults '=' Idenifier (Value (',' Value)*)? NL
 std::unique_ptr<ir::Instr> FuncParser::ParseInstr() {
+  common::pos_t instr_start = scanner().token_start();
   std::vector<std::shared_ptr<ir::Computed>> results = ParseInstrResults();
   if (scanner().token() != Scanner::kIdentifier) {
     scanner().AddErrorForUnexpectedToken({Scanner::kIdentifier});
@@ -179,7 +190,10 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstr() {
     return nullptr;
   }
   std::string instr_name = scanner().ConsumeIdentifier().value();
-  return ParseInstrWithResults(results, instr_name);
+  std::unique_ptr<ir::Instr> instr = ParseInstrWithResults(results, instr_name);
+  common::pos_t instr_end = scanner().token_start() - 1;
+  instr->SetPositions(instr_start, instr_end);
+  return instr;
 }
 
 // InstrWithResults ::= (Value (',' Value)*)? NL

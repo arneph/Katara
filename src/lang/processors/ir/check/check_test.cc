@@ -6,14 +6,14 @@
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/check/check.h"
 
 #include <memory>
 #include <vector>
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "src/ir/checker/issues.h"
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -26,8 +26,9 @@
 #include "src/lang/representation/ir_extension/types.h"
 #include "src/lang/representation/ir_extension/values.h"
 
-using ::ir_checker::Issue;
-using ::lang::ir_checker::CheckProgram;
+using ::ir_issues::Issue;
+using ::ir_issues::IssueKind;
+using ::lang::ir_check::CheckProgram;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
 using ::testing::Property;
@@ -42,13 +43,13 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrResultDoesNotHaveSharedPointerTyp
       std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangMakeSharedPointerInstrResultDoesNotHaveSharedPointerType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind,
+                  IssueKind::kLangMakeSharedPointerInstrResultDoesNotHaveSharedPointerType))));
 }
 
 TEST(CheckerTest, CatchesMakeSharedPointerInstrResultIsNotAStrongSharedPointer) {
@@ -64,13 +65,13 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrResultIsNotAStrongSharedPointer) 
       std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangMakeSharedPointerInstrResultIsNotAStrongSharedPointer),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind,
+                  IssueKind::kLangMakeSharedPointerInstrResultIsNotAStrongSharedPointer))));
 }
 
 TEST(CheckerTest, CatchesMakeSharedPointerInstrSizeDoesNotHaveI64Type) {
@@ -86,13 +87,13 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrSizeDoesNotHaveI64Type) {
       std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I32Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind,
-                           Issue::Kind::kLangMakeSharedPointerInstrSizeDoesNotHaveI64Type),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(ir::I32Zero().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                 IssueKind::kLangMakeSharedPointerInstrSizeDoesNotHaveI64Type))));
 }
 
 TEST(CheckerTest, CatchesCopySharedPointerInstrResultDoesNotHaveSharedPointerType) {
@@ -110,13 +111,13 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrResultDoesNotHaveSharedPointerTyp
       result, arg, /*pointer_offset=*/ir::I64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangCopySharedPointerInstrResultDoesNotHaveSharedPointerType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind,
+                  IssueKind::kLangCopySharedPointerInstrResultDoesNotHaveSharedPointerType))));
 }
 
 TEST(CheckerTest, CatchesCopySharedPointerInstrCopiedDoesNotHaveSharedPointerType) {
@@ -135,13 +136,13 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrCopiedDoesNotHaveSharedPointerTyp
       result, arg, /*pointer_offset=*/ir::I64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangCopySharedPointerInstrCopiedDoesNotHaveSharedPointerType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(arg.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind,
+                  IssueKind::kLangCopySharedPointerInstrCopiedDoesNotHaveSharedPointerType))));
 }
 
 TEST(CheckerTest, CatchesCopySharedPointerInstrOffsetDoesNotHaveI64Type) {
@@ -162,13 +163,13 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrOffsetDoesNotHaveI64Type) {
       result, copied, /*pointer_offset=*/ir::U64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind,
-                           Issue::Kind::kLangCopySharedPointerInstrOffsetDoesNotHaveI64Type),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(ir::U64Zero().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                 IssueKind::kLangCopySharedPointerInstrOffsetDoesNotHaveI64Type))));
 }
 
 TEST(CheckerTest, CatchesCopySharedPointerInstrResultAndCopiedHaveDifferentElementTypes) {
@@ -189,15 +190,14 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrResultAndCopiedHaveDifferentEleme
       result, copied, /*pointer_offset=*/ir::I64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property(
-              "kind", &Issue::kind,
-              Issue::Kind::kLangCopySharedPointerInstrResultAndCopiedHaveDifferentElementTypes),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(result.get(), copied.get())))));
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property(
+          "kind", &Issue::kind,
+          IssueKind::kLangCopySharedPointerInstrResultAndCopiedHaveDifferentElementTypes))));
 }
 
 TEST(CheckerTest, CatchesCopySharedPointerInstrConvertsFromWeakToStrongSharedPointer) {
@@ -218,14 +218,13 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrConvertsFromWeakToStrongSharedPoi
       result, copied, /*pointer_offset=*/ir::I64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangCopySharedPointerInstrConvertsFromWeakToStrongSharedPointer),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects,
-                   ElementsAre(result.get(), copied.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind,
+                  IssueKind::kLangCopySharedPointerInstrConvertsFromWeakToStrongSharedPointer))));
 }
 
 TEST(CheckerTest, CatchesDeleteSharedPointerInstrArgumentDoesNotHaveSharedPointerType) {
@@ -238,13 +237,13 @@ TEST(CheckerTest, CatchesDeleteSharedPointerInstrArgumentDoesNotHaveSharedPointe
   block->instrs().push_back(std::make_unique<lang::ir_ext::DeleteSharedPointerInstr>(deleted));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangDeleteSharedPointerInstrArgumentDoesNotHaveSharedPointerType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(deleted.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind,
+                  IssueKind::kLangDeleteSharedPointerInstrArgumentDoesNotHaveSharedPointerType))));
 }
 
 TEST(CheckerTest, CatchesMakeUniquePointerInstrResultDoesNotHaveUniquePointerType) {
@@ -257,13 +256,13 @@ TEST(CheckerTest, CatchesMakeUniquePointerInstrResultDoesNotHaveUniquePointerTyp
       std::make_unique<lang::ir_ext::MakeUniquePointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangMakeUniquePointerInstrResultDoesNotHaveUniquePointerType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind,
+                  IssueKind::kLangMakeUniquePointerInstrResultDoesNotHaveUniquePointerType))));
 }
 
 TEST(CheckerTest, CatchesMakeUniquePointerInstrSizeDoesNotHaveI64Type) {
@@ -278,13 +277,13 @@ TEST(CheckerTest, CatchesMakeUniquePointerInstrSizeDoesNotHaveI64Type) {
       std::make_unique<lang::ir_ext::MakeUniquePointerInstr>(result, ir::U64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind,
-                           Issue::Kind::kLangMakeUniquePointerInstrSizeDoesNotHaveI64Type),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(ir::U64Zero().get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                 IssueKind::kLangMakeUniquePointerInstrSizeDoesNotHaveI64Type))));
 }
 
 TEST(CheckerTest, CatchesDeleteUniquePointerInstrArgumentDoesNotHaveUniquePointerType) {
@@ -297,13 +296,13 @@ TEST(CheckerTest, CatchesDeleteUniquePointerInstrArgumentDoesNotHaveUniquePointe
   block->instrs().push_back(std::make_unique<lang::ir_ext::DeleteUniquePointerInstr>(deleted));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangDeleteUniquePointerInstrArgumentDoesNotHaveUniquePointerType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(deleted.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind,
+                  IssueKind::kLangDeleteUniquePointerInstrArgumentDoesNotHaveUniquePointerType))));
 }
 
 TEST(CheckerTest, CatchesLoadFromSmartPointerHasMismatchedElementType) {
@@ -320,13 +319,13 @@ TEST(CheckerTest, CatchesLoadFromSmartPointerHasMismatchedElementType) {
   block->instrs().push_back(std::make_unique<ir::LoadInstr>(result, address));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind,
-                           Issue::Kind::kLangLoadFromSmartPointerHasMismatchedElementType),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(address.get(), result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                 IssueKind::kLangLoadFromSmartPointerHasMismatchedElementType))));
 }
 
 TEST(CheckerTest, CatchesStoreToSmartPointerHasMismatchedElementType) {
@@ -343,13 +342,13 @@ TEST(CheckerTest, CatchesStoreToSmartPointerHasMismatchedElementType) {
   block->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind,
-                           Issue::Kind::kLangStoreToSmartPointerHasMismatchedElementType),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(address.get(), value.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                 IssueKind::kLangStoreToSmartPointerHasMismatchedElementType))));
 }
 
 TEST(CheckerTest, CatchesStringIndexInstrResultDoesNotHaveI8Type) {
@@ -366,12 +365,12 @@ TEST(CheckerTest, CatchesStringIndexInstrResultDoesNotHaveI8Type) {
       std::make_unique<lang::ir_ext::StringIndexInstr>(result, string_operand, index_operand));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kLangStringIndexInstrResultDoesNotHaveI8Type),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property(
+                  "kind", &Issue::kind, IssueKind::kLangStringIndexInstrResultDoesNotHaveI8Type))));
 }
 
 TEST(CheckerTest, CatchesStringIndexInstrStringOperandDoesNotHaveStringType) {
@@ -388,13 +387,13 @@ TEST(CheckerTest, CatchesStringIndexInstrStringOperandDoesNotHaveStringType) {
       std::make_unique<lang::ir_ext::StringIndexInstr>(result, string_operand, index_operand));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(AllOf(
                   Property("kind", &Issue::kind,
-                           Issue::Kind::kLangStringIndexInstrStringOperandDoesNotHaveStringType),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(string_operand.get())))));
+                           IssueKind::kLangStringIndexInstrStringOperandDoesNotHaveStringType))));
 }
 
 TEST(CheckerTest, CatchesStringIndexInstrIndexOperandDoesNotHaveI64Type) {
@@ -411,13 +410,13 @@ TEST(CheckerTest, CatchesStringIndexInstrIndexOperandDoesNotHaveI64Type) {
       std::make_unique<lang::ir_ext::StringIndexInstr>(result, string_operand, index_operand));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(CheckProgram(&program),
-              ElementsAre(AllOf(
-                  Property("kind", &Issue::kind,
-                           Issue::Kind::kLangStringIndexInstrIndexOperandDoesNotHaveI64Type),
-                  Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-                  Property("involved_objects", &Issue::involved_objects,
-                           ElementsAre(index_operand.get())))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                 IssueKind::kLangStringIndexInstrIndexOperandDoesNotHaveI64Type))));
 }
 
 TEST(CheckerTest, CatchesStringConcatInstrResultDoesNotHaveStringType) {
@@ -434,13 +433,13 @@ TEST(CheckerTest, CatchesStringConcatInstrResultDoesNotHaveStringType) {
       result, std::vector<std::shared_ptr<ir::Value>>{operand1, operand2}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangStringConcatInstrResultDoesNotHaveStringType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(result.get())))));
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                 IssueKind::kLangStringConcatInstrResultDoesNotHaveStringType))));
 }
 
 TEST(CheckerTest, CatchesStringConcatInstrDoesNotHaveArguments) {
@@ -453,12 +452,12 @@ TEST(CheckerTest, CatchesStringConcatInstrDoesNotHaveArguments) {
       result, std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind, Issue::Kind::kLangStringConcatInstrDoesNotHaveArguments),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, IsEmpty()))));
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
+  EXPECT_THAT(issue_tracker.issues(),
+              ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                         IssueKind::kLangStringConcatInstrDoesNotHaveArguments))));
 }
 
 TEST(CheckerTest, CatchesStringConcatInstrOperandDoesNotHaveStringType) {
@@ -475,11 +474,11 @@ TEST(CheckerTest, CatchesStringConcatInstrOperandDoesNotHaveStringType) {
       result, std::vector<std::shared_ptr<ir::Value>>{operand1, operand2}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
-      CheckProgram(&program),
-      ElementsAre(AllOf(
-          Property("kind", &Issue::kind,
-                   Issue::Kind::kLangStringConcatInstrOperandDoesNotHaveStringType),
-          Property("scope_object", &Issue::scope_object, block->instrs().front().get()),
-          Property("involved_objects", &Issue::involved_objects, ElementsAre(operand2.get())))));
+      issue_tracker.issues(),
+      ElementsAre(AllOf(Property("kind", &Issue::kind,
+                                 IssueKind::kLangStringConcatInstrOperandDoesNotHaveStringType))));
 }

@@ -18,18 +18,27 @@
 namespace cmd {
 namespace katara_ir {
 
+ParseDetails ParseWithDetails(std::filesystem::path path, Context* ctx) {
+  ParseDetails result;
+  std::string code = ctx->filesystem()->ReadContentsOfFile(path);
+  common::PosFile* file = result.file_set.AddFile(path, code);
+  result.program = ir_serialization::ParseProgram(file, result.issue_tracker);
+  if (result.program == nullptr || !result.issue_tracker.issues().empty()) {
+    result.error_code = ErrorCode::kParseFailed;
+  } else {
+    result.error_code = ErrorCode::kNoError;
+  }
+  return result;
+}
+
 std::variant<std::unique_ptr<ir::Program>, ErrorCode> Parse(std::filesystem::path path,
                                                             Context* ctx) {
-  std::string code = ctx->filesystem()->ReadContentsOfFile(path);
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile(path, code);
-  ir_issues::IssueTracker issue_tracker(&file_set);
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(file, issue_tracker);
-  issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
-  if (program == nullptr || !issue_tracker.issues().empty()) {
-    return ErrorCode::kParseFailed;
+  ParseDetails details = ParseWithDetails(path, ctx);
+  if (details.error_code == ErrorCode::kNoError) {
+    return std::move(details).program;
   } else {
-    return std::move(program);
+    details.issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    return details.error_code;
   }
 }
 

@@ -13,7 +13,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "src/ir/representation/program.h"
-#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/check/check_test_util.h"
 #include "src/lang/processors/ir/serialization/parse.h"
 
 namespace {
@@ -26,7 +26,7 @@ TEST(IrFileTest, ProgramsParseAndAreOkay) {
     std::stringstream sstream;
     sstream << fstream.rdbuf();
     std::unique_ptr<ir::Program> program = lang::ir_serialization::ParseProgramOrDie(sstream.str());
-    lang::ir_checker::AssertProgramIsOkay(program.get());
+    lang::ir_check::CheckProgramOrDie(program.get());
   }
 }
 

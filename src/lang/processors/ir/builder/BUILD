@@ -110,7 +110,7 @@ cc_test(
         "//src/common/filesystem",
         "//src/common/filesystem:test_filesystem",
         "//src/ir:ir_lib",
-        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/check:check_test_util",
         "//src/lang/processors/ir/serialization:parse",
         "//src/lang/processors/packages:package",
         "//src/lang/processors/packages:package_manager",

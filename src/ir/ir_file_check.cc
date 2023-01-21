@@ -12,7 +12,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "src/ir/checker/checker.h"
+#include "src/ir/check/check.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/parse.h"
 
@@ -24,7 +24,7 @@ TEST(IrFileTest, ProgramsParseAndAreOkay) {
     if (entry.path().extension() != ".ir") continue;
     std::ifstream stream(entry.path());
     std::unique_ptr<ir::Program> program = ir_serialization::ParseProgram(stream);
-    ir_checker::AssertProgramIsOkay(program.get());
+    ir_check::CheckProgramOrDie(program.get());
   }
 }
 

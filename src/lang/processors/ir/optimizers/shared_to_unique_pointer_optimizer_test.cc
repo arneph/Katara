@@ -12,7 +12,7 @@
 #include "gtest/gtest.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/print.h"
-#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/check/check_test_util.h"
 #include "src/lang/processors/ir/serialization/parse.h"
 
 class SharedToUniquePointerOptimizationImpossibleTest : public testing::TestWithParam<std::string> {
@@ -87,10 +87,10 @@ TEST_P(SharedToUniquePointerOptimizationImpossibleTest, DoesNotOptimizeProgram) 
       lang::ir_serialization::ParseProgramOrDie(GetParam());
   std::unique_ptr<ir::Program> expected_program =
       lang::ir_serialization::ParseProgramOrDie(GetParam());
-  lang::ir_checker::AssertProgramIsOkay(expected_program.get());
+  lang::ir_check::CheckProgramOrDie(expected_program.get());
 
   lang::ir_optimizers::ConvertSharedToUniquePointersInProgram(input_program.get());
-  lang::ir_checker::AssertProgramIsOkay(input_program.get());
+  lang::ir_check::CheckProgramOrDie(input_program.get());
   EXPECT_TRUE(ir::IsEqual(input_program.get(), expected_program.get()))
       << "Expected program to stay unoptimized, got:\n"
       << ir_serialization::Print(input_program.get()) << "\nexpected:\n"
@@ -214,11 +214,11 @@ TEST_P(SharedToUniquePointerOptimizationPossibleTest, OptimizesProgram) {
       lang::ir_serialization::ParseProgramOrDie(GetParam().input_program);
   std::unique_ptr<ir::Program> expected_program =
       lang::ir_serialization::ParseProgramOrDie(GetParam().expected_program);
-  lang::ir_checker::AssertProgramIsOkay(optimized_program.get());
-  lang::ir_checker::AssertProgramIsOkay(expected_program.get());
+  lang::ir_check::CheckProgramOrDie(optimized_program.get());
+  lang::ir_check::CheckProgramOrDie(expected_program.get());
 
   lang::ir_optimizers::ConvertSharedToUniquePointersInProgram(optimized_program.get());
-  lang::ir_checker::AssertProgramIsOkay(optimized_program.get());
+  lang::ir_check::CheckProgramOrDie(optimized_program.get());
   EXPECT_TRUE(ir::IsEqual(optimized_program.get(), expected_program.get()))
       << "Expected different optimized program, got:\n"
       << ir_serialization::Print(optimized_program.get()) << "\nexpected:\n"

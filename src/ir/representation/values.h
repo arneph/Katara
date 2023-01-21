@@ -14,6 +14,7 @@
 #include <string>
 
 #include "src/common/atomics/atomics.h"
+#include "src/common/positions/positions.h"
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/object.h"
 #include "src/ir/representation/types.h"
@@ -161,6 +162,11 @@ class Computed : public Value {
 
   constexpr Value::Kind kind() const final { return Value::Kind::kComputed; }
 
+  common::pos_t definition_start() const { return definition_start_; }
+  common::pos_t definition_end() const { return definition_end_; }
+  void SetPositions(common::pos_t definition_start, common::pos_t definition_end);
+  void ClearPositions() { SetPositions(common::kNoPos, common::kNoPos); }
+
   void WriteRefString(std::ostream& os) const override { os << "%" << number_; }
 
   bool operator==(const Value& that) const override;
@@ -168,6 +174,8 @@ class Computed : public Value {
  private:
   const Type* type_;
   value_num_t number_;
+  common::pos_t definition_start_ = common::kNoPos;
+  common::pos_t definition_end_ = common::kNoPos;
 };
 
 class InheritedValue : public Value {
@@ -181,6 +189,11 @@ class InheritedValue : public Value {
 
   constexpr Value::Kind kind() const final { return Value::Kind::kInherited; }
 
+  common::pos_t start() const { return start_; }
+  common::pos_t end() const { return end_; }
+  void SetPositions(common::pos_t start, common::pos_t end);
+  void ClearPositions() { SetPositions(common::kNoPos, common::kNoPos); }
+
   void WriteRefString(std::ostream& os) const override;
 
   bool operator==(const Value& that) const override;
@@ -188,6 +201,8 @@ class InheritedValue : public Value {
  private:
   std::shared_ptr<Value> value_;
   block_num_t origin_;
+  common::pos_t start_ = common::kNoPos;
+  common::pos_t end_ = common::kNoPos;
 };
 
 }  // namespace ir

@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "src/cmd/katara-ir/parse.h"
-#include "src/ir/checker/checker.h"
+#include "src/ir/check/check.h"
 
 namespace cmd {
 namespace katara_ir {
@@ -29,18 +29,19 @@ ErrorCode Check(std::vector<std::filesystem::path>& paths, Context* ctx) {
 
 std::variant<std::unique_ptr<ir::Program>, ErrorCode> Check(std::filesystem::path path,
                                                             Context* ctx) {
-  std::variant<std::unique_ptr<ir::Program>, ErrorCode> program_or_error = Parse(path, ctx);
-  if (std::holds_alternative<ErrorCode>(program_or_error)) {
-    return std::get<ErrorCode>(program_or_error);
+  ParseDetails parse_details = ParseWithDetails(path, ctx);
+  if (parse_details.program == nullptr) {
+    parse_details.issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+    return parse_details.error_code;
   }
-  auto program = std::get<std::unique_ptr<ir::Program>>(std::move(program_or_error));
-  std::vector<ir_checker::Issue> issues = ir_checker::CheckProgram(program.get());
-  if (issues.empty()) {
-    return std::move(program);
+  ir_check::CheckProgram(parse_details.program.get(), parse_details.issue_tracker);
+  if (parse_details.issue_tracker.issues().empty()) {
+    return std::move(parse_details).program;
+  }
+  parse_details.issue_tracker.PrintIssues(common::IssuePrintFormat::kTerminal, ctx->stderr());
+  if (parse_details.error_code != ErrorCode::kNoError) {
+    return parse_details.error_code;
   } else {
-    for (ir_checker::Issue& issue : issues) {
-      *ctx->stderr() << issue.ToDetailedString();
-    }
     return ErrorCode::kCheckFailed;
   }
 }

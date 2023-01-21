@@ -11,7 +11,7 @@ cc_library(
     ],
     deps = [
         "//src/lang/processors/ir/builder:ir_builder",
-        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/check",
         "//src/lang/processors/ir/lowerers:shared_pointer_lowerer",
         "//src/lang/processors/ir/lowerers:unique_pointer_lowerer",
         "//src/lang/processors/ir/optimizers:shared_to_unique_pointer_optimizer",

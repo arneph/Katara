@@ -14,7 +14,7 @@
 #include "src/common/filesystem/test_filesystem.h"
 #include "src/ir/interpreter/interpreter.h"
 #include "src/lang/processors/ir/builder/ir_builder.h"
-#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/check/check_test_util.h"
 #include "src/lang/processors/ir/lowerers/shared_pointer_lowerer.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
@@ -65,7 +65,7 @@ func main() int {
   std::unique_ptr<ir::Program> program =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
-  ::lang::ir_checker::AssertProgramIsOkay(program.get());
+  ::lang::ir_check::CheckProgramOrDie(program.get());
 
   // Interpret IR:
   ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
@@ -102,7 +102,7 @@ func main() int {
   std::unique_ptr<ir::Program> program =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
-  ::lang::ir_checker::AssertProgramIsOkay(program.get());
+  ::lang::ir_check::CheckProgramOrDie(program.get());
 
   // Interpret IR:
   ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
@@ -137,7 +137,7 @@ func main() int {
   std::unique_ptr<ir::Program> program =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
-  ::lang::ir_checker::AssertProgramIsOkay(program.get());
+  ::lang::ir_check::CheckProgramOrDie(program.get());
 
   // Lower IR:
   lang::ir_lowerers::LowerSharedPointersInProgram(program.get());

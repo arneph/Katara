@@ -127,7 +127,7 @@ cc_test(
     copts = COPTS,
     deps = [
         ":parse",
-        "//src/ir/checker",
+        "//src/ir/check:check_test_util",
         "@gtest//:gtest_main",
     ],
 )

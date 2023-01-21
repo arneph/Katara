@@ -10,7 +10,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "src/ir/checker/checker.h"
+#include "src/ir/check/check_test_util.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -41,7 +41,7 @@ TEST(ParseTest, ParsesEmptyProgram) {
 TEST(ParseTest, ParsesWhitespaceProgram) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie("\t\n\n    \t\t\t \n");
 
-  EXPECT_THAT(ir_checker::CheckProgram(program.get()), IsEmpty());
+  ir_check::CheckProgramOrDie(program.get());
   EXPECT_THAT(program->funcs(), IsEmpty());
   EXPECT_THAT(program->entry_func(), IsNull());
   EXPECT_EQ(program->entry_func_num(), ir::kNoFuncNum);
@@ -66,6 +66,8 @@ TEST(ParseTest, ParsesProgramWithEmptyFunc) {
   EXPECT_THAT(func->entry_block(), IsNull());
   EXPECT_EQ(func->entry_block_num(), ir::kNoBlockNum);
   EXPECT_EQ(func->computed_count(), 0);
+  EXPECT_NE(func->start(), common::kNoPos);
+  EXPECT_NE(func->end(), common::kNoPos);
 }
 
 TEST(ParseTest, ParsesProgramWithSimpleFunc) {
@@ -76,7 +78,7 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -91,6 +93,8 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
   ASSERT_THAT(func->blocks(), SizeIs(1));
   ASSERT_THAT(func->blocks().front(), Not(IsNull()));
   ASSERT_TRUE(func->HasBlock(0));
+  EXPECT_NE(func->start(), common::kNoPos);
+  EXPECT_NE(func->end(), common::kNoPos);
 
   ir::Block* block = func->GetBlock(0);
   EXPECT_EQ(func->entry_block(), block);
@@ -102,6 +106,8 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
   EXPECT_TRUE(block->HasControlFlowInstr());
   EXPECT_THAT(block->parents(), IsEmpty());
   EXPECT_THAT(block->children(), IsEmpty());
+  EXPECT_NE(block->start(), common::kNoPos);
+  EXPECT_NE(block->end(), common::kNoPos);
 
   ir::Instr* instr = block->instrs().front().get();
   ASSERT_EQ(instr->instr_kind(), ir::InstrKind::kReturn);
@@ -119,7 +125,7 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -135,6 +141,8 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   ASSERT_THAT(func->blocks(), SizeIs(1));
   ASSERT_THAT(func->blocks().front(), Not(IsNull()));
   ASSERT_TRUE(func->HasBlock(0));
+  EXPECT_NE(func->start(), common::kNoPos);
+  EXPECT_NE(func->end(), common::kNoPos);
 
   const ir::Type* result_type = func->result_types().front();
   EXPECT_EQ(result_type, ir::bool_type());
@@ -149,6 +157,8 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   EXPECT_TRUE(block->HasControlFlowInstr());
   EXPECT_THAT(block->parents(), IsEmpty());
   EXPECT_THAT(block->children(), IsEmpty());
+  EXPECT_NE(block->start(), common::kNoPos);
+  EXPECT_NE(block->end(), common::kNoPos);
 
   ir::Instr* instr = block->instrs().front().get();
   ASSERT_EQ(instr->instr_kind(), ir::InstrKind::kReturn);
@@ -157,6 +167,8 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   auto return_instr = static_cast<ir::ReturnInstr*>(instr);
   ASSERT_THAT(return_instr->args(), SizeIs(1));
   ASSERT_THAT(return_instr->args().front(), Not(IsNull()));
+  EXPECT_NE(return_instr->start(), common::kNoPos);
+  EXPECT_NE(return_instr->end(), common::kNoPos);
 
   auto result = return_instr->args().front();
   EXPECT_EQ(result, ir::False());
@@ -170,7 +182,7 @@ TEST(ParseTest, ParsesFuncWithMultipleResult) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -237,7 +249,7 @@ TEST(ParseTest, ParsesFuncWithOneArgument) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -284,7 +296,7 @@ TEST(ParseTest, ParsesFuncWithMultipleArguments) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -343,7 +355,7 @@ TEST(ParseTest, ParsesFuncWithMultipleBlocks) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -426,7 +438,7 @@ TEST(ParseTest, ParsesFuncWithIfStatement) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -478,7 +490,7 @@ TEST(ParseTest, ParsesFuncWithForLoop) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -585,7 +597,7 @@ TEST(ParseTest, ParsesFuncWithRecursiveCall) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -700,7 +712,7 @@ TEST(ParseTest, ParsesMultipleFuncs) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(3));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -852,7 +864,7 @@ TEST(ParseTest, ParsesSyscall) {
 }
 )ir");
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(1));
   EXPECT_THAT(program->entry_func(), IsNull());
@@ -937,7 +949,7 @@ TEST(ParseTest, ParsesAdditionalFuncs) {
   ir::Func* func_c = additional_funcs.at(0);
   ir::Func* func_d = additional_funcs.at(1);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ASSERT_THAT(program->funcs(), SizeIs(4));
   EXPECT_EQ(program->entry_func(), func_d);

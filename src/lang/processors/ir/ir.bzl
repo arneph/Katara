@@ -10,6 +10,7 @@ def ir_ext_file_check(name, src, visibility = None):
         deps = [
             "//src/ir:ir_lib",
             "//src/lang/processors/ir",
+            "//src/lang/processors/ir/check:check_test_util",
             "@gtest//:gtest_main",
         ],
     )

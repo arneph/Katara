@@ -10,7 +10,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "src/ir/checker/checker.h"
+#include "src/ir/check/check_test_util.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/parse.h"
 
@@ -86,7 +86,7 @@ TEST_P(DebuggerTest, RunsCorrectlyWithoutSanityCheck) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
   ir_interpreter::Debugger debugger(program.get(), /*sanitize=*/false);
   debugger.Run();
   debugger.AwaitTermination();
@@ -98,7 +98,7 @@ TEST_P(DebuggerTest, RunsCorrectlyWithSanityCheck) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
   ir_interpreter::Debugger debugger(program.get(), /*sanitize=*/true);
   debugger.Run();
   debugger.AwaitTermination();
@@ -115,7 +115,7 @@ TEST_P(DebuggerTest, CallsTerminationObserver) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
   ir_interpreter::Debugger debugger(program.get(), /*sanitize=*/true);
 
   TerminationObserverMock mock_observer;
@@ -132,7 +132,7 @@ TEST_P(DebuggerTest, StepsInCorrectly) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
   ir_interpreter::Debugger debugger(program.get(), /*sanitize=*/true);
   while (debugger.execution_state() != ir_interpreter::Debugger::ExecutionState::kTerminated) {
     debugger.StepIn();
@@ -146,7 +146,7 @@ TEST_P(DebuggerTest, StepsOverCorrectly) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
   ir_interpreter::Debugger debugger(program.get(), /*sanitize=*/true);
   while (debugger.execution_state() != ir_interpreter::Debugger::ExecutionState::kTerminated) {
     debugger.StepOver();
@@ -160,7 +160,7 @@ TEST_P(DebuggerTest, StepsOutCorrectly) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
   ir_interpreter::Debugger debugger(program.get(), /*sanitize=*/true);
   while (debugger.execution_state() != ir_interpreter::Debugger::ExecutionState::kTerminated) {
     debugger.StepOut();

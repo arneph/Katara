@@ -12,10 +12,11 @@ cc_library(
     deps = [
         "//src/ir/analyzers",
         "//src/ir/builder",
-        "//src/ir/checker",
+        "//src/ir/check",
         "//src/ir/info",
         "//src/ir/interpreter",
         "//src/ir/interpreter:debugger",
+        "//src/ir/issues",
         "//src/ir/optimizers",
         "//src/ir/processors",
         "//src/ir/representation",

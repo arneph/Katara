@@ -10,7 +10,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "src/ir/checker/checker.h"
+#include "src/ir/check/check_test_util.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -39,7 +39,7 @@ TEST(ExeuctionPointTest, AdvancesCorrectly) {
   ret %1
 }
 )ir");
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
 
   ir::Func* func = program->GetFunc(0);
   ir::Block* block_a = func->GetBlock(0);

@@ -22,7 +22,7 @@ cc_test(
     copts = COPTS,
     deps = [
         ":execution_point",
-        "//src/ir/checker",
+        "//src/ir/check:check_test_util",
         "//src/ir/representation",
         "//src/ir/serialization:parse",
         "@gtest//:gtest_main",
@@ -49,7 +49,7 @@ cc_test(
     copts = COPTS,
     deps = [
         ":stack",
-        "//src/ir/checker",
+        "//src/ir/check:check_test_util",
         "//src/ir/representation",
         "//src/ir/serialization:parse",
         "@gtest//:gtest_main",
@@ -102,7 +102,7 @@ cc_test(
     copts = COPTS,
     deps = [
         ":interpreter",
-        "//src/ir/checker",
+        "//src/ir/check:check_test_util",
         "//src/ir/representation",
         "//src/ir/serialization:parse",
         "@gtest//:gtest_main",
@@ -118,6 +118,7 @@ cc_test(
         "//src/common/filesystem",
         "//src/common/filesystem:test_filesystem",
         "//src/lang:lang_lib",
+        "//src/lang/processors/ir/check:check_test_util",
         "@gtest//:gtest_main",
     ],
 )
@@ -145,7 +146,7 @@ cc_test(
     copts = COPTS,
     deps = [
         ":debugger",
-        "//src/ir/checker",
+        "//src/ir/check:check_test_util",
         "//src/ir/representation",
         "//src/ir/serialization:parse",
         "@gtest//:gtest_main",

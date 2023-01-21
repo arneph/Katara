@@ -60,7 +60,7 @@ class FuncParser {
  private:
   void ParseFuncArgs();
   void ParseFuncResultTypes();
-  void ParseFuncBody();
+  common::pos_t ParseFuncBody();
   void ConnectBlocks();
   void ParseBlock();
 

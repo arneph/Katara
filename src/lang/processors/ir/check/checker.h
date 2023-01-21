@@ -11,8 +11,8 @@
 
 #include <vector>
 
-#include "src/ir/checker/checker.h"
-#include "src/ir/checker/issues.h"
+#include "src/ir/check/checker.h"
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -25,17 +25,15 @@
 #include "src/lang/representation/ir_extension/types.h"
 #include "src/lang/representation/ir_extension/values.h"
 
-namespace lang {
-namespace ir_checker {
+namespace lang::ir_check {
 
-std::vector<::ir_checker::Issue> CheckProgram(const ir::Program* program);
-void AssertProgramIsOkay(const ir::Program* program);
-
-class Checker : public ::ir_checker::Checker {
- private:
-  Checker(const ir::Program* program) : ::ir_checker::Checker(program) {}
+class Checker : public ::ir_check::Checker {
+ public:
+  Checker(ir_issues::IssueTracker& issue_tracker, const ir::Program* program)
+      : ::ir_check::Checker(issue_tracker, program) {}
   ~Checker() = default;
 
+ private:
   void CheckInstr(const ir::Instr* instr, const ir::Block* block, const ir::Func* func) final;
   void CheckMakeSharedPointerInstr(const ir_ext::MakeSharedPointerInstr* make_shared_pointer_instr);
   void CheckCopySharedPointerInstr(const ir_ext::CopySharedPointerInstr* copy_shared_pointer_instr);
@@ -51,11 +49,8 @@ class Checker : public ::ir_checker::Checker {
 
   void CheckStringIndexInstr(const ir_ext::StringIndexInstr* string_index_instr);
   void CheckStringConcatInstr(const ir_ext::StringConcatInstr* string_concat_instr);
-
-  friend std::vector<::ir_checker::Issue> CheckProgram(const ir::Program* program);
 };
 
-}  // namespace ir_checker
-}  // namespace lang
+}  // namespace lang::ir_check
 
 #endif /* lang_ir_ext_checker_h */

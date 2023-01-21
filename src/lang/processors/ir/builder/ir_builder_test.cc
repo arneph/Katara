@@ -14,7 +14,7 @@
 #include "src/common/filesystem/test_filesystem.h"
 #include "src/ir/serialization/print.h"
 #include "src/lang/processors/ir/builder/ir_builder.h"
-#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/check/check_test_util.h"
 #include "src/lang/processors/ir/serialization/parse.h"
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
@@ -374,12 +374,12 @@ TEST_P(IRBuilderTest, BuildsIR) {
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(actual_ir_program != nullptr);
   //  EXPECT_TRUE(false) << ir_serialization::Print(actual_ir_program.get());
-  lang::ir_checker::AssertProgramIsOkay(actual_ir_program.get());
+  lang::ir_check::CheckProgramOrDie(actual_ir_program.get());
 
   // Check IR is as expected:
   std::unique_ptr<ir::Program> expected_ir_program =
       lang::ir_serialization::ParseProgramOrDie(GetParam().expected_ir_program);
-  lang::ir_checker::AssertProgramIsOkay(expected_ir_program.get());
+  lang::ir_check::CheckProgramOrDie(expected_ir_program.get());
   EXPECT_TRUE(ir::IsEqual(actual_ir_program.get(), expected_ir_program.get()))
       << "For Katara program:" << GetParam().input_lang_program
       << "expected different IR program:\n"

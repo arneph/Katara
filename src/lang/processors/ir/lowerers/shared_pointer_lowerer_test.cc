@@ -15,7 +15,8 @@
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/print.h"
-#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/check/check.h"
+#include "src/lang/processors/ir/check/check_test_util.h"
 #include "src/lang/processors/ir/serialization/parse.h"
 
 using ::testing::Each;
@@ -336,13 +337,16 @@ TEST_P(SharedPointerLowererTest, LowersProgram) {
       lang::ir_serialization::ParseProgramOrDie(GetParam().input_program);
   std::unique_ptr<ir::Program> expected_program =
       lang::ir_serialization::ParseProgramOrDie(GetParam().expected_program);
-  lang::ir_checker::AssertProgramIsOkay(lowered_program.get());
-  ASSERT_THAT(lang::ir_checker::CheckProgram(expected_program.get()),
-              Each(Property(&ir_checker::Issue::kind,
-                            ir_checker::Issue::Kind::kCallInstrStaticCalleeDoesNotExist)));
+  lang::ir_check::CheckProgramOrDie(lowered_program.get());
+  common::PosFileSet file_set;
+  ir_issues::IssueTracker issue_tracker(&file_set);
+  lang::ir_check::CheckProgram(expected_program.get(), issue_tracker);
+  ASSERT_THAT(issue_tracker.issues(),
+              Each(Property(&ir_issues::Issue::kind,
+                            ir_issues::IssueKind::kCallInstrStaticCalleeDoesNotExist)));
 
   lang::ir_lowerers::LowerSharedPointersInProgram(lowered_program.get());
-  lang::ir_checker::AssertProgramIsOkay(lowered_program.get());
+  lang::ir_check::CheckProgramOrDie(lowered_program.get());
   for (ir::func_num_t func_num = 0; func_num < ir::func_num_t(expected_program->funcs().size());
        func_num++) {
     EXPECT_TRUE(

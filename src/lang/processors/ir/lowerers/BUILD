@@ -29,7 +29,7 @@ cc_test(
     deps = [
         ":shared_pointer_impl",
         "//src/ir:ir_lib",
-        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/check:check_test_util",
         "//src/lang/processors/ir/serialization:parse",
         "//src/lang/representation",
         "@gtest//:gtest_main",
@@ -59,7 +59,8 @@ cc_test(
     deps = [
         ":shared_pointer_lowerer",
         "//src/ir:ir_lib",
-        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/check",
+        "//src/lang/processors/ir/check:check_test_util",
         "//src/lang/processors/ir/serialization:parse",
         "//src/lang/representation",
         "@gtest//:gtest_main",
@@ -87,7 +88,7 @@ cc_test(
     deps = [
         ":unique_pointer_lowerer",
         "//src/ir:ir_lib",
-        "//src/lang/processors/ir/checker",
+        "//src/lang/processors/ir/check:check_test_util",
         "//src/lang/processors/ir/serialization:parse",
         "//src/lang/representation",
         "@gtest//:gtest_main",

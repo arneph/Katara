@@ -12,7 +12,7 @@
 #include "gtest/gtest.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/print.h"
-#include "src/lang/processors/ir/checker/checker.h"
+#include "src/lang/processors/ir/check/check_test_util.h"
 #include "src/lang/processors/ir/serialization/parse.h"
 
 TEST(UniquePointerLowererTest, LowersSimpleProgram) {
@@ -42,11 +42,11 @@ TEST(UniquePointerLowererTest, LowersSimpleProgram) {
   ret %3
 }
 )ir");
-  lang::ir_checker::AssertProgramIsOkay(lowered_program.get());
-  lang::ir_checker::AssertProgramIsOkay(expected_program.get());
+  lang::ir_check::CheckProgramOrDie(lowered_program.get());
+  lang::ir_check::CheckProgramOrDie(expected_program.get());
 
   lang::ir_lowerers::LowerUniquePointersInProgram(lowered_program.get());
-  lang::ir_checker::AssertProgramIsOkay(lowered_program.get());
+  lang::ir_check::CheckProgramOrDie(lowered_program.get());
   EXPECT_TRUE(ir::IsEqual(lowered_program.get(), expected_program.get()))
       << "Expected different lowered program:\n"
       << ir_serialization::Print(expected_program.get()) << "\ngot:\n"

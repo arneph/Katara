@@ -12,7 +12,7 @@
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "src/ir/checker/checker.h"
+#include "src/ir/check/check_test_util.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/serialization/parse.h"
 
@@ -88,7 +88,7 @@ TEST_P(InterpreterTest, InterpretsCorrectlyWithoutSanityCheck) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
   ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/false);
   interpreter.Run();
 
@@ -99,7 +99,7 @@ TEST_P(InterpreterTest, InterpretsCorrectlyWithSanityCheck) {
   std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(GetParam().program);
   program->set_entry_func_num(0);
 
-  ir_checker::AssertProgramIsOkay(program.get());
+  ir_check::CheckProgramOrDie(program.get());
   ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);
   interpreter.Run();
 

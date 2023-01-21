@@ -14,7 +14,8 @@
 #include <unordered_set>
 #include <vector>
 
-#include "src/ir/checker/issues.h"
+#include "src/common/positions/positions.h"
+#include "src/ir/issues/issues.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
 #include "src/ir/representation/instrs.h"
@@ -24,21 +25,20 @@
 #include "src/ir/representation/types.h"
 #include "src/ir/representation/values.h"
 
-namespace ir_checker {
-
-std::vector<Issue> CheckProgram(const ir::Program* program);
-void AssertProgramIsOkay(const ir::Program* program);
+namespace ir_check {
 
 class Checker {
- protected:
-  Checker(const ir::Program* program) : program_(program) {}
-
-  virtual ~Checker() {}
-
-  const ir::Program* program() const { return program_; }
-  const std::vector<Issue>& issues() const { return issues_; }
+ public:
+  Checker(ir_issues::IssueTracker& issue_tracker, const ir::Program* program)
+      : issue_tracker_(issue_tracker), program_(program) {}
+  virtual ~Checker() = default;
 
   virtual void CheckProgram();
+
+ protected:
+  const ir::Program* program() const { return program_; }
+  ir_issues::IssueTracker& issue_tracker() { return issue_tracker_; }
+
   virtual void CheckFunc(const ir::Func* func);
   virtual void CheckBlock(const ir::Block* block, const ir::Func* func);
   virtual void CheckInstr(const ir::Instr* instr, const ir::Block* block, const ir::Func* func);
@@ -47,9 +47,7 @@ class Checker {
                              const ir::Func* func);
   virtual void CheckLoadInstr(const ir::LoadInstr* load_instr);
   virtual void CheckStoreInstr(const ir::StoreInstr* store_instr);
-  virtual void CheckValue(const ir::Value* value);
-
-  void AddIssue(Issue issue);
+  virtual void CheckValue(const ir::Computed* value);
 
  private:
   struct FuncValueReference {
@@ -92,13 +90,11 @@ class Checker {
   void CheckReturnInstr(const ir::ReturnInstr* return_instr, const ir::Block* block,
                         const ir::Func* func);
 
+  ir_issues::IssueTracker& issue_tracker_;
   const ir::Program* program_;
   std::unordered_map<const ir::Computed*, const ir::Func*> values_to_funcs_;
-  std::vector<Issue> issues_;
-
-  friend std::vector<Issue> CheckProgram(const ir::Program*);
 };
 
-}  // namespace ir_checker
+}  // namespace ir_check
 
 #endif /* ir_checker_checker_h */
