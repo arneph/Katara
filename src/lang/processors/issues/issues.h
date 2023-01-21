@@ -212,7 +212,7 @@ enum IssueKind {
 
 class Issue : public common::Issue<IssueKind, Origin> {
  public:
-  Issue(IssueKind kind, std::vector<common::pos_t> positions, std::string message)
+  Issue(IssueKind kind, std::vector<common::positions::pos_t> positions, std::string message)
       : common::Issue<IssueKind, Origin>(kind, positions, message) {}
 
   Origin origin() const override;

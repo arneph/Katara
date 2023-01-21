@@ -20,6 +20,10 @@
 namespace lang {
 namespace docs {
 
+using ::common::positions::File;
+using ::common::positions::FileSet;
+using ::common::positions::pos_t;
+
 namespace {
 
 std::string InsertLineNumbers(std::string text, int64_t& line_number) {
@@ -39,11 +43,10 @@ std::string InsertLineNumbers(std::string text, int64_t& line_number) {
 };  // namespace
 
 FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
-                                     const common::PosFileSet* pos_file_set,
-                                     types::Info* type_info) {
-  common::PosFile* pos_file = pos_file_set->FileAt(ast_file->start());
+                                     const FileSet* pos_file_set, types::Info* type_info) {
+  File* pos_file = pos_file_set->FileAt(ast_file->start());
   scanner::Scanner scanner(pos_file);
-  common::pos_t last_pos = pos_file->start() - 1;
+  pos_t last_pos = pos_file->start() - 1;
   std::ostringstream ss;
   ss << "<!DOCTYPE html>\n"
      << "<html>\n"
@@ -77,7 +80,7 @@ FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
       id = "p" + std::to_string(scanner.token_start());
       types::Object* obj = type_info->ObjectOf(ident);
       if (obj != nullptr && obj->package() != nullptr) {
-        common::PosFile* obj_file = pos_file_set->FileAt(obj->position());
+        File* obj_file = pos_file_set->FileAt(obj->position());
         classs = "p" + std::to_string(obj->position());
         link = html::GroupLink{
             .link = obj_file->name() + ".html#" + classs,

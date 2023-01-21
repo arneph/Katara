@@ -26,6 +26,7 @@
 #include "src/lang/representation/ir_extension/types.h"
 #include "src/lang/representation/ir_extension/values.h"
 
+using ::common::positions::FileSet;
 using ::ir_issues::Issue;
 using ::ir_issues::IssueKind;
 using ::lang::ir_check::CheckProgram;
@@ -43,7 +44,7 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrResultDoesNotHaveSharedPointerTyp
       std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -65,7 +66,7 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrResultIsNotAStrongSharedPointer) 
       std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -87,7 +88,7 @@ TEST(CheckerTest, CatchesMakeSharedPointerInstrSizeDoesNotHaveI64Type) {
       std::make_unique<lang::ir_ext::MakeSharedPointerInstr>(result, ir::I32Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -111,7 +112,7 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrResultDoesNotHaveSharedPointerTyp
       result, arg, /*pointer_offset=*/ir::I64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -136,7 +137,7 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrCopiedDoesNotHaveSharedPointerTyp
       result, arg, /*pointer_offset=*/ir::I64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -163,7 +164,7 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrOffsetDoesNotHaveI64Type) {
       result, copied, /*pointer_offset=*/ir::U64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -190,7 +191,7 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrResultAndCopiedHaveDifferentEleme
       result, copied, /*pointer_offset=*/ir::I64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -218,7 +219,7 @@ TEST(CheckerTest, CatchesCopySharedPointerInstrConvertsFromWeakToStrongSharedPoi
       result, copied, /*pointer_offset=*/ir::I64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -237,7 +238,7 @@ TEST(CheckerTest, CatchesDeleteSharedPointerInstrArgumentDoesNotHaveSharedPointe
   block->instrs().push_back(std::make_unique<lang::ir_ext::DeleteSharedPointerInstr>(deleted));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -256,7 +257,7 @@ TEST(CheckerTest, CatchesMakeUniquePointerInstrResultDoesNotHaveUniquePointerTyp
       std::make_unique<lang::ir_ext::MakeUniquePointerInstr>(result, ir::I64One()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -277,7 +278,7 @@ TEST(CheckerTest, CatchesMakeUniquePointerInstrSizeDoesNotHaveI64Type) {
       std::make_unique<lang::ir_ext::MakeUniquePointerInstr>(result, ir::U64Zero()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -296,7 +297,7 @@ TEST(CheckerTest, CatchesDeleteUniquePointerInstrArgumentDoesNotHaveUniquePointe
   block->instrs().push_back(std::make_unique<lang::ir_ext::DeleteUniquePointerInstr>(deleted));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -319,7 +320,7 @@ TEST(CheckerTest, CatchesLoadFromSmartPointerHasMismatchedElementType) {
   block->instrs().push_back(std::make_unique<ir::LoadInstr>(result, address));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -342,7 +343,7 @@ TEST(CheckerTest, CatchesStoreToSmartPointerHasMismatchedElementType) {
   block->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -365,7 +366,7 @@ TEST(CheckerTest, CatchesStringIndexInstrResultDoesNotHaveI8Type) {
       std::make_unique<lang::ir_ext::StringIndexInstr>(result, string_operand, index_operand));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -387,7 +388,7 @@ TEST(CheckerTest, CatchesStringIndexInstrStringOperandDoesNotHaveStringType) {
       std::make_unique<lang::ir_ext::StringIndexInstr>(result, string_operand, index_operand));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -410,7 +411,7 @@ TEST(CheckerTest, CatchesStringIndexInstrIndexOperandDoesNotHaveI64Type) {
       std::make_unique<lang::ir_ext::StringIndexInstr>(result, string_operand, index_operand));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -433,7 +434,7 @@ TEST(CheckerTest, CatchesStringConcatInstrResultDoesNotHaveStringType) {
       result, std::vector<std::shared_ptr<ir::Value>>{operand1, operand2}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -452,7 +453,7 @@ TEST(CheckerTest, CatchesStringConcatInstrDoesNotHaveArguments) {
       result, std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -474,7 +475,7 @@ TEST(CheckerTest, CatchesStringConcatInstrOperandDoesNotHaveStringType) {
       result, std::vector<std::shared_ptr<ir::Value>>{operand1, operand2}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(

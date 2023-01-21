@@ -11,7 +11,8 @@
 namespace lang {
 namespace scanner {
 
-Scanner::Scanner(common::PosFile* file) : file_(file), pos_(file->start()), tok_(tokens::kIllegal) {
+Scanner::Scanner(common::positions::File* file)
+    : file_(file), pos_(file->start()), tok_(tokens::kIllegal) {
   Next();
 }
 

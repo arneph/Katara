@@ -19,24 +19,24 @@ namespace scanner {
 
 class Scanner {
  public:
-  Scanner(common::PosFile* file);
+  Scanner(common::positions::File* file);
 
   tokens::Token token() const;
-  common::pos_t token_start() const;
-  common::pos_t token_end() const;
+  common::positions::pos_t token_start() const;
+  common::positions::pos_t token_end() const;
   std::string token_string() const;
 
   void Next(bool split_shift_ops = false);
   void SkipPastLine();
 
  private:
-  const common::PosFile* file_;
+  const common::positions::File* file_;
 
-  common::pos_t pos_;
+  common::positions::pos_t pos_;
 
   tokens::Token tok_;
-  common::pos_t tok_start_;
-  common::pos_t tok_end_;
+  common::positions::pos_t tok_start_;
+  common::positions::pos_t tok_end_;
 
   void NextArithmeticOrBitOpStart(tokens::Token tok);
 };

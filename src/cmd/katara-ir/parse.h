@@ -25,7 +25,7 @@ namespace katara_ir {
 struct ParseDetails {
   ErrorCode error_code;
   std::unique_ptr<ir::Program> program;
-  common::PosFileSet file_set;
+  common::positions::FileSet file_set;
   ir_issues::IssueTracker issue_tracker = ir_issues::IssueTracker(&file_set);
 };
 

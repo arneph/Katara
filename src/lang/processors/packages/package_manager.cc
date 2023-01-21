@@ -19,6 +19,7 @@ namespace lang {
 namespace packages {
 
 using ::common::logging::fail;
+using ::common::positions::pos_t;
 
 std::vector<Package*> PackageManager::Packages() const {
   std::vector<Package*> packages;
@@ -46,7 +47,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path) {
              filesystem_->IsDirectory(stdlib_path_ / pkg_path)) {
     return LoadPackage(pkg_path, stdlib_path_ / pkg_path);
   }
-  issue_tracker_.Add(issues::kPackageDirectoryNotFound, std::vector<common::pos_t>{},
+  issue_tracker_.Add(issues::kPackageDirectoryNotFound, std::vector<pos_t>{},
                      "package directory not found for: " + pkg_path);
   return nullptr;
 }
@@ -56,7 +57,7 @@ Package* PackageManager::LoadMainPackage(std::filesystem::path main_directory) {
     fail("tried to load main package twice");
   }
   if (!filesystem_->IsDirectory(main_directory)) {
-    issue_tracker_.Add(issues::kMainPackageDirectoryUnreadable, std::vector<common::pos_t>{},
+    issue_tracker_.Add(issues::kMainPackageDirectoryUnreadable, std::vector<pos_t>{},
                        "main package directory not readable: " + main_directory.string());
     return nullptr;
   }
@@ -83,7 +84,7 @@ bool PackageManager::CheckAllFilesAreInMainDirectory(
         return filesystem_->Equivalent(main_directory, file_path.parent_path());
       });
   if (!all_in_main_directory) {
-    issue_tracker_.Add(issues::kMainPackageFilesInMultipleDirectories, std::vector<common::pos_t>{},
+    issue_tracker_.Add(issues::kMainPackageFilesInMultipleDirectories, std::vector<pos_t>{},
                        "main package files are not all in the same directory");
   }
   return all_in_main_directory;
@@ -94,7 +95,7 @@ bool PackageManager::CheckAllFilesInMainPackageExist(
   bool all_readable = true;
   std::for_each(file_paths.begin(), file_paths.end(), [&](std::filesystem::path file_path) {
     if (!filesystem_->Exists(file_path) || filesystem_->IsDirectory(file_path)) {
-      issue_tracker_.Add(issues::kMainPackageFileUnreadable, std::vector<common::pos_t>{},
+      issue_tracker_.Add(issues::kMainPackageFileUnreadable, std::vector<pos_t>{},
                          "main package file not readable: " + file_path.string());
       all_readable = false;
     }
@@ -140,7 +141,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path, std::filesystem::path
   pkg->directory_ = pkg_directory;
   if (file_paths.empty()) {
     pkg->issue_tracker_.Add(
-        issues::kPackageDirectoryWithoutSourceFiles, std::vector<common::pos_t>{},
+        issues::kPackageDirectoryWithoutSourceFiles, std::vector<pos_t>{},
         "package directory does not contain source files: " + pkg_directory.string());
     return pkg;
   }
@@ -152,7 +153,7 @@ Package* PackageManager::LoadPackage(std::string pkg_path, std::filesystem::path
 
   ast::ASTBuilder ast_builder = ast_.builder();
   std::map<std::string, ast::File*> ast_files;
-  for (common::PosFile* pos_file : pkg->pos_files_) {
+  for (common::positions::File* pos_file : pkg->pos_files_) {
     ast::File* ast_file = parser::Parser::ParseFile(pos_file, ast_builder, pkg->issue_tracker_);
     ast_files.insert({pos_file->name(), ast_file});
   }

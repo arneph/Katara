@@ -18,7 +18,7 @@ namespace ast {
 
 using ::common::logging::fail;
 
-common::graph::Graph NodeToTree(const common::PosFileSet* file_set, Node* node) {
+common::graph::Graph NodeToTree(const common::positions::FileSet* file_set, Node* node) {
   common::graph::Graph graph(/*is_directed=*/true);
   std::vector<int64_t> stack;
   int64_t count = 0;
@@ -44,7 +44,7 @@ common::graph::Graph NodeToTree(const common::PosFileSet* file_set, Node* node) 
       title = "node";
       color = common::graph::kRed;
     }
-    common::PosFile* file = file_set->FileAt(ast_node->start());
+    common::positions::File* file = file_set->FileAt(ast_node->start());
     std::string text = file->contents(ast_node->start(), ast_node->end());
     if (auto it = std::find(text.begin(), text.end(), '\n'); it != text.end()) {
       text = std::string(text.begin(), it) + "...";

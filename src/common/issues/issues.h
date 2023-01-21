@@ -34,7 +34,7 @@ enum class Severity {
 template <IssueKindType IssueKind, OriginType Origin>
 class Issue {
  public:
-  Issue(IssueKind kind, std::vector<pos_t> positions, std::string message)
+  Issue(IssueKind kind, std::vector<positions::pos_t> positions, std::string message)
       : kind_(kind), positions_(positions), message_(message) {}
   virtual ~Issue() = default;
 
@@ -42,12 +42,12 @@ class Issue {
   IssueKind kind() const { return kind_; }
   virtual Origin origin() const = 0;
   virtual Severity severity() const = 0;
-  const std::vector<pos_t>& positions() const { return positions_; }
+  const std::vector<positions::pos_t>& positions() const { return positions_; }
   std::string message() const { return message_; }
 
  private:
   IssueKind kind_;
-  std::vector<pos_t> positions_;
+  std::vector<positions::pos_t> positions_;
   std::string message_;
 };
 
@@ -62,7 +62,7 @@ enum class IssuePrintFormat {
 template <IssueKindType IssueKind, OriginType Origin, IssueSubclass<IssueKind, Origin> Issue>
 class IssueTracker {
  public:
-  IssueTracker(const PosFileSet* file_set) : file_set_(file_set) {}
+  IssueTracker(const positions::FileSet* file_set) : file_set_(file_set) {}
 
   bool has_warnings() const {
     return std::any_of(issues_.begin(), issues_.end(),
@@ -80,10 +80,10 @@ class IssueTracker {
 
   const std::vector<Issue>& issues() const { return issues_; }
 
-  void Add(IssueKind kind, pos_t position, std::string message) {
-    Add(kind, std::vector<pos_t>{position}, message);
+  void Add(IssueKind kind, positions::pos_t position, std::string message) {
+    Add(kind, std::vector<positions::pos_t>{position}, message);
   }
-  void Add(IssueKind kind, std::vector<pos_t> positions, std::string message) {
+  void Add(IssueKind kind, std::vector<positions::pos_t> positions, std::string message) {
     issues_.push_back(Issue(kind, positions, message));
   }
 
@@ -119,8 +119,8 @@ class IssueTracker {
           break;
       }
       *out << issue.message() << " [" << issue.kind_id() << "]\n";
-      for (pos_t pos : issue.positions()) {
-        Position position = file_set_->PositionFor(pos);
+      for (positions::pos_t pos : issue.positions()) {
+        positions::Position position = file_set_->PositionFor(pos);
         std::string line = file_set_->FileAt(pos)->LineFor(pos);
         size_t whitespace = 0;
         for (; whitespace < line.length(); whitespace++) {
@@ -140,7 +140,7 @@ class IssueTracker {
   }
 
  private:
-  const PosFileSet* file_set_;
+  const positions::FileSet* file_set_;
   std::vector<Issue> issues_;
 };
 

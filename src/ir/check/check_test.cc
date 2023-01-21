@@ -28,6 +28,7 @@ namespace {
 
 using ::common::atomics::Bool;
 using ::common::atomics::Int;
+using ::common::positions::FileSet;
 using ::ir_check::CheckProgram;
 using ::ir_issues::Issue;
 using ::ir_issues::IssueKind;
@@ -49,7 +50,7 @@ TEST(CheckerTest, CatchesValueHasNullptrTypeForArg) {
   func->set_entry_block_num(block->number());
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -67,7 +68,7 @@ TEST(CheckerTest, CatchesValueHasNullptrTypeForValue) {
   block->instrs().push_back(std::make_unique<ir::LoadInstr>(value, arg));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -84,7 +85,7 @@ TEST(CheckerTest, CatchesInstrDefinesNullptrValue) {
   block->instrs().push_back(std::make_unique<ir::LoadInstr>(/*result=*/nullptr, arg));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -100,7 +101,7 @@ TEST(CheckerTest, CatchesInstrUsesNullptrValue) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{nullptr}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -133,7 +134,7 @@ TEST(CheckerTest, CatchesInstrUsesNullptrValueForInheritedValue) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{arg_c}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -152,7 +153,7 @@ TEST(CheckerTest, CatchesNonPhiInstrUsesInheritedValue) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{value}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -173,7 +174,7 @@ TEST(CheckerTest, CatchesMovInstrOriginAndResultHaveMismatchedTypes) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{value}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -207,7 +208,7 @@ TEST(CheckerTest, CatchesPhiInstrOriginAndResultHaveMismatchedTypesForConstantVa
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -241,7 +242,7 @@ TEST(CheckerTest, CatchesPhiInstrOriginAndResultHaveMismatchedTypesForComputedVa
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -274,7 +275,7 @@ TEST(CheckerTest, CatchesPhiInstrHasNoArgumentForParentBlock) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -310,7 +311,7 @@ TEST(CheckerTest, CatchesPhiInstrHasMultipleArgumentsForParentBlock) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -346,7 +347,7 @@ TEST(CheckerTest, CatchesPhiInstrHasArgumentForNonParentBlock) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -377,7 +378,7 @@ TEST(CheckerTest, CatchesBoolNotInstrOperandDoesNotHaveBoolType) {
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
   PrepareSimpleComputationTest(program, std::make_unique<ir::BoolNotInstr>(result, arg));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -391,7 +392,7 @@ TEST(CheckerTest, CatchesBoolNotInstrResultDoesNotHaveBoolType) {
   auto result = std::make_shared<ir::Computed>(ir::i8(), /*vnum=*/1);
   PrepareSimpleComputationTest(program, std::make_unique<ir::BoolNotInstr>(result, arg));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -407,7 +408,7 @@ TEST(CheckerTest, CatchesBoolBinaryInstrOperandDoesNotHaveBoolType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::BoolBinaryInstr>(result, Bool::BinaryOp::kAnd, arg_a, arg_b));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -423,7 +424,7 @@ TEST(CheckerTest, CatchesBoolBinaryInstrResultDoesNotHaveBoolType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::BoolBinaryInstr>(result, Bool::BinaryOp::kAnd, arg_a, arg_b));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -438,7 +439,7 @@ TEST(CheckerTest, CatchesIntUnaryInstrOperandDoesNotHaveIntType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNeg, arg));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -457,7 +458,7 @@ TEST(CheckerTest, CatchesIntUnaryInstrResultDoesNotHaveIntType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNeg, arg));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -475,7 +476,7 @@ TEST(CheckerTest, CatchesIntCompareInstrOperandDoesNotHaveIntType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -493,7 +494,7 @@ TEST(CheckerTest, CatchesIntCompareInstrOperandsHaveDifferentTypes) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -509,7 +510,7 @@ TEST(CheckerTest, CatchesIntCompareInstrResultDoesNotHaveBoolType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -525,7 +526,7 @@ TEST(CheckerTest, CatchesIntBinaryInstrOperandDoesNotHaveIntType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -543,7 +544,7 @@ TEST(CheckerTest, CatchesIntBinaryInstrResultDoesNotHaveIntType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -563,7 +564,7 @@ TEST(CheckerTest, CatchesIntBinaryInstrOperandsAndResultHaveDifferentTypes) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -579,7 +580,7 @@ TEST(CheckerTest, CatchesIntShiftInstrOperandDoesNotHaveIntType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -595,7 +596,7 @@ TEST(CheckerTest, CatchesIntShiftInstrResultDoesNotHaveIntType) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -613,7 +614,7 @@ TEST(CheckerTest, CatchesIntShiftInstrShiftedAndResultHaveDifferentTypes) {
   PrepareSimpleComputationTest(
       program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -629,7 +630,7 @@ TEST(CheckerTest, CatchesPointerOffsetInstrPointerDoesNotHavePointerType) {
   PrepareSimpleComputationTest(program,
                                std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -645,7 +646,7 @@ TEST(CheckerTest, CatchesPointerOffsetInstrOffsetDoesNotHaveI64Type) {
   PrepareSimpleComputationTest(program,
                                std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -661,7 +662,7 @@ TEST(CheckerTest, CatchesPointerOffsetInstrResultDoesNotHavePointerType) {
   PrepareSimpleComputationTest(program,
                                std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -675,7 +676,7 @@ TEST(CheckerTest, CatchesNilTestInstrTestedDoesNotHavePointerOrFuncType) {
   auto result = std::make_shared<ir::Computed>(ir::bool_type(), /*vnum=*/1);
   PrepareSimpleComputationTest(program, std::make_unique<ir::NilTestInstr>(result, tested));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -689,7 +690,7 @@ TEST(CheckerTest, CatchesNilTestInstrResultDoesNotHaveBoolType) {
   auto result = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/1);
   PrepareSimpleComputationTest(program, std::make_unique<ir::NilTestInstr>(result, tested));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -703,7 +704,7 @@ TEST(CheckerTest, CatchesMallocInstrSizeDoesNotHaveI64Type) {
   auto result = std::make_shared<ir::Computed>(ir::pointer_type(), /*vnum=*/1);
   PrepareSimpleComputationTest(program, std::make_unique<ir::MallocInstr>(result, size));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -717,7 +718,7 @@ TEST(CheckerTest, CatchesMallocInstrResultDoesNotHavePointerType) {
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   PrepareSimpleComputationTest(program, std::make_unique<ir::MallocInstr>(result, size));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -731,7 +732,7 @@ TEST(CheckerTest, CatchesLoadInstrAddressDoesNotHavePointerType) {
   auto result = std::make_shared<ir::Computed>(ir::func_type(), /*vnum=*/1);
   PrepareSimpleComputationTest(program, std::make_unique<ir::LoadInstr>(result, address));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -751,7 +752,7 @@ TEST(CheckerTest, CatchesStoreInstrAddressDoesNotHavePointerType) {
   block->instrs().push_back(std::make_unique<ir::StoreInstr>(address, value));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -769,7 +770,7 @@ TEST(CheckerTest, CatchesFreeInstrAddressDoesNotHavePointerType) {
   block->instrs().push_back(std::make_unique<ir::FreeInstr>(address));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -787,7 +788,7 @@ TEST(CheckerTest, CatchesJumpInstrDestinationIsNotChildBlock) {
   block_a->instrs().push_back(std::make_unique<ir::JumpInstr>(/*destination=*/123));
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -811,7 +812,7 @@ TEST(CheckerTest, CatchesJumpCondInstrConditionDoesNotHaveBoolType) {
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -835,7 +836,7 @@ TEST(CheckerTest, CatchesJumpCondInstrHasDuplicateDestinations) {
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -859,7 +860,7 @@ TEST(CheckerTest, CatchesJumpCondInstrDestinationIsNotChildBlock) {
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -877,7 +878,7 @@ TEST(CheckerTest, CatchesSyscallInstrResultDoesNotHaveI64Type) {
       result, /*syscall_num=*/ir::I64Zero(), /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -896,7 +897,7 @@ TEST(CheckerTest, CatchesSyscallInstrSyscallNumDoesNotHaveI64Type) {
       result, syscall_num, /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -918,7 +919,7 @@ TEST(CheckerTest, CatchesSyscallInstrArgDoesNotHaveI64Type) {
       result, syscall_num, /*args=*/std::vector<std::shared_ptr<ir::Value>>{arg_a, arg_b, arg_c}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -937,7 +938,7 @@ TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForConstant) {
       /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -957,7 +958,7 @@ TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForComputed) {
       /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -976,7 +977,7 @@ TEST(CheckerTest, CatchesCallInstrStaticCalleeDoesNotExist) {
       /*args=*/std::vector<std::shared_ptr<ir::Value>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1015,7 +1016,7 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMissingArg
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1038,7 +1039,7 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForExcessArg)
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero(), ir::NilPointer(), ir::U8Zero()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1063,7 +1064,7 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMismatched
       std::vector<std::shared_ptr<ir::Value>>{mismatched_arg, ir::NilPointer()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1085,7 +1086,7 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMissingRes
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero(), ir::NilPointer()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1109,7 +1110,7 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForExcessResu
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero(), ir::NilPointer()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1132,7 +1133,7 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMismatched
       std::vector<std::shared_ptr<ir::Value>>{ir::I32Zero(), ir::NilPointer()}));
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1152,7 +1153,7 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForMissingResult) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{ir::NilPointer()}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1172,7 +1173,7 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForExcessResult) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
       std::vector<std::shared_ptr<ir::Value>>{ir::NilPointer(), arg, ir::True()}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1194,7 +1195,7 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForMismatchedResult
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
       std::vector<std::shared_ptr<ir::Value>>{mismatched_result, arg}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1210,7 +1211,7 @@ TEST(CheckerTest, CatchesEntryBlockHasParents) {
   func->AddControlFlow(block->number(), block->number());
   block->instrs().push_back(std::make_unique<ir::JumpInstr>(block->number()));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1230,7 +1231,7 @@ TEST(CheckerTest, CatchesNonEntryBlockHasNoParents) {
   block_b->instrs().push_back(std::make_unique<ir::JumpInstr>(block_c->number()));
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1243,7 +1244,7 @@ TEST(CheckerTest, CatchesBlockContainsNoInstrs) {
   ir::Block* block = func->AddBlock();
   func->set_entry_block_num(block->number());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1260,7 +1261,7 @@ TEST(CheckerTest, CatchesPhiInBlockWithoutMultipleParentsInEntryBlock) {
       phi_result, std::vector<std::shared_ptr<ir::InheritedValue>>{}));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1282,7 +1283,7 @@ TEST(CheckerTest, CatchesPhiInBlockWithoutMultipleParentsInBlockWithSingleParent
                       std::make_shared<ir::InheritedValue>(ir::I64One(), block_a->number())}));
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1315,7 +1316,7 @@ TEST(CheckerTest, CatchesPhiAfterRegularInstrInBlock) {
                       std::make_shared<ir::InheritedValue>(ir::I64Eight(), block_b->number())}));
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1339,7 +1340,7 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpInstr) {
   block_b->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1373,7 +1374,7 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpCondInstr) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1396,7 +1397,7 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForReturnInstr) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1415,7 +1416,7 @@ TEST(CheckerTest, CatchesControlFlowInstrMissingAtEndOfBlock) {
   auto result = std::make_shared<ir::Computed>(ir::i64(), /*vnum=*/1);
   block->instrs().push_back(std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1444,7 +1445,7 @@ TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForMissingContr
   block_b->instrs().push_back(std::make_unique<ir::JumpInstr>(block_c->number()));
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1480,7 +1481,7 @@ TEST(CheckerTest,
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
   block_d->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1505,7 +1506,7 @@ TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForExcessContro
   block_b->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1525,7 +1526,7 @@ TEST(CheckerTest, CatchesFuncDefinesNullptrArg) {
   func->set_entry_block_num(block->number());
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1543,7 +1544,7 @@ TEST(CheckerTest, CatchesFuncHasNullptrResultType) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>(
       std::vector<std::shared_ptr<ir::Value>>{ir::False(), mismatched_result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1556,7 +1557,7 @@ TEST(CheckerTest, CatchesFuncHasNoEntryBlock) {
   ir::Program program;
   program.AddFunc();
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1579,7 +1580,7 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForSharedArg) {
   func_b->set_entry_block_num(block_b->number());
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1603,7 +1604,7 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForSharedComputatio
   block_b->instrs().push_back(std::make_unique<ir::MallocInstr>(result, ir::I64Eight()));
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1628,7 +1629,7 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForArgAndComputatio
   block_b->instrs().push_back(std::make_unique<ir::FreeInstr>(value));
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1647,7 +1648,7 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForArgs) {
   func->set_entry_block_num(block->number());
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1667,7 +1668,7 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForComputations) {
   block->instrs().push_back(std::make_unique<ir::MallocInstr>(result_b, ir::I64Eight()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1687,7 +1688,7 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForArgAndComputatio
   block->instrs().push_back(std::make_unique<ir::MallocInstr>(result, ir::I64Eight()));
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1706,7 +1707,7 @@ TEST(CheckerTest, CatchesComputedValueHasNoDefinition) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1726,7 +1727,7 @@ TEST(CheckerTest, CatchesComputedValueHasMultipleDefinitions) {
   block->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(
@@ -1755,7 +1756,7 @@ TEST(CheckerTest, CatchesComputedValueDefinitionDoesNotDominateUse) {
   block_c->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
@@ -1811,7 +1812,7 @@ TEST(CheckerTest, FindsNoComputedValueDefinitionDoesNotDominateUseForCorrectInhe
   block_d->instrs().push_back(
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value_b}));
 
-  common::PosFileSet file_set;
+  FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram(&program, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());

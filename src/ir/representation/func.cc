@@ -15,6 +15,7 @@
 namespace ir {
 
 using ::common::logging::fail;
+using ::common::positions::pos_t;
 
 Block* Func::GetBlock(block_num_t bnum) const {
   auto it = std::find_if(blocks_.begin(), blocks_.end(),
@@ -111,7 +112,7 @@ void Func::ForBlocksInDominanceOrder(std::function<void(Block*)> f) const {
   }
 }
 
-void Func::SetPositions(common::pos_t start, common::pos_t end) {
+void Func::SetPositions(pos_t start, pos_t end) {
   start_ = start;
   end_ = end;
 }

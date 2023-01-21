@@ -15,6 +15,7 @@ namespace ir_serialization {
 
 using ::common::atomics::Int;
 using ::common::atomics::IntType;
+using ::common::positions::pos_t;
 
 std::shared_ptr<ir::Constant> ConstantParser::ParseConstant(const ir::Type* expected_type) {
   switch (scanner().token()) {
@@ -65,7 +66,7 @@ std::shared_ptr<ir::FuncConstant> ConstantParser::ParseFuncConstant() {
 // Constant ::= '#t' | '#f' | '#' Number (':' Type)?
 std::shared_ptr<ir::Constant> ConstantParser::ParseBoolOrIntConstant(
     const ir::Type* expected_type) {
-  common::pos_t hash_sign_pos = scanner().token_start();
+  pos_t hash_sign_pos = scanner().token_start();
   scanner().ConsumeToken(Scanner::kHashSign);
 
   if (scanner().token() == Scanner::kIdentifier) {
@@ -95,7 +96,7 @@ std::shared_ptr<ir::Constant> ConstantParser::ParseBoolOrIntConstant(
   IntType int_type = IntType::kI64;
   if (scanner().token() == Scanner::kColon) {
     scanner().ConsumeToken(Scanner::kColon);
-    common::pos_t type_pos = scanner().token_start();
+    pos_t type_pos = scanner().token_start();
     auto type = type_parser()->ParseType();
     if (type->type_kind() != ir::TypeKind::kInt) {
       issue_tracker().Add(ir_issues::IssueKind::kUnexpectedType, type_pos,

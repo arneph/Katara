@@ -16,6 +16,7 @@ namespace lang {
 namespace type_checker {
 
 using ::common::logging::fail;
+using ::common::positions::pos_t;
 
 bool Coordinator::ProcessPackage(std::vector<ast::File*> package_files, types::Package* package,
                                  types::InfoBuilder& info_builder, issues::IssueTracker& issues) {
@@ -395,7 +396,7 @@ void Coordinator::ReportLoopInActions(const std::vector<Action*>& actions) {
     }
   }
 
-  std::vector<common::pos_t> loop_member_positions;
+  std::vector<pos_t> loop_member_positions;
   std::string message = "encountered dependency loop involving: ";
   for (types::Object* loop_member : loop_members) {
     loop_member_positions.push_back(loop_member->position());

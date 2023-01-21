@@ -14,8 +14,10 @@ namespace lang {
 namespace parser {
 
 using ::common::logging::fail;
+using ::common::positions::kNoPos;
+using ::common::positions::pos_t;
 
-ast::File* Parser::ParseFile(common::PosFile* file, ast::ASTBuilder& builder,
+ast::File* Parser::ParseFile(common::positions::File* file, ast::ASTBuilder& builder,
                              issues::IssueTracker& issues) {
   scanner::Scanner scanner(file);
   Parser parser(scanner, builder, issues);
@@ -23,7 +25,7 @@ ast::File* Parser::ParseFile(common::PosFile* file, ast::ASTBuilder& builder,
 }
 
 ast::File* Parser::ParseFile() {
-  common::pos_t file_start = scanner_.token_start();
+  pos_t file_start = scanner_.token_start();
   while (scanner_.token() != tokens::kPackage) {
     issues_.Add(issues::kMissingPackageDeclaration, scanner_.token_start(),
                 "expected package declaration");
@@ -50,7 +52,7 @@ ast::File* Parser::ParseFile() {
     }
     Consume(tokens::kSemicolon);
   }
-  common::pos_t file_end = scanner_.token_end();
+  pos_t file_end = scanner_.token_end();
 
   return ast_builder_.Create<ast::File>(file_start, file_end, package_name, decls);
 }
@@ -73,13 +75,13 @@ ast::Decl* Parser::ParseDecl() {
 }
 
 ast::GenDecl* Parser::ParseGenDecl() {
-  common::pos_t tok_start = scanner_.token_start();
+  pos_t tok_start = scanner_.token_start();
   tokens::Token tok = scanner_.token();
   scanner_.Next();
 
-  common::pos_t l_paren = common::kNoPos;
+  pos_t l_paren = kNoPos;
   std::vector<ast::Spec*> specs;
-  common::pos_t r_paren = common::kNoPos;
+  pos_t r_paren = kNoPos;
   if (scanner_.token() == tokens::kLParen) {
     l_paren = scanner_.token_start();
     scanner_.Next();
@@ -189,7 +191,7 @@ ast::TypeSpec* Parser::ParseTypeSpec() {
     }
   }
 
-  common::pos_t assign = common::kNoPos;
+  pos_t assign = kNoPos;
   if (scanner_.token() == tokens::kAssign) {
     assign = scanner_.token_start();
     scanner_.Next();
@@ -205,7 +207,7 @@ ast::TypeSpec* Parser::ParseTypeSpec() {
 }
 
 ast::FuncDecl* Parser::ParseFuncDecl() {
-  common::pos_t func = scanner_.token_start();
+  pos_t func = scanner_.token_start();
   scanner_.Next();
 
   ast::FuncDecl::Kind kind;
@@ -366,7 +368,7 @@ ast::Stmt* Parser::ParseSimpleStmt(ast::Expr* expr, ExprOptions expr_options) {
 }
 
 ast::BlockStmt* Parser::ParseBlockStmt() {
-  common::pos_t l_brace;
+  pos_t l_brace;
   if (auto l_brace_opt = Consume(tokens::kLBrace)) {
     l_brace = l_brace_opt.value();
   } else {
@@ -375,7 +377,7 @@ ast::BlockStmt* Parser::ParseBlockStmt() {
 
   std::vector<ast::Stmt*> stmts = ParseStmtList();
 
-  common::pos_t r_brace;
+  pos_t r_brace;
   if (auto r_brace_opt = Consume(tokens::kRBrace)) {
     r_brace = r_brace_opt.value();
   } else {
@@ -399,7 +401,7 @@ ast::ReturnStmt* Parser::ParseReturnStmt() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t return_ = scanner_.token_start();
+  pos_t return_ = scanner_.token_start();
   scanner_.Next();
 
   std::vector<ast::Expr*> results;
@@ -420,7 +422,7 @@ ast::IfStmt* Parser::ParseIfStmt() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t if_ = scanner_.token_start();
+  pos_t if_ = scanner_.token_start();
   scanner_.Next();
 
   ast::Expr* expr = ParseExpr(kDisallowCompositeLit);
@@ -478,7 +480,7 @@ ast::Stmt* Parser::ParseSwitchStmt() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t switch_start = scanner_.token_start();
+  pos_t switch_start = scanner_.token_start();
   scanner_.Next();
 
   ast::Stmt* init = nullptr;
@@ -557,7 +559,7 @@ ast::Stmt* Parser::ParseSwitchStmt() {
 }
 
 ast::BlockStmt* Parser::ParseSwitchStmtBody() {
-  common::pos_t l_brace;
+  pos_t l_brace;
   if (auto l_brace_opt = Consume(tokens::kLBrace)) {
     l_brace = l_brace_opt.value();
   } else {
@@ -573,7 +575,7 @@ ast::BlockStmt* Parser::ParseSwitchStmtBody() {
     stmts.push_back(clause);
   }
 
-  common::pos_t r_brace = scanner_.token();
+  pos_t r_brace = scanner_.token();
   scanner_.Next();
 
   return ast_builder_.Create<ast::BlockStmt>(l_brace, stmts, r_brace);
@@ -586,7 +588,7 @@ ast::CaseClause* Parser::ParseCaseClause() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t tok_start = scanner_.token_start();
+  pos_t tok_start = scanner_.token_start();
   tokens::Token tok = scanner_.token();
   scanner_.Next();
 
@@ -599,7 +601,7 @@ ast::CaseClause* Parser::ParseCaseClause() {
     }
   }
 
-  common::pos_t colon;
+  pos_t colon;
   if (auto colon_opt = Consume(tokens::kColon)) {
     colon = colon_opt.value();
   } else {
@@ -617,7 +619,7 @@ ast::ForStmt* Parser::ParseForStmt() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t for_ = scanner_.token_start();
+  pos_t for_ = scanner_.token_start();
   scanner_.Next();
 
   ast::Stmt* init = nullptr;
@@ -681,7 +683,7 @@ ast::BranchStmt* Parser::ParseBranchStmt() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t tok_start = scanner_.token_start();
+  pos_t tok_start = scanner_.token_start();
   tokens::Token tok = scanner_.token();
   scanner_.Next();
 
@@ -706,7 +708,7 @@ ast::ExprStmt* Parser::ParseExprStmt(ast::Expr* x) {
 }
 
 ast::LabeledStmt* Parser::ParseLabeledStmt(ast::Ident* label) {
-  common::pos_t colon;
+  pos_t colon;
   if (auto colon_opt = Consume(tokens::kColon)) {
     colon = colon_opt.value();
   } else {
@@ -745,7 +747,7 @@ ast::AssignStmt* Parser::ParseAssignStmt(ast::Expr* first_expr, ExprOptions expr
       scanner_.SkipPastLine();
       return nullptr;
   }
-  common::pos_t tok_start = scanner_.token_start();
+  pos_t tok_start = scanner_.token_start();
   tokens::Token tok = scanner_.token();
   scanner_.Next();
 
@@ -763,7 +765,7 @@ ast::IncDecStmt* Parser::ParseIncDecStmt(ast::Expr* x) {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t tok_start = scanner_.token_start();
+  pos_t tok_start = scanner_.token_start();
   tokens::Token tok = scanner_.token();
   scanner_.Next();
 
@@ -811,10 +813,10 @@ ast::Expr* Parser::ParseExpr(tokens::precedence_t prec, ExprOptions expr_options
 
   bool is_comparison = false;
   std::vector<ast::Expr*> compare_expr_operands;
-  std::vector<common::pos_t> compare_expr_op_starts;
+  std::vector<pos_t> compare_expr_op_starts;
   std::vector<tokens::Token> compare_expr_ops;
   while (true) {
-    common::pos_t op_start = scanner_.token_start();
+    pos_t op_start = scanner_.token_start();
     tokens::Token op = scanner_.token();
     tokens::precedence_t op_prec = tokens::prececende(op);
     if (op_prec == 0 || op_prec < prec) {
@@ -880,7 +882,7 @@ ast::Expr* Parser::ParseUnaryExpr(ExprOptions expr_options) {
       return ParsePrimaryExpr(expr_options);
   }
 
-  common::pos_t op_start = scanner_.token_start();
+  pos_t op_start = scanner_.token_start();
   tokens::Token op = scanner_.token();
   scanner_.Next();
 
@@ -945,8 +947,7 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_op
         break;
       case tokens::kLParen:
         // call expr without type args
-        primary_expr =
-            ParseCallExpr(primary_expr, common::kNoPos, std::vector<ast::Expr*>{}, common::kNoPos);
+        primary_expr = ParseCallExpr(primary_expr, kNoPos, std::vector<ast::Expr*>{}, kNoPos);
         break;
       case tokens::kLBrace:
         if (primary_expr->node_kind() == ast::NodeKind::kFuncType) {
@@ -964,7 +965,7 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_op
         } else if (primary_expr->end() + 1 != scanner_.token_start()) {
           return primary_expr;
         } else {
-          common::pos_t l_brack = scanner_.token_start();
+          pos_t l_brack = scanner_.token_start();
           scanner_.Next(/* split_shift_ops= */ true);
 
           std::vector<ast::Expr*> type_args;
@@ -986,7 +987,7 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_op
             }
           }
 
-          common::pos_t r_brack;
+          pos_t r_brack;
           if (auto r_brack_opt = Consume(tokens::kGtr, /* split_shift_ops= */ true)) {
             r_brack = r_brack_opt.value();
           } else {
@@ -1008,8 +1009,8 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_op
   return primary_expr;
 }
 
-ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, common::pos_t l_brack,
-                                    std::vector<ast::Expr*> type_args, common::pos_t r_brack,
+ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, pos_t l_brack,
+                                    std::vector<ast::Expr*> type_args, pos_t r_brack,
                                     ExprOptions expr_options) {
   if (scanner_.token() == tokens::kLParen) {
     ast::CallExpr* call_epxr = ParseCallExpr(primary_expr, l_brack, type_args, r_brack);
@@ -1026,7 +1027,7 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, common::pos_t l_bra
 }
 
 ast::ParenExpr* Parser::ParseParenExpr() {
-  common::pos_t l_paren;
+  pos_t l_paren;
   if (auto l_paren_opt = Consume(tokens::kLParen)) {
     l_paren = l_paren_opt.value();
   } else {
@@ -1038,7 +1039,7 @@ ast::ParenExpr* Parser::ParseParenExpr() {
     return nullptr;
   }
 
-  common::pos_t r_paren;
+  pos_t r_paren;
   if (auto r_paren_opt = Consume(tokens::kRParen)) {
     r_paren = r_paren_opt.value();
   } else {
@@ -1058,7 +1059,7 @@ ast::SelectionExpr* Parser::ParseSelectionExpr(ast::Expr* accessed) {
 }
 
 ast::TypeAssertExpr* Parser::ParseTypeAssertExpr(ast::Expr* x) {
-  common::pos_t l_angle;
+  pos_t l_angle;
   if (auto l_angle_opt = Consume(tokens::kLss)) {
     l_angle = l_angle_opt.value();
   } else {
@@ -1075,7 +1076,7 @@ ast::TypeAssertExpr* Parser::ParseTypeAssertExpr(ast::Expr* x) {
     }
   }
 
-  common::pos_t r_angle;
+  pos_t r_angle;
   if (auto r_angle_opt = Consume(tokens::kGtr)) {
     r_angle = r_angle_opt.value();
   } else {
@@ -1086,7 +1087,7 @@ ast::TypeAssertExpr* Parser::ParseTypeAssertExpr(ast::Expr* x) {
 }
 
 ast::IndexExpr* Parser::ParseIndexExpr(ast::Expr* accessed) {
-  common::pos_t l_brack;
+  pos_t l_brack;
   if (auto l_brack_opt = Consume(tokens::kLBrack)) {
     l_brack = l_brack_opt.value();
   } else {
@@ -1098,7 +1099,7 @@ ast::IndexExpr* Parser::ParseIndexExpr(ast::Expr* accessed) {
     return nullptr;
   }
 
-  common::pos_t r_brack;
+  pos_t r_brack;
   if (auto r_brack_opt = Consume(tokens::kRBrack)) {
     r_brack = r_brack_opt.value();
   } else {
@@ -1108,9 +1109,9 @@ ast::IndexExpr* Parser::ParseIndexExpr(ast::Expr* accessed) {
   return ast_builder_.Create<ast::IndexExpr>(accessed, l_brack, index, r_brack);
 }
 
-ast::CallExpr* Parser::ParseCallExpr(ast::Expr* func, common::pos_t l_brack,
-                                     std::vector<ast::Expr*> type_args, common::pos_t r_brack) {
-  common::pos_t l_paren;
+ast::CallExpr* Parser::ParseCallExpr(ast::Expr* func, pos_t l_brack,
+                                     std::vector<ast::Expr*> type_args, pos_t r_brack) {
+  pos_t l_paren;
   if (auto l_paren_opt = Consume(tokens::kLParen)) {
     l_paren = l_paren_opt.value();
   } else {
@@ -1119,7 +1120,7 @@ ast::CallExpr* Parser::ParseCallExpr(ast::Expr* func, common::pos_t l_brack,
 
   std::vector<ast::Expr*> args = ParseExprList(kNoExprOptions);
 
-  common::pos_t r_paren;
+  pos_t r_paren;
   if (auto r_paren_opt = Consume(tokens::kRParen)) {
     r_paren = r_paren_opt.value();
   } else {
@@ -1140,7 +1141,7 @@ ast::FuncLit* Parser::ParseFuncLit(ast::FuncType* func_type) {
 }
 
 ast::CompositeLit* Parser::ParseCompositeLit(ast::Expr* type) {
-  common::pos_t l_brace;
+  pos_t l_brace;
   if (auto l_brace_opt = Consume(tokens::kLBrace)) {
     l_brace = l_brace_opt.value();
   } else {
@@ -1165,7 +1166,7 @@ ast::CompositeLit* Parser::ParseCompositeLit(ast::Expr* type) {
     }
     scanner_.Next();
   }
-  common::pos_t r_brace = scanner_.token_start();
+  pos_t r_brace = scanner_.token_start();
   scanner_.Next();
 
   return ast_builder_.Create<ast::CompositeLit>(type, l_brace, values, r_brace);
@@ -1189,7 +1190,7 @@ ast::Expr* Parser::ParseCompositeLitElement() {
   if (scanner_.token() != tokens::kColon) {
     return key;
   }
-  common::pos_t colon = scanner_.token_start();
+  pos_t colon = scanner_.token_start();
   scanner_.Next();
 
   ast::Expr* value = nullptr;
@@ -1263,7 +1264,7 @@ ast::Expr* Parser::ParseType(ast::Ident* ident) {
 }
 
 ast::ArrayType* Parser::ParseArrayType() {
-  common::pos_t l_brack;
+  pos_t l_brack;
   if (auto l_brack_opt = Consume(tokens::kLBrack)) {
     l_brack = l_brack_opt.value();
   } else {
@@ -1278,7 +1279,7 @@ ast::ArrayType* Parser::ParseArrayType() {
     }
   }
 
-  common::pos_t r_brack;
+  pos_t r_brack;
   if (auto r_brack_opt = Consume(tokens::kRBrack)) {
     r_brack = r_brack_opt.value();
   } else {
@@ -1299,7 +1300,7 @@ ast::FuncType* Parser::ParseFuncType() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t func = scanner_.token_start();
+  pos_t func = scanner_.token_start();
   scanner_.Next();
 
   ast::FieldList* params = ParseFuncFieldList(kExpectParen);
@@ -1325,10 +1326,10 @@ ast::InterfaceType* Parser::ParseInterfaceType() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t interface = scanner_.token_start();
+  pos_t interface = scanner_.token_start();
   scanner_.Next();
 
-  common::pos_t l_brace;
+  pos_t l_brace;
   if (auto l_brace_opt = Consume(tokens::kLBrace)) {
     l_brace = l_brace_opt.value();
   } else {
@@ -1360,7 +1361,7 @@ ast::InterfaceType* Parser::ParseInterfaceType() {
       return nullptr;
     }
   }
-  common::pos_t r_brace = scanner_.token_start();
+  pos_t r_brace = scanner_.token_start();
   scanner_.Next(/* split_shift_ops= */ true);
 
   return ast_builder_.Create<ast::InterfaceType>(interface, l_brace, embedded_interfaces, methods,
@@ -1382,7 +1383,7 @@ ast::MethodSpec* Parser::ParseMethodSpec() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t kind_start = scanner_.token_start();
+  pos_t kind_start = scanner_.token_start();
   tokens::Token kind = scanner_.token();
   scanner_.Next();
 
@@ -1432,10 +1433,10 @@ ast::StructType* Parser::ParseStructType() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t struct_start = scanner_.token_start();
+  pos_t struct_start = scanner_.token_start();
   scanner_.Next();
 
-  common::pos_t l_brace;
+  pos_t l_brace;
   if (auto l_brace_opt = Consume(tokens::kLBrace)) {
     l_brace = l_brace_opt.value();
   } else {
@@ -1447,7 +1448,7 @@ ast::StructType* Parser::ParseStructType() {
     return nullptr;
   }
 
-  common::pos_t r_brace;
+  pos_t r_brace;
   if (auto r_brace_opt = Consume(tokens::kRBrace, /* split_shift_ops= */ true)) {
     r_brace = r_brace_opt.value();
   } else {
@@ -1463,7 +1464,7 @@ ast::UnaryExpr* Parser::ParsePointerType() {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t op_start = scanner_.token_start();
+  pos_t op_start = scanner_.token_start();
   tokens::Token op = scanner_.token();
   scanner_.Next();
 
@@ -1476,7 +1477,7 @@ ast::UnaryExpr* Parser::ParsePointerType() {
 }
 
 ast::TypeInstance* Parser::ParseTypeInstance(ast::Expr* type) {
-  common::pos_t l_angle;
+  pos_t l_angle;
   if (auto l_angle_opt = Consume(tokens::kLss)) {
     l_angle = l_angle_opt.value();
   } else {
@@ -1501,7 +1502,7 @@ ast::TypeInstance* Parser::ParseTypeInstance(ast::Expr* type) {
     type_args.push_back(type_arg);
   }
 
-  common::pos_t r_angle;
+  pos_t r_angle;
   if (auto r_angle_opt = Consume(tokens::kGtr)) {
     r_angle = r_angle_opt.value();
   } else {
@@ -1513,7 +1514,7 @@ ast::TypeInstance* Parser::ParseTypeInstance(ast::Expr* type) {
 }
 
 ast::ExprReceiver* Parser::ParseExprReceiver() {
-  common::pos_t l_paren;
+  pos_t l_paren;
   if (auto l_paren_opt = Consume(tokens::kLParen)) {
     l_paren = l_paren_opt.value();
   } else {
@@ -1569,7 +1570,7 @@ ast::ExprReceiver* Parser::ParseExprReceiver() {
     }
   }
 
-  common::pos_t r_paren;
+  pos_t r_paren;
   if (auto r_paren_opt = Consume(tokens::kRParen)) {
     r_paren = r_paren_opt.value();
   } else {
@@ -1582,7 +1583,7 @@ ast::ExprReceiver* Parser::ParseExprReceiver() {
 }
 
 ast::TypeReceiver* Parser::ParseTypeReceiver() {
-  common::pos_t l_angle;
+  pos_t l_angle;
   if (auto l_angle_opt = Consume(tokens::kLss)) {
     l_angle = l_angle_opt.value();
   } else {
@@ -1613,7 +1614,7 @@ ast::TypeReceiver* Parser::ParseTypeReceiver() {
     }
   }
 
-  common::pos_t r_angle;
+  pos_t r_angle;
   if (auto r_angle_opt = Consume(tokens::kGtr)) {
     r_angle = r_angle_opt.value();
   } else {
@@ -1631,9 +1632,9 @@ ast::FieldList* Parser::ParseFuncFieldList(FuncFieldListOptions options) {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t l_paren = common::kNoPos;
+  pos_t l_paren = kNoPos;
   std::vector<ast::Field*> field_list;
-  common::pos_t r_paren = common::kNoPos;
+  pos_t r_paren = kNoPos;
   if (has_paren) {
     l_paren = scanner_.token_start();
     scanner_.Next();
@@ -1674,7 +1675,7 @@ std::vector<ast::Field*> Parser::ParseFuncFields() {
   bool has_named_fields = false;
   std::vector<ast::Field*> fields;
   std::vector<ast::Ident*> idents;
-  common::pos_t first_field = scanner_.token_start();
+  pos_t first_field = scanner_.token_start();
 
   auto parse_unnamed_func_fields =
       [&](bool continue_type_after_last_ident) -> std::vector<ast::Field*> {
@@ -1766,7 +1767,7 @@ ast::FieldList* Parser::ParseStructFieldList() {
     }
   }
 
-  return ast_builder_.Create<ast::FieldList>(common::kNoPos, fields, common::kNoPos);
+  return ast_builder_.Create<ast::FieldList>(kNoPos, fields, kNoPos);
 }
 
 ast::Field* Parser::ParseStructField() {
@@ -1812,7 +1813,7 @@ ast::Field* Parser::ParseStructField() {
 }
 
 ast::TypeParamList* Parser::ParseTypeParamList() {
-  common::pos_t l_angle;
+  pos_t l_angle;
   if (auto l_angle_opt = Consume(tokens::kLss, /* split_shift_ops= */ true)) {
     l_angle = l_angle_opt.value();
   } else {
@@ -1839,7 +1840,7 @@ ast::TypeParamList* Parser::ParseTypeParamList() {
     }
   }
 
-  common::pos_t r_angle;
+  pos_t r_angle;
   if (auto r_angle_opt = Consume(tokens::kGtr, /* split_shift_ops= */ true)) {
     r_angle = r_angle_opt.value();
   } else {
@@ -1871,7 +1872,7 @@ ast::BasicLit* Parser::ParseBasicLit() {
     case tokens::kInt:
     case tokens::kChar:
     case tokens::kString: {
-      common::pos_t value_start = scanner_.token_start();
+      pos_t value_start = scanner_.token_start();
       std::string value = scanner_.token_string();
       tokens::Token kind = scanner_.token();
       scanner_.Next();
@@ -1909,15 +1910,15 @@ ast::Ident* Parser::ParseIdent(bool split_shift_ops) {
     scanner_.SkipPastLine();
     return nullptr;
   }
-  common::pos_t name_start = scanner_.token_start();
+  pos_t name_start = scanner_.token_start();
   std::string name = scanner_.token_string();
   scanner_.Next(split_shift_ops);
   return ast_builder_.Create<ast::Ident>(name_start, name);
 }
 
-std::optional<common::pos_t> Parser::Consume(tokens::Token tok, bool split_shift_ops) {
+std::optional<pos_t> Parser::Consume(tokens::Token tok, bool split_shift_ops) {
   if (scanner_.token() == tok) {
-    common::pos_t tok_pos = scanner_.token_end();
+    pos_t tok_pos = scanner_.token_end();
     scanner_.Next(split_shift_ops);
     return tok_pos;
   }

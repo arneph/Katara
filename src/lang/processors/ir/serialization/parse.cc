@@ -16,7 +16,7 @@
 namespace lang {
 namespace ir_serialization {
 
-std::unique_ptr<ir::Program> ParseProgram(common::PosFile* file,
+std::unique_ptr<ir::Program> ParseProgram(common::positions::File* file,
                                           ir_issues::IssueTracker& issue_tracker) {
   return ::ir_serialization::ParseProgram<TypeParser, ConstantParser, FuncParser>(file,
                                                                                   issue_tracker);
@@ -26,7 +26,8 @@ std::unique_ptr<ir::Program> ParseProgramOrDie(std::string text) {
   return ::ir_serialization::ParseProgramOrDie<TypeParser, ConstantParser, FuncParser>(text);
 }
 
-std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, common::PosFile* file,
+std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program,
+                                                      common::positions::File* file,
                                                       ir_issues::IssueTracker& issue_tracker) {
   return ::ir_serialization::ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(
       program, file, issue_tracker);

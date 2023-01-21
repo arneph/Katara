@@ -89,8 +89,8 @@ class Node {
   bool is_expr() const;
 
   virtual NodeKind node_kind() const = 0;
-  virtual common::pos_t start() const = 0;
-  virtual common::pos_t end() const = 0;
+  virtual common::positions::pos_t start() const = 0;
+  virtual common::positions::pos_t end() const = 0;
 };
 
 // Decl ::= GenDecl | FuncDecl .
@@ -198,15 +198,16 @@ class File final : public Node {
   std::vector<Decl*> decls() const { return decls_; }
 
   NodeKind node_kind() const override { return NodeKind::kFile; }
-  common::pos_t start() const override { return start_; }
-  common::pos_t end() const override { return end_; }
+  common::positions::pos_t start() const override { return start_; }
+  common::positions::pos_t end() const override { return end_; }
 
  private:
-  File(common::pos_t start, common::pos_t end, Ident* package_name, std::vector<Decl*> decls)
+  File(common::positions::pos_t start, common::positions::pos_t end, Ident* package_name,
+       std::vector<Decl*> decls)
       : start_(start), end_(end), package_name_(package_name), decls_(decls) {}
 
-  common::pos_t start_;
-  common::pos_t end_;
+  common::positions::pos_t start_;
+  common::positions::pos_t end_;
   Ident* package_name_;
   std::vector<Decl*> decls_;
 
@@ -220,24 +221,24 @@ class File final : public Node {
 class GenDecl final : public Decl {
  public:
   tokens::Token tok() { return tok_; }
-  common::pos_t l_paren() { return l_paren_; }
+  common::positions::pos_t l_paren() { return l_paren_; }
   std::vector<Spec*> specs() { return specs_; }
-  common::pos_t r_paren() { return r_paren_; }
+  common::positions::pos_t r_paren() { return r_paren_; }
 
   NodeKind node_kind() const override { return NodeKind::kGenDecl; }
-  common::pos_t start() const override { return tok_start_; }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return tok_start_; }
+  common::positions::pos_t end() const override;
 
  private:
-  GenDecl(common::pos_t tok_start, tokens::Token tok, common::pos_t l_paren,
-          std::vector<Spec*> specs, common::pos_t r_paren)
+  GenDecl(common::positions::pos_t tok_start, tokens::Token tok, common::positions::pos_t l_paren,
+          std::vector<Spec*> specs, common::positions::pos_t r_paren)
       : tok_start_(tok_start), tok_(tok), l_paren_(l_paren), specs_(specs), r_paren_(r_paren) {}
 
-  common::pos_t tok_start_;
+  common::positions::pos_t tok_start_;
   tokens::Token tok_;
-  common::pos_t l_paren_;
+  common::positions::pos_t l_paren_;
   std::vector<Spec*> specs_;
-  common::pos_t r_paren_;
+  common::positions::pos_t r_paren_;
 
   friend class ASTBuilder;
 };
@@ -255,8 +256,8 @@ class ImportSpec final : public Spec {
   BasicLit* path() { return path_; }
 
   NodeKind node_kind() const override { return NodeKind::kImportSpec; }
-  common::pos_t start() const override;
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override;
 
  private:
   ImportSpec(Ident* name, BasicLit* path) : name_(name), path_(path) {}
@@ -275,8 +276,8 @@ class ValueSpec final : public Spec {
   std::vector<Expr*> values() const { return values_; }
 
   NodeKind node_kind() const override { return NodeKind::kValueSpec; }
-  common::pos_t start() const override;
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override;
 
  private:
   ValueSpec(std::vector<Ident*> names, Expr* type, std::vector<Expr*> values)
@@ -294,20 +295,20 @@ class TypeSpec final : public Spec {
  public:
   Ident* name() const { return name_; }
   TypeParamList* type_params() const { return type_params_; }
-  common::pos_t assign() const { return assign_; }
+  common::positions::pos_t assign() const { return assign_; }
   Expr* type() const { return type_; }
 
   NodeKind node_kind() const override { return NodeKind::kTypeSpec; }
-  common::pos_t start() const override;
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override;
 
  private:
-  TypeSpec(Ident* name, TypeParamList* type_params, common::pos_t assign, Expr* type)
+  TypeSpec(Ident* name, TypeParamList* type_params, common::positions::pos_t assign, Expr* type)
       : name_(name), type_params_(type_params), assign_(assign), type_(type) {}
 
   Ident* name_;
   TypeParamList* type_params_;
-  common::pos_t assign_;
+  common::positions::pos_t assign_;
   Expr* type_;
 
   friend class ASTBuilder;
@@ -332,8 +333,8 @@ class FuncDecl final : public Decl {
   BlockStmt* body() const { return body_; }
 
   NodeKind node_kind() const override { return NodeKind::kFuncDecl; }
-  common::pos_t start() const override;
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override;
 
  private:
   FuncDecl(Ident* name, TypeParamList* type_params, FuncType* func_type, BlockStmt* body)
@@ -382,16 +383,17 @@ class BlockStmt final : public Stmt {
   std::vector<Stmt*> stmts() const { return stmts_; }
 
   NodeKind node_kind() const override { return NodeKind::kBlockStmt; }
-  common::pos_t start() const override { return l_brace_; }
-  common::pos_t end() const override { return r_brace_; }
+  common::positions::pos_t start() const override { return l_brace_; }
+  common::positions::pos_t end() const override { return r_brace_; }
 
  private:
-  BlockStmt(common::pos_t l_brace, std::vector<Stmt*> stmts, common::pos_t r_brace)
+  BlockStmt(common::positions::pos_t l_brace, std::vector<Stmt*> stmts,
+            common::positions::pos_t r_brace)
       : l_brace_(l_brace), stmts_(stmts), r_brace_(r_brace) {}
 
-  common::pos_t l_brace_;
+  common::positions::pos_t l_brace_;
   std::vector<Stmt*> stmts_;
-  common::pos_t r_brace_;
+  common::positions::pos_t r_brace_;
 
   friend class ASTBuilder;
 };
@@ -402,8 +404,8 @@ class DeclStmt final : public Stmt {
   GenDecl* decl() const { return decl_; }
 
   NodeKind node_kind() const override { return NodeKind::kDeclStmt; }
-  common::pos_t start() const override;
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override;
 
  private:
   DeclStmt(GenDecl* decl) : decl_(decl) {}
@@ -417,21 +419,21 @@ class DeclStmt final : public Stmt {
 class AssignStmt final : public Stmt {
  public:
   std::vector<Expr*> lhs() const { return lhs_; }
-  common::pos_t tok_start() const { return tok_start_; }
+  common::positions::pos_t tok_start() const { return tok_start_; }
   tokens::Token tok() const { return tok_; }
   std::vector<Expr*> rhs() const { return rhs_; }
 
   NodeKind node_kind() const override { return NodeKind::kAssignStmt; }
-  common::pos_t start() const override { return lhs_.front()->start(); }
-  common::pos_t end() const override { return rhs_.back()->end(); }
+  common::positions::pos_t start() const override { return lhs_.front()->start(); }
+  common::positions::pos_t end() const override { return rhs_.back()->end(); }
 
  private:
-  AssignStmt(std::vector<Expr*> lhs, common::pos_t tok_start, tokens::Token tok,
+  AssignStmt(std::vector<Expr*> lhs, common::positions::pos_t tok_start, tokens::Token tok,
              std::vector<Expr*> rhs)
       : lhs_(lhs), tok_start_(tok_start), tok_(tok), rhs_(rhs) {}
 
   std::vector<Expr*> lhs_;
-  common::pos_t tok_start_;
+  common::positions::pos_t tok_start_;
   tokens::Token tok_;
   std::vector<Expr*> rhs_;
 
@@ -444,8 +446,8 @@ class ExprStmt final : public Stmt {
   Expr* x() const { return x_; }
 
   NodeKind node_kind() const override { return NodeKind::kExprStmt; }
-  common::pos_t start() const override { return x_->start(); }
-  common::pos_t end() const override { return x_->end(); }
+  common::positions::pos_t start() const override { return x_->start(); }
+  common::positions::pos_t end() const override { return x_->end(); }
 
  private:
   ExprStmt(Expr* x) : x_(x) {}
@@ -459,19 +461,19 @@ class ExprStmt final : public Stmt {
 class IncDecStmt final : public Stmt {
  public:
   Expr* x() const { return x_; }
-  common::pos_t tok_start() const { return tok_start_; }
+  common::positions::pos_t tok_start() const { return tok_start_; }
   tokens::Token tok() const { return tok_; }
 
   NodeKind node_kind() const override { return NodeKind::kIncDecStmt; }
-  common::pos_t start() const override { return x_->start(); }
-  common::pos_t end() const override { return tok_start_ + 1; }
+  common::positions::pos_t start() const override { return x_->start(); }
+  common::positions::pos_t end() const override { return tok_start_ + 1; }
 
  private:
-  IncDecStmt(Expr* x, common::pos_t tok_start, tokens::Token tok)
+  IncDecStmt(Expr* x, common::positions::pos_t tok_start, tokens::Token tok)
       : x_(x), tok_start_(tok_start), tok_(tok) {}
 
   Expr* x_;
-  common::pos_t tok_start_;
+  common::positions::pos_t tok_start_;
   tokens::Token tok_;
 
   friend class ASTBuilder;
@@ -483,16 +485,16 @@ class ReturnStmt final : public Stmt {
   std::vector<Expr*> results() const { return results_; }
 
   NodeKind node_kind() const override { return NodeKind::kReturnStmt; }
-  common::pos_t start() const override { return return_; }
-  common::pos_t end() const override {
+  common::positions::pos_t start() const override { return return_; }
+  common::positions::pos_t end() const override {
     return (results_.empty()) ? return_ + 5 : results_.back()->end();
   }
 
  private:
-  ReturnStmt(common::pos_t return_start, std::vector<Expr*> results)
+  ReturnStmt(common::positions::pos_t return_start, std::vector<Expr*> results)
       : return_(return_start), results_(results) {}
 
-  common::pos_t return_;
+  common::positions::pos_t return_;
   std::vector<Expr*> results_;
 
   friend class ASTBuilder;
@@ -508,14 +510,15 @@ class IfStmt final : public Stmt {
   Stmt* else_stmt() const { return else_; }
 
   NodeKind node_kind() const override { return NodeKind::kIfStmt; }
-  common::pos_t start() const override { return if_; }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return if_; }
+  common::positions::pos_t end() const override;
 
  private:
-  IfStmt(common::pos_t if_start, Stmt* init, Expr* cond, BlockStmt* body, Stmt* else_stmt)
+  IfStmt(common::positions::pos_t if_start, Stmt* init, Expr* cond, BlockStmt* body,
+         Stmt* else_stmt)
       : if_(if_start), init_(init), cond_(cond), body_(body), else_(else_stmt) {}
 
-  common::pos_t if_;
+  common::positions::pos_t if_;
   Stmt* init_;
   Expr* cond_;
   BlockStmt* body_;
@@ -532,14 +535,14 @@ class ExprSwitchStmt final : public Stmt {
   BlockStmt* body() { return body_; }
 
   NodeKind node_kind() const override { return NodeKind::kExprSwitchStmt; }
-  common::pos_t start() const override { return switch_; }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return switch_; }
+  common::positions::pos_t end() const override;
 
  private:
-  ExprSwitchStmt(common::pos_t switch_start, Stmt* init, Expr* tag, BlockStmt* body)
+  ExprSwitchStmt(common::positions::pos_t switch_start, Stmt* init, Expr* tag, BlockStmt* body)
       : switch_(switch_start), init_(init), tag_(tag), body_(body) {}
 
-  common::pos_t switch_;
+  common::positions::pos_t switch_;
   Stmt* init_;
   Expr* tag_;
   BlockStmt* body_;
@@ -555,14 +558,14 @@ class TypeSwitchStmt final : public Stmt {
   BlockStmt* body() const { return body_; }
 
   NodeKind node_kind() const override { return NodeKind::kTypeSwitchStmt; }
-  common::pos_t start() const override { return switch_; }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return switch_; }
+  common::positions::pos_t end() const override;
 
  private:
-  TypeSwitchStmt(common::pos_t switch_start, Ident* var, Expr* tag, BlockStmt* body)
+  TypeSwitchStmt(common::positions::pos_t switch_start, Ident* var, Expr* tag, BlockStmt* body)
       : switch_(switch_start), var_(var), tag_(tag), body_(body) {}
 
-  common::pos_t switch_;
+  common::positions::pos_t switch_;
   Ident* var_;
   Expr* tag_;
   BlockStmt* body_;
@@ -575,22 +578,24 @@ class CaseClause final : public Stmt {
  public:
   tokens::Token tok() const { return tok_; }
   std::vector<Expr*> cond_vals() const { return cond_vals_; }
-  common::pos_t colon() const { return colon_; }
+  common::positions::pos_t colon() const { return colon_; }
   std::vector<Stmt*> body() const { return body_; }
 
   NodeKind node_kind() const override { return NodeKind::kCaseClause; }
-  common::pos_t start() const override { return tok_start_; }
-  common::pos_t end() const override { return (body_.empty()) ? colon_ : body_.back()->end(); }
+  common::positions::pos_t start() const override { return tok_start_; }
+  common::positions::pos_t end() const override {
+    return (body_.empty()) ? colon_ : body_.back()->end();
+  }
 
  private:
-  CaseClause(common::pos_t tok_start, tokens::Token tok, std::vector<Expr*> cond_vals,
-             common::pos_t colon, std::vector<Stmt*> body)
+  CaseClause(common::positions::pos_t tok_start, tokens::Token tok, std::vector<Expr*> cond_vals,
+             common::positions::pos_t colon, std::vector<Stmt*> body)
       : tok_start_(tok_start), tok_(tok), cond_vals_(cond_vals), colon_(colon), body_(body) {}
 
-  common::pos_t tok_start_;
+  common::positions::pos_t tok_start_;
   tokens::Token tok_;
   std::vector<Expr*> cond_vals_;
-  common::pos_t colon_;
+  common::positions::pos_t colon_;
   std::vector<Stmt*> body_;
 
   friend class ASTBuilder;
@@ -605,14 +610,14 @@ class ForStmt final : public Stmt {
   BlockStmt* body() const { return body_; }
 
   NodeKind node_kind() const override { return NodeKind::kForStmt; }
-  common::pos_t start() const override { return for_; }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return for_; }
+  common::positions::pos_t end() const override;
 
  private:
-  ForStmt(common::pos_t for_start, Stmt* init, Expr* cond, Stmt* post, BlockStmt* body)
+  ForStmt(common::positions::pos_t for_start, Stmt* init, Expr* cond, Stmt* post, BlockStmt* body)
       : for_(for_start), init_(init), cond_(cond), post_(post), body_(body) {}
 
-  common::pos_t for_;
+  common::positions::pos_t for_;
   Stmt* init_;
   Expr* cond_;
   Stmt* post_;
@@ -625,19 +630,19 @@ class ForStmt final : public Stmt {
 class LabeledStmt final : public Stmt {
  public:
   Ident* label() const { return label_; }
-  common::pos_t colon() const { return colon_; }
+  common::positions::pos_t colon() const { return colon_; }
   Stmt* stmt() const { return stmt_; }
 
   NodeKind node_kind() const override { return NodeKind::kLabeledStmt; }
-  common::pos_t start() const override;
-  common::pos_t end() const override { return stmt_->end(); }
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override { return stmt_->end(); }
 
  private:
-  LabeledStmt(Ident* label, common::pos_t colon, Stmt* stmt)
+  LabeledStmt(Ident* label, common::positions::pos_t colon, Stmt* stmt)
       : label_(label), colon_(colon), stmt_(stmt) {}
 
   Ident* label_;
-  common::pos_t colon_;
+  common::positions::pos_t colon_;
   Stmt* stmt_;
 
   friend class ASTBuilder;
@@ -652,14 +657,14 @@ class BranchStmt final : public Stmt {
   Ident* label() const { return label_; }
 
   NodeKind node_kind() const override { return NodeKind::kBranchStmt; }
-  common::pos_t start() const override { return tok_start_; }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return tok_start_; }
+  common::positions::pos_t end() const override;
 
  private:
-  BranchStmt(common::pos_t tok_start, tokens::Token tok, Ident* label)
+  BranchStmt(common::positions::pos_t tok_start, tokens::Token tok, Ident* label)
       : tok_start_(tok_start), tok_(tok), label_(label) {}
 
-  common::pos_t tok_start_;
+  common::positions::pos_t tok_start_;
   tokens::Token tok_;
   Ident* label_;
 
@@ -673,14 +678,14 @@ class UnaryExpr final : public Expr {
   Expr* x() const { return x_; }
 
   NodeKind node_kind() const override { return NodeKind::kUnaryExpr; }
-  common::pos_t start() const override { return op_start_; }
-  common::pos_t end() const override { return x_->end(); }
+  common::positions::pos_t start() const override { return op_start_; }
+  common::positions::pos_t end() const override { return x_->end(); }
 
  private:
-  UnaryExpr(common::pos_t op_start, tokens::Token op, Expr* x)
+  UnaryExpr(common::positions::pos_t op_start, tokens::Token op, Expr* x)
       : op_start_(op_start), op_(op), x_(x) {}
 
-  common::pos_t op_start_;
+  common::positions::pos_t op_start_;
   tokens::Token op_;
   Expr* x_;
 
@@ -691,20 +696,20 @@ class UnaryExpr final : public Expr {
 class BinaryExpr final : public Expr {
  public:
   Expr* x() const { return x_; }
-  common::pos_t op_start() const { return op_start_; }
+  common::positions::pos_t op_start() const { return op_start_; }
   tokens::Token op() const { return op_; }
   Expr* y() const { return y_; }
 
   NodeKind node_kind() const override { return NodeKind::kBinaryExpr; }
-  common::pos_t start() const override { return x_->start(); }
-  common::pos_t end() const override { return y_->end(); }
+  common::positions::pos_t start() const override { return x_->start(); }
+  common::positions::pos_t end() const override { return y_->end(); }
 
  private:
-  BinaryExpr(Expr* x, common::pos_t op_start, tokens::Token op, Expr* y)
+  BinaryExpr(Expr* x, common::positions::pos_t op_start, tokens::Token op, Expr* y)
       : x_(x), op_start_(op_start), op_(op), y_(y) {}
 
   Expr* x_;
-  common::pos_t op_start_;
+  common::positions::pos_t op_start_;
   tokens::Token op_;
   Expr* y_;
 
@@ -715,20 +720,20 @@ class BinaryExpr final : public Expr {
 class CompareExpr final : public Expr {
  public:
   std::vector<Expr*> operands() const { return operands_; }
-  std::vector<common::pos_t> compare_op_starts() const { return compare_op_starts_; }
+  std::vector<common::positions::pos_t> compare_op_starts() const { return compare_op_starts_; }
   std::vector<tokens::Token> compare_ops() const { return compare_ops_; }
 
   NodeKind node_kind() const override { return NodeKind::kCompareExpr; }
-  common::pos_t start() const override { return operands_.front()->start(); }
-  common::pos_t end() const override { return operands_.back()->end(); }
+  common::positions::pos_t start() const override { return operands_.front()->start(); }
+  common::positions::pos_t end() const override { return operands_.back()->end(); }
 
  private:
-  CompareExpr(std::vector<Expr*> operands, std::vector<common::pos_t> compare_op_starts,
+  CompareExpr(std::vector<Expr*> operands, std::vector<common::positions::pos_t> compare_op_starts,
               std::vector<tokens::Token> compare_ops)
       : operands_(operands), compare_op_starts_(compare_op_starts), compare_ops_(compare_ops) {}
 
   std::vector<Expr*> operands_;
-  std::vector<common::pos_t> compare_op_starts_;
+  std::vector<common::positions::pos_t> compare_op_starts_;
   std::vector<tokens::Token> compare_ops_;
 
   friend class ASTBuilder;
@@ -740,16 +745,16 @@ class ParenExpr final : public Expr {
   Expr* x() const { return x_; }
 
   NodeKind node_kind() const override { return NodeKind::kParenExpr; }
-  common::pos_t start() const override { return l_paren_; }
-  common::pos_t end() const override { return r_paren_; }
+  common::positions::pos_t start() const override { return l_paren_; }
+  common::positions::pos_t end() const override { return r_paren_; }
 
  private:
-  ParenExpr(common::pos_t l_paren, Expr* x, common::pos_t r_paren)
+  ParenExpr(common::positions::pos_t l_paren, Expr* x, common::positions::pos_t r_paren)
       : l_paren_(l_paren), x_(x), r_paren_(r_paren) {}
 
-  common::pos_t l_paren_;
+  common::positions::pos_t l_paren_;
   Expr* x_;
-  common::pos_t r_paren_;
+  common::positions::pos_t r_paren_;
 
   friend class ASTBuilder;
 };
@@ -761,8 +766,8 @@ class SelectionExpr final : public Expr {
   Ident* selection() const { return selection_; }
 
   NodeKind node_kind() const override { return NodeKind::kSelectionExpr; }
-  common::pos_t start() const override { return accessed_->start(); }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return accessed_->start(); }
+  common::positions::pos_t end() const override;
 
  private:
   SelectionExpr(Expr* accessed, Ident* selection) : accessed_(accessed), selection_(selection) {}
@@ -777,22 +782,23 @@ class SelectionExpr final : public Expr {
 class TypeAssertExpr final : public Expr {
  public:
   Expr* x() const { return x_; }
-  common::pos_t l_angle() const { return l_angle_; }
+  common::positions::pos_t l_angle() const { return l_angle_; }
   Expr* type() const { return type_; }
-  common::pos_t r_angle() const { return r_angle_; }
+  common::positions::pos_t r_angle() const { return r_angle_; }
 
   NodeKind node_kind() const override { return NodeKind::kTypeAssertExpr; }
-  common::pos_t start() const override { return x_->start(); }
-  common::pos_t end() const override { return r_angle_; }
+  common::positions::pos_t start() const override { return x_->start(); }
+  common::positions::pos_t end() const override { return r_angle_; }
 
  private:
-  TypeAssertExpr(Expr* x, common::pos_t l_angle, Expr* type, common::pos_t r_angle)
+  TypeAssertExpr(Expr* x, common::positions::pos_t l_angle, Expr* type,
+                 common::positions::pos_t r_angle)
       : x_(x), l_angle_(l_angle), type_(type), r_angle_(r_angle) {}
 
   Expr* x_;
-  common::pos_t l_angle_;
+  common::positions::pos_t l_angle_;
   Expr* type_;  // nullptr for "type" keyword in type switch
-  common::pos_t r_angle_;
+  common::positions::pos_t r_angle_;
 
   friend class ASTBuilder;
 };
@@ -801,22 +807,23 @@ class TypeAssertExpr final : public Expr {
 class IndexExpr final : public Expr {
  public:
   Expr* accessed() const { return accessed_; }
-  common::pos_t l_brack() const { return l_brack_; }
+  common::positions::pos_t l_brack() const { return l_brack_; }
   Expr* index() const { return index_; }
-  common::pos_t r_brack() const { return r_brack_; }
+  common::positions::pos_t r_brack() const { return r_brack_; }
 
   NodeKind node_kind() const override { return NodeKind::kIndexExpr; }
-  common::pos_t start() const override { return accessed_->start(); }
-  common::pos_t end() const override { return r_brack_; }
+  common::positions::pos_t start() const override { return accessed_->start(); }
+  common::positions::pos_t end() const override { return r_brack_; }
 
  private:
-  IndexExpr(Expr* accessed, common::pos_t l_brack, Expr* index, common::pos_t r_brack)
+  IndexExpr(Expr* accessed, common::positions::pos_t l_brack, Expr* index,
+            common::positions::pos_t r_brack)
       : accessed_(accessed), l_brack_(l_brack), index_(index), r_brack_(r_brack) {}
 
   Expr* accessed_;
-  common::pos_t l_brack_;
+  common::positions::pos_t l_brack_;
   Expr* index_;
-  common::pos_t r_brack_;
+  common::positions::pos_t r_brack_;
 
   friend class ASTBuilder;
 };
@@ -825,20 +832,21 @@ class IndexExpr final : public Expr {
 class CallExpr final : public Expr {
  public:
   Expr* func() const { return func_; }
-  common::pos_t l_brack() const { return l_brack_; }
+  common::positions::pos_t l_brack() const { return l_brack_; }
   std::vector<Expr*> type_args() const { return type_args_; }
-  common::pos_t r_brack() const { return r_brack_; }
-  common::pos_t l_paren() const { return l_paren_; }
+  common::positions::pos_t r_brack() const { return r_brack_; }
+  common::positions::pos_t l_paren() const { return l_paren_; }
   std::vector<Expr*> args() const { return args_; }
-  common::pos_t r_paren() const { return r_paren_; }
+  common::positions::pos_t r_paren() const { return r_paren_; }
 
   NodeKind node_kind() const override { return NodeKind::kCallExpr; }
-  common::pos_t start() const override { return func_->start(); }
-  common::pos_t end() const override { return r_paren_; }
+  common::positions::pos_t start() const override { return func_->start(); }
+  common::positions::pos_t end() const override { return r_paren_; }
 
  private:
-  CallExpr(Expr* func, common::pos_t l_brack, std::vector<Expr*> type_args, common::pos_t r_brack,
-           common::pos_t l_paren, std::vector<Expr*> args, common::pos_t r_paren)
+  CallExpr(Expr* func, common::positions::pos_t l_brack, std::vector<Expr*> type_args,
+           common::positions::pos_t r_brack, common::positions::pos_t l_paren,
+           std::vector<Expr*> args, common::positions::pos_t r_paren)
       : func_(func),
         l_brack_(l_brack),
         type_args_(type_args),
@@ -848,12 +856,12 @@ class CallExpr final : public Expr {
         r_paren_(r_paren) {}
 
   Expr* func_;
-  common::pos_t l_brack_;
+  common::positions::pos_t l_brack_;
   std::vector<Expr*> type_args_;
-  common::pos_t r_brack_;
-  common::pos_t l_paren_;
+  common::positions::pos_t r_brack_;
+  common::positions::pos_t l_paren_;
   std::vector<Expr*> args_;
-  common::pos_t r_paren_;
+  common::positions::pos_t r_paren_;
 
   friend class ASTBuilder;
 };
@@ -865,8 +873,8 @@ class FuncLit final : public Expr {
   BlockStmt* body() const { return body_; }
 
   NodeKind node_kind() const override { return NodeKind::kFuncLit; }
-  common::pos_t start() const override;
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override;
 
  private:
   FuncLit(FuncType* type, BlockStmt* body) : type_(type), body_(body) {}
@@ -881,22 +889,23 @@ class FuncLit final : public Expr {
 class CompositeLit final : public Expr {
  public:
   Expr* type() const { return type_; }
-  common::pos_t l_brace() const { return l_brace_; }
+  common::positions::pos_t l_brace() const { return l_brace_; }
   std::vector<Expr*> values() const { return values_; }
-  common::pos_t r_brace() const { return r_brace_; }
+  common::positions::pos_t r_brace() const { return r_brace_; }
 
   NodeKind node_kind() const override { return NodeKind::kCompositeLit; }
-  common::pos_t start() const override { return type_->start(); }
-  common::pos_t end() const override { return r_brace_; }
+  common::positions::pos_t start() const override { return type_->start(); }
+  common::positions::pos_t end() const override { return r_brace_; }
 
  private:
-  CompositeLit(Expr* type, common::pos_t l_brace, std::vector<Expr*> values, common::pos_t r_brace)
+  CompositeLit(Expr* type, common::positions::pos_t l_brace, std::vector<Expr*> values,
+               common::positions::pos_t r_brace)
       : type_(type), l_brace_(l_brace), values_(values), r_brace_(r_brace) {}
 
   Expr* type_;
-  common::pos_t l_brace_;
+  common::positions::pos_t l_brace_;
   std::vector<Expr*> values_;
-  common::pos_t r_brace_;
+  common::positions::pos_t r_brace_;
 
   friend class ASTBuilder;
 };
@@ -905,19 +914,19 @@ class CompositeLit final : public Expr {
 class KeyValueExpr final : public Expr {
  public:
   Expr* key() const { return key_; }
-  common::pos_t colon() const { return colon_; }
+  common::positions::pos_t colon() const { return colon_; }
   Expr* value() const { return value_; }
 
   NodeKind node_kind() const override { return NodeKind::kKeyValueExpr; }
-  common::pos_t start() const override { return key_->start(); }
-  common::pos_t end() const override { return value_->end(); }
+  common::positions::pos_t start() const override { return key_->start(); }
+  common::positions::pos_t end() const override { return value_->end(); }
 
  private:
-  KeyValueExpr(Expr* key, common::pos_t colon, Expr* value)
+  KeyValueExpr(Expr* key, common::positions::pos_t colon, Expr* value)
       : key_(key), colon_(colon), value_(value) {}
 
   Expr* key_;
-  common::pos_t colon_;
+  common::positions::pos_t colon_;
   Expr* value_;
 
   friend class ASTBuilder;
@@ -926,22 +935,23 @@ class KeyValueExpr final : public Expr {
 // ArrayType ::= "[" [Expr] "]" Type .
 class ArrayType final : public Expr {
  public:
-  common::pos_t l_brack() const { return l_brack_; }
+  common::positions::pos_t l_brack() const { return l_brack_; }
   Expr* len() const { return len_; }
-  common::pos_t r_brack() const { return r_brack_; }
+  common::positions::pos_t r_brack() const { return r_brack_; }
   Expr* element_type() const { return element_type_; }
 
   NodeKind node_kind() const override { return NodeKind::kArrayType; }
-  common::pos_t start() const override { return l_brack_; }
-  common::pos_t end() const override { return element_type_->end(); }
+  common::positions::pos_t start() const override { return l_brack_; }
+  common::positions::pos_t end() const override { return element_type_->end(); }
 
  private:
-  ArrayType(common::pos_t l_brack, Expr* len, common::pos_t r_brack, Expr* element_type)
+  ArrayType(common::positions::pos_t l_brack, Expr* len, common::positions::pos_t r_brack,
+            Expr* element_type)
       : l_brack_(l_brack), len_(len), r_brack_(r_brack), element_type_(element_type) {}
 
-  common::pos_t l_brack_;
+  common::positions::pos_t l_brack_;
   Expr* len_;
-  common::pos_t r_brack_;
+  common::positions::pos_t r_brack_;
   Expr* element_type_;
 
   friend class ASTBuilder;
@@ -954,14 +964,14 @@ class FuncType final : public Expr {
   FieldList* results() const { return results_; }
 
   NodeKind node_kind() const override { return NodeKind::kFuncType; }
-  common::pos_t start() const override { return func_; }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return func_; }
+  common::positions::pos_t end() const override;
 
  private:
-  FuncType(common::pos_t func_type_start, FieldList* params, FieldList* results)
+  FuncType(common::positions::pos_t func_type_start, FieldList* params, FieldList* results)
       : func_(func_type_start), params_(params), results_(results) {}
 
-  common::pos_t func_;
+  common::positions::pos_t func_;
   FieldList* params_;
   FieldList* results_;
 
@@ -971,30 +981,30 @@ class FuncType final : public Expr {
 // InterfaceType ::= "interface" "{" {(Expr | MethodSpec) ";"} "}" .
 class InterfaceType final : public Expr {
  public:
-  common::pos_t l_brace() const { return l_brace_; }
+  common::positions::pos_t l_brace() const { return l_brace_; }
   std::vector<Expr*> embedded_interfaces() const { return embedded_interfaces_; }
   std::vector<MethodSpec*> methods() const { return methods_; }
-  common::pos_t r_brace() const { return r_brace_; }
+  common::positions::pos_t r_brace() const { return r_brace_; }
 
   NodeKind node_kind() const override { return NodeKind::kInterfaceType; }
-  common::pos_t start() const override { return interface_; }
-  common::pos_t end() const override { return r_brace_; }
+  common::positions::pos_t start() const override { return interface_; }
+  common::positions::pos_t end() const override { return r_brace_; }
 
  private:
-  InterfaceType(common::pos_t interface_start, common::pos_t l_brace,
+  InterfaceType(common::positions::pos_t interface_start, common::positions::pos_t l_brace,
                 std::vector<Expr*> embedded_interfaces, std::vector<MethodSpec*> methods,
-                common::pos_t r_brace)
+                common::positions::pos_t r_brace)
       : interface_(interface_start),
         l_brace_(l_brace),
         embedded_interfaces_(embedded_interfaces),
         methods_(methods),
         r_brace_(r_brace) {}
 
-  common::pos_t interface_;
-  common::pos_t l_brace_;
+  common::positions::pos_t interface_;
+  common::positions::pos_t l_brace_;
   std::vector<Expr*> embedded_interfaces_;
   std::vector<MethodSpec*> methods_;
-  common::pos_t r_brace_;
+  common::positions::pos_t r_brace_;
 
   friend class ASTBuilder;
 };
@@ -1010,12 +1020,12 @@ class MethodSpec final : public Node {
   FieldList* results() const { return results_; }
 
   NodeKind node_kind() const override { return NodeKind::kMethodSpec; }
-  common::pos_t start() const override { return spec_start_; }
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override { return spec_start_; }
+  common::positions::pos_t end() const override;
 
  private:
-  MethodSpec(common::pos_t spec_start, tokens::Token kind, Ident* instance_type_param, Ident* name,
-             FieldList* params, FieldList* results)
+  MethodSpec(common::positions::pos_t spec_start, tokens::Token kind, Ident* instance_type_param,
+             Ident* name, FieldList* params, FieldList* results)
       : spec_start_(spec_start),
         kind_(kind),
         instance_type_param_(instance_type_param),
@@ -1023,7 +1033,7 @@ class MethodSpec final : public Node {
         params_(params),
         results_(results) {}
 
-  common::pos_t spec_start_;
+  common::positions::pos_t spec_start_;
   tokens::Token kind_;
   Ident* instance_type_param_;
   Ident* name_;
@@ -1036,23 +1046,23 @@ class MethodSpec final : public Node {
 // StructType ::= "class" "{" FieldList "}" .
 class StructType final : public Expr {
  public:
-  common::pos_t l_brace() const { return l_brace_; }
+  common::positions::pos_t l_brace() const { return l_brace_; }
   FieldList* fields() const { return fields_; }
-  common::pos_t r_brace() const { return r_brace_; }
+  common::positions::pos_t r_brace() const { return r_brace_; }
 
   NodeKind node_kind() const override { return NodeKind::kStructType; }
-  common::pos_t start() const override { return struct_; }
-  common::pos_t end() const override { return r_brace_; }
+  common::positions::pos_t start() const override { return struct_; }
+  common::positions::pos_t end() const override { return r_brace_; }
 
  private:
-  StructType(common::pos_t struct_start, common::pos_t l_brace, FieldList* fields,
-             common::pos_t r_brace)
+  StructType(common::positions::pos_t struct_start, common::positions::pos_t l_brace,
+             FieldList* fields, common::positions::pos_t r_brace)
       : struct_(struct_start), l_brace_(l_brace), fields_(fields), r_brace_(r_brace) {}
 
-  common::pos_t struct_;
-  common::pos_t l_brace_;
+  common::positions::pos_t struct_;
+  common::positions::pos_t l_brace_;
   FieldList* fields_;
-  common::pos_t r_brace_;
+  common::positions::pos_t r_brace_;
 
   friend class ASTBuilder;
 };
@@ -1061,23 +1071,23 @@ class StructType final : public Expr {
 class TypeInstance final : public Expr {
  public:
   Expr* type() const { return type_; }
-  common::pos_t l_brack() const { return l_brack_; }
+  common::positions::pos_t l_brack() const { return l_brack_; }
   std::vector<Expr*> type_args() const { return type_args_; }
-  common::pos_t r_brack() const { return r_brack_; }
+  common::positions::pos_t r_brack() const { return r_brack_; }
 
   NodeKind node_kind() const override { return NodeKind::kTypeInstance; }
-  common::pos_t start() const override { return type_->start(); }
-  common::pos_t end() const override { return r_brack_; }
+  common::positions::pos_t start() const override { return type_->start(); }
+  common::positions::pos_t end() const override { return r_brack_; }
 
  private:
-  TypeInstance(Expr* type, common::pos_t l_brack, std::vector<Expr*> type_args,
-               common::pos_t r_brack)
+  TypeInstance(Expr* type, common::positions::pos_t l_brack, std::vector<Expr*> type_args,
+               common::positions::pos_t r_brack)
       : type_(type), l_brack_(l_brack), type_args_(type_args), r_brack_(r_brack) {}
 
   Expr* type_;
-  common::pos_t l_brack_;
+  common::positions::pos_t l_brack_;
   std::vector<Expr*> type_args_;
-  common::pos_t r_brack_;
+  common::positions::pos_t r_brack_;
 
   friend class ASTBuilder;
 };
@@ -1092,12 +1102,13 @@ class ExprReceiver final : public Node {
   std::vector<Ident*> type_parameter_names() const { return type_parameter_names_; }
 
   NodeKind node_kind() const override { return NodeKind::kExprReceiver; }
-  common::pos_t start() const override { return l_paren_; }
-  common::pos_t end() const override { return r_paren_; }
+  common::positions::pos_t start() const override { return l_paren_; }
+  common::positions::pos_t end() const override { return r_paren_; }
 
  private:
-  ExprReceiver(common::pos_t l_paren, Ident* name, tokens::Token pointer, Ident* type_name,
-               std::vector<Ident*> type_parameter_names, common::pos_t r_paren)
+  ExprReceiver(common::positions::pos_t l_paren, Ident* name, tokens::Token pointer,
+               Ident* type_name, std::vector<Ident*> type_parameter_names,
+               common::positions::pos_t r_paren)
       : l_paren_(l_paren),
         name_(name),
         pointer_(pointer),
@@ -1105,12 +1116,12 @@ class ExprReceiver final : public Node {
         type_parameter_names_(type_parameter_names),
         r_paren_(r_paren) {}
 
-  common::pos_t l_paren_;
+  common::positions::pos_t l_paren_;
   Ident* name_;
   tokens::Token pointer_;
   Ident* type_name_;
   std::vector<Ident*> type_parameter_names_;
-  common::pos_t r_paren_;
+  common::positions::pos_t r_paren_;
 
   friend class ASTBuilder;
 };
@@ -1122,21 +1133,21 @@ class TypeReceiver final : public Node {
   std::vector<Ident*> type_parameter_names() const { return type_parameter_names_; }
 
   NodeKind node_kind() const override { return NodeKind::kTypeReceiver; }
-  common::pos_t start() const override { return l_brack_; }
-  common::pos_t end() const override { return r_brack_; }
+  common::positions::pos_t start() const override { return l_brack_; }
+  common::positions::pos_t end() const override { return r_brack_; }
 
  private:
-  TypeReceiver(common::pos_t l_brack, Ident* type_name, std::vector<Ident*> type_parameter_names,
-               common::pos_t r_brack)
+  TypeReceiver(common::positions::pos_t l_brack, Ident* type_name,
+               std::vector<Ident*> type_parameter_names, common::positions::pos_t r_brack)
       : l_brack_(l_brack),
         type_name_(type_name),
         type_parameter_names_(type_parameter_names),
         r_brack_(r_brack) {}
 
-  common::pos_t l_brack_;
+  common::positions::pos_t l_brack_;
   Ident* type_name_;
   std::vector<Ident*> type_parameter_names_;
-  common::pos_t r_brack_;
+  common::positions::pos_t r_brack_;
 
   friend class ASTBuilder;
 };
@@ -1146,21 +1157,22 @@ class TypeReceiver final : public Node {
 //             | {Field ";"} .
 class FieldList final : public Node {
  public:
-  common::pos_t l_paren() const { return l_paren_; }
+  common::positions::pos_t l_paren() const { return l_paren_; }
   std::vector<Field*> fields() const { return fields_; }
-  common::pos_t r_paren() const { return r_paren_; }
+  common::positions::pos_t r_paren() const { return r_paren_; }
 
   NodeKind node_kind() const override { return NodeKind::kFieldList; }
-  common::pos_t start() const override;
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override;
 
  private:
-  FieldList(common::pos_t l_paren, std::vector<Field*> fields, common::pos_t r_paren)
+  FieldList(common::positions::pos_t l_paren, std::vector<Field*> fields,
+            common::positions::pos_t r_paren)
       : l_paren_(l_paren), fields_(fields), r_paren_(r_paren) {}
 
-  common::pos_t l_paren_;
+  common::positions::pos_t l_paren_;
   std::vector<Field*> fields_;
-  common::pos_t r_paren_;
+  common::positions::pos_t r_paren_;
 
   friend class ASTBuilder;
 };
@@ -1172,8 +1184,8 @@ class Field final : public Node {
   Expr* type() const { return type_; }
 
   NodeKind node_kind() const override { return NodeKind::kField; }
-  common::pos_t start() const override;
-  common::pos_t end() const override { return type_->end(); }
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override { return type_->end(); }
 
  private:
   Field(std::vector<Ident*> names, Expr* type) : names_(names), type_(type) {}
@@ -1190,16 +1202,17 @@ class TypeParamList final : public Node {
   std::vector<TypeParam*> params() const { return params_; }
 
   NodeKind node_kind() const override { return NodeKind::kTypeParamList; }
-  common::pos_t start() const override { return l_angle_; }
-  common::pos_t end() const override { return r_angle_; }
+  common::positions::pos_t start() const override { return l_angle_; }
+  common::positions::pos_t end() const override { return r_angle_; }
 
  private:
-  TypeParamList(common::pos_t l_angle, std::vector<TypeParam*> params, common::pos_t r_angle)
+  TypeParamList(common::positions::pos_t l_angle, std::vector<TypeParam*> params,
+                common::positions::pos_t r_angle)
       : l_angle_(l_angle), params_(params), r_angle_(r_angle) {}
 
-  common::pos_t l_angle_;
+  common::positions::pos_t l_angle_;
   std::vector<TypeParam*> params_;
-  common::pos_t r_angle_;
+  common::positions::pos_t r_angle_;
 
   friend class ASTBuilder;
 };
@@ -1211,8 +1224,8 @@ class TypeParam final : public Node {
   Expr* type() const { return type_; }
 
   NodeKind node_kind() const override { return NodeKind::kTypeParam; }
-  common::pos_t start() const override;
-  common::pos_t end() const override;
+  common::positions::pos_t start() const override;
+  common::positions::pos_t end() const override;
 
  private:
   TypeParam(Ident* name, Expr* type) : name_(name), type_(type) {}
@@ -1229,14 +1242,14 @@ class BasicLit final : public Expr {
   tokens::Token kind() const { return kind_; }
 
   NodeKind node_kind() const override { return NodeKind::kBasicLit; }
-  common::pos_t start() const override { return value_start_; }
-  common::pos_t end() const override { return value_start_ + value_.length() - 1; }
+  common::positions::pos_t start() const override { return value_start_; }
+  common::positions::pos_t end() const override { return value_start_ + value_.length() - 1; }
 
  private:
-  BasicLit(common::pos_t value_start, std::string value, tokens::Token kind)
+  BasicLit(common::positions::pos_t value_start, std::string value, tokens::Token kind)
       : value_start_(value_start), value_(value), kind_(kind) {}
 
-  common::pos_t value_start_;
+  common::positions::pos_t value_start_;
   std::string value_;
   tokens::Token kind_;
 
@@ -1248,13 +1261,14 @@ class Ident final : public Expr {
   std::string name() const { return name_; }
 
   NodeKind node_kind() const override { return NodeKind::kIdent; }
-  common::pos_t start() const override { return name_start_; }
-  common::pos_t end() const override { return name_start_ + name_.length() - 1; }
+  common::positions::pos_t start() const override { return name_start_; }
+  common::positions::pos_t end() const override { return name_start_ + name_.length() - 1; }
 
  private:
-  Ident(common::pos_t name_start, std::string name) : name_start_(name_start), name_(name) {}
+  Ident(common::positions::pos_t name_start, std::string name)
+      : name_start_(name_start), name_(name) {}
 
-  common::pos_t name_start_;
+  common::positions::pos_t name_start_;
   std::string name_;
 
   friend class ASTBuilder;

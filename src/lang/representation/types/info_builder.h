@@ -67,17 +67,20 @@ class InfoBuilder {
   void SetInterfaceMembers(Interface* interface, std::vector<NamedType*> embdedded_interfaces,
                            std::vector<Func*> methods);
 
-  TypeName* CreateTypeNameForTypeParameter(Scope* parent, Package* package, common::pos_t position,
-                                           std::string name);
-  TypeName* CreateTypeNameForNamedType(Scope* parent, Package* package, common::pos_t position,
-                                       std::string name, bool is_alias);
-  Constant* CreateConstant(Scope* parent, Package* package, common::pos_t position,
+  TypeName* CreateTypeNameForTypeParameter(Scope* parent, Package* package,
+                                           common::positions::pos_t position, std::string name);
+  TypeName* CreateTypeNameForNamedType(Scope* parent, Package* package,
+                                       common::positions::pos_t position, std::string name,
+                                       bool is_alias);
+  Constant* CreateConstant(Scope* parent, Package* package, common::positions::pos_t position,
                            std::string name);
-  Variable* CreateVariable(Scope* parent, Package* package, common::pos_t position,
+  Variable* CreateVariable(Scope* parent, Package* package, common::positions::pos_t position,
                            std::string name, bool is_embedded, bool is_field);
-  Func* CreateFunc(Scope* parent, Package* package, common::pos_t position, std::string name);
-  Label* CreateLabel(Scope* parent, Package* package, common::pos_t position, std::string name);
-  PackageName* CreatePackageName(Scope* parent, Package* package, common::pos_t position,
+  Func* CreateFunc(Scope* parent, Package* package, common::positions::pos_t position,
+                   std::string name);
+  Label* CreateLabel(Scope* parent, Package* package, common::positions::pos_t position,
+                     std::string name);
+  PackageName* CreatePackageName(Scope* parent, Package* package, common::positions::pos_t position,
                                  std::string name, Package* referenced_package);
 
   void SetObjectType(TypedObject* object, Type* type);

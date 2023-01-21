@@ -12,6 +12,8 @@
 
 namespace ir_serialization {
 
+using ::common::positions::pos_t;
+
 // Types ::= Type (',' Type)?
 std::vector<const ir::Type*> TypeParser::ParseTypes() {
   std::vector<const ir::Type*> types{ParseType()};
@@ -27,7 +29,7 @@ const ir::Type* TypeParser::ParseType() {
   if (scanner().token() != Scanner::kIdentifier) {
     return nullptr;
   }
-  common::pos_t name_pos = scanner().token_start();
+  pos_t name_pos = scanner().token_start();
   std::string name = scanner().ConsumeIdentifier().value();
 
   if (name == "b") {

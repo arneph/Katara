@@ -47,12 +47,12 @@ class Scanner {
 
   static std::string TokenToString(Token token);
 
-  Scanner(common::PosFile* file, ir_issues::IssueTracker& issue_tracker)
+  Scanner(common::positions::File* file, ir_issues::IssueTracker& issue_tracker)
       : file_(file), issue_tracker_(issue_tracker), pos_(file->start()) {}
 
   Token token() const { return token_; }
-  common::pos_t token_start() const { return token_start_; }
-  common::pos_t token_end() const { return token_end_; }
+  common::positions::pos_t token_start() const { return token_start_; }
+  common::positions::pos_t token_end() const { return token_end_; }
   std::string token_text() const;
   common::atomics::Int token_number() const;
   common::atomics::Int token_address() const;
@@ -74,14 +74,14 @@ class Scanner {
   void NextNumberOrAddress();
   void NextString();
 
-  const common::PosFile* file_;
+  const common::positions::File* file_;
   ir_issues::IssueTracker& issue_tracker_;
 
-  common::pos_t pos_;
+  common::positions::pos_t pos_;
 
   Token token_ = kUnknown;
-  common::pos_t token_start_ = common::kNoPos;
-  common::pos_t token_end_ = common::kNoPos;
+  common::positions::pos_t token_start_ = common::positions::kNoPos;
+  common::positions::pos_t token_end_ = common::positions::kNoPos;
 };
 
 }  // namespace ir_serialization

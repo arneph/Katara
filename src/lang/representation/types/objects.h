@@ -42,7 +42,7 @@ class Object {
 
   Scope* parent() const { return parent_; }
   Package* package() const { return package_; }
-  common::pos_t position() const { return position_; }
+  common::positions::pos_t position() const { return position_; }
   std::string name() const { return name_; }
 
   bool is_typed() const;
@@ -51,13 +51,13 @@ class Object {
   virtual std::string ToString() const = 0;
 
  protected:
-  Object(Scope* parent, Package* package, common::pos_t position, std::string name)
+  Object(Scope* parent, Package* package, common::positions::pos_t position, std::string name)
       : parent_(parent), package_(package), position_(position), name_(name) {}
 
  private:
   Scope* parent_;
   Package* package_;
-  common::pos_t position_;
+  common::positions::pos_t position_;
   std::string name_;
 };
 
@@ -68,7 +68,7 @@ class TypedObject : public Object {
   Type* type() const { return type_; }
 
  protected:
-  TypedObject(Scope* parent, Package* package, common::pos_t position, std::string name)
+  TypedObject(Scope* parent, Package* package, common::positions::pos_t position, std::string name)
       : Object(parent, package, position, name), type_(nullptr) {}
 
  private:
@@ -84,7 +84,7 @@ class TypeName final : public TypedObject {
   std::string ToString() const override { return "type " + name(); }
 
  private:
-  TypeName(Scope* parent, Package* package, common::pos_t position, std::string name)
+  TypeName(Scope* parent, Package* package, common::positions::pos_t position, std::string name)
       : TypedObject(parent, package, position, name) {}
 
   friend class InfoBuilder;
@@ -101,7 +101,7 @@ class Constant final : public TypedObject {
   }
 
  private:
-  Constant(Scope* parent, Package* package, common::pos_t position, std::string name)
+  Constant(Scope* parent, Package* package, common::positions::pos_t position, std::string name)
       : TypedObject(parent, package, position, name), value_(false) {}
 
   constants::Value value_;
@@ -118,7 +118,7 @@ class Variable final : public TypedObject {
   std::string ToString() const override;
 
  private:
-  Variable(Scope* parent, Package* package, common::pos_t position, std::string name,
+  Variable(Scope* parent, Package* package, common::positions::pos_t position, std::string name,
            bool is_embdeded, bool is_field)
       : TypedObject(parent, package, position, name),
         is_embedded_(is_embdeded),
@@ -136,7 +136,7 @@ class Func final : public TypedObject {
   std::string ToString() const override;
 
  private:
-  Func(Scope* parent, Package* package, common::pos_t position, std::string name)
+  Func(Scope* parent, Package* package, common::positions::pos_t position, std::string name)
       : TypedObject(parent, package, position, name) {}
 
   friend class InfoBuilder;
@@ -148,7 +148,7 @@ class Nil final : public Object {
   std::string ToString() const override { return "nil"; }
 
  private:
-  Nil(Scope* universe) : Object(universe, nullptr, common::kNoPos, "nil") {}
+  Nil(Scope* universe) : Object(universe, nullptr, common::positions::kNoPos, "nil") {}
 
   friend class InfoBuilder;
 };
@@ -159,7 +159,7 @@ class Label final : public Object {
   std::string ToString() const override { return name() + " (label)"; }
 
  private:
-  Label(Scope* parent, Package* package, common::pos_t position, std::string name)
+  Label(Scope* parent, Package* package, common::positions::pos_t position, std::string name)
       : Object(parent, package, position, name) {}
 
   friend class InfoBuilder;
@@ -180,7 +180,7 @@ class Builtin final : public Object {
 
  private:
   Builtin(Scope* universe, std::string name, Kind kind)
-      : Object(universe, nullptr, common::kNoPos, name), kind_(kind) {}
+      : Object(universe, nullptr, common::positions::kNoPos, name), kind_(kind) {}
 
   Kind kind_;
 
@@ -195,7 +195,7 @@ class PackageName final : public Object {
   std::string ToString() const override { return name(); }
 
  private:
-  PackageName(Scope* parent, Package* package, common::pos_t position, std::string name,
+  PackageName(Scope* parent, Package* package, common::positions::pos_t position, std::string name,
               Package* referenced_package)
       : Object(parent, package, position, name), referenced_package_(referenced_package) {}
 

@@ -17,8 +17,8 @@
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   std::string contents(reinterpret_cast<const char*>(data), size);
 
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test_file.ir", contents);
+  common::positions::FileSet file_set;
+  common::positions::File* file = file_set.AddFile("test_file.ir", contents);
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);

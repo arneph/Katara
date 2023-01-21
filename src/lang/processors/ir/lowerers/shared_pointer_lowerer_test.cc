@@ -338,7 +338,7 @@ TEST_P(SharedPointerLowererTest, LowersProgram) {
   std::unique_ptr<ir::Program> expected_program =
       lang::ir_serialization::ParseProgramOrDie(GetParam().expected_program);
   lang::ir_check::CheckProgramOrDie(lowered_program.get());
-  common::PosFileSet file_set;
+  common::positions::FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   lang::ir_check::CheckProgram(expected_program.get(), issue_tracker);
   ASSERT_THAT(issue_tracker.issues(),

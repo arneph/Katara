@@ -17,12 +17,14 @@
 
 namespace {
 
+using ::common::positions::File;
+using ::common::positions::FileSet;
 using ::testing::IsEmpty;
 using ::testing::SizeIs;
 
 TEST(ScannerTest, HandlesEmptyStream) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -36,8 +38,8 @@ TEST(ScannerTest, HandlesEmptyStream) {
 }
 
 TEST(ScannerTest, HandlesConsumeTokenFailure) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "@");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "@");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -57,8 +59,8 @@ TEST(ScannerTest, HandlesConsumeTokenFailure) {
 }
 
 TEST(ScannerTest, ScansIdentifier) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "something");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "something");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -74,8 +76,8 @@ TEST(ScannerTest, ScansIdentifier) {
 }
 
 TEST(ScannerTest, ScansIdentifierWithNumbersAndUnderscores) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "Something_Else_42");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "Something_Else_42");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -91,8 +93,8 @@ TEST(ScannerTest, ScansIdentifierWithNumbersAndUnderscores) {
 }
 
 TEST(ScannerTest, ConsumesIdentifier) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "something");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "something");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -109,8 +111,8 @@ TEST(ScannerTest, ConsumesIdentifier) {
 }
 
 TEST(ScannerTest, HandlesConsumeIdentifierFailure) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "@");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "@");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -127,8 +129,8 @@ TEST(ScannerTest, HandlesConsumeIdentifierFailure) {
 }
 
 TEST(ScannerTest, HandlesConsumeIdentifierFailureDueToEoF) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -141,8 +143,8 @@ TEST(ScannerTest, HandlesConsumeIdentifierFailureDueToEoF) {
 }
 
 TEST(ScannerTest, ScansNumber) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "123");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "123");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -159,8 +161,8 @@ TEST(ScannerTest, ScansNumber) {
 }
 
 TEST(ScannerTest, ScansNegativeNumber) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "-123");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "-123");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -177,8 +179,8 @@ TEST(ScannerTest, ScansNegativeNumber) {
 }
 
 TEST(ScannerTest, HandlesUnrepresentableNumber) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "+");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "+");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -195,8 +197,8 @@ TEST(ScannerTest, HandlesUnrepresentableNumber) {
 }
 
 TEST(ScannerTest, ConsumesInt64) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "12345");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "12345");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -214,8 +216,8 @@ TEST(ScannerTest, ConsumesInt64) {
 }
 
 TEST(ScannerTest, HandlesConsumeInt64Failure) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "@");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "@");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -232,8 +234,8 @@ TEST(ScannerTest, HandlesConsumeInt64Failure) {
 }
 
 TEST(ScannerTest, HandlesConsumeInt64FailureDueToEoF) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -246,8 +248,8 @@ TEST(ScannerTest, HandlesConsumeInt64FailureDueToEoF) {
 }
 
 TEST(ScannerTest, ScansAddress) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "0x123");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "0x123");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -264,8 +266,8 @@ TEST(ScannerTest, ScansAddress) {
 }
 
 TEST(ScannerTest, HandlesUnrepresentableAddress) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "0x");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "0x");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -282,8 +284,8 @@ TEST(ScannerTest, HandlesUnrepresentableAddress) {
 }
 
 TEST(ScannerTest, ScansString) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "\"\\\"hello\\\" \\--\\\\-- \\\"world\\\"\"");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "\"\\\"hello\\\" \\--\\\\-- \\\"world\\\"\"");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -300,8 +302,8 @@ TEST(ScannerTest, ScansString) {
 }
 
 TEST(ScannerTest, HandlesEOFInsteadOfEscapedCharacter) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "\"abc\\");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "\"abc\\");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -320,8 +322,8 @@ TEST(ScannerTest, HandlesEOFInsteadOfEscapedCharacter) {
 }
 
 TEST(ScannerTest, HandlesEOFInsteadOfStringEndQuote) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "\"abc");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "\"abc");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -339,8 +341,8 @@ TEST(ScannerTest, HandlesEOFInsteadOfStringEndQuote) {
 }
 
 TEST(ScannerTest, ScansCharacterTokens) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", ")(,@}{:%#\n==>><=");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", ")(,@}{:%#\n==>><=");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -412,11 +414,11 @@ TEST(ScannerTest, ScansCharacterTokens) {
 }
 
 TEST(ScannerTest, ProvidesCorrectPositions) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir",
-                                           "@0 main () => () {\n"
-                                           "  ret\n"
-                                           "}");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir",
+                                "@0 main () => () {\n"
+                                "  ret\n"
+                                "}");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -512,8 +514,8 @@ TEST(ScannerTest, ProvidesCorrectPositions) {
 }
 
 TEST(ScannerTest, HandlesUnexpectedToken) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "hello");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "hello");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -529,8 +531,8 @@ TEST(ScannerTest, HandlesUnexpectedToken) {
 }
 
 TEST(ScannerTest, SkipsPastOneToken) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "@{hello}42");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "@{hello}42");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -546,8 +548,8 @@ TEST(ScannerTest, SkipsPastOneToken) {
 }
 
 TEST(ScannerTest, SkipsPastMultipleTokens) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "@{(hello)hello}42");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "@{(hello)hello}42");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);
@@ -564,8 +566,8 @@ TEST(ScannerTest, SkipsPastMultipleTokens) {
 }
 
 TEST(ScannerTest, SkipsToEOF) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("test.ir", "@{hello}42");
+  FileSet file_set;
+  File* file = file_set.AddFile("test.ir", "@{hello}42");
   ir_issues::IssueTracker issue_tracker(&file_set);
 
   ir_serialization::Scanner scanner(file, issue_tracker);

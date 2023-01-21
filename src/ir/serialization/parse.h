@@ -29,7 +29,8 @@ using ::common::logging::fail;
 
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
-std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, common::PosFile* file,
+std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program,
+                                                      common::positions::File* file,
                                                       ir_issues::IssueTracker& issue_tracker) {
   Scanner scanner(file, issue_tracker);
   scanner.Next();
@@ -60,8 +61,8 @@ std::vector<ir::Func*> ParseAdditionalFuncsForProgram(ir::Program* program, comm
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
 std::vector<ir::Func*> ParseAdditionalFuncsForProgramOrDie(ir::Program* program, std::string text) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("unknown.ir", text);
+  common::positions::FileSet file_set;
+  common::positions::File* file = file_set.AddFile("unknown.ir", text);
   ir_issues::IssueTracker issue_tracker(&file_set);
   std::vector<ir::Func*> funcs =
       ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(program, file,
@@ -76,7 +77,7 @@ std::vector<ir::Func*> ParseAdditionalFuncsForProgramOrDie(ir::Program* program,
 
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
-std::unique_ptr<ir::Program> ParseProgram(common::PosFile* file,
+std::unique_ptr<ir::Program> ParseProgram(common::positions::File* file,
                                           ir_issues::IssueTracker& issue_tracker) {
   auto program = std::make_unique<ir::Program>();
   ParseAdditionalFuncsForProgram<TypeParser, ConstantParser, FuncParser>(program.get(), file,
@@ -87,8 +88,8 @@ std::unique_ptr<ir::Program> ParseProgram(common::PosFile* file,
 template <typename TypeParser = TypeParser, typename ConstantParser = ConstantParser,
           typename FuncParser = FuncParser>
 std::unique_ptr<ir::Program> ParseProgramOrDie(std::string text) {
-  common::PosFileSet file_set;
-  common::PosFile* file = file_set.AddFile("unknown.ir", text);
+  common::positions::FileSet file_set;
+  common::positions::File* file = file_set.AddFile("unknown.ir", text);
   ir_issues::IssueTracker issue_tracker(&file_set);
   std::unique_ptr<ir::Program> program =
       ParseProgram<TypeParser, ConstantParser, FuncParser>(file, issue_tracker);

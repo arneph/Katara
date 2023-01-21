@@ -13,6 +13,8 @@
 
 namespace ir {
 
+using ::common::positions::pos_t;
+
 Instr* Block::ControlFlowInstr() const {
   if (instrs_.empty()) {
     return nullptr;
@@ -68,7 +70,7 @@ void Block::ForEachNonPhiInstrReverse(std::function<void(Instr*)> f) const {
   }
 }
 
-void Block::SetPositions(common::pos_t start, common::pos_t end) {
+void Block::SetPositions(pos_t start, pos_t end) {
   start_ = start;
   end_ = end;
 }

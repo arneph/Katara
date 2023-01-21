@@ -24,6 +24,7 @@ namespace {
 
 using ::common::atomics::Int;
 using ::common::atomics::IntType;
+using ::common::positions::kNoPos;
 using ::testing::Contains;
 using ::testing::ElementsAre;
 using ::testing::IsEmpty;
@@ -68,8 +69,8 @@ TEST(ParseTest, ParsesProgramWithEmptyFunc) {
   EXPECT_THAT(func->entry_block(), IsNull());
   EXPECT_EQ(func->entry_block_num(), ir::kNoBlockNum);
   EXPECT_EQ(func->computed_count(), 0);
-  EXPECT_NE(func->start(), common::kNoPos);
-  EXPECT_NE(func->end(), common::kNoPos);
+  EXPECT_NE(func->start(), kNoPos);
+  EXPECT_NE(func->end(), kNoPos);
 }
 
 TEST(ParseTest, ParsesProgramWithSimpleFunc) {
@@ -95,8 +96,8 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
   ASSERT_THAT(func->blocks(), SizeIs(1));
   ASSERT_THAT(func->blocks().front(), Not(IsNull()));
   ASSERT_TRUE(func->HasBlock(0));
-  EXPECT_NE(func->start(), common::kNoPos);
-  EXPECT_NE(func->end(), common::kNoPos);
+  EXPECT_NE(func->start(), kNoPos);
+  EXPECT_NE(func->end(), kNoPos);
 
   ir::Block* block = func->GetBlock(0);
   EXPECT_EQ(func->entry_block(), block);
@@ -108,8 +109,8 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
   EXPECT_TRUE(block->HasControlFlowInstr());
   EXPECT_THAT(block->parents(), IsEmpty());
   EXPECT_THAT(block->children(), IsEmpty());
-  EXPECT_NE(block->start(), common::kNoPos);
-  EXPECT_NE(block->end(), common::kNoPos);
+  EXPECT_NE(block->start(), kNoPos);
+  EXPECT_NE(block->end(), kNoPos);
 
   ir::Instr* instr = block->instrs().front().get();
   ASSERT_EQ(instr->instr_kind(), ir::InstrKind::kReturn);
@@ -143,8 +144,8 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   ASSERT_THAT(func->blocks(), SizeIs(1));
   ASSERT_THAT(func->blocks().front(), Not(IsNull()));
   ASSERT_TRUE(func->HasBlock(0));
-  EXPECT_NE(func->start(), common::kNoPos);
-  EXPECT_NE(func->end(), common::kNoPos);
+  EXPECT_NE(func->start(), kNoPos);
+  EXPECT_NE(func->end(), kNoPos);
 
   const ir::Type* result_type = func->result_types().front();
   EXPECT_EQ(result_type, ir::bool_type());
@@ -159,8 +160,8 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   EXPECT_TRUE(block->HasControlFlowInstr());
   EXPECT_THAT(block->parents(), IsEmpty());
   EXPECT_THAT(block->children(), IsEmpty());
-  EXPECT_NE(block->start(), common::kNoPos);
-  EXPECT_NE(block->end(), common::kNoPos);
+  EXPECT_NE(block->start(), kNoPos);
+  EXPECT_NE(block->end(), kNoPos);
 
   ir::Instr* instr = block->instrs().front().get();
   ASSERT_EQ(instr->instr_kind(), ir::InstrKind::kReturn);
@@ -169,8 +170,8 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   auto return_instr = static_cast<ir::ReturnInstr*>(instr);
   ASSERT_THAT(return_instr->args(), SizeIs(1));
   ASSERT_THAT(return_instr->args().front(), Not(IsNull()));
-  EXPECT_NE(return_instr->start(), common::kNoPos);
-  EXPECT_NE(return_instr->end(), common::kNoPos);
+  EXPECT_NE(return_instr->start(), kNoPos);
+  EXPECT_NE(return_instr->end(), kNoPos);
 
   auto result = return_instr->args().front();
   EXPECT_EQ(result, ir::False());

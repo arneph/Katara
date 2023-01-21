@@ -29,7 +29,7 @@ struct PackageDoc {
 };
 
 PackageDoc GenerateDocumentationForPackage(packages::Package* package,
-                                           const common::PosFileSet* pos_file_set,
+                                           const common::positions::FileSet* pos_file_set,
                                            types::Info* type_info);
 
 }  // namespace docs

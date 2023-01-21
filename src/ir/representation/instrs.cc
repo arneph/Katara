@@ -16,6 +16,7 @@
 namespace ir {
 
 using ::common::logging::fail;
+using ::common::positions::pos_t;
 
 bool Instr::IsControlFlowInstr() const {
   switch (instr_kind()) {
@@ -29,7 +30,7 @@ bool Instr::IsControlFlowInstr() const {
   }
 }
 
-void Instr::SetPositions(common::pos_t start, common::pos_t end) {
+void Instr::SetPositions(pos_t start, pos_t end) {
   start_ = start;
   end_ = end;
 }

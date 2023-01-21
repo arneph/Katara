@@ -19,7 +19,7 @@ using ::common::logging::fail;
 
 template <typename Checker = Checker>
 void CheckProgramOrDie(const ir::Program* program) {
-  common::PosFileSet file_set;
+  common::positions::FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
   CheckProgram<Checker>(program, issue_tracker);
   if (issue_tracker.issues().empty()) {

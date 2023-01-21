@@ -15,10 +15,15 @@
 namespace lang {
 namespace docs {
 
+using ::common::positions::File;
+using ::common::positions::FileSet;
+using ::common::positions::pos_t;
+using ::common::positions::Position;
+
 namespace {
 
 void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package,
-                              const common::PosFileSet* pos_file_set) {
+                              const FileSet* pos_file_set) {
   ss << "Issues:<br><dl>\n";
   for (issues::Issue issue : package->issue_tracker().issues()) {
     ss << "<dt>";
@@ -32,10 +37,10 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
         break;
     }
     ss << issue.message() << "\n";
-    for (common::pos_t pos : issue.positions()) {
+    for (pos_t pos : issue.positions()) {
       ss << "<dd>\n";
-      common::Position position = pos_file_set->PositionFor(pos);
-      common::PosFile* pos_file = pos_file_set->FileAt(pos);
+      Position position = pos_file_set->PositionFor(pos);
+      File* pos_file = pos_file_set->FileAt(pos);
       std::string line = pos_file->LineFor(pos);
       size_t whitespace = 0;
       for (; whitespace < line.length(); whitespace++) {
@@ -59,10 +64,10 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
 }
 
 void GeneratePackageDescription(std::ostringstream& ss, packages::Package* package,
-                                const common::PosFileSet* pos_file_set) {
+                                const FileSet* pos_file_set) {
   ss << "Path: " << package->path() << "<br>\n"
      << "Package files:<dl>\n";
-  for (common::PosFile* pos_file : package->pos_files()) {
+  for (File* pos_file : package->pos_files()) {
     ss << "<dt>"
        << "<a href=\"" << pos_file->name() << ".html\">" << pos_file->name() << "</a>"
        << "</dt>\n";
@@ -75,8 +80,7 @@ void GeneratePackageDescription(std::ostringstream& ss, packages::Package* packa
 
 }  // namespace
 
-PackageDoc GenerateDocumentationForPackage(packages::Package* package,
-                                           const common::PosFileSet* pos_file_set,
+PackageDoc GenerateDocumentationForPackage(packages::Package* package, const FileSet* pos_file_set,
                                            types::Info* type_info) {
   std::ostringstream ss;
   ss << "<!DOCTYPE html>\n"

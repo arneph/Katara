@@ -21,7 +21,7 @@ using ::testing::SizeIs;
 class ExprParsingTest : public ::testing::Test {
  protected:
   lang::ast::Expr* ParseExprUnderTest(std::string expr_under_test) {
-    common::PosFile* pos_file =
+    common::positions::File* pos_file =
         pos_file_set_.AddFile("test.kat", "package main\nvar t = " + expr_under_test + "\n");
     lang::ast::ASTBuilder ast_builder = ast_.builder();
     lang::issues::IssueTracker issues(&pos_file_set_);
@@ -33,7 +33,7 @@ class ExprParsingTest : public ::testing::Test {
   }
 
  private:
-  common::PosFileSet pos_file_set_;
+  common::positions::FileSet pos_file_set_;
   lang::ast::AST ast_;
 };
 

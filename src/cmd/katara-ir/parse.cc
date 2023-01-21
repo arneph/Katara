@@ -21,7 +21,7 @@ namespace katara_ir {
 ParseDetails ParseWithDetails(std::filesystem::path path, Context* ctx) {
   ParseDetails result;
   std::string code = ctx->filesystem()->ReadContentsOfFile(path);
-  common::PosFile* file = result.file_set.AddFile(path, code);
+  common::positions::File* file = result.file_set.AddFile(path, code);
   result.program = ir_serialization::ParseProgram(file, result.issue_tracker);
   if (result.program == nullptr || !result.issue_tracker.issues().empty()) {
     result.error_code = ErrorCode::kParseFailed;

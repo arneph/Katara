@@ -95,7 +95,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
   }
   if (debug_handler.CheckIr()) {
     // TODO: actually generate IR positions
-    common::PosFileSet ir_file_set;
+    common::positions::FileSet ir_file_set;
     ir_issues::IssueTracker issue_tracker(&ir_file_set);
     ::lang::ir_check::CheckProgram(program.get(), issue_tracker);
     if (!issue_tracker.issues().empty()) {
@@ -117,7 +117,7 @@ void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Con
     // TODO: implement lowering for panic and other instructions, then revert to using plain IR
     // checker here.
     // TODO: actually generate IR positions
-    common::PosFileSet ir_file_set;
+    common::positions::FileSet ir_file_set;
     ir_issues::IssueTracker issue_tracker(&ir_file_set);
     ::lang::ir_check::CheckProgram(program, issue_tracker);
     if (!issue_tracker.issues().empty()) {
@@ -137,7 +137,7 @@ void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Contex
     // TODO: implement lowering for panic and other instructions, then revert to using plain IR
     // checker here.
     // TODO: actually generate IR positions
-    common::PosFileSet ir_file_set;
+    common::positions::FileSet ir_file_set;
     ir_issues::IssueTracker issue_tracker(&ir_file_set);
     ::lang::ir_check::CheckProgram(program, issue_tracker);
     if (!issue_tracker.issues().empty()) {
@@ -154,7 +154,7 @@ void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler, Contex
   }
   if (debug_handler.CheckIr()) {
     // TODO: actually generate IR positions
-    common::PosFileSet ir_file_set;
+    common::positions::FileSet ir_file_set;
     ir_issues::IssueTracker issue_tracker(&ir_file_set);
     ::ir_check::CheckProgram(program, issue_tracker);
     if (!issue_tracker.issues().empty()) {
