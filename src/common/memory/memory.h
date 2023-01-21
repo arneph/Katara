@@ -16,7 +16,7 @@
 #include "src/common/data/data_view.h"
 #include "src/common/logging/logging.h"
 
-namespace common {
+namespace common::memory {
 
 class Memory {
  public:
@@ -48,6 +48,6 @@ class Memory {
   Permissions permissions_;
 };
 
-}  // namespace common
+}  // namespace common::memory
 
 #endif /* common_memory_hpp */

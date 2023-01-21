@@ -12,7 +12,7 @@
 
 #include <utility>
 
-namespace common {
+namespace common::memory {
 namespace {
 
 bool ValidatePermissions(Memory::Permissions permissions) {
@@ -99,4 +99,4 @@ void Memory::Free() {
   permissions_ = kNone;
 }
 
-}  // namespace common
+}  // namespace common::memory

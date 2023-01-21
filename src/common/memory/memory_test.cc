@@ -10,7 +10,7 @@
 
 #include "gtest/gtest.h"
 
-namespace common {
+namespace common::memory {
 
 TEST(MemoryTest, EmptyConstructorSucceeds) {
   Memory memory;
@@ -233,4 +233,4 @@ TEST(MemoryTest, NotMultipleOfPageSizeSucceeds) {
   EXPECT_EQ(memory.data()[Memory::kPageSize * 3 + 16], 0);
 }
 
-}  // namespace common
+}  // namespace common::memory
