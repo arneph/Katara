@@ -11,7 +11,7 @@
 #include <iomanip>
 #include <sstream>
 
-namespace common {
+namespace common::graph {
 
 NodeBuilder& NodeBuilder::SetText(std::string text) {
   node_.text_ = text;
@@ -223,4 +223,4 @@ std::string Graph::ToDotFormatWithSubgraphs() const {
   return ss.str();
 }
 
-}  // namespace common
+}  // namespace common::graph

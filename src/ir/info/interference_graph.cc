@@ -109,8 +109,8 @@ std::string InterferenceGraph::ToString() const {
   return ss.str();
 }
 
-common::Graph InterferenceGraph::ToGraph(const InterferenceGraphColors* colors) const {
-  common::Graph vcg_graph(/*is_directed=*/false);
+common::graph::Graph InterferenceGraph::ToGraph(const InterferenceGraphColors* colors) const {
+  common::graph::Graph vcg_graph(/*is_directed=*/false);
 
   std::unordered_map<ir::value_num_t, int64_t> value_numbers;
   value_numbers.reserve(graph_.size());
@@ -121,8 +121,8 @@ common::Graph InterferenceGraph::ToGraph(const InterferenceGraphColors* colors) 
 
     value_numbers.insert({node, node_number});
 
-    vcg_graph.nodes().push_back(common::NodeBuilder(node_number, std::to_string(node))
-                                    .SetColor(common::Color(node_reg))
+    vcg_graph.nodes().push_back(common::graph::NodeBuilder(node_number, std::to_string(node))
+                                    .SetColor(common::graph::Color(node_reg))
                                     .Build());
 
     for (ir::value_num_t neighbor : neighbors) {
@@ -131,7 +131,7 @@ common::Graph InterferenceGraph::ToGraph(const InterferenceGraphColors* colors) 
 
       int64_t neighbor_number = it->second;
 
-      vcg_graph.edges().push_back(common::Edge(node_number, neighbor_number));
+      vcg_graph.edges().push_back(common::graph::Edge(node_number, neighbor_number));
     }
   }
 

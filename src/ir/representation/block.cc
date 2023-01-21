@@ -80,14 +80,14 @@ void Block::WriteRefString(std::ostream& os) const {
   }
 }
 
-common::Node Block::ToNode() const {
+common::graph::Node Block::ToNode() const {
   std::stringstream ss;
   for (size_t i = 0; i < instrs_.size(); i++) {
     if (i > 0) ss << "\n";
     instrs_.at(i)->WriteRefString(ss);
   }
 
-  return common::NodeBuilder(number_, RefString()).SetText(ss.str()).Build();
+  return common::graph::NodeBuilder(number_, RefString()).SetText(ss.str()).Build();
 }
 
 bool Block::operator==(const Block& that) const {

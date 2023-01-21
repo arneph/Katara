@@ -78,7 +78,7 @@ class FuncCallGraph {
   std::unordered_set<Component*> ComponentsReachableFromComponent(Component* root_component) const;
   std::unordered_set<ir::func_num_t> FuncsReachableFromComponent(Component* root_component) const;
 
-  common::Graph ToGraph(ir::Program* program = nullptr) const;
+  common::graph::Graph ToGraph(ir::Program* program = nullptr) const;
 
  private:
   // State required for Tarjan's Strongly Connected Components Algorithm

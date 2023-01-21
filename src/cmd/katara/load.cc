@@ -87,7 +87,7 @@ void GenerateDebugInfo(std::unique_ptr<lang::packages::PackageManager>& pkg_mana
 
   for (lang::packages::Package* pkg : arg_pkgs) {
     for (auto [name, ast_file] : pkg->ast_package()->files()) {
-      common::Graph ast_graph = lang::ast::NodeToTree(pkg_manager->file_set(), ast_file);
+      common::graph::Graph ast_graph = lang::ast::NodeToTree(pkg_manager->file_set(), ast_file);
 
       debug_handler.WriteToDebugFile(ast_graph.ToDotFormat(), /* subdir_name= */ "",
                                      name + ".ast.dot");

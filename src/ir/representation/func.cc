@@ -121,28 +121,28 @@ void Func::WriteRefString(std::ostream& os) const {
   }
 }
 
-common::Graph Func::ToControlFlowGraph() const {
-  common::Graph graph(/*is_directed=*/true);
+common::graph::Graph Func::ToControlFlowGraph() const {
+  common::graph::Graph graph(/*is_directed=*/true);
 
   for (auto& block : blocks_) {
     graph.nodes().push_back(block->ToNode());
 
     for (block_num_t child_num : block->children()) {
-      graph.edges().push_back(common::Edge(block->number(), child_num));
+      graph.edges().push_back(common::graph::Edge(block->number(), child_num));
     }
   }
 
   return graph;
 }
 
-common::Graph Func::ToDominatorTree() const {
-  common::Graph graph(/*is_directed=*/true);
+common::graph::Graph Func::ToDominatorTree() const {
+  common::graph::Graph graph(/*is_directed=*/true);
 
   for (auto& block : blocks_) {
     graph.nodes().push_back(block->ToNode());
 
     for (block_num_t dominee_num : DomineesOf(block->number())) {
-      graph.edges().push_back(common::Edge(block->number(), dominee_num));
+      graph.edges().push_back(common::graph::Edge(block->number(), dominee_num));
     }
   }
 

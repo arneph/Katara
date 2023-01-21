@@ -30,7 +30,7 @@ class InterferenceGraph {
   void AddEdgesBetween(std::unordered_set<ir::value_num_t> group, ir::value_num_t individual);
 
   std::string ToString() const;
-  common::Graph ToGraph(const class InterferenceGraphColors* colors = nullptr) const;
+  common::graph::Graph ToGraph(const class InterferenceGraphColors* colors = nullptr) const;
 
  private:
   std::unordered_set<ir::value_num_t> values_;

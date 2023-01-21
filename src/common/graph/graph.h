@@ -13,7 +13,7 @@
 #include <unordered_set>
 #include <vector>
 
-namespace common {
+namespace common::graph {
 
 typedef int64_t node_num_t;
 typedef int64_t subgraph_num_t;
@@ -98,6 +98,6 @@ class Graph {
   bool is_directed_;
 };
 
-}  // namespace common
+}  // namespace common::graph
 
 #endif /* common_graph_h */

@@ -54,7 +54,7 @@ class Block : public Object {
 
   void WriteRefString(std::ostream& os) const override;
 
-  common::Node ToNode() const;
+  common::graph::Node ToNode() const;
 
   bool operator==(const Block& that) const;
 

@@ -71,8 +71,8 @@ class Func : public Object {
 
   void WriteRefString(std::ostream& os) const override;
 
-  common::Graph ToControlFlowGraph() const;
-  common::Graph ToDominatorTree() const;
+  common::graph::Graph ToControlFlowGraph() const;
+  common::graph::Graph ToDominatorTree() const;
 
   bool operator==(const Func& that) const;
 

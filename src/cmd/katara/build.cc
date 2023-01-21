@@ -51,10 +51,10 @@ void GenerateIrDebugInfo(ir::Program* program, std::string iter, DebugHandler& d
     std::string subdir_name = SubdirNameForFunc(func.get());
     std::string file_name = iter;
 
-    common::Graph func_cfg = func->ToControlFlowGraph();
+    common::graph::Graph func_cfg = func->ToControlFlowGraph();
     debug_handler.WriteToDebugFile(func_cfg.ToDotFormat(), subdir_name, file_name + ".cfg.dot");
 
-    common::Graph func_dom = func->ToDominatorTree();
+    common::graph::Graph func_dom = func->ToDominatorTree();
     debug_handler.WriteToDebugFile(func_dom.ToDotFormat(), subdir_name, file_name + ".dom.dot");
 
     const ir_info::FuncLiveRanges live_ranges = ir_analyzers::FindLiveRangesForFunc(func.get());

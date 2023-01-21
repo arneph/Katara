@@ -16,8 +16,8 @@
 namespace lang {
 namespace ast {
 
-common::Graph NodeToTree(const common::PosFileSet* file_set, Node* node) {
-  common::Graph graph(/*is_directed=*/true);
+common::graph::Graph NodeToTree(const common::PosFileSet* file_set, Node* node) {
+  common::graph::Graph graph(/*is_directed=*/true);
   std::vector<int64_t> stack;
   int64_t count = 0;
 
@@ -28,19 +28,19 @@ common::Graph NodeToTree(const common::PosFileSet* file_set, Node* node) {
     }
     int64_t number = count++;
     std::string title;
-    common::Color color;
+    common::graph::Color color;
     if (ast_node->is_expr()) {
       title = "expr";
-      color = common::kTurquoise;
+      color = common::graph::kTurquoise;
     } else if (ast_node->is_stmt()) {
       title = "stmt";
-      color = common::kGreen;
+      color = common::graph::kGreen;
     } else if (ast_node->is_decl()) {
       title = "decl";
-      color = common::kYellow;
+      color = common::graph::kYellow;
     } else {
       title = "node";
-      color = common::kRed;
+      color = common::graph::kRed;
     }
     common::PosFile* file = file_set->FileAt(ast_node->start());
     std::string text = file->contents(ast_node->start(), ast_node->end());
@@ -49,10 +49,10 @@ common::Graph NodeToTree(const common::PosFileSet* file_set, Node* node) {
     }
 
     graph.nodes().push_back(
-        common::NodeBuilder(number, title).SetText(text).SetColor(color).Build());
+        common::graph::NodeBuilder(number, title).SetText(text).SetColor(color).Build());
 
     if (!stack.empty()) {
-      graph.edges().push_back(common::Edge(stack.back(), number));
+      graph.edges().push_back(common::graph::Edge(stack.back(), number));
     }
 
     stack.push_back(number);

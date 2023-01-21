@@ -52,8 +52,8 @@ void run_ir_test(std::filesystem::path test_dir) {
   std::cout << "\n";
 
   for (auto& func : ir_program->funcs()) {
-    common::Graph cfg = func->ToControlFlowGraph();
-    common::Graph dom_tree = func->ToDominatorTree();
+    common::graph::Graph cfg = func->ToControlFlowGraph();
+    common::graph::Graph dom_tree = func->ToDominatorTree();
 
     to_file(cfg.ToDotFormat(),
             out_file_base.string() + ".init.@" + std::to_string(func->number()) + ".cfg.dot");
@@ -86,8 +86,8 @@ void run_ir_test(std::filesystem::path test_dir) {
 
   for (auto& func : ir_program->funcs()) {
     ir_processors::ResolvePhisInFunc(func.get());
-    common::Graph cfg = func->ToControlFlowGraph();
-    common::Graph dom_tree = func->ToDominatorTree();
+    common::graph::Graph cfg = func->ToControlFlowGraph();
+    common::graph::Graph dom_tree = func->ToDominatorTree();
 
     to_file(cfg.ToDotFormat(),
             out_file_base.string() + ".final.@" + std::to_string(func->number()) + ".cfg.dot");

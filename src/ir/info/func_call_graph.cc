@@ -177,8 +177,8 @@ void FuncCallGraph::GenerateComponent(ir::func_num_t caller, SCCAlgorithmState& 
   }
 }
 
-common::Graph FuncCallGraph::ToGraph(ir::Program* program) const {
-  common::Graph graph(/*is_directed=*/true);
+common::graph::Graph FuncCallGraph::ToGraph(ir::Program* program) const {
+  common::graph::Graph graph(/*is_directed=*/true);
 
   for (ir::func_num_t func_num : funcs_) {
     std::string func_str = "@" + std::to_string(func_num);
@@ -188,13 +188,13 @@ common::Graph FuncCallGraph::ToGraph(ir::Program* program) const {
     }
     Component* component = ComponentOfFunc(func_num);
     graph.nodes().push_back(
-        common::NodeBuilder(func_num, func_str).SetSubgraph(component->index_).Build());
+        common::graph::NodeBuilder(func_num, func_str).SetSubgraph(component->index_).Build());
   }
 
   for (const auto& func_call : func_calls_) {
     ir::func_num_t caller = func_call->caller();
     for (ir::func_num_t callee : func_call->callees()) {
-      graph.edges().push_back(common::Edge(caller, callee));
+      graph.edges().push_back(common::graph::Edge(caller, callee));
     }
   }
 
