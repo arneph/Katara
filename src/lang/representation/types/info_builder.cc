@@ -8,6 +8,8 @@
 
 #include "info_builder.h"
 
+#include <algorithm>
+
 #include "src/common/atomics/atomics.h"
 #include "src/common/logging/logging.h"
 

@@ -8,6 +8,7 @@
 
 #include "heap.h"
 
+#include <algorithm>
 #include <iomanip>
 #include <sstream>
 
