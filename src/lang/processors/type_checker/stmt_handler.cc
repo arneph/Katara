@@ -235,13 +235,13 @@ void StmtHandler::CheckAssignStmt(ast::AssignStmt* assign_stmt) {
     } else if (!types::IsAssignableTo(rhs_type, lhs_type, info_builder())) {
       if (assign_stmt->rhs().size() == assign_stmt->lhs().size()) {
         issues().Add(issues::kMismatchedAssignStmtValueType,
-                     {assign_stmt->lhs().at(i)->start(), assign_stmt->rhs().at(i)->start()},
+                     {assign_stmt->lhs().at(i)->position(), assign_stmt->rhs().at(i)->position()},
                      "can not assign value of type " +
                          rhs_type->ToString(types::StringRep::kShort) + " to operand of type " +
                          lhs_type->ToString(types::StringRep::kShort));
       } else {
         issues().Add(issues::kMismatchedAssignStmtValueType,
-                     {assign_stmt->lhs().at(i)->start(), assign_stmt->rhs().at(0)->start()},
+                     {assign_stmt->lhs().at(i)->position(), assign_stmt->rhs().at(0)->position()},
                      "can not assign value of type " +
                          rhs_type->ToString(types::StringRep::kShort) + " to operand of type " +
                          lhs_type->ToString(types::StringRep::kShort));

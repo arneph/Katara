@@ -11,6 +11,7 @@
 #include <unordered_map>
 
 #include "src/cmd/katara/load.h"
+#include "src/common/positions/positions.h"
 #include "src/ir/analyzers/func_call_graph_builder.h"
 #include "src/ir/analyzers/interference_graph_builder.h"
 #include "src/ir/analyzers/live_range_analyzer.h"
@@ -40,7 +41,7 @@ std::string SubdirNameForFunc(ir::Func* func) {
 }
 
 void GenerateIrDebugInfo(ir::Program* program, std::string iter, DebugHandler& debug_handler) {
-  debug_handler.WriteToDebugFile(ir_serialization::Print(program), /* subdir_name= */ "",
+  debug_handler.WriteToDebugFile(ir_serialization::PrintProgram(program), /* subdir_name= */ "",
                                  "ir." + iter + ".txt");
 
   const ir_info::FuncCallGraph fcg = ir_analyzers::BuildFuncCallGraphForProgram(program);
@@ -94,10 +95,11 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
     GenerateIrDebugInfo(program.get(), "init", debug_handler);
   }
   if (debug_handler.CheckIr()) {
-    // TODO: actually generate IR positions
     common::positions::FileSet ir_file_set;
+    auto [ir_file, program_positions] =
+        ::ir_serialization::PrintProgramToNewFile("ir.init.txt", program.get(), ir_file_set);
     ir_issues::IssueTracker issue_tracker(&ir_file_set);
-    ::lang::ir_check::CheckProgram(program.get(), issue_tracker);
+    ::lang::ir_check::CheckProgram(program.get(), program_positions, issue_tracker);
     if (!issue_tracker.issues().empty()) {
       *ctx->stderr() << "init IR program has issues:\n";
       issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
@@ -116,10 +118,11 @@ void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Con
   if (debug_handler.CheckIr()) {
     // TODO: implement lowering for panic and other instructions, then revert to using plain IR
     // checker here.
-    // TODO: actually generate IR positions
     common::positions::FileSet ir_file_set;
+    auto [ir_file, program_positions] =
+        ::ir_serialization::PrintProgramToNewFile("ir.ext_optimized.txt", program, ir_file_set);
     ir_issues::IssueTracker issue_tracker(&ir_file_set);
-    ::lang::ir_check::CheckProgram(program, issue_tracker);
+    ::lang::ir_check::CheckProgram(program, program_positions, issue_tracker);
     if (!issue_tracker.issues().empty()) {
       *ctx->stderr() << "ext_optimized IR program has issues:\n";
       issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
@@ -136,10 +139,11 @@ void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Contex
   if (debug_handler.CheckIr()) {
     // TODO: implement lowering for panic and other instructions, then revert to using plain IR
     // checker here.
-    // TODO: actually generate IR positions
     common::positions::FileSet ir_file_set;
+    auto [ir_file, program_positions] =
+        ::ir_serialization::PrintProgramToNewFile("ir.lowered.txt", program, ir_file_set);
     ir_issues::IssueTracker issue_tracker(&ir_file_set);
-    ::lang::ir_check::CheckProgram(program, issue_tracker);
+    ::lang::ir_check::CheckProgram(program, program_positions, issue_tracker);
     if (!issue_tracker.issues().empty()) {
       *ctx->stderr() << "lowered IR program has issues:\n";
       issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
@@ -153,10 +157,11 @@ void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler, Contex
     GenerateIrDebugInfo(program, "optimized", debug_handler);
   }
   if (debug_handler.CheckIr()) {
-    // TODO: actually generate IR positions
     common::positions::FileSet ir_file_set;
+    auto [ir_file, program_positions] =
+        ::ir_serialization::PrintProgramToNewFile("ir.optimized.txt", program, ir_file_set);
     ir_issues::IssueTracker issue_tracker(&ir_file_set);
-    ::ir_check::CheckProgram(program, issue_tracker);
+    ::ir_check::CheckProgram(program, program_positions, issue_tracker);
     if (!issue_tracker.issues().empty()) {
       *ctx->stderr() << "optimized IR program has issues:\n";
       issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());

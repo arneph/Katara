@@ -23,6 +23,7 @@ namespace docs {
 using ::common::positions::File;
 using ::common::positions::FileSet;
 using ::common::positions::pos_t;
+using ::common::positions::range_t;
 
 namespace {
 
@@ -57,8 +58,10 @@ FileDoc GenerateDocumentationForFile(std::string name, ast::File* ast_file,
      << "<div style=\"font-family:'Courier New'\">\n";
   int64_t line_number = 0;
   while (scanner.token() != tokens::kEOF) {
-    std::string whitespace = pos_file->contents(last_pos + 1, scanner.token_start() - 1);
-    std::string contents = pos_file->contents(scanner.token_start(), scanner.token_end());
+    std::string whitespace =
+        pos_file->contents(range_t{.start = last_pos + 1, .end = scanner.token_start() - 1});
+    std::string contents =
+        pos_file->contents(range_t{.start = scanner.token_start(), .end = scanner.token_end()});
     whitespace = html::Escape(InsertLineNumbers(whitespace, line_number));
     contents = html::Escape(InsertLineNumbers(contents, line_number));
     html::TextFormat format;

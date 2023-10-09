@@ -65,8 +65,7 @@ void TypesToText(const FileSet* file_set, Info* info, std::stringstream& ss) {
     File* file = file_set->FileAt(expr->start());
 
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
-    ss << std::setw(int(max_expr)) << std::left << file->contents(expr->start(), expr->end())
-       << " ";
+    ss << std::setw(int(max_expr)) << std::left << file->contents(expr->position()) << " ";
     ss << std::setw(int(max_type)) << std::left << expr_info.type()->ToString(StringRep::kExpanded)
        << "\n";
   }
@@ -95,8 +94,7 @@ void ConstantExpressionsToText(const FileSet* file_set, Info* info, std::strings
     File* file = file_set->FileAt(expr->start());
 
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
-    ss << std::setw(int(max_expr)) << std::left << file->contents(expr->start(), expr->end())
-       << " ";
+    ss << std::setw(int(max_expr)) << std::left << file->contents(expr->position()) << " ";
     ss << std::setw(int(max_value)) << std::left << expr_info.constant_value().ToString() << "\n";
   }
   ss << "\n";
@@ -122,8 +120,7 @@ void ConstantsToText(const FileSet* file_set, Info* info, std::stringstream& ss)
     File* file = file_set->FileAt(expr->start());
 
     ss << std::setw(int(max_pos)) << std::left << pos.ToString() << " ";
-    ss << std::setw(int(max_ident)) << std::left << file->contents(expr->start(), expr->end())
-       << " ";
+    ss << std::setw(int(max_ident)) << std::left << file->contents(expr->position()) << " ";
     ss << std::setw(int(max_value)) << std::left << constant->value().ToString() << "\n";
   }
   ss << "\n";

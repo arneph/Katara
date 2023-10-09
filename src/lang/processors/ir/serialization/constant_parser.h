@@ -33,8 +33,10 @@ class ConstantParser : public ::ir_serialization::ConstantParser {
                                            func_num_offset) {}
 
  private:
-  std::shared_ptr<ir::Constant> ParseConstant(const ir::Type* expected_type) override;
-  std::shared_ptr<ir_ext::StringConstant> ParseStringConstant();
+  using ::ir_serialization::ConstantParser::ConstantParseResult;
+
+  ConstantParseResult ParseConstant(const ir::Type* expected_type) override;
+  ConstantParseResult ParseStringConstant();
 };
 
 }  // namespace ir_serialization

@@ -14,6 +14,7 @@
 #include "src/common/positions/positions.h"
 #include "src/ir/issues/issues.h"
 #include "src/ir/serialization/parse.h"
+#include "src/ir/serialization/positions.h"
 
 namespace cmd {
 namespace katara_ir {
@@ -21,8 +22,11 @@ namespace katara_ir {
 ParseDetails ParseWithDetails(std::filesystem::path path, Context* ctx) {
   ParseDetails result;
   std::string code = ctx->filesystem()->ReadContentsOfFile(path);
-  common::positions::File* file = result.file_set.AddFile(path, code);
-  result.program = ir_serialization::ParseProgram(file, result.issue_tracker);
+  result.program_file = result.file_set.AddFile(path, code);
+  auto [program, program_positions] =
+      ir_serialization::ParseProgramWithPositions(result.program_file, result.issue_tracker);
+  result.program = std::move(program);
+  result.program_positions = program_positions;
   if (result.program == nullptr || !result.issue_tracker.issues().empty()) {
     result.error_code = ErrorCode::kParseFailed;
   } else {

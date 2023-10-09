@@ -9,40 +9,72 @@
 #include "type_parser.h"
 
 #include "src/common/logging/logging.h"
+#include "src/common/positions/positions.h"
 
 namespace ir_serialization {
 
-using ::common::positions::pos_t;
+using ::common::positions::kNoRange;
+using ::common::positions::range_t;
 
 // Types ::= Type (',' Type)?
-std::vector<const ir::Type*> TypeParser::ParseTypes() {
-  std::vector<const ir::Type*> types{ParseType()};
+TypeParser::TypesParseResult TypeParser::ParseTypes() {
+  const auto& [first_type, first_range] = ParseType();
+  std::vector<const ir::Type*> types{first_type};
+  std::vector<range_t> type_ranges{first_range};
   while (scanner().token() == Scanner::kComma) {
     scanner().ConsumeToken(Scanner::kComma);
-    types.push_back(ParseType());
+    const auto& [type, range] = ParseType();
+    types.push_back(type);
+    type_ranges.push_back(range);
   }
-  return types;
+  return TypesParseResult{
+      .types = types,
+      .type_ranges = type_ranges,
+      .range =
+          range_t{
+              .start = type_ranges.front().start,
+              .end = type_ranges.back().end,
+          },
+  };
 }
 
 // Type ::= Identifier
-const ir::Type* TypeParser::ParseType() {
+TypeParser::TypeParseResult TypeParser::ParseType() {
   if (scanner().token() != Scanner::kIdentifier) {
-    return nullptr;
+    return TypeParseResult{
+        .type = nullptr,
+        .range = kNoRange,
+    };
   }
-  pos_t name_pos = scanner().token_start();
+  range_t name_range = scanner().token_range();
   std::string name = scanner().ConsumeIdentifier().value();
 
   if (name == "b") {
-    return ir::bool_type();
+    return TypeParseResult{
+        .type = ir::bool_type(),
+        .range = name_range,
+    };
   } else if (auto int_type = common::atomics::ToIntType(name); int_type) {
-    return ir::IntTypeFor(int_type.value());
+    return TypeParseResult{
+        .type = ir::IntTypeFor(int_type.value()),
+        .range = name_range,
+    };
   } else if (name == "ptr") {
-    return ir::pointer_type();
+    return TypeParseResult{
+        .type = ir::pointer_type(),
+        .range = name_range,
+    };
   } else if (name == "func") {
-    return ir::func_type();
+    return TypeParseResult{
+        .type = ir::func_type(),
+        .range = name_range,
+    };
   } else {
-    issue_tracker().Add(ir_issues::IssueKind::kUnknownTypeName, name_pos, "unknown type name");
-    return nullptr;
+    issue_tracker().Add(ir_issues::IssueKind::kUnknownTypeName, name_range, "unknown type name");
+    return TypeParseResult{
+        .type = nullptr,
+        .range = name_range,
+    };
   }
 }
 

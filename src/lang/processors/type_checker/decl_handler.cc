@@ -8,7 +8,9 @@
 
 #include "decl_handler.h"
 
+#include "src/common/atomics/atomics.h"
 #include "src/common/logging/logging.h"
+#include "src/common/positions/positions.h"
 #include "src/lang/processors/type_checker/type_resolver.h"
 #include "src/lang/representation/types/types_util.h"
 
@@ -17,6 +19,7 @@ namespace type_checker {
 
 using ::common::atomics::Int;
 using ::common::logging::fail;
+using ::common::positions::pos_t;
 
 bool DeclHandler::ProcessTypeName(types::TypeName* type_name, ast::TypeSpec* type_spec) {
   if (!ProcessTypeParametersOfTypeName(type_name, type_spec)) {
@@ -344,7 +347,8 @@ types::Type* DeclHandler::EvalutateReceiverTypeInstance(ast::Ident* type_name_id
     return nullptr;
   } else if (named_type->methods().contains(method->name())) {
     types::Func* other_method = named_type->methods().at(method->name());
-    issues().Add(issues::kRedefinitionOfMethod, {other_method->position(), method->position()},
+    issues().Add(issues::kRedefinitionOfMethod,
+                 std::vector<pos_t>{other_method->position(), method->position()},
                  "can not define two methods with the same name");
     return nullptr;
   }

@@ -89,6 +89,7 @@ class Node {
   bool is_expr() const;
 
   virtual NodeKind node_kind() const = 0;
+  common::positions::range_t position() const { return {.start = start(), .end = end()}; }
   virtual common::positions::pos_t start() const = 0;
   virtual common::positions::pos_t end() const = 0;
 };

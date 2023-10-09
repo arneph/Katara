@@ -93,8 +93,8 @@ TEST_P(SharedToUniquePointerOptimizationImpossibleTest, DoesNotOptimizeProgram) 
   lang::ir_check::CheckProgramOrDie(input_program.get());
   EXPECT_TRUE(ir::IsEqual(input_program.get(), expected_program.get()))
       << "Expected program to stay unoptimized, got:\n"
-      << ir_serialization::Print(input_program.get()) << "\nexpected:\n"
-      << ir_serialization::Print(expected_program.get());
+      << ir_serialization::PrintProgram(input_program.get()) << "\nexpected:\n"
+      << ir_serialization::PrintProgram(expected_program.get());
 }
 
 struct PossibleOptimizationTestParams {
@@ -178,35 +178,35 @@ INSTANTIATE_TEST_SUITE_P(SharedToUniquePointerOptimizationPossibleTestInstance,
 }
 )ir",
                                  .expected_program = R"ir(
-  @0 main() => (i64) {
-    {0}
-      %0:lunique_ptr<i64> = make_unique #1:i64
-      store %0, #0:i64
-      %1:lunique_ptr<i64> = make_unique #1:i64
-      store %1, #0:i64
-      jmp {1}
-    {1}
-      %2:i64 = load %1
-      %3:b = ilss %2, #10:i64
-      jcc %3, {4}, {3}
-    {2}
-      %4:i64 = load %1
-      %5:i64 = iadd %4, #1:i64
-      store %1, %5
-      jmp {1}
-    {3}
-      delete_unique %1
-      %9:i64 = load %0
-      delete_unique %0
-      ret %9
-    {4}
-      %6:i64 = load %1
-      %7:i64 = load %0
-      %8:i64 = iadd %7, %6
-      store %0, %8
-      jmp {2}
-  }
-    )ir",
+@0 main() => (i64) {
+  {0}
+    %0:lunique_ptr<i64> = make_unique #1:i64
+    store %0, #0:i64
+    %1:lunique_ptr<i64> = make_unique #1:i64
+    store %1, #0:i64
+    jmp {1}
+  {1}
+    %2:i64 = load %1
+    %3:b = ilss %2, #10:i64
+    jcc %3, {4}, {3}
+  {2}
+    %4:i64 = load %1
+    %5:i64 = iadd %4, #1:i64
+    store %1, %5
+    jmp {1}
+  {3}
+    delete_unique %1
+    %9:i64 = load %0
+    delete_unique %0
+    ret %9
+  {4}
+    %6:i64 = load %1
+    %7:i64 = load %0
+    %8:i64 = iadd %7, %6
+    store %0, %8
+    jmp {2}
+}
+)ir",
                              }));
 
 TEST_P(SharedToUniquePointerOptimizationPossibleTest, OptimizesProgram) {
@@ -221,6 +221,6 @@ TEST_P(SharedToUniquePointerOptimizationPossibleTest, OptimizesProgram) {
   lang::ir_check::CheckProgramOrDie(optimized_program.get());
   EXPECT_TRUE(ir::IsEqual(optimized_program.get(), expected_program.get()))
       << "Expected different optimized program, got:\n"
-      << ir_serialization::Print(optimized_program.get()) << "\nexpected:\n"
-      << ir_serialization::Print(expected_program.get());
+      << ir_serialization::PrintProgram(optimized_program.get()) << "\nexpected:\n"
+      << ir_serialization::PrintProgram(expected_program.get());
 }

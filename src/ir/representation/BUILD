@@ -83,7 +83,6 @@ cc_library(
         ":object",
         ":types",
         "//src/common/atomics",
-        "//src/common/positions",
     ],
 )
 
@@ -108,7 +107,6 @@ cc_library(
         ":values",
         "//src/common/atomics",
         "//src/common/logging",
-        "//src/common/positions",
     ],
 )
 
@@ -132,7 +130,6 @@ cc_library(
         ":num_types",
         ":object",
         "//src/common/graph",
-        "//src/common/positions",
     ],
 )
 
@@ -156,7 +153,6 @@ cc_library(
         ":num_types",
         ":object",
         "//src/common/graph",
-        "//src/common/positions",
     ],
 )
 

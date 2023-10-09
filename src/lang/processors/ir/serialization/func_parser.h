@@ -22,6 +22,7 @@
 #include "src/ir/representation/values.h"
 #include "src/ir/serialization/constant_parser.h"
 #include "src/ir/serialization/func_parser.h"
+#include "src/ir/serialization/positions.h"
 #include "src/ir/serialization/scanner.h"
 #include "src/ir/serialization/type_parser.h"
 #include "src/lang/representation/ir_extension/instrs.h"
@@ -36,26 +37,21 @@ class FuncParser : public ::ir_serialization::FuncParser {
   FuncParser(::ir_serialization::Scanner& scanner, ir_issues::IssueTracker& issue_tracker,
              ::ir_serialization::TypeParser* type_parser,
              ::ir_serialization::ConstantParser* constant_parser, ir::Program* program,
-             int64_t func_num_offset)
+             ::ir_serialization::ProgramPositions& program_positions, int64_t func_num_offset)
       : ::ir_serialization::FuncParser(scanner, issue_tracker, type_parser, constant_parser,
-                                       program, func_num_offset) {}
+                                       program, program_positions, func_num_offset) {}
 
  private:
-  std::unique_ptr<ir::Instr> ParseInstrWithResults(
-      std::vector<std::shared_ptr<ir::Computed>> results, std::string instr_name) override;
-  std::unique_ptr<ir_ext::PanicInstr> ParsePanicInstr();
-  std::unique_ptr<ir_ext::MakeSharedPointerInstr> ParseMakeSharedInstr(
-      std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir_ext::CopySharedPointerInstr> ParseCopySharedInstr(
-      std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir_ext::DeleteSharedPointerInstr> ParseDeleteSharedInstr();
-  std::unique_ptr<ir_ext::MakeUniquePointerInstr> ParseMakeUniqueInstr(
-      std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir_ext::DeleteUniquePointerInstr> ParseDeleteUniqueInstr();
-  std::unique_ptr<ir_ext::StringIndexInstr> ParseStringIndexInstr(
-      std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir_ext::StringConcatInstr> ParseStringConcatInstr(
-      std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseInstrWithResults(std::vector<std::shared_ptr<ir::Computed>> results,
+                                         std::string instr_name) override;
+  InstrParseResult ParsePanicInstr();
+  InstrParseResult ParseMakeSharedInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseCopySharedInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseDeleteSharedInstr();
+  InstrParseResult ParseMakeUniqueInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseDeleteUniqueInstr();
+  InstrParseResult ParseStringIndexInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseStringConcatInstr(std::shared_ptr<ir::Computed> result);
 };
 
 }  // namespace ir_serialization

@@ -1,5 +1,5 @@
 //
-//  prog.h
+//  program.h
 //  Katara
 //
 //  Created by Arne Philipeit on 12/25/19.

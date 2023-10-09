@@ -9,7 +9,6 @@
 #ifndef common_issues_h
 #define common_issues_h
 
-#include <algorithm>
 #include <iostream>
 #include <string>
 #include <type_traits>
@@ -31,10 +30,14 @@ enum class Severity {
   kFatal,    // cannot continue
 };
 
+std::vector<positions::range_t> PositionsToRanges(std::vector<positions::pos_t>);
+
 template <IssueKindType IssueKind, OriginType Origin>
 class Issue {
  public:
   Issue(IssueKind kind, std::vector<positions::pos_t> positions, std::string message)
+      : kind_(kind), positions_(PositionsToRanges(positions)), message_(message) {}
+  Issue(IssueKind kind, std::vector<positions::range_t> positions, std::string message)
       : kind_(kind), positions_(positions), message_(message) {}
   virtual ~Issue() = default;
 
@@ -42,12 +45,12 @@ class Issue {
   IssueKind kind() const { return kind_; }
   virtual Origin origin() const = 0;
   virtual Severity severity() const = 0;
-  const std::vector<positions::pos_t>& positions() const { return positions_; }
+  const std::vector<positions::range_t>& positions() const { return positions_; }
   std::string message() const { return message_; }
 
  private:
   IssueKind kind_;
-  std::vector<positions::pos_t> positions_;
+  std::vector<positions::range_t> positions_;
   std::string message_;
 };
 
@@ -58,6 +61,9 @@ enum class Format {
   kPlain,
   kTerminal,
 };
+
+void PrintIssueRanges(const positions::FileSet* file_set,
+                      const std::vector<positions::range_t>& ranges, std::ostream* out);
 
 template <IssueKindType IssueKind, OriginType Origin, IssueSubclass<IssueKind, Origin> Issue>
 class IssueTracker {
@@ -84,6 +90,13 @@ class IssueTracker {
     Add(kind, std::vector<positions::pos_t>{position}, message);
   }
   void Add(IssueKind kind, std::vector<positions::pos_t> positions, std::string message) {
+    Add(kind, PositionsToRanges(positions), message);
+  }
+
+  void Add(IssueKind kind, positions::range_t position, std::string message) {
+    Add(kind, std::vector<positions::range_t>{position}, message);
+  }
+  void Add(IssueKind kind, std::vector<positions::range_t> positions, std::string message) {
     issues_.push_back(Issue(kind, positions, message));
   }
 
@@ -119,23 +132,7 @@ class IssueTracker {
           break;
       }
       *out << issue.message() << " [" << issue.kind_id() << "]\n";
-      for (positions::pos_t pos : issue.positions()) {
-        positions::Position position = file_set_->PositionFor(pos);
-        std::string line = file_set_->FileAt(pos)->LineFor(pos);
-        size_t whitespace = 0;
-        for (; whitespace < line.length(); whitespace++) {
-          if (line.at(whitespace) != ' ' && line.at(whitespace) != '\t') {
-            break;
-          }
-        }
-        *out << "  " << position.ToString() << ": ";
-        *out << line.substr(whitespace);
-        size_t pointer = 4 + position.ToString().size() + position.column_ - whitespace;
-        for (size_t i = 0; i < pointer; i++) {
-          *out << " ";
-        }
-        *out << "^\n";
-      }
+      PrintIssueRanges(file_set_, issue.positions(), out);
     }
   }
 

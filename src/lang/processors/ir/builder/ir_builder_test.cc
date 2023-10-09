@@ -383,6 +383,6 @@ TEST_P(IRBuilderTest, BuildsIR) {
   EXPECT_TRUE(ir::IsEqual(actual_ir_program.get(), expected_ir_program.get()))
       << "For Katara program:" << GetParam().input_lang_program
       << "expected different IR program:\n"
-      << ir_serialization::Print(expected_ir_program.get()) << "\ngot:\n"
-      << ir_serialization::Print(actual_ir_program.get());
+      << ir_serialization::PrintProgram(expected_ir_program.get()) << "\ngot:\n"
+      << ir_serialization::PrintProgram(actual_ir_program.get());
 }

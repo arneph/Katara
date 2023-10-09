@@ -58,6 +58,8 @@ cc_library(
     ],
     deps = [
         "//src/common/atomics",
+        "//src/common/logging",
+        "//src/common/positions",
         "//src/lang/processors/issues",
         "//src/lang/representation",
     ],

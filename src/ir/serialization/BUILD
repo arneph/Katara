@@ -3,6 +3,44 @@ load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
+    name = "positions",
+    srcs = [
+        "positions.cc",
+    ],
+    hdrs = [
+        "positions.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        "//src/common/logging",
+        "//src/common/positions",
+        "//src/ir/representation",
+    ],
+)
+
+cc_library(
+    name = "positions_util",
+    srcs = [
+        "positions_util.cc",
+    ],
+    hdrs = [
+        "positions_util.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//visibility:public",
+    ],
+    deps = [
+        ":positions",
+        "//src/common/positions",
+        "//src/ir/representation",
+    ],
+)
+
+cc_library(
     name = "scanner",
     srcs = [
         "scanner.cc",
@@ -58,6 +96,7 @@ cc_library(
     deps = [
         ":scanner",
         "//src/common/logging",
+        "//src/common/positions",
         "//src/ir/representation",
     ],
 )
@@ -79,6 +118,7 @@ cc_library(
         ":type_parser",
         "//src/common/atomics",
         "//src/common/logging",
+        "//src/common/positions",
         "//src/ir/representation",
     ],
 )
@@ -97,10 +137,13 @@ cc_library(
     ],
     deps = [
         ":constant_parser",
+        ":positions",
+        ":positions_util",
         ":scanner",
         ":type_parser",
         "//src/common/atomics",
         "//src/common/logging",
+        "//src/common/positions",
         "//src/ir/representation",
     ],
 )
@@ -116,7 +159,9 @@ cc_library(
     ],
     deps = [
         ":func_parser",
+        ":positions",
         ":scanner",
+        "//src/common/positions",
         "//src/ir/representation",
     ],
 )
@@ -145,6 +190,23 @@ cc_fuzz_test(
 )
 
 cc_library(
+    name = "printer",
+    srcs = [
+        "printer.cc",
+    ],
+    hdrs = [
+        "printer.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//visibility:private",
+    ],
+    deps = [
+        "//src/common/positions",
+    ],
+)
+
+cc_library(
     name = "print",
     srcs = [
         "print.cc",
@@ -154,9 +216,12 @@ cc_library(
     ],
     copts = COPTS,
     visibility = [
-        "//src/ir:__subpackages__",
+        "//visibility:public",
     ],
     deps = [
+        ":positions",
+        ":printer",
+        "//src/common/positions",
         "//src/ir/representation",
     ],
 )
@@ -181,6 +246,8 @@ cc_library(
     ],
     deps = [
         ":parse",
+        ":positions",
+        ":positions_util",
         ":print",
     ],
 )

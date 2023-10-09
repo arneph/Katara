@@ -16,8 +16,10 @@ namespace lang {
 namespace ir_serialization {
 
 using ::common::logging::fail;
+using ::common::positions::range_t;
+using ConstantParseResult = ::ir_serialization::ConstantParser::ConstantParseResult;
 
-std::shared_ptr<ir::Constant> ConstantParser::ParseConstant(const ir::Type* expected_type) {
+ConstantParseResult ConstantParser::ParseConstant(const ir::Type* expected_type) {
   if (scanner().token() == ::ir_serialization::Scanner::kString) {
     return ParseStringConstant();
   } else {
@@ -25,14 +27,18 @@ std::shared_ptr<ir::Constant> ConstantParser::ParseConstant(const ir::Type* expe
   }
 }
 
-std::shared_ptr<ir_ext::StringConstant> ConstantParser::ParseStringConstant() {
+ConstantParseResult ConstantParser::ParseStringConstant() {
   if (scanner().token() != ::ir_serialization::Scanner::kString) {
     fail("expected string constant");
   }
+  range_t str_range = scanner().token_range();
   std::string str = scanner().token_string();
   scanner().Next();
 
-  return std::make_shared<ir_ext::StringConstant>(str);
+  return ConstantParseResult{
+      .constant = std::make_shared<ir_ext::StringConstant>(str),
+      .range = str_range,
+  };
 }
 
 }  // namespace ir_serialization

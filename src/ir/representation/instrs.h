@@ -15,7 +15,6 @@
 #include <vector>
 
 #include "src/common/atomics/atomics.h"
-#include "src/common/positions/positions.h"
 #include "src/ir/representation/object.h"
 #include "src/ir/representation/values.h"
 
@@ -66,19 +65,10 @@ class Instr : public Object {
   constexpr virtual InstrKind instr_kind() const = 0;
   bool IsControlFlowInstr() const;
 
-  common::positions::pos_t start() const { return start_; }
-  common::positions::pos_t end() const { return end_; }
-  void SetPositions(common::positions::pos_t start, common::positions::pos_t end);
-  void ClearPositions() { SetPositions(common::positions::kNoPos, common::positions::kNoPos); }
-
   virtual std::string OperationString() const = 0;
   virtual void WriteRefString(std::ostream& os) const override;
 
   constexpr virtual bool operator==(const Instr& that) const = 0;
-
- private:
-  common::positions::pos_t start_ = common::positions::kNoPos;
-  common::positions::pos_t end_ = common::positions::kNoPos;
 };
 
 constexpr bool IsEqual(const Instr* instr_a, const Instr* instr_b) {
@@ -452,6 +442,9 @@ class FreeInstr : public Instr {
 
 class JumpInstr : public Instr {
  public:
+  // Operand indices in used values:
+  static constexpr std::size_t kDestinationIndex = 0;
+
   JumpInstr(block_num_t destination) : destination_(destination) {}
 
   block_num_t destination() const { return destination_; }
@@ -472,6 +465,10 @@ class JumpInstr : public Instr {
 
 class JumpCondInstr : public Instr {
  public:
+  // Operand indices in used values:
+  static constexpr std::size_t kDestinationTrueIndex = 1;
+  static constexpr std::size_t kDestinationFalseIndex = 2;
+
   JumpCondInstr(std::shared_ptr<Value> condition, block_num_t destination_true,
                 block_num_t destination_false)
       : condition_(condition),

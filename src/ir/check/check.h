@@ -12,12 +12,15 @@
 #include "src/ir/check/checker.h"
 #include "src/ir/issues/issues.h"
 #include "src/ir/representation/program.h"
+#include "src/ir/serialization/positions.h"
 
 namespace ir_check {
 
 template <typename Checker = Checker>
-void CheckProgram(const ir::Program* program, ir_issues::IssueTracker& issue_tracker) {
-  Checker checker(issue_tracker, program);
+void CheckProgram(const ir::Program* program,
+                  const ir_serialization::ProgramPositions& program_positions,
+                  ir_issues::IssueTracker& issue_tracker) {
+  Checker checker(issue_tracker, program, program_positions);
   checker.CheckProgram();
 }
 

@@ -16,7 +16,6 @@
 #include <vector>
 
 #include "src/common/graph/graph.h"
-#include "src/common/positions/positions.h"
 #include "src/ir/representation/instrs.h"
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/object.h"
@@ -47,11 +46,6 @@ class Block : public Object {
   const std::unordered_set<block_num_t>& parents() const { return parents_; }
   const std::unordered_set<block_num_t>& children() const { return children_; }
 
-  common::positions::pos_t start() const { return start_; }
-  common::positions::pos_t end() const { return end_; }
-  void SetPositions(common::positions::pos_t start, common::positions::pos_t end);
-  void ClearPositions() { SetPositions(common::positions::kNoPos, common::positions::kNoPos); }
-
   void WriteRefString(std::ostream& os) const override;
 
   common::graph::Node ToNode() const;
@@ -68,9 +62,6 @@ class Block : public Object {
 
   std::unordered_set<block_num_t> parents_;
   std::unordered_set<block_num_t> children_;
-
-  common::positions::pos_t start_ = common::positions::kNoPos;
-  common::positions::pos_t end_ = common::positions::kNoPos;
 };
 
 constexpr bool IsEqual(const Block* block_a, const Block* block_b) {

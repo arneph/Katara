@@ -17,6 +17,7 @@ cc_library(
         "//src/common/logging",
         "//src/ir/check",
         "//src/ir/representation",
+        "//src/ir/serialization",
         "//src/lang/representation",
     ],
 )
@@ -34,6 +35,7 @@ cc_library(
         ":checker",
         "//src/ir/check",
         "//src/ir/representation",
+        "//src/ir/serialization",
     ],
 )
 

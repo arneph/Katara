@@ -24,7 +24,7 @@ ErrorCode Format(std::vector<std::filesystem::path>& paths, Context* ctx) {
     }
     auto program = std::get<std::unique_ptr<ir::Program>>(std::move(program_or_error));
     ctx->filesystem()->WriteFile(path, [&program](std::ostream* stream) {
-      ir_serialization::Print(program.get(), *stream);
+      *stream << ir_serialization::PrintProgram(program.get());
     });
   }
   return error_code;

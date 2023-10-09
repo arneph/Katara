@@ -51,7 +51,7 @@ TEST(ParseTest, ParsesWhitespaceProgram) {
 }
 
 TEST(ParseTest, ParsesProgramWithEmptyFunc) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
+  auto [program, program_positions] = ir_serialization::ParseProgramWithPositionsOrDie(R"ir(
 @0 () => () {
 }
 )ir");
@@ -69,12 +69,11 @@ TEST(ParseTest, ParsesProgramWithEmptyFunc) {
   EXPECT_THAT(func->entry_block(), IsNull());
   EXPECT_EQ(func->entry_block_num(), ir::kNoBlockNum);
   EXPECT_EQ(func->computed_count(), 0);
-  EXPECT_NE(func->start(), kNoPos);
-  EXPECT_NE(func->end(), kNoPos);
+  program_positions.GetFuncPositions(func);
 }
 
 TEST(ParseTest, ParsesProgramWithSimpleFunc) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
+  auto [program, program_positions] = ir_serialization::ParseProgramWithPositionsOrDie(R"ir(
 @0 () => () {
 {0}
   ret
@@ -96,8 +95,7 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
   ASSERT_THAT(func->blocks(), SizeIs(1));
   ASSERT_THAT(func->blocks().front(), Not(IsNull()));
   ASSERT_TRUE(func->HasBlock(0));
-  EXPECT_NE(func->start(), kNoPos);
-  EXPECT_NE(func->end(), kNoPos);
+  program_positions.GetFuncPositions(func);
 
   ir::Block* block = func->GetBlock(0);
   EXPECT_EQ(func->entry_block(), block);
@@ -109,8 +107,7 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
   EXPECT_TRUE(block->HasControlFlowInstr());
   EXPECT_THAT(block->parents(), IsEmpty());
   EXPECT_THAT(block->children(), IsEmpty());
-  EXPECT_NE(block->start(), kNoPos);
-  EXPECT_NE(block->end(), kNoPos);
+  program_positions.GetBlockPositions(block);
 
   ir::Instr* instr = block->instrs().front().get();
   ASSERT_EQ(instr->instr_kind(), ir::InstrKind::kReturn);
@@ -121,7 +118,7 @@ TEST(ParseTest, ParsesProgramWithSimpleFunc) {
 }
 
 TEST(ParseTest, ParsesFuncWithOneResult) {
-  std::unique_ptr<ir::Program> program = ir_serialization::ParseProgramOrDie(R"ir(
+  auto [program, program_positions] = ir_serialization::ParseProgramWithPositionsOrDie(R"ir(
 @0 () => (b) {
 {0}
   ret #f
@@ -144,8 +141,7 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   ASSERT_THAT(func->blocks(), SizeIs(1));
   ASSERT_THAT(func->blocks().front(), Not(IsNull()));
   ASSERT_TRUE(func->HasBlock(0));
-  EXPECT_NE(func->start(), kNoPos);
-  EXPECT_NE(func->end(), kNoPos);
+  program_positions.GetFuncPositions(func);
 
   const ir::Type* result_type = func->result_types().front();
   EXPECT_EQ(result_type, ir::bool_type());
@@ -160,8 +156,7 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   EXPECT_TRUE(block->HasControlFlowInstr());
   EXPECT_THAT(block->parents(), IsEmpty());
   EXPECT_THAT(block->children(), IsEmpty());
-  EXPECT_NE(block->start(), kNoPos);
-  EXPECT_NE(block->end(), kNoPos);
+  program_positions.GetBlockPositions(block);
 
   ir::Instr* instr = block->instrs().front().get();
   ASSERT_EQ(instr->instr_kind(), ir::InstrKind::kReturn);
@@ -170,8 +165,7 @@ TEST(ParseTest, ParsesFuncWithOneResult) {
   auto return_instr = static_cast<ir::ReturnInstr*>(instr);
   ASSERT_THAT(return_instr->args(), SizeIs(1));
   ASSERT_THAT(return_instr->args().front(), Not(IsNull()));
-  EXPECT_NE(return_instr->start(), kNoPos);
-  EXPECT_NE(return_instr->end(), kNoPos);
+  program_positions.GetInstrPositions(return_instr);
 
   auto result = return_instr->args().front();
   EXPECT_EQ(result, ir::False());
