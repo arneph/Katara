@@ -9,6 +9,7 @@
 #include "identifier_resolver.h"
 
 #include "src/common/logging/logging.h"
+#include "src/common/positions/positions.h"
 #include "src/lang/representation/ast/ast_util.h"
 
 namespace lang {
@@ -16,6 +17,7 @@ namespace type_checker {
 
 using ::common::logging::fail;
 using ::common::positions::kNoPos;
+using ::common::positions::pos_t;
 
 types::Package* IdentifierResolver::CreatePackageAndResolveIdentifiers(
     std::string package_path, std::vector<ast::File*> package_files,
@@ -86,7 +88,8 @@ void IdentifierResolver::AddObjectToScope(types::Scope* scope, types::Object* ob
 
   } else if (scope->named_objects().contains(object->name())) {
     types::Object* other = scope->named_objects().at(object->name());
-    issues_.Add(issues::kRedefinitionOfIdent, {other->position(), object->position()},
+    issues_.Add(issues::kRedefinitionOfIdent,
+                std::vector<pos_t>{other->position(), object->position()},
                 "can not redefine identifier: " + object->name());
     return;
   }

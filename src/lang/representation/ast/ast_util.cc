@@ -17,6 +17,7 @@ namespace lang {
 namespace ast {
 
 using ::common::logging::fail;
+using ::common::positions::range_t;
 
 common::graph::Graph NodeToTree(const common::positions::FileSet* file_set, Node* node) {
   common::graph::Graph graph(/*is_directed=*/true);
@@ -45,7 +46,7 @@ common::graph::Graph NodeToTree(const common::positions::FileSet* file_set, Node
       color = common::graph::kRed;
     }
     common::positions::File* file = file_set->FileAt(ast_node->start());
-    std::string text = file->contents(ast_node->start(), ast_node->end());
+    std::string text = file->contents(range_t{.start = ast_node->start(), .end = ast_node->end()});
     if (auto it = std::find(text.begin(), text.end(), '\n'); it != text.end()) {
       text = std::string(text.begin(), it) + "...";
     }

@@ -17,6 +17,8 @@ cc_library(
         "//src/common/positions",
         "//src/ir/issues",
         "//src/ir/representation",
+        "//src/ir/serialization:positions",
+        "//src/ir/serialization:positions_util",
     ],
 )
 
@@ -46,6 +48,7 @@ cc_test(
         "//src/common/atomics",
         "//src/ir/issues",
         "//src/ir/representation",
+        "//src/ir/serialization",
         "@gtest//:gtest_main",
     ],
 )
@@ -69,5 +72,6 @@ cc_library(
         "//src/common/positions",
         "//src/ir/issues",
         "//src/ir/representation",
+        "//src/ir/serialization",
     ],
 )

@@ -11,6 +11,7 @@
 
 #include <memory>
 
+#include "src/common/positions/positions.h"
 #include "src/ir/issues/issues.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/representation/types.h"
@@ -31,7 +32,12 @@ class ConstantParser {
         func_num_offset_(func_num_offset) {}
   virtual ~ConstantParser() = default;
 
-  virtual std::shared_ptr<ir::Constant> ParseConstant(const ir::Type* expected_type);
+  struct ConstantParseResult {
+    std::shared_ptr<ir::Constant> constant;
+    common::positions::range_t range;
+  };
+  static ConstantParseResult NoConstantParseResult();
+  virtual ConstantParseResult ParseConstant(const ir::Type* expected_type);
 
  protected:
   Scanner& scanner() { return scanner_; }
@@ -40,9 +46,9 @@ class ConstantParser {
   ir::Program* program() { return program_; }
 
  private:
-  std::shared_ptr<ir::PointerConstant> ParsePointerConstant();
-  std::shared_ptr<ir::FuncConstant> ParseFuncConstant();
-  std::shared_ptr<ir::Constant> ParseBoolOrIntConstant(const ir::Type* expected_type);
+  ConstantParseResult ParsePointerConstant();
+  ConstantParseResult ParseFuncConstant();
+  ConstantParseResult ParseBoolOrIntConstant(const ir::Type* expected_type);
 
   Scanner& scanner_;
   ir_issues::IssueTracker& issue_tracker_;

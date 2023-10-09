@@ -8,21 +8,20 @@
 
 #include "scanner.h"
 
+#include "src/common/positions/positions.h"
+
 namespace lang {
 namespace scanner {
+
+using ::common::positions::pos_t;
+using ::common::positions::range_t;
 
 Scanner::Scanner(common::positions::File* file)
     : file_(file), pos_(file->start()), tok_(tokens::kIllegal) {
   Next();
 }
 
-tokens::Token Scanner::token() const { return tok_; }
-
-int64_t Scanner::token_start() const { return tok_start_; }
-
-int64_t Scanner::token_end() const { return tok_end_; }
-
-std::string Scanner::token_string() const { return file_->contents(tok_start_, tok_end_); }
+std::string Scanner::token_string() const { return file_->contents(tok_range_); }
 
 void Scanner::Next(bool split_shift_ops) {
   bool insert_semicolon = false;
@@ -44,217 +43,220 @@ void Scanner::Next(bool split_shift_ops) {
       insert_semicolon = true;
     default:;
   }
-  for (; pos_ < file_->end() && (file_->at(pos_) == ' ' || file_->at(pos_) == '\t' ||
-                                 (file_->at(pos_) == '\n' && !insert_semicolon));
+  for (; pos_ <= file_->end() && (file_->at(pos_) == ' ' || file_->at(pos_) == '\t' ||
+                                  (file_->at(pos_) == '\n' && !insert_semicolon));
        pos_++) {
   }
-  tok_start_ = pos_;
-  if (pos_ == file_->end()) {
+  pos_t tok_start = pos_;
+  if (pos_ > file_->end()) {
     tok_ = tokens::kEOF;
-    tok_end_ = pos_;
+    tok_range_ = range_t{.start = tok_start, .end = pos_};
     return;
   }
 
   switch (file_->at(pos_++)) {
     case '\n':
       tok_ = tokens::kSemicolon;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case '+':
-      if (pos_ < file_->end() && file_->at(pos_) == '+') {
+      if (pos_ <= file_->end() && file_->at(pos_) == '+') {
         tok_ = tokens::kInc;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
       }
-      NextArithmeticOrBitOpStart(tokens::kAdd);
+      NextArithmeticOrBitOpStart(tokens::kAdd, tok_start);
       return;
     case '-':
-      if (pos_ < file_->end() && file_->at(pos_) == '-') {
+      if (pos_ <= file_->end() && file_->at(pos_) == '-') {
         tok_ = tokens::kDec;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
       }
-      NextArithmeticOrBitOpStart(tokens::kSub);
+      NextArithmeticOrBitOpStart(tokens::kSub, tok_start);
       return;
     case '*':
-      NextArithmeticOrBitOpStart(tokens::kMul);
+      NextArithmeticOrBitOpStart(tokens::kMul, tok_start);
       return;
     case '/':
-      if (pos_ < file_->end() && file_->at(pos_) == '/') {
-        for (; pos_ < file_->end() && file_->at(pos_) != '\n'; pos_++)
+      if (pos_ <= file_->end() && file_->at(pos_) == '/') {
+        for (; pos_ <= file_->end() && file_->at(pos_) != '\n'; pos_++)
           ;
         tok_ = tokens::kComment;
-        tok_end_ = pos_ - 1;
+        tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
         return;
-      } else if (pos_ < file_->end() && file_->at(pos_) == '*') {
-        for (; pos_ < file_->end() - 1 && (file_->at(pos_) != '*' || file_->at(pos_ + 1) != '/');
+      } else if (pos_ <= file_->end() && file_->at(pos_) == '*') {
+        for (; pos_ <= file_->end() && (file_->at(pos_) != '*' || file_->at(pos_ + 1) != '/');
              pos_++)
           ;
-        if (pos_ == file_->end() - 1) {
+        if (pos_ == file_->end()) {
           tok_ = tokens::kIllegal;
-          tok_end_ = file_->end();
+          tok_range_ = range_t{.start = tok_start, .end = file_->end()};
         } else {
           tok_ = tokens::kComment;
-          tok_end_ = (pos_ < file_->end() - 1) ? pos_ + 1 : pos_;
+          tok_range_ = range_t{
+              .start = tok_start,
+              .end = (pos_ < file_->end()) ? pos_ + 1 : pos_,
+          };
           pos_ += 2;
         }
         return;
       }
-      NextArithmeticOrBitOpStart(tokens::kQuo);
+      NextArithmeticOrBitOpStart(tokens::kQuo, tok_start);
       return;
     case '%':
-      NextArithmeticOrBitOpStart(tokens::kRem);
+      NextArithmeticOrBitOpStart(tokens::kRem, tok_start);
       return;
     case '&':
-      if (pos_ < file_->end() && file_->at(pos_) == '&') {
+      if (pos_ <= file_->end() && file_->at(pos_) == '&') {
         tok_ = tokens::kLAnd;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
-      } else if (pos_ < file_->end() && file_->at(pos_) == '^') {
+      } else if (pos_ <= file_->end() && file_->at(pos_) == '^') {
         pos_++;
-        NextArithmeticOrBitOpStart(tokens::kAndNot);
+        NextArithmeticOrBitOpStart(tokens::kAndNot, tok_start);
         return;
       }
-      NextArithmeticOrBitOpStart(tokens::kAnd);
+      NextArithmeticOrBitOpStart(tokens::kAnd, tok_start);
       return;
     case '|':
-      if (pos_ < file_->end() && file_->at(pos_) == '|') {
+      if (pos_ <= file_->end() && file_->at(pos_) == '|') {
         tok_ = tokens::kLOr;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
       }
-      NextArithmeticOrBitOpStart(tokens::kOr);
+      NextArithmeticOrBitOpStart(tokens::kOr, tok_start);
       return;
     case '^':
-      NextArithmeticOrBitOpStart(tokens::kXor);
+      NextArithmeticOrBitOpStart(tokens::kXor, tok_start);
       return;
     case '<':
-      if (!split_shift_ops && pos_ < file_->end() && file_->at(pos_) == '<') {
+      if (!split_shift_ops && pos_ <= file_->end() && file_->at(pos_) == '<') {
         pos_++;
-        NextArithmeticOrBitOpStart(tokens::kShl);
+        NextArithmeticOrBitOpStart(tokens::kShl, tok_start);
         return;
-      } else if (pos_ < file_->end() && file_->at(pos_) == '=') {
+      } else if (pos_ <= file_->end() && file_->at(pos_) == '=') {
         tok_ = tokens::kLeq;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
       } else {
         tok_ = tokens::kLss;
-        tok_end_ = pos_ - 1;
+        tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
         return;
       }
     case '>':
-      if (!split_shift_ops && pos_ < file_->end() && file_->at(pos_) == '>') {
+      if (!split_shift_ops && pos_ <= file_->end() && file_->at(pos_) == '>') {
         pos_++;
-        NextArithmeticOrBitOpStart(tokens::kShr);
+        NextArithmeticOrBitOpStart(tokens::kShr, tok_start);
         return;
-      } else if (pos_ < file_->end() && file_->at(pos_) == '=') {
+      } else if (pos_ <= file_->end() && file_->at(pos_) == '=') {
         tok_ = tokens::kGeq;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
       } else {
         tok_ = tokens::kGtr;
-        tok_end_ = pos_ - 1;
+        tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
         return;
       }
     case '=':
-      if (pos_ < file_->end() && file_->at(pos_) == '=') {
+      if (pos_ <= file_->end() && file_->at(pos_) == '=') {
         tok_ = tokens::kEql;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
       } else {
         tok_ = tokens::kAssign;
-        tok_end_ = pos_ - 1;
+        tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
         return;
       }
     case '!':
-      if (pos_ < file_->end() && file_->at(pos_) == '=') {
+      if (pos_ <= file_->end() && file_->at(pos_) == '=') {
         tok_ = tokens::kNeq;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
       } else {
         tok_ = tokens::kNot;
-        tok_end_ = pos_ - 1;
+        tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
         return;
       }
     case ':':
-      if (pos_ < file_->end() && file_->at(pos_) == '=') {
+      if (pos_ <= file_->end() && file_->at(pos_) == '=') {
         tok_ = tokens::kDefine;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
         return;
       } else {
         tok_ = tokens::kColon;
-        tok_end_ = pos_ - 1;
+        tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
         return;
       }
     case '(':
       tok_ = tokens::kLParen;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case '[':
       tok_ = tokens::kLBrack;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case '{':
       tok_ = tokens::kLBrace;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case ',':
       tok_ = tokens::kComma;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case '.':
       tok_ = tokens::kPeriod;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case ')':
       tok_ = tokens::kRParen;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case ']':
       tok_ = tokens::kRBrack;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case '}':
       tok_ = tokens::kRBrace;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case ';':
       tok_ = tokens::kSemicolon;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
     case '\'': {
       bool escaped = false;
-      for (; pos_ < file_->end() && !escaped && file_->at(pos_) != '\''; pos_++) {
+      for (; pos_ <= file_->end() && !escaped && file_->at(pos_) != '\''; pos_++) {
         if (escaped) {
           escaped = false;
         } else if (file_->at(pos_) == '\\') {
           escaped = true;
         }
       }
-      if (pos_ == file_->end()) {
+      if (pos_ > file_->end()) {
         tok_ = tokens::kIllegal;
-        tok_end_ = file_->end();
+        tok_range_ = range_t{.start = tok_start, .end = file_->end()};
       } else {
         tok_ = tokens::kChar;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
       }
       return;
     }
     case '\"': {
       bool escaped = false;
-      for (; pos_ < file_->end() && !escaped && file_->at(pos_) != '\"'; pos_++) {
+      for (; pos_ <= file_->end() && !escaped && file_->at(pos_) != '\"'; pos_++) {
         if (escaped) {
           escaped = false;
         } else if (file_->at(pos_) == '\\') {
           escaped = true;
         }
       }
-      if (pos_ == file_->end()) {
+      if (pos_ > file_->end()) {
         tok_ = tokens::kIllegal;
-        tok_end_ = file_->end();
+        tok_range_ = range_t{.start = tok_start, .end = file_->end()};
       } else {
         tok_ = tokens::kString;
-        tok_end_ = pos_++;
+        tok_range_ = range_t{.start = tok_start, .end = pos_++};
       }
       return;
     }
@@ -268,23 +270,23 @@ void Scanner::Next(bool split_shift_ops) {
     case '7':
     case '8':
     case '9':
-      for (; pos_ < file_->end() && '0' <= file_->at(pos_) && file_->at(pos_) <= '9'; pos_++)
+      for (; pos_ <= file_->end() && '0' <= file_->at(pos_) && file_->at(pos_) <= '9'; pos_++)
         ;
       tok_ = tokens::kInt;
-      tok_end_ = pos_ - 1;
+      tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
       return;
   }
 
-  for (; pos_ < file_->end() &&
+  for (; pos_ <= file_->end() &&
          (('A' <= file_->at(pos_) && file_->at(pos_) <= 'Z') ||
           ('a' <= file_->at(pos_) && file_->at(pos_) <= 'z') ||
           ('0' <= file_->at(pos_) && file_->at(pos_) <= '9') || file_->at(pos_) == '_');
        pos_++)
     ;
   tok_ = tokens::kIdent;
-  tok_end_ = pos_ - 1;
+  tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
 
-  std::string ident = file_->contents(tok_start_, tok_end_);
+  std::string ident = file_->contents(tok_range_);
   if (ident == "const") {
     tok_ = tokens::kConst;
   } else if (ident == "var") {
@@ -324,18 +326,18 @@ void Scanner::Next(bool split_shift_ops) {
   }
 }
 
-void Scanner::NextArithmeticOrBitOpStart(tokens::Token tok) {
-  if (pos_ < file_->end() && file_->at(pos_) == '=') {
+void Scanner::NextArithmeticOrBitOpStart(tokens::Token tok, pos_t tok_start) {
+  if (pos_ <= file_->end() && file_->at(pos_) == '=') {
     tok_ = tokens::Token(tok + tokens::kAddAssign - tokens::kAdd);
     pos_++;
   } else {
     tok_ = tok;
   }
-  tok_end_ = pos_ - 1;
+  tok_range_ = range_t{.start = tok_start, .end = pos_ - 1};
 }
 
 void Scanner::SkipPastLine() {
-  for (; pos_ < file_->end() && (file_->at(pos_) != '\n'); pos_++)
+  for (; pos_ <= file_->end() && (file_->at(pos_) != '\n'); pos_++)
     ;
   Next();
 }

@@ -12,6 +12,9 @@
 #include "src/common/logging/logging.h"
 #include "src/common/positions/positions.h"
 #include "src/ir/check/check.h"
+#include "src/ir/issues/issues.h"
+#include "src/ir/serialization/positions.h"
+#include "src/ir/serialization/print.h"
 
 namespace ir_check {
 
@@ -20,8 +23,11 @@ using ::common::logging::fail;
 template <typename Checker = Checker>
 void CheckProgramOrDie(const ir::Program* program) {
   common::positions::FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram<Checker>(program, issue_tracker);
+  CheckProgram<Checker>(program, program_positions, issue_tracker);
   if (issue_tracker.issues().empty()) {
     return;
   }

@@ -130,7 +130,7 @@ void HandlePrintCommand(std::vector<std::string> args, ir_interpreter::Debugger&
     *ctx->stdout() << db.heap().ToDebuggerString();
 
   } else if (args.at(1) == "program") {
-    ir_serialization::Print(db.program(), *ctx->stdout());
+    *ctx->stdout() << ir_serialization::PrintProgram(db.program());
 
   } else if (args.at(1).starts_with("@")) {
     std::string func_num_str = args.at(1).substr(1);
@@ -139,7 +139,7 @@ void HandlePrintCommand(std::vector<std::string> args, ir_interpreter::Debugger&
       *ctx->stderr() << "Function does not exist.\n";
       return;
     }
-    ir_serialization::Print(db.program()->GetFunc(func_num), *ctx->stdout());
+    *ctx->stdout() << ir_serialization::PrintFunc(db.program()->GetFunc(func_num));
     *ctx->stdout() << "\n";
 
   } else if (args.at(1).starts_with("<") && args.at(1).ends_with(">")) {

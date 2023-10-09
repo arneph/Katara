@@ -425,89 +425,89 @@ TEST(ScannerTest, ProvidesCorrectPositions) {
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kAtSign);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 0);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 0);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNumber);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 1);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kIdentifier);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 3);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column_, 6);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 3);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column(), 6);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenOpen);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 8);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 8);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenClose);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 9);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 9);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kArrow);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 11);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column_, 12);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 11);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column(), 12);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenOpen);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 14);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 14);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kParenClose);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 15);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 15);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kCurlyBracketOpen);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 17);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 17);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNewLine);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 1);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 18);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 18);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kIdentifier);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 2);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 2);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line_, 2);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column_, 4);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).line(), 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_end()).column(), 4);
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kNewLine);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 2);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 5);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 2);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 5);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kCurlyBracketClose);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 3);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 0);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 3);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 0);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   scanner.Next();
   EXPECT_EQ(scanner.token(), ::ir_serialization::Scanner::Token::kEoF);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line_, 3);
-  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column_, 1);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).line(), 3);
+  EXPECT_EQ(file_set.PositionFor(scanner.token_start()).column(), 1);
   EXPECT_EQ(scanner.token_start(), scanner.token_end());
 
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());

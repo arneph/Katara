@@ -9,40 +9,25 @@
 #ifndef ir_serialization_print_h
 #define ir_serialization_print_h
 
-#include <ostream>
 #include <string>
 
-#include "src/ir/representation/block.h"
-#include "src/ir/representation/func.h"
-#include "src/ir/representation/instrs.h"
-#include "src/ir/representation/num_types.h"
-#include "src/ir/representation/object.h"
+#include "src/common/positions/positions.h"
 #include "src/ir/representation/program.h"
-#include "src/ir/representation/types.h"
-#include "src/ir/representation/values.h"
+#include "src/ir/serialization/positions.h"
 
 namespace ir_serialization {
 
-std::string Print(const ir::Program* program);
-void Print(const ir::Program* program, std::ostream& os);
+std::string PrintProgram(const ir::Program* program);
+std::string PrintFunc(const ir::Func* func);
+std::string PrintBlock(const ir::Block* block);
+std::string PrintInstr(const ir::Instr* instr);
 
-std::string Print(const ir::Func* func);
-void Print(const ir::Func* func, std::ostream& os);
-
-std::string Print(const ir::Block* block);
-void Print(const ir::Block* block, std::ostream& os);
-
-std::string Print(const ir::Instr* instr);
-void Print(const ir::Instr* instr, std::ostream& os);
-
-std::string Print(const ir::Value* value);
-void Print(const ir::Value* value, std::ostream& os);
-
-std::string Print(const ir::Type* type);
-void Print(const ir::Type* type, std::ostream& os);
-
-std::string Print(const ir::Object* object);
-void Print(const ir::Object* object, std::ostream& os);
+struct FilePrintResults {
+  common::positions::File* file;
+  ProgramPositions program_positions;
+};
+FilePrintResults PrintProgramToNewFile(std::string file_name, const ir::Program* program,
+                                       common::positions::FileSet& file_set);
 
 }  // namespace ir_serialization
 

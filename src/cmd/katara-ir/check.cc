@@ -34,7 +34,8 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> Check(std::filesystem::pat
     parse_details.issue_tracker.PrintIssues(common::issues::Format::kTerminal, ctx->stderr());
     return parse_details.error_code;
   }
-  ir_check::CheckProgram(parse_details.program.get(), parse_details.issue_tracker);
+  ir_check::CheckProgram(parse_details.program.get(), parse_details.program_positions,
+                         parse_details.issue_tracker);
   if (parse_details.issue_tracker.issues().empty()) {
     return std::move(parse_details).program;
   }

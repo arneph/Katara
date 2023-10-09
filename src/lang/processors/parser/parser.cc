@@ -27,7 +27,7 @@ ast::File* Parser::ParseFile(common::positions::File* file, ast::ASTBuilder& bui
 ast::File* Parser::ParseFile() {
   pos_t file_start = scanner_.token_start();
   while (scanner_.token() != tokens::kPackage) {
-    issues_.Add(issues::kMissingPackageDeclaration, scanner_.token_start(),
+    issues_.Add(issues::kMissingPackageDeclaration, scanner_.token_range(),
                 "expected package declaration");
     return nullptr;
   }
@@ -43,7 +43,7 @@ ast::File* Parser::ParseFile() {
     if (scanner_.token() != tokens::kImport) {
       finished_imports = true;
     } else if (finished_imports) {
-      issues_.Add(issues::kUnexpectedImportAfterNonImportDecl, scanner_.token_start(),
+      issues_.Add(issues::kUnexpectedImportAfterNonImportDecl, scanner_.token_range(),
                   "imports not allowed after non-import declarations");
     }
     ast::Decl* decl = ParseDecl();
@@ -135,7 +135,7 @@ ast::ImportSpec* Parser::ParseImportSpec() {
   }
 
   if (scanner_.token() != tokens::kString) {
-    issues_.Add(issues::kMissingImportPackagePath, scanner_.token_start(),
+    issues_.Add(issues::kMissingImportPackagePath, scanner_.token_range(),
                 "expected import package path");
     return nullptr;
   }
@@ -397,7 +397,7 @@ ast::DeclStmt* Parser::ParseDeclStmt() {
 
 ast::ReturnStmt* Parser::ParseReturnStmt() {
   if (scanner_.token() != tokens::kReturn) {
-    issues_.Add(issues::kMissingReturn, scanner_.token_start(), "expected 'return'");
+    issues_.Add(issues::kMissingReturn, scanner_.token_range(), "expected 'return'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -418,7 +418,7 @@ ast::ReturnStmt* Parser::ParseReturnStmt() {
 
 ast::IfStmt* Parser::ParseIfStmt() {
   if (scanner_.token() != tokens::kIf) {
-    issues_.Add(issues::kMissingIf, scanner_.token_start(), "expected 'if'");
+    issues_.Add(issues::kMissingIf, scanner_.token_range(), "expected 'if'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -583,7 +583,7 @@ ast::BlockStmt* Parser::ParseSwitchStmtBody() {
 
 ast::CaseClause* Parser::ParseCaseClause() {
   if (scanner_.token() != tokens::kCase && scanner_.token() != tokens::kDefault) {
-    issues_.Add(issues::kMissingCaseOrDefault, scanner_.token_start(),
+    issues_.Add(issues::kMissingCaseOrDefault, scanner_.token_range(),
                 "expected 'case' or 'default'");
     scanner_.SkipPastLine();
     return nullptr;
@@ -615,7 +615,7 @@ ast::CaseClause* Parser::ParseCaseClause() {
 
 ast::ForStmt* Parser::ParseForStmt() {
   if (scanner_.token() != tokens::kFor) {
-    issues_.Add(issues::kMissingFor, scanner_.token_start(), "expected 'for'");
+    issues_.Add(issues::kMissingFor, scanner_.token_range(), "expected 'for'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -678,7 +678,7 @@ ast::ForStmt* Parser::ParseForStmt() {
 ast::BranchStmt* Parser::ParseBranchStmt() {
   if (scanner_.token() != tokens::kFallthrough && scanner_.token() != tokens::kContinue &&
       scanner_.token() != tokens::kBreak) {
-    issues_.Add(issues::kMissingFallthroughContinueOrBreak, scanner_.token_start(),
+    issues_.Add(issues::kMissingFallthroughContinueOrBreak, scanner_.token_range(),
                 "expected 'fallthrough', 'continue', or 'break'");
     scanner_.SkipPastLine();
     return nullptr;
@@ -742,7 +742,7 @@ ast::AssignStmt* Parser::ParseAssignStmt(ast::Expr* first_expr, ExprOptions expr
     case tokens::kDefine:
       break;
     default:
-      issues_.Add(issues::kMissingAssignmentOp, scanner_.token_start(),
+      issues_.Add(issues::kMissingAssignmentOp, scanner_.token_range(),
                   "expected assignment operator");
       scanner_.SkipPastLine();
       return nullptr;
@@ -761,7 +761,7 @@ ast::AssignStmt* Parser::ParseAssignStmt(ast::Expr* first_expr, ExprOptions expr
 
 ast::IncDecStmt* Parser::ParseIncDecStmt(ast::Expr* x) {
   if (scanner_.token() != tokens::kInc && scanner_.token() != tokens::kDec) {
-    issues_.Add(issues::kMissingIncOrDecOp, scanner_.token_start(), "expected '++' or '--'");
+    issues_.Add(issues::kMissingIncOrDecOp, scanner_.token_range(), "expected '++' or '--'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -915,7 +915,7 @@ ast::Expr* Parser::ParsePrimaryExpr(ExprOptions expr_options) {
       primary_expr = ParseParenExpr();
       break;
     default:
-      issues_.Add(issues::kMissingExpr, scanner_.token_start(), "expected expression");
+      issues_.Add(issues::kMissingExpr, scanner_.token_range(), "expected expression");
       scanner_.SkipPastLine();
       return nullptr;
   }
@@ -936,7 +936,7 @@ ast::Expr* Parser::ParsePrimaryExpr(ast::Expr* primary_expr, ExprOptions expr_op
         } else if (scanner_.token() == tokens::kLss) {
           primary_expr = ParseTypeAssertExpr(primary_expr);
         } else {
-          issues_.Add(issues::kMissingSelectionOrAssertedType, scanner_.token_start(),
+          issues_.Add(issues::kMissingSelectionOrAssertedType, scanner_.token_range(),
                       "expected identifier or '<'");
           scanner_.SkipPastLine();
           return nullptr;
@@ -1160,7 +1160,7 @@ ast::CompositeLit* Parser::ParseCompositeLit(ast::Expr* type) {
       break;
     }
     if (scanner_.token() != tokens::kComma) {
-      issues_.Add(issues::kMissingCommaOrRBrace, scanner_.token_start(), "expected ',' or '}'");
+      issues_.Add(issues::kMissingCommaOrRBrace, scanner_.token_range(), "expected ',' or '}'");
       scanner_.SkipPastLine();
       return nullptr;
     }
@@ -1237,7 +1237,7 @@ ast::Expr* Parser::ParseType() {
     case tokens::kIdent:
       return ParseType(ParseIdent(/* split_shift_ops= */ true));
     default:
-      issues_.Add(issues::kMissingType, scanner_.token_start(), "expected type");
+      issues_.Add(issues::kMissingType, scanner_.token_range(), "expected type");
       scanner_.SkipPastLine();
       return nullptr;
   }
@@ -1296,7 +1296,7 @@ ast::ArrayType* Parser::ParseArrayType() {
 
 ast::FuncType* Parser::ParseFuncType() {
   if (scanner_.token() != tokens::kFunc) {
-    issues_.Add(issues::kMissingFunc, scanner_.token_start(), "expected 'func'");
+    issues_.Add(issues::kMissingFunc, scanner_.token_range(), "expected 'func'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1322,7 +1322,7 @@ ast::FuncType* Parser::ParseFuncType() {
 
 ast::InterfaceType* Parser::ParseInterfaceType() {
   if (scanner_.token() != tokens::kInterface) {
-    issues_.Add(issues::kMissingInterface, scanner_.token_start(), "expected 'interface'");
+    issues_.Add(issues::kMissingInterface, scanner_.token_range(), "expected 'interface'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1352,7 +1352,7 @@ ast::InterfaceType* Parser::ParseInterfaceType() {
       }
       methods.push_back(method);
     } else {
-      issues_.Add(issues::kMissingEmbeddedInterfaceOrMethodSpec, scanner_.token_start(),
+      issues_.Add(issues::kMissingEmbeddedInterfaceOrMethodSpec, scanner_.token_range(),
                   "expected type name, '(' or '<'");
       scanner_.SkipPastLine();
       return nullptr;
@@ -1378,7 +1378,7 @@ ast::Expr* Parser::ParseEmbdeddedInterface() {
 
 ast::MethodSpec* Parser::ParseMethodSpec() {
   if (scanner_.token() != tokens::kLParen && scanner_.token() != tokens::kLss) {
-    issues_.Add(issues::kMissingTypeOrInstanceMethodStart, scanner_.token_start(),
+    issues_.Add(issues::kMissingTypeOrInstanceMethodStart, scanner_.token_range(),
                 "expected '()' or '<>'");
     scanner_.SkipPastLine();
     return nullptr;
@@ -1429,7 +1429,7 @@ ast::MethodSpec* Parser::ParseMethodSpec() {
 
 ast::StructType* Parser::ParseStructType() {
   if (scanner_.token() != tokens::kStruct) {
-    issues_.Add(issues::kMissingStruct, scanner_.token_start(), "expected 'struct'");
+    issues_.Add(issues::kMissingStruct, scanner_.token_range(), "expected 'struct'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1460,7 +1460,7 @@ ast::StructType* Parser::ParseStructType() {
 
 ast::UnaryExpr* Parser::ParsePointerType() {
   if (scanner_.token() != tokens::kMul && scanner_.token() != tokens::kRem) {
-    issues_.Add(issues::kMissingPointerType, scanner_.token_start(), "expected '*' or '%'");
+    issues_.Add(issues::kMissingPointerType, scanner_.token_range(), "expected '*' or '%'");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1543,7 +1543,7 @@ ast::ExprReceiver* Parser::ParseExprReceiver() {
     scanner_.Next();
     type_name = ParseIdent();
   } else {
-    issues_.Add(issues::kMissingReceiverPointerTypeOrIdentifier, scanner_.token_start(),
+    issues_.Add(issues::kMissingReceiverPointerTypeOrIdentifier, scanner_.token_range(),
                 "expected identifier, '*' or '%'");
     scanner_.SkipPastLine();
     return nullptr;
@@ -1558,7 +1558,7 @@ ast::ExprReceiver* Parser::ParseExprReceiver() {
 
     type_parameter_names = ParseIdentList();
     if (type_parameter_names.empty()) {
-      issues_.Add(issues::kMissingReceiverTypeParameter, scanner_.token_start(),
+      issues_.Add(issues::kMissingReceiverTypeParameter, scanner_.token_range(),
                   "expected at least one type parameter name");
       scanner_.SkipPastLine();
       return nullptr;
@@ -1602,7 +1602,7 @@ ast::TypeReceiver* Parser::ParseTypeReceiver() {
 
     type_parameter_names = ParseIdentList(/* split_shift_ops= */ true);
     if (type_parameter_names.empty()) {
-      issues_.Add(issues::kMissingReceiverTypeParameter, scanner_.token_start(),
+      issues_.Add(issues::kMissingReceiverTypeParameter, scanner_.token_range(),
                   "expected at least one type parameter name");
       scanner_.SkipPastLine();
       return nullptr;
@@ -1628,7 +1628,7 @@ ast::TypeReceiver* Parser::ParseTypeReceiver() {
 ast::FieldList* Parser::ParseFuncFieldList(FuncFieldListOptions options) {
   bool has_paren = (scanner_.token() == tokens::kLParen);
   if ((options & kExpectParen) != 0 && !has_paren) {
-    issues_.Add(issues::kMissingLParen, scanner_.token_start(), "expected '('");
+    issues_.Add(issues::kMissingLParen, scanner_.token_range(), "expected '('");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1660,7 +1660,7 @@ ast::FieldList* Parser::ParseFuncFieldList(FuncFieldListOptions options) {
 
   if (has_paren) {
     if (scanner_.token() != tokens::kRParen) {
-      issues_.Add(issues::kMissingRParen, scanner_.token_start(), "expected ')'");
+      issues_.Add(issues::kMissingRParen, scanner_.token_range(), "expected ')'");
       scanner_.SkipPastLine();
       return nullptr;
     }
@@ -1880,7 +1880,7 @@ ast::BasicLit* Parser::ParseBasicLit() {
       return ast_builder_.Create<ast::BasicLit>(value_start, value, kind);
     }
     default:
-      issues_.Add(issues::kMissingLiteral, scanner_.token_start(), "expected literal");
+      issues_.Add(issues::kMissingLiteral, scanner_.token_range(), "expected literal");
       scanner_.SkipPastLine();
       return nullptr;
   }
@@ -1906,7 +1906,7 @@ std::vector<ast::Ident*> Parser::ParseIdentList(bool split_shift_ops) {
 
 ast::Ident* Parser::ParseIdent(bool split_shift_ops) {
   if (scanner_.token() != tokens::kIdent) {
-    issues_.Add(issues::kMissingIdent, scanner_.token_start(), "expected identifier");
+    issues_.Add(issues::kMissingIdent, scanner_.token_range(), "expected identifier");
     scanner_.SkipPastLine();
     return nullptr;
   }
@@ -1924,36 +1924,36 @@ std::optional<pos_t> Parser::Consume(tokens::Token tok, bool split_shift_ops) {
   }
   switch (tok) {
     case tokens::kColon:
-      issues_.Add(issues::kMissingColon, scanner_.token_start(), "expected ':'");
+      issues_.Add(issues::kMissingColon, scanner_.token_range(), "expected ':'");
       return std::nullopt;
     case tokens::kLParen:
-      issues_.Add(issues::kMissingLParen, scanner_.token_start(), "expected '('");
+      issues_.Add(issues::kMissingLParen, scanner_.token_range(), "expected '('");
       return std::nullopt;
     case tokens::kRParen:
-      issues_.Add(issues::kMissingRParen, scanner_.token_start(), "expected ')'");
+      issues_.Add(issues::kMissingRParen, scanner_.token_range(), "expected ')'");
       return std::nullopt;
     case tokens::kLss:
-      issues_.Add(issues::kMissingLAngleBrack, scanner_.token_start(), "expected '<'");
+      issues_.Add(issues::kMissingLAngleBrack, scanner_.token_range(), "expected '<'");
       return std::nullopt;
     case tokens::kGtr:
-      issues_.Add(issues::kMissingRAngleBrack, scanner_.token_start(), "expected '>'");
+      issues_.Add(issues::kMissingRAngleBrack, scanner_.token_range(), "expected '>'");
       return std::nullopt;
     case tokens::kLBrack:
-      issues_.Add(issues::kMissingLBrack, scanner_.token_start(), "expected '['");
+      issues_.Add(issues::kMissingLBrack, scanner_.token_range(), "expected '['");
       return std::nullopt;
     case tokens::kRBrack:
-      issues_.Add(issues::kMissingRBrack, scanner_.token_start(), "expected ']'");
+      issues_.Add(issues::kMissingRBrack, scanner_.token_range(), "expected ']'");
       return std::nullopt;
     case tokens::kLBrace:
-      issues_.Add(issues::kMissingLBrace, scanner_.token_start(), "expected '{'");
+      issues_.Add(issues::kMissingLBrace, scanner_.token_range(), "expected '{'");
       scanner_.SkipPastLine();
       return std::nullopt;
     case tokens::kRBrace:
-      issues_.Add(issues::kMissingRBrace, scanner_.token_start(), "expected '}'");
+      issues_.Add(issues::kMissingRBrace, scanner_.token_range(), "expected '}'");
       scanner_.SkipPastLine();
       return std::nullopt;
     case tokens::kSemicolon:
-      issues_.Add(issues::kMissingSemicolonOrNewLine, scanner_.token_start(),
+      issues_.Add(issues::kMissingSemicolonOrNewLine, scanner_.token_range(),
                   "expected ';' or new line");
       scanner_.SkipPastLine();
       return std::nullopt;

@@ -16,6 +16,8 @@ namespace ir_serialization {
 
 using ::common::atomics::Int;
 using ::common::logging::fail;
+using ::common::positions::pos_t;
+using ::common::positions::range_t;
 
 std::string Scanner::TokenToString(Token token) {
   switch (token) {
@@ -42,7 +44,7 @@ std::string Scanner::token_text() const {
   if (token_ == kUnknown || token_ == kEoF) {
     fail("token has no associated text");
   }
-  return file_->contents(token_start_, token_end_);
+  return file_->contents(token_range_);
 }
 
 Int Scanner::token_number() const {
@@ -55,7 +57,7 @@ Int Scanner::token_number() const {
   }
   number = common::atomics::ToU64(token_text());
   if (!number.has_value()) {
-    issue_tracker_.Add(ir_issues::IssueKind::kNumberCannotBeRepresented, token_start_,
+    issue_tracker_.Add(ir_issues::IssueKind::kNumberCannotBeRepresented, token_range_,
                        "The token cannot be represented as a number");
     return Int(uint8_t{0});
   } else {
@@ -69,7 +71,7 @@ Int Scanner::token_address() const {
   }
   std::optional<Int> address = common::atomics::ToU64(token_text(), /*base=*/16);
   if (!address.has_value()) {
-    issue_tracker_.Add(ir_issues::IssueKind::kAddressCannotBeRepresented, token_start_,
+    issue_tracker_.Add(ir_issues::IssueKind::kAddressCannotBeRepresented, token_range_,
                        "The token cannot be represented as an address");
     return Int(uint8_t{0});
   } else {
@@ -104,10 +106,11 @@ void Scanner::NextIfPossible() {
     return;
   }
   SkipWhitespace();
-  token_start_ = pos_;
-  if (pos_ == file_->end()) {
+
+  pos_t token_start = pos_;
+  if (pos_ > file_->end()) {
     token_ = kEoF;
-    token_end_ = pos_;
+    token_range_ = range_t{.start = token_start, .end = pos_};
     return;
   }
 
@@ -115,6 +118,7 @@ void Scanner::NextIfPossible() {
   switch (c) {
     case EOF:
       token_ = kEoF;
+      token_range_ = range_t{.start = token_start, .end = pos_};
       return;
     case '\n':
     case '#':
@@ -129,14 +133,14 @@ void Scanner::NextIfPossible() {
     case '<':
     case '>':
       token_ = (Token)c;
-      token_end_ = pos_++;
+      token_range_ = range_t{.start = token_start, .end = pos_++};
       return;
     case '=':
       token_ = kEqualSign;
-      token_end_ = pos_++;
+      token_range_ = range_t{.start = token_start, .end = pos_++};
       if (pos_ < file_->end() && file_->at(pos_) == '>') {
         token_ = kArrow;
-        token_end_ = pos_++;
+        token_range_ = range_t{.start = token_start, .end = pos_++};
       }
       return;
     case '"':
@@ -150,8 +154,8 @@ void Scanner::NextIfPossible() {
   } else if (c == '+' || c == '-' || std::isdigit(c)) {
     NextNumberOrAddress();
   } else {
-    pos_++;
     token_ = kUnknown;
+    token_range_ = range_t{.start = token_start, .end = pos_++};
   }
 }
 
@@ -162,19 +166,21 @@ void Scanner::SkipWhitespace() {
 
 void Scanner::NextIdentifier() {
   token_ = kIdentifier;
-  token_start_ = pos_;
-  token_end_ = pos_++;
-  for (; pos_ < file_->end() && (std::isalnum(file_->at(pos_)) || file_->at(pos_) == '_');
-       token_end_ = pos_++) {
+  pos_t token_start = pos_;
+  pos_t token_end = pos_++;
+  for (; pos_ <= file_->end() && (std::isalnum(file_->at(pos_)) || file_->at(pos_) == '_');
+       token_end = pos_++) {
   }
+  token_range_ = range_t{.start = token_start, .end = token_end};
 }
 
 void Scanner::NextNumberOrAddress() {
   token_ = kNumber;
-  token_start_ = pos_;
-  token_end_ = pos_++;
-  for (; pos_ < file_->end() && std::isalnum(file_->at(pos_)); token_end_ = pos_++) {
+  pos_t token_start = pos_;
+  pos_t token_end = pos_++;
+  for (; pos_ <= file_->end() && std::isalnum(file_->at(pos_)); token_end = pos_++) {
   }
+  token_range_ = range_t{.start = token_start, .end = token_end};
   if (token_text().starts_with("0x") || token_text().starts_with("0X")) {
     token_ = kAddress;
   }
@@ -182,8 +188,8 @@ void Scanner::NextNumberOrAddress() {
 
 void Scanner::NextString() {
   token_ = kString;
-  token_start_ = pos_++;
-  for (; pos_ < file_->end() && file_->at(pos_) != '"'; pos_++) {
+  pos_t token_start = pos_++;
+  for (; pos_ <= file_->end() && file_->at(pos_) != '"'; pos_++) {
     if (file_->at(pos_) != '\\') {
       continue;
     }
@@ -193,17 +199,17 @@ void Scanner::NextString() {
       issue_tracker_.Add(ir_issues::IssueKind::kEOFInsteadOfEscapedCharacter, pos_,
                          "Expected escape at end of file.");
       token_ = kUnknown;
-      token_end_ = pos_++;
+      token_range_ = range_t{.start = token_start, .end = pos_++};
       return;
     }
   }
-  if (pos_ == file_->end()) {
-    issue_tracker_.Add(ir_issues::IssueKind::kEOFInsteadOfStringEndQuote, {token_start_, pos_},
+  if (pos_ > file_->end()) {
+    token_range_ = range_t{.start = token_start, .end = pos_};
+    issue_tracker_.Add(ir_issues::IssueKind::kEOFInsteadOfStringEndQuote, token_range_,
                        "String constant has no end quote.");
     token_ = kUnknown;
-    token_end_ = pos_ - 1;
   } else {
-    token_end_ = pos_++;
+    token_range_ = range_t{.start = token_start, .end = pos_++};
   }
 }
 
@@ -262,7 +268,7 @@ void Scanner::AddErrorForUnexpectedToken(std::vector<Token> expected_tokens) {
       error += "'" + token_text() + "'";
       break;
   }
-  issue_tracker_.Add(ir_issues::IssueKind::kUnexpectedToken, token_start_, error);
+  issue_tracker_.Add(ir_issues::IssueKind::kUnexpectedToken, token_range_, error);
 }
 
 void Scanner::SkipPastTokenSequence(std::vector<Token> sequence) {

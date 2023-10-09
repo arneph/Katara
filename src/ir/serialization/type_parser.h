@@ -11,6 +11,7 @@
 
 #include <vector>
 
+#include "src/common/positions/positions.h"
 #include "src/ir/issues/issues.h"
 #include "src/ir/representation/program.h"
 #include "src/ir/representation/types.h"
@@ -24,8 +25,17 @@ class TypeParser {
       : scanner_(scanner), issue_tracker_(issue_tracker), program_(program) {}
   virtual ~TypeParser() = default;
 
-  std::vector<const ir::Type*> ParseTypes();
-  virtual const ir::Type* ParseType();
+  struct TypesParseResult {
+    std::vector<const ir::Type*> types;
+    std::vector<common::positions::range_t> type_ranges;
+    common::positions::range_t range;
+  };
+  TypesParseResult ParseTypes();
+  struct TypeParseResult {
+    const ir::Type* type;
+    common::positions::range_t range;
+  };
+  virtual TypeParseResult ParseType();
 
  protected:
   Scanner& scanner() { return scanner_; }

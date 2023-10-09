@@ -23,6 +23,8 @@
 #include "src/ir/representation/program.h"
 #include "src/ir/representation/types.h"
 #include "src/ir/representation/values.h"
+#include "src/ir/serialization/positions.h"
+#include "src/ir/serialization/print.h"
 
 namespace {
 
@@ -51,8 +53,11 @@ TEST(CheckerTest, CatchesValueHasNullptrTypeForArg) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kValueHasNullptrType)));
 }
@@ -69,8 +74,11 @@ TEST(CheckerTest, CatchesValueHasNullptrTypeForValue) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kValueHasNullptrType)));
 }
@@ -86,8 +94,11 @@ TEST(CheckerTest, CatchesInstrDefinesNullptrValue) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kInstrDefinesNullptrValue)));
 }
@@ -102,8 +113,11 @@ TEST(CheckerTest, CatchesInstrUsesNullptrValue) {
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{nullptr}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kInstrUsesNullptrValue)));
 }
@@ -135,8 +149,11 @@ TEST(CheckerTest, CatchesInstrUsesNullptrValueForInheritedValue) {
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{arg_c}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kInstrUsesNullptrValue)));
 }
@@ -154,8 +171,11 @@ TEST(CheckerTest, CatchesNonPhiInstrUsesInheritedValue) {
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{value}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kNonPhiInstrUsesInheritedValue)));
@@ -175,8 +195,11 @@ TEST(CheckerTest, CatchesMovInstrOriginAndResultHaveMismatchedTypes) {
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{value}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kMovInstrOriginAndResultHaveMismatchedTypes)));
@@ -209,8 +232,11 @@ TEST(CheckerTest, CatchesPhiInstrOriginAndResultHaveMismatchedTypesForConstantVa
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kPhiInstrArgAndResultHaveMismatchedTypes)));
@@ -243,8 +269,11 @@ TEST(CheckerTest, CatchesPhiInstrOriginAndResultHaveMismatchedTypesForComputedVa
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kPhiInstrArgAndResultHaveMismatchedTypes)));
@@ -276,8 +305,11 @@ TEST(CheckerTest, CatchesPhiInstrHasNoArgumentForParentBlock) {
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kPhiInstrHasNoArgumentForParentBlock)));
@@ -312,8 +344,11 @@ TEST(CheckerTest, CatchesPhiInstrHasMultipleArgumentsForParentBlock) {
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kPhiInstrHasMultipleArgumentsForParentBlock)));
@@ -348,8 +383,11 @@ TEST(CheckerTest, CatchesPhiInstrHasArgumentForNonParentBlock) {
       std::make_unique<ir::ReturnInstr>(/*args=*/std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kPhiInstrHasArgumentForNonParentBlock)));
@@ -379,8 +417,11 @@ TEST(CheckerTest, CatchesBoolNotInstrOperandDoesNotHaveBoolType) {
   PrepareSimpleComputationTest(program, std::make_unique<ir::BoolNotInstr>(result, arg));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kBoolNotInstrOperandDoesNotHaveBoolType)));
@@ -393,8 +434,11 @@ TEST(CheckerTest, CatchesBoolNotInstrResultDoesNotHaveBoolType) {
   PrepareSimpleComputationTest(program, std::make_unique<ir::BoolNotInstr>(result, arg));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kBoolNotInstrResultDoesNotHaveBoolType)));
@@ -409,8 +453,11 @@ TEST(CheckerTest, CatchesBoolBinaryInstrOperandDoesNotHaveBoolType) {
       program, std::make_unique<ir::BoolBinaryInstr>(result, Bool::BinaryOp::kAnd, arg_a, arg_b));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kBoolBinaryInstrOperandDoesNotHaveBoolType)));
@@ -425,8 +472,11 @@ TEST(CheckerTest, CatchesBoolBinaryInstrResultDoesNotHaveBoolType) {
       program, std::make_unique<ir::BoolBinaryInstr>(result, Bool::BinaryOp::kAnd, arg_a, arg_b));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kBoolBinaryInstrResultDoesNotHaveBoolType)));
@@ -440,8 +490,11 @@ TEST(CheckerTest, CatchesIntUnaryInstrOperandDoesNotHaveIntType) {
       program, std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNeg, arg));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(
@@ -459,8 +512,11 @@ TEST(CheckerTest, CatchesIntUnaryInstrResultDoesNotHaveIntType) {
       program, std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNeg, arg));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kIntUnaryInstrResultDoesNotHaveIntType),
@@ -477,8 +533,11 @@ TEST(CheckerTest, CatchesIntCompareInstrOperandDoesNotHaveIntType) {
       program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(
@@ -495,8 +554,11 @@ TEST(CheckerTest, CatchesIntCompareInstrOperandsHaveDifferentTypes) {
       program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kIntCompareInstrOperandsHaveDifferentTypes)));
@@ -511,8 +573,11 @@ TEST(CheckerTest, CatchesIntCompareInstrResultDoesNotHaveBoolType) {
       program, std::make_unique<ir::IntCompareInstr>(result, Int::CompareOp::kLeq, arg_a, arg_b));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kIntCompareInstrResultDoesNotHaveBoolType)));
@@ -527,8 +592,11 @@ TEST(CheckerTest, CatchesIntBinaryInstrOperandDoesNotHaveIntType) {
       program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kIntBinaryInstrOperandDoesNotHaveIntType),
@@ -545,8 +613,11 @@ TEST(CheckerTest, CatchesIntBinaryInstrResultDoesNotHaveIntType) {
       program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(
@@ -565,8 +636,11 @@ TEST(CheckerTest, CatchesIntBinaryInstrOperandsAndResultHaveDifferentTypes) {
       program, std::make_unique<ir::IntBinaryInstr>(result, Int::BinaryOp::kXor, arg_a, arg_b));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kIntBinaryInstrOperandsAndResultHaveDifferentTypes)));
@@ -581,8 +655,11 @@ TEST(CheckerTest, CatchesIntShiftInstrOperandDoesNotHaveIntType) {
       program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kIntShiftInstrOperandDoesNotHaveIntType)));
@@ -597,8 +674,11 @@ TEST(CheckerTest, CatchesIntShiftInstrResultDoesNotHaveIntType) {
       program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kIntShiftInstrResultDoesNotHaveIntType),
@@ -615,8 +695,11 @@ TEST(CheckerTest, CatchesIntShiftInstrShiftedAndResultHaveDifferentTypes) {
       program, std::make_unique<ir::IntShiftInstr>(result, Int::ShiftOp::kLeft, shifted, offset));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kIntShiftInstrShiftedAndResultHaveDifferentTypes)));
@@ -631,8 +714,11 @@ TEST(CheckerTest, CatchesPointerOffsetInstrPointerDoesNotHavePointerType) {
                                std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kPointerOffsetInstrPointerDoesNotHavePointerType)));
@@ -647,8 +733,11 @@ TEST(CheckerTest, CatchesPointerOffsetInstrOffsetDoesNotHaveI64Type) {
                                std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kPointerOffsetInstrOffsetDoesNotHaveI64Type)));
@@ -663,8 +752,11 @@ TEST(CheckerTest, CatchesPointerOffsetInstrResultDoesNotHavePointerType) {
                                std::make_unique<ir::PointerOffsetInstr>(result, pointer, offset));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kPointerOffsetInstrResultDoesNotHavePointerType)));
@@ -677,8 +769,11 @@ TEST(CheckerTest, CatchesNilTestInstrTestedDoesNotHavePointerOrFuncType) {
   PrepareSimpleComputationTest(program, std::make_unique<ir::NilTestInstr>(result, tested));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kNilTestInstrTestedDoesNotHavePointerOrFuncType)));
@@ -691,8 +786,11 @@ TEST(CheckerTest, CatchesNilTestInstrResultDoesNotHaveBoolType) {
   PrepareSimpleComputationTest(program, std::make_unique<ir::NilTestInstr>(result, tested));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kNilTestInstrResultDoesNotHaveBoolType)));
@@ -705,8 +803,11 @@ TEST(CheckerTest, CatchesMallocInstrSizeDoesNotHaveI64Type) {
   PrepareSimpleComputationTest(program, std::make_unique<ir::MallocInstr>(result, size));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kMallocInstrSizeDoesNotHaveI64Type)));
@@ -719,8 +820,11 @@ TEST(CheckerTest, CatchesMallocInstrResultDoesNotHavePointerType) {
   PrepareSimpleComputationTest(program, std::make_unique<ir::MallocInstr>(result, size));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kMallocInstrResultDoesNotHavePointerType)));
@@ -733,8 +837,11 @@ TEST(CheckerTest, CatchesLoadInstrAddressDoesNotHavePointerType) {
   PrepareSimpleComputationTest(program, std::make_unique<ir::LoadInstr>(result, address));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kLoadInstrAddressDoesNotHavePointerType)));
@@ -753,8 +860,11 @@ TEST(CheckerTest, CatchesStoreInstrAddressDoesNotHavePointerType) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kStoreInstrAddressDoesNotHavePointerType)));
@@ -771,8 +881,11 @@ TEST(CheckerTest, CatchesFreeInstrAddressDoesNotHavePointerType) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kFreeInstrAddressDoesNotHavePointerType)));
@@ -789,8 +902,11 @@ TEST(CheckerTest, CatchesJumpInstrDestinationIsNotChildBlock) {
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kJumpInstrDestinationIsNotChildBlock)));
@@ -813,8 +929,11 @@ TEST(CheckerTest, CatchesJumpCondInstrConditionDoesNotHaveBoolType) {
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kJumpCondInstrConditionDoesNotHaveBoolType)));
@@ -837,8 +956,11 @@ TEST(CheckerTest, CatchesJumpCondInstrHasDuplicateDestinations) {
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kJumpCondInstrHasDuplicateDestinations)));
@@ -861,8 +983,11 @@ TEST(CheckerTest, CatchesJumpCondInstrDestinationIsNotChildBlock) {
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kJumpCondInstrDestinationIsNotChildBlock)));
@@ -879,8 +1004,11 @@ TEST(CheckerTest, CatchesSyscallInstrResultDoesNotHaveI64Type) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kSyscallInstrResultDoesNotHaveI64Type)));
@@ -898,8 +1026,11 @@ TEST(CheckerTest, CatchesSyscallInstrSyscallNumDoesNotHaveI64Type) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kSyscallInstrSyscallNumberDoesNotHaveI64Type)));
@@ -920,8 +1051,11 @@ TEST(CheckerTest, CatchesSyscallInstrArgDoesNotHaveI64Type) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kSyscallInstrArgDoesNotHaveI64Type)));
@@ -939,8 +1073,11 @@ TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForConstant) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kCallInstrCalleeDoesNotHaveFuncType)));
@@ -959,8 +1096,11 @@ TEST(CheckerTest, CatchesCallInstrCalleeDoesNotHaveFuncTypeForComputed) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kCallInstrCalleeDoesNotHaveFuncType)));
@@ -978,8 +1118,11 @@ TEST(CheckerTest, CatchesCallInstrStaticCalleeDoesNotExist) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kCallInstrStaticCalleeDoesNotExist)));
@@ -1017,8 +1160,11 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMissingArg
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
@@ -1040,8 +1186,11 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForExcessArg)
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
@@ -1065,8 +1214,11 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMismatched
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
@@ -1087,8 +1239,11 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMissingRes
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
@@ -1111,8 +1266,11 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForExcessResu
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
@@ -1134,8 +1292,11 @@ TEST(CheckerTest, CatchesCallInstrDoesNotMatchStaticCalleeSignatureForMismatched
   caller_block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature)));
@@ -1154,8 +1315,11 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForMissingResult) {
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{ir::NilPointer()}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kReturnInstrDoesNotMatchFuncSignature)));
@@ -1174,8 +1338,11 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForExcessResult) {
       std::vector<std::shared_ptr<ir::Value>>{ir::NilPointer(), arg, ir::True()}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kReturnInstrDoesNotMatchFuncSignature)));
@@ -1196,8 +1363,11 @@ TEST(CheckerTest, CatchesReturnInstrDoesNotMatchFuncSignatureForMismatchedResult
       std::vector<std::shared_ptr<ir::Value>>{mismatched_result, arg}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kReturnInstrDoesNotMatchFuncSignature)));
@@ -1212,8 +1382,11 @@ TEST(CheckerTest, CatchesEntryBlockHasParents) {
   block->instrs().push_back(std::make_unique<ir::JumpInstr>(block->number()));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kEntryBlockHasParents)));
 }
@@ -1232,8 +1405,11 @@ TEST(CheckerTest, CatchesNonEntryBlockHasNoParents) {
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kNonEntryBlockHasNoParents)));
 }
@@ -1245,8 +1421,11 @@ TEST(CheckerTest, CatchesBlockContainsNoInstrs) {
   func->set_entry_block_num(block->number());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kBlockContainsNoInstrs)));
 }
@@ -1262,8 +1441,11 @@ TEST(CheckerTest, CatchesPhiInBlockWithoutMultipleParentsInEntryBlock) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kPhiInBlockWithoutMultipleParents)));
@@ -1284,8 +1466,11 @@ TEST(CheckerTest, CatchesPhiInBlockWithoutMultipleParentsInBlockWithSingleParent
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kPhiInBlockWithoutMultipleParents)));
@@ -1317,8 +1502,11 @@ TEST(CheckerTest, CatchesPhiAfterRegularInstrInBlock) {
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kPhiAfterRegularInstrInBlock)));
 }
@@ -1341,8 +1529,11 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpInstr) {
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kControlFlowInstrBeforeEndOfBlock)));
@@ -1375,8 +1566,11 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForJumpCondInstr) {
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kControlFlowInstrBeforeEndOfBlock)));
@@ -1398,8 +1592,11 @@ TEST(CheckerTest, CatchesControlFlowInstrBeforeEndOfBlockForReturnInstr) {
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kControlFlowInstrBeforeEndOfBlock)));
@@ -1417,8 +1614,11 @@ TEST(CheckerTest, CatchesControlFlowInstrMissingAtEndOfBlock) {
   block->instrs().push_back(std::make_unique<ir::IntUnaryInstr>(result, Int::UnaryOp::kNot, arg));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kControlFlowInstrMissingAtEndOfBlock)));
@@ -1446,8 +1646,11 @@ TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForMissingContr
   block_c->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kControlFlowInstrMismatchedWithBlockGraph)));
@@ -1482,8 +1685,11 @@ TEST(CheckerTest,
   block_d->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kControlFlowInstrMismatchedWithBlockGraph)));
@@ -1507,8 +1713,11 @@ TEST(CheckerTest, CatchesControlFlowInstrMismatchedWithBlockGraphForExcessContro
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kControlFlowInstrMismatchedWithBlockGraph)));
@@ -1527,8 +1736,11 @@ TEST(CheckerTest, CatchesFuncDefinesNullptrArg) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kFuncDefinesNullptrArg)));
 }
@@ -1545,8 +1757,11 @@ TEST(CheckerTest, CatchesFuncHasNullptrResultType) {
       std::vector<std::shared_ptr<ir::Value>>{ir::False(), mismatched_result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kReturnInstrDoesNotMatchFuncSignature),
@@ -1558,8 +1773,11 @@ TEST(CheckerTest, CatchesFuncHasNoEntryBlock) {
   program.AddFunc();
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind, IssueKind::kFuncHasNoEntryBlock)));
 }
@@ -1581,8 +1799,11 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForSharedArg) {
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kComputedValueUsedInMultipleFunctions)));
@@ -1605,8 +1826,11 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForSharedComputatio
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kComputedValueUsedInMultipleFunctions)));
@@ -1630,8 +1854,11 @@ TEST(CheckerTest, CatchesComputedValueUsedInMultipleFunctionsForArgAndComputatio
   block_b->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kComputedValueUsedInMultipleFunctions)));
@@ -1649,8 +1876,11 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForArgs) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueNumberUsedMultipleTimes),
@@ -1669,8 +1899,11 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForComputations) {
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueNumberUsedMultipleTimes),
@@ -1689,8 +1922,11 @@ TEST(CheckerTest, CatchesComputedValueNumberUsedMultipleTimesForArgAndComputatio
   block->instrs().push_back(std::make_unique<ir::ReturnInstr>());
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueNumberUsedMultipleTimes),
@@ -1708,8 +1944,11 @@ TEST(CheckerTest, CatchesComputedValueHasNoDefinition) {
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{result}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueHasNoDefinition)));
@@ -1728,8 +1967,11 @@ TEST(CheckerTest, CatchesComputedValueHasMultipleDefinitions) {
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(
       issue_tracker.issues(),
       ElementsAre(Property("kind", &Issue::kind, IssueKind::kComputedValueHasMultipleDefinitions)));
@@ -1757,8 +1999,11 @@ TEST(CheckerTest, CatchesComputedValueDefinitionDoesNotDominateUse) {
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(),
               ElementsAre(Property("kind", &Issue::kind,
                                    IssueKind::kComputedValueDefinitionDoesNotDominateUse)));
@@ -1813,8 +2058,11 @@ TEST(CheckerTest, FindsNoComputedValueDefinitionDoesNotDominateUseForCorrectInhe
       std::make_unique<ir::ReturnInstr>(std::vector<std::shared_ptr<ir::Value>>{value_b}));
 
   FileSet file_set;
+  ir_serialization::FilePrintResults print_results =
+      ir_serialization::PrintProgramToNewFile("program.ir", &program, file_set);
+  ir_serialization::ProgramPositions program_positions = print_results.program_positions;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  CheckProgram(&program, issue_tracker);
+  CheckProgram(&program, program_positions, issue_tracker);
   EXPECT_THAT(issue_tracker.issues(), IsEmpty());
 }
 

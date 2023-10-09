@@ -11,14 +11,16 @@
 namespace lang {
 namespace ir_serialization {
 
-std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
+using ::common::positions::range_t;
+
+::ir_serialization::FuncParser::InstrParseResult FuncParser::ParseInstrWithResults(
     std::vector<std::shared_ptr<ir::Computed>> results, std::string instr_name) {
   if (instr_name == "panic") {
     if (results.size() != 0) {
       issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
                           "expected no results for panic instruction");
       scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
-      return nullptr;
+      return NoInstrParseResult();
     }
     return ParsePanicInstr();
   } else if (instr_name == "make_shared") {
@@ -26,7 +28,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
       issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
                           "expected one result for make_shared instruction");
       scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
-      return nullptr;
+      return NoInstrParseResult();
     }
     return ParseMakeSharedInstr(results.front());
   } else if (instr_name == "copy_shared") {
@@ -34,7 +36,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
       issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
                           "expected one result for copy_shared instruction");
       scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
-      return nullptr;
+      return NoInstrParseResult();
     }
     return ParseCopySharedInstr(results.front());
   } else if (instr_name == "delete_shared") {
@@ -42,7 +44,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
       issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
                           "expected no results for delete_shared instruction");
       scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
-      return nullptr;
+      return NoInstrParseResult();
     }
     return ParseDeleteSharedInstr();
   } else if (instr_name == "make_unique") {
@@ -50,7 +52,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
       issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
                           "expected one result for make_unique instruction");
       scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
-      return nullptr;
+      return NoInstrParseResult();
     }
     return ParseMakeUniqueInstr(results.front());
   } else if (instr_name == "delete_unique") {
@@ -58,7 +60,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
       issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
                           "expected no results for delete_unique instruction");
       scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
-      return nullptr;
+      return NoInstrParseResult();
     }
     return ParseDeleteUniqueInstr();
   } else if (instr_name == "str_index") {
@@ -66,7 +68,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
       issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
                           "expected one result for str_index instruction");
       scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
-      return nullptr;
+      return NoInstrParseResult();
     }
     return ParseStringIndexInstr(results.front());
   } else if (instr_name == "str_cat") {
@@ -74,7 +76,7 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
       issue_tracker().Add(ir_issues::IssueKind::kPanicInstrHasResults, scanner().token_start(),
                           "expected one result for str_cat instruction");
       scanner().SkipPastTokenSequence({::ir_serialization::Scanner::kNewLine});
-      return nullptr;
+      return NoInstrParseResult();
     }
     return ParseStringConcatInstr(results.front());
   } else {
@@ -83,77 +85,113 @@ std::unique_ptr<ir::Instr> FuncParser::ParseInstrWithResults(
 }
 
 // PanicInstr ::= 'panic' Value NL
-std::unique_ptr<ir_ext::PanicInstr> FuncParser::ParsePanicInstr() {
-  std::shared_ptr<ir::Value> reason = ParseValue(ir_ext::string());
+::ir_serialization::FuncParser::InstrParseResult FuncParser::ParsePanicInstr() {
+  const auto& [reason, reason_range] = ParseValue(ir_ext::string());
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::PanicInstr>(reason);
+  return InstrParseResult{
+      .instr = std::make_unique<ir_ext::PanicInstr>(reason),
+      .arg_ranges = {reason_range},
+      .args_range = reason_range,
+  };
 }
 
-std::unique_ptr<ir_ext::MakeSharedPointerInstr> FuncParser::ParseMakeSharedInstr(
+::ir_serialization::FuncParser::InstrParseResult FuncParser::ParseMakeSharedInstr(
     std::shared_ptr<ir::Computed> result) {
-  std::shared_ptr<ir::Value> size = ParseValue(ir::i64());
+  const auto& [size, size_range] = ParseValue(ir::i64());
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::MakeSharedPointerInstr>(result, size);
+  return InstrParseResult{
+      .instr = std::make_unique<ir_ext::MakeSharedPointerInstr>(result, size),
+      .arg_ranges = {size_range},
+      .args_range = size_range,
+  };
 }
 
-std::unique_ptr<ir_ext::CopySharedPointerInstr> FuncParser::ParseCopySharedInstr(
+FuncParser::InstrParseResult FuncParser::ParseCopySharedInstr(
     std::shared_ptr<ir::Computed> result) {
-  std::shared_ptr<ir::Computed> copied_shared_pointer = ParseComputedValue(result->type());
+  const auto& [copied_shared_pointer, copied_shared_pointer_range] =
+      ParseComputedValue(result->type());
   scanner().ConsumeToken(::ir_serialization::Scanner::kComma);
 
-  std::shared_ptr<ir::Value> pointer_offset = ParseValue(ir::i64());
+  const auto& [pointer_offset, pointer_offset_range] = ParseValue(ir::i64());
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::CopySharedPointerInstr>(result, copied_shared_pointer,
-                                                          pointer_offset);
+  return InstrParseResult{
+      .instr = std::make_unique<ir_ext::CopySharedPointerInstr>(result, copied_shared_pointer,
+                                                                pointer_offset),
+      .arg_ranges = {copied_shared_pointer_range, pointer_offset_range},
+      .args_range =
+          range_t{
+              .start = copied_shared_pointer_range.start,
+              .end = pointer_offset_range.end,
+          },
+  };
 }
 
-std::unique_ptr<ir_ext::DeleteSharedPointerInstr> FuncParser::ParseDeleteSharedInstr() {
-  std::shared_ptr<ir::Computed> deleted_shared_pointer = ParseComputedValue(nullptr);
+::ir_serialization::FuncParser::InstrParseResult FuncParser::ParseDeleteSharedInstr() {
+  const auto& [deleted_shared_pointer, deleted_shared_pointer_range] = ParseComputedValue(nullptr);
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::DeleteSharedPointerInstr>(deleted_shared_pointer);
+  return InstrParseResult{
+      .instr = std::make_unique<ir_ext::DeleteSharedPointerInstr>(deleted_shared_pointer),
+      .arg_ranges = {deleted_shared_pointer_range},
+      .args_range = deleted_shared_pointer_range,
+  };
 }
 
-std::unique_ptr<ir_ext::MakeUniquePointerInstr> FuncParser::ParseMakeUniqueInstr(
+::ir_serialization::FuncParser::InstrParseResult FuncParser::ParseMakeUniqueInstr(
     std::shared_ptr<ir::Computed> result) {
-  std::shared_ptr<ir::Value> size = ParseValue(ir::i64());
+  const auto& [size, size_range] = ParseValue(ir::i64());
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::MakeUniquePointerInstr>(result, size);
+  return InstrParseResult{
+      .instr = std::make_unique<ir_ext::MakeUniquePointerInstr>(result, size),
+      .arg_ranges = {size_range},
+      .args_range = size_range,
+  };
 }
 
-std::unique_ptr<ir_ext::DeleteUniquePointerInstr> FuncParser::ParseDeleteUniqueInstr() {
-  std::shared_ptr<ir::Computed> deleted_unique_pointer = ParseComputedValue(nullptr);
+::ir_serialization::FuncParser::InstrParseResult FuncParser::ParseDeleteUniqueInstr() {
+  const auto& [deleted_unique_pointer, deleted_unique_pointer_range] = ParseComputedValue(nullptr);
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::DeleteUniquePointerInstr>(deleted_unique_pointer);
+  return InstrParseResult{
+      .instr = std::make_unique<ir_ext::DeleteUniquePointerInstr>(deleted_unique_pointer),
+      .arg_ranges = {deleted_unique_pointer_range},
+      .args_range = deleted_unique_pointer_range,
+  };
 }
 
-std::unique_ptr<ir_ext::StringIndexInstr> FuncParser::ParseStringIndexInstr(
+::ir_serialization::FuncParser::InstrParseResult FuncParser::ParseStringIndexInstr(
     std::shared_ptr<ir::Computed> result) {
-  std::shared_ptr<ir::Value> string_operand = ParseValue(ir_ext::string());
+  const auto& [string_operand, string_operand_range] = ParseValue(ir_ext::string());
   scanner().ConsumeToken(::ir_serialization::Scanner::kComma);
 
-  std::shared_ptr<ir::Value> index_operand = ParseValue(ir::i64());
+  const auto& [index_operand, index_operand_range] = ParseValue(ir::i64());
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::StringIndexInstr>(result, string_operand, index_operand);
+  return InstrParseResult{
+      .instr = std::make_unique<ir_ext::StringIndexInstr>(result, string_operand, index_operand),
+      .arg_ranges = {string_operand_range, index_operand_range},
+      .args_range =
+          range_t{
+              .start = string_operand_range.start,
+              .end = index_operand_range.end,
+          },
+  };
 }
 
-std::unique_ptr<ir_ext::StringConcatInstr> FuncParser::ParseStringConcatInstr(
+::ir_serialization::FuncParser::InstrParseResult FuncParser::ParseStringConcatInstr(
     std::shared_ptr<ir::Computed> result) {
-  std::vector<std::shared_ptr<ir::Value>> operands{ParseValue(ir_ext::string())};
-  while (scanner().token() != ::ir_serialization::Scanner::kNewLine) {
-    scanner().ConsumeToken(::ir_serialization::Scanner::kComma);
-
-    operands.push_back(ParseValue(ir_ext::string()));
-  }
+  ValuesParseResult parsed_operands = ParseValues(ir_ext::string());
   scanner().ConsumeToken(::ir_serialization::Scanner::kNewLine);
 
-  return std::make_unique<ir_ext::StringConcatInstr>(result, operands);
+  return InstrParseResult{
+      .instr = std::make_unique<ir_ext::StringConcatInstr>(result, parsed_operands.values),
+      .arg_ranges = parsed_operands.value_ranges,
+      .args_range = parsed_operands.range,
+  };
 }
 
 }  // namespace ir_serialization

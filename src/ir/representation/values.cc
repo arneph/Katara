@@ -18,7 +18,11 @@ using ::common::atomics::Int;
 void Value::WriteRefStringWithType(std::ostream& os) const {
   WriteRefString(os);
   os << ":";
-  type()->WriteRefString(os);
+  if (type() != nullptr) {
+    type()->WriteRefString(os);
+  } else {
+    os << "NULL";
+  }
 }
 
 std::string Value::RefStringWithType() const {
@@ -209,9 +213,9 @@ void InheritedValue::WriteRefString(std::ostream& os) const {
 
 bool InheritedValue::operator==(const Value& that_value) const {
   if (that_value.kind() != Value::Kind::kInherited) return false;
-  auto that = static_cast<const InheritedValue&>(that_value);
-  if (origin() != that.origin()) return false;
-  return IsEqual(value().get(), that.value().get());
+  auto that = static_cast<const InheritedValue*>(&that_value);
+  if (origin() != that->origin()) return false;
+  return IsEqual(value().get(), that->value().get());
 }
 
 }  // namespace ir

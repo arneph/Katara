@@ -18,6 +18,7 @@
 #include "src/common/positions/positions.h"
 #include "src/ir/issues/issues.h"
 #include "src/ir/representation/program.h"
+#include "src/ir/serialization/positions.h"
 
 namespace cmd {
 namespace katara_ir {
@@ -26,6 +27,8 @@ struct ParseDetails {
   ErrorCode error_code;
   std::unique_ptr<ir::Program> program;
   common::positions::FileSet file_set;
+  common::positions::File* program_file;
+  ir_serialization::ProgramPositions program_positions;
   ir_issues::IssueTracker issue_tracker = ir_issues::IssueTracker(&file_set);
 };
 

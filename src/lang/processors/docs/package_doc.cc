@@ -18,8 +18,9 @@ namespace docs {
 using ::common::issues::Severity;
 using ::common::positions::File;
 using ::common::positions::FileSet;
-using ::common::positions::pos_t;
+using ::common::positions::line_number_t;
 using ::common::positions::Position;
+using ::common::positions::range_t;
 
 namespace {
 
@@ -38,22 +39,25 @@ void GenerateIssueDescription(std::ostringstream& ss, packages::Package* package
         break;
     }
     ss << issue.message() << "\n";
-    for (pos_t pos : issue.positions()) {
+    for (range_t range : issue.positions()) {
       ss << "<dd>\n";
-      Position position = pos_file_set->PositionFor(pos);
-      File* pos_file = pos_file_set->FileAt(pos);
-      std::string line = pos_file->LineFor(pos);
+      // TODO: support errors across multiple lines
+      // TODO: specialize PrintIssueRanges for HTML
+      Position position = pos_file_set->PositionFor(range.start);
+      File* pos_file = pos_file_set->FileAt(range.start);
+      line_number_t line_number = pos_file->LineNumberOfPosition(range.start);
+      std::string line = pos_file->LineWithNumber(line_number);
       size_t whitespace = 0;
       for (; whitespace < line.length(); whitespace++) {
         if (line.at(whitespace) != ' ' && line.at(whitespace) != '\t') {
           break;
         }
       }
-      ss << "<a href=\"" << pos_file->name() << ".html#p" << pos << "\">" << position.ToString()
-         << "</a>:<br/>";
+      ss << "<a href=\"" << pos_file->name() << ".html#p" << range.start << "\">"
+         << position.ToString() << "</a>:<br/>";
       ss << "<div style=\"font-family:'Courier New'\">";
       ss << line.substr(whitespace) << "<br/>";
-      for (size_t i = 0; i < position.column_ - whitespace; i++) {
+      for (size_t i = 0; i < position.column() - whitespace; i++) {
         ss << "&nbsp;";
       }
       ss << "^</div>\n";

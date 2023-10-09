@@ -11,12 +11,15 @@
 
 #include "src/ir/check/check.h"
 #include "src/ir/representation/program.h"
+#include "src/ir/serialization/positions.h"
 #include "src/lang/processors/ir/check/checker.h"
 
 namespace lang::ir_check {
 
-void CheckProgram(const ir::Program* program, ir_issues::IssueTracker& issue_tracker) {
-  ::ir_check::CheckProgram<Checker>(program, issue_tracker);
+void CheckProgram(const ir::Program* program,
+                  const ir_serialization::ProgramPositions& program_positions,
+                  ir_issues::IssueTracker& issue_tracker) {
+  ::ir_check::CheckProgram<Checker>(program, program_positions, issue_tracker);
 }
 
 }  // namespace lang::ir_check

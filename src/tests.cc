@@ -48,7 +48,7 @@ void run_ir_test(std::filesystem::path test_dir) {
   in_sstream << in_fstream.rdbuf();
   std::unique_ptr<ir::Program> ir_program = ir_serialization::ParseProgramOrDie(in_sstream.str());
 
-  ir_serialization::Print(ir_program.get(), std::cout);
+  std::cout << ir_serialization::PrintProgram(ir_program.get());
   std::cout << "\n";
 
   for (auto& func : ir_program->funcs()) {

@@ -9,6 +9,7 @@
 #include "coordinator.h"
 
 #include "src/common/logging/logging.h"
+#include "src/common/positions/positions.h"
 #include "src/lang/representation/ast/ast_util.h"
 #include "src/lang/representation/tokens/tokens.h"
 
@@ -113,7 +114,7 @@ void Coordinator::FindActionsForTypeDecl(ast::GenDecl* type_decl) {
         if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
             prerequisite->object_kind() != types::ObjectKind::kConstant) {
           issues_.Add(issues::kUnexpectedTypeDependency,
-                      {type_name->position(), prerequisite->position()},
+                      std::vector<pos_t>{type_name->position(), prerequisite->position()},
                       "type can only depend on types and constants");
         }
       }
@@ -125,7 +126,7 @@ void Coordinator::FindActionsForTypeDecl(ast::GenDecl* type_decl) {
       if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
           prerequisite->object_kind() != types::ObjectKind::kConstant) {
         issues_.Add(issues::kUnexpectedTypeDependency,
-                    {type_name->position(), prerequisite->position()},
+                    std::vector<pos_t>{type_name->position(), prerequisite->position()},
                     "type can only depend on types and constants");
       }
     }
@@ -172,7 +173,7 @@ void Coordinator::FindActionsForConstDecl(ast::GenDecl* const_decl) {
         if (prerequisite->object_kind() != types::ObjectKind::kTypeName &&
             prerequisite->object_kind() != types::ObjectKind::kConstant) {
           issues_.Add(issues::kUnexpectedConstantDependency,
-                      {constant->position(), prerequisite->position()},
+                      std::vector<pos_t>{constant->position(), prerequisite->position()},
                       "constant can only depend on types and constants");
         }
       }

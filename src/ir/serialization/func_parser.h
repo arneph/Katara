@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "src/common/positions/positions.h"
 #include "src/ir/issues/issues.h"
 #include "src/ir/representation/block.h"
 #include "src/ir/representation/func.h"
@@ -23,6 +24,7 @@
 #include "src/ir/representation/types.h"
 #include "src/ir/representation/values.h"
 #include "src/ir/serialization/constant_parser.h"
+#include "src/ir/serialization/positions.h"
 #include "src/ir/serialization/scanner.h"
 #include "src/ir/serialization/type_parser.h"
 
@@ -31,25 +33,52 @@ namespace ir_serialization {
 class FuncParser {
  public:
   FuncParser(Scanner& scanner, ir_issues::IssueTracker& issue_tracker, TypeParser* type_parser,
-             ConstantParser* constant_parser, ir::Program* program, int64_t func_num_offset)
+             ConstantParser* constant_parser, ir::Program* program,
+             ProgramPositions& program_positions, int64_t func_num_offset)
       : scanner_(scanner),
         issue_tracker_(issue_tracker),
         type_parser_(type_parser),
         constant_parser_(constant_parser),
         program_(program),
+        program_positions_(program_positions),
         func_num_offset_(func_num_offset) {}
   virtual ~FuncParser() = default;
 
   ir::Func* ParseFunc();
 
  protected:
-  virtual std::unique_ptr<ir::Instr> ParseInstrWithResults(
-      std::vector<std::shared_ptr<ir::Computed>> results, std::string instr_name);
+  struct ValuesParseResult {
+    std::vector<std::shared_ptr<ir::Value>> values;
+    std::vector<common::positions::range_t> value_ranges;
+    common::positions::range_t range;
+  };
+  ValuesParseResult ParseValues(const ir::Type* expected_type);
+  struct ValueParseResult {
+    std::shared_ptr<ir::Value> value;
+    common::positions::range_t range;
+  };
+  ValueParseResult ParseValue(const ir::Type* expected_type);
 
-  std::vector<std::shared_ptr<ir::Value>> ParseValues(const ir::Type* expected_type);
-  std::shared_ptr<ir::Value> ParseValue(const ir::Type* expected_type);
-  std::vector<std::shared_ptr<ir::Computed>> ParseComputedValues(const ir::Type* expected_type);
-  std::shared_ptr<ir::Computed> ParseComputedValue(const ir::Type* expected_type);
+  struct ComputedValuesParseResult {
+    std::vector<std::shared_ptr<ir::Computed>> values;
+    std::vector<common::positions::range_t> value_ranges;
+    common::positions::range_t range;
+  };
+  ComputedValuesParseResult ParseComputedValues(const ir::Type* expected_type);
+  struct ComputedValueParseResult {
+    std::shared_ptr<ir::Computed> value;
+    common::positions::range_t range;
+  };
+  ComputedValueParseResult ParseComputedValue(const ir::Type* expected_type);
+
+  struct InstrParseResult {
+    std::unique_ptr<ir::Instr> instr;
+    std::vector<common::positions::range_t> arg_ranges;
+    common::positions::range_t args_range;
+  };
+  static InstrParseResult NoInstrParseResult();
+  virtual InstrParseResult ParseInstrWithResults(std::vector<std::shared_ptr<ir::Computed>> results,
+                                                 std::string instr_name);
 
   Scanner& scanner() { return scanner_; }
   ir_issues::IssueTracker& issue_tracker() { return issue_tracker_; }
@@ -58,51 +87,72 @@ class FuncParser {
   ir::Program* program() { return program_; }
 
  private:
+  struct FuncNumberParseResult {
+    ir::func_num_t func_num;
+    common::positions::range_t range;
+  };
+  FuncNumberParseResult ParseFuncNumber();
   void ParseFuncArgs();
   void ParseFuncResultTypes();
-  common::positions::pos_t ParseFuncBody();
+  void ParseFuncBody();
   void ConnectBlocks();
+
   void ParseBlock();
+  struct BlockNumberParseResult {
+    ir::block_num_t block_num;
+    common::positions::range_t range;
+  };
+  BlockNumberParseResult ParseBlockNumber();
+  void ParseBlockBody(ir::Block* block, BlockPositions& block_positions);
 
   std::unique_ptr<ir::Instr> ParseInstr();
-  std::unique_ptr<ir::MovInstr> ParseMovInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::PhiInstr> ParsePhiInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::Conversion> ParseConversionInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::BoolNotInstr> ParseBoolNotInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::BoolBinaryInstr> ParseBoolBinaryInstr(std::shared_ptr<ir::Computed> result,
-                                                            common::atomics::Bool::BinaryOp op);
-  std::unique_ptr<ir::IntUnaryInstr> ParseIntUnaryInstr(std::shared_ptr<ir::Computed> result,
-                                                        common::atomics::Int::UnaryOp op);
-  std::unique_ptr<ir::IntCompareInstr> ParseIntCompareInstr(std::shared_ptr<ir::Computed> result,
-                                                            common::atomics::Int::CompareOp op);
-  std::unique_ptr<ir::IntBinaryInstr> ParseIntBinaryInstr(std::shared_ptr<ir::Computed> result,
-                                                          common::atomics::Int::BinaryOp op);
-  std::unique_ptr<ir::IntShiftInstr> ParseIntShiftInstr(std::shared_ptr<ir::Computed> result,
-                                                        common::atomics::Int::ShiftOp op);
-  std::unique_ptr<ir::PointerOffsetInstr> ParsePointerOffsetInstr(
-      std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::NilTestInstr> ParseNilTestInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::MallocInstr> ParseMallocInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::LoadInstr> ParseLoadInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::StoreInstr> ParseStoreInstr();
-  std::unique_ptr<ir::FreeInstr> ParseFreeInstr();
-  std::unique_ptr<ir::JumpInstr> ParseJumpInstr();
-  std::unique_ptr<ir::JumpCondInstr> ParseJumpCondInstr();
-  std::unique_ptr<ir::SyscallInstr> ParseSyscallInstr(std::shared_ptr<ir::Computed> result);
-  std::unique_ptr<ir::CallInstr> ParseCallInstr(std::vector<std::shared_ptr<ir::Computed>> results);
-  std::unique_ptr<ir::ReturnInstr> ParseReturnInstr();
+  InstrParseResult ParseMovInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParsePhiInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseConversionInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseBoolNotInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseBoolBinaryInstr(std::shared_ptr<ir::Computed> result,
+                                        common::atomics::Bool::BinaryOp op);
+  InstrParseResult ParseIntUnaryInstr(std::shared_ptr<ir::Computed> result,
+                                      common::atomics::Int::UnaryOp op);
+  InstrParseResult ParseIntCompareInstr(std::shared_ptr<ir::Computed> result,
+                                        common::atomics::Int::CompareOp op);
+  InstrParseResult ParseIntBinaryInstr(std::shared_ptr<ir::Computed> result,
+                                       common::atomics::Int::BinaryOp op);
+  InstrParseResult ParseIntShiftInstr(std::shared_ptr<ir::Computed> result,
+                                      common::atomics::Int::ShiftOp op);
+  InstrParseResult ParsePointerOffsetInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseNilTestInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseMallocInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseLoadInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseStoreInstr();
+  InstrParseResult ParseFreeInstr();
+  InstrParseResult ParseJumpInstr();
+  InstrParseResult ParseJumpCondInstr();
+  InstrParseResult ParseSyscallInstr(std::shared_ptr<ir::Computed> result);
+  InstrParseResult ParseCallInstr(std::vector<std::shared_ptr<ir::Computed>> results);
+  InstrParseResult ParseReturnInstr();
 
-  std::vector<std::shared_ptr<ir::Computed>> ParseInstrResults();
-  std::shared_ptr<ir::InheritedValue> ParseInheritedValue(const ir::Type* expected_type);
-  ir::block_num_t ParseBlockValue();
+  ComputedValuesParseResult ParseInstrResults();
+  struct InheritedValueParseResult {
+    std::shared_ptr<ir::InheritedValue> value;
+    common::positions::range_t range;
+  };
+  InheritedValueParseResult ParseInheritedValue(const ir::Type* expected_type);
+  struct BlockValueParseResult {
+    ir::block_num_t value;
+    common::positions::range_t range;
+  };
+  BlockValueParseResult ParseBlockValue();
 
   Scanner& scanner_;
   ir_issues::IssueTracker& issue_tracker_;
   TypeParser* type_parser_;
   ConstantParser* constant_parser_;
   ir::Program* program_;
+  ProgramPositions& program_positions_;
   int64_t func_num_offset_;
   ir::Func* func_;
+  FuncPositions func_positions_;
   std::unordered_map<ir::value_num_t, std::shared_ptr<ir::Computed>> computed_values_;
 };
 

@@ -51,8 +51,9 @@ class Scanner {
       : file_(file), issue_tracker_(issue_tracker), pos_(file->start()) {}
 
   Token token() const { return token_; }
-  common::positions::pos_t token_start() const { return token_start_; }
-  common::positions::pos_t token_end() const { return token_end_; }
+  common::positions::pos_t token_start() const { return token_range_.start; }
+  common::positions::pos_t token_end() const { return token_range_.end; }
+  common::positions::range_t token_range() const { return token_range_; }
   std::string token_text() const;
   common::atomics::Int token_number() const;
   common::atomics::Int token_address() const;
@@ -80,8 +81,7 @@ class Scanner {
   common::positions::pos_t pos_;
 
   Token token_ = kUnknown;
-  common::positions::pos_t token_start_ = common::positions::kNoPos;
-  common::positions::pos_t token_end_ = common::positions::kNoPos;
+  common::positions::range_t token_range_ = common::positions::kNoRange;
 };
 
 }  // namespace ir_serialization

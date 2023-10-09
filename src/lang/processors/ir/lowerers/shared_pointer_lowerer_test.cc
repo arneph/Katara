@@ -335,12 +335,13 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
 TEST_P(SharedPointerLowererTest, LowersProgram) {
   std::unique_ptr<ir::Program> lowered_program =
       lang::ir_serialization::ParseProgramOrDie(GetParam().input_program);
-  std::unique_ptr<ir::Program> expected_program =
-      lang::ir_serialization::ParseProgramOrDie(GetParam().expected_program);
   lang::ir_check::CheckProgramOrDie(lowered_program.get());
+
+  auto [expected_program, expected_program_positions] =
+      lang::ir_serialization::ParseProgramWithPositionsOrDie(GetParam().expected_program);
   common::positions::FileSet file_set;
   ir_issues::IssueTracker issue_tracker(&file_set);
-  lang::ir_check::CheckProgram(expected_program.get(), issue_tracker);
+  lang::ir_check::CheckProgram(expected_program.get(), expected_program_positions, issue_tracker);
   ASSERT_THAT(issue_tracker.issues(),
               Each(Property(&ir_issues::Issue::kind,
                             ir_issues::IssueKind::kCallInstrStaticCalleeDoesNotExist)));
@@ -352,7 +353,7 @@ TEST_P(SharedPointerLowererTest, LowersProgram) {
     EXPECT_TRUE(
         ir::IsEqual(lowered_program->GetFunc(func_num), expected_program->GetFunc(func_num)))
         << "Expected different lowered function:\n"
-        << ir_serialization::Print(expected_program->GetFunc(func_num)) << "\ngot:\n"
-        << ir_serialization::Print(lowered_program->GetFunc(func_num));
+        << ir_serialization::PrintFunc(expected_program->GetFunc(func_num)) << "\ngot:\n"
+        << ir_serialization::PrintFunc(lowered_program->GetFunc(func_num));
   }
 }

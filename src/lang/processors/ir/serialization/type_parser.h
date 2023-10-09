@@ -27,13 +27,13 @@ class TypeParser : public ::ir_serialization::TypeParser {
       : ::ir_serialization::TypeParser(scanner, issue_tracker, program) {}
 
  private:
-  const ir::Type* ParseType() override;
-  const ir_ext::SharedPointer* ParseSharedPointer();
-  const ir_ext::UniquePointer* ParseUniquePointer();
-  const ir_ext::Array* ParseArray();
-  const ir_ext::Struct* ParseStruct();
+  TypeParseResult ParseType() override;
+  TypeParseResult ParseSharedPointer();
+  TypeParseResult ParseUniquePointer();
+  TypeParseResult ParseArray();
+  TypeParseResult ParseStruct();
   void ParseStructField(ir_ext::StructBuilder& builder);
-  const ir_ext::Interface* ParseInterface();
+  TypeParseResult ParseInterface();
   void ParseInterfaceMethod(ir_ext::InterfaceBuilder& builder);
 };
 
