@@ -368,8 +368,8 @@ void Checker::CheckMovInstr(const ir::MovInstr* mov_instr,
                             const ir_serialization::InstrPositions& mov_instr_positions) {
   if (!ir::IsEqual(mov_instr->origin()->type(), mov_instr->result()->type())) {
     issue_tracker().Add(ir_issues::IssueKind::kMovInstrOriginAndResultHaveMismatchedTypes,
-                        {mov_instr_positions.defined_value_ranges().front(),
-                         mov_instr_positions.used_value_ranges().front()},
+                        {ir_serialization::GetMovInstrResultRange(mov_instr_positions),
+                         ir_serialization::GetMovInstrOperandRange(mov_instr_positions)},
                         "ir::MovInstr has with mismatched origin and result type");
   }
 }
@@ -400,8 +400,8 @@ void Checker::CheckPhiInstr(const ir::PhiInstr* phi_instr,
 
     if (!ir::IsEqual(arg->type(), phi_instr->result()->type())) {
       issue_tracker().Add(ir_issues::IssueKind::kPhiInstrArgAndResultHaveMismatchedTypes,
-                          {phi_instr_positions.defined_value_ranges().front(),
-                           phi_instr_positions.used_value_ranges().at(i)},
+                          {ir_serialization::GetPhiInstrResultRange(phi_instr_positions),
+                           ir_serialization::GetPhiInstrOperandRange(i, phi_instr_positions)},
                           "ir::PhiInstr has mismatched arg and result type");
     }
   }
@@ -429,7 +429,7 @@ void Checker::CheckConversion(const ir::Conversion* conversion,
       break;
     default:
       issue_tracker().Add(ir_issues::IssueKind::kConversionOperandHasUnsupportedType,
-                          conversion_positions.used_value_ranges().front(),
+                          ir_serialization::GetConversionOperandRange(conversion_positions),
                           "ir::Conversion has operand with unsupported type");
   }
   switch (conversion->result()->type()->type_kind()) {
@@ -440,7 +440,7 @@ void Checker::CheckConversion(const ir::Conversion* conversion,
       break;
     default:
       issue_tracker().Add(ir_issues::IssueKind::kConversionResultHasUnsupportedType,
-                          conversion_positions.defined_value_ranges().front(),
+                          ir_serialization::GetConversionResultRange(conversion_positions),
                           "ir::Conversion has result with unsupported type");
   }
 }
@@ -449,12 +449,12 @@ void Checker::CheckBoolNotInstr(const ir::BoolNotInstr* bool_not_instr,
                                 const ir_serialization::InstrPositions& bool_not_instr_positions) {
   if (bool_not_instr->operand()->type() != ir::bool_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kBoolNotInstrOperandDoesNotHaveBoolType,
-                        bool_not_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetBoolNotInstrOperandRange(bool_not_instr_positions),
                         "ir::BoolNotInstr operand does not have bool type");
   }
   if (bool_not_instr->result()->type() != ir::bool_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kBoolNotInstrResultDoesNotHaveBoolType,
-                        bool_not_instr_positions.defined_value_ranges().front(),
+                        ir_serialization::GetBoolNotInstrResultRange(bool_not_instr_positions),
                         "ir::BoolNotInstr result does not have bool type");
   }
 }
@@ -469,13 +469,14 @@ void Checker::CheckBoolBinaryInstr(
     }
   };
   check_operand(bool_binary_instr->operand_a().get(),
-                bool_binary_instr_positions.used_value_ranges().at(0));
+                ir_serialization::GetBoolBinaryInstrOperandARange(bool_binary_instr_positions));
   check_operand(bool_binary_instr->operand_b().get(),
-                bool_binary_instr_positions.used_value_ranges().at(1));
+                ir_serialization::GetBoolBinaryInstrOperandBRange(bool_binary_instr_positions));
   if (bool_binary_instr->result()->type() != ir::bool_type()) {
-    issue_tracker().Add(ir_issues::IssueKind::kBoolBinaryInstrResultDoesNotHaveBoolType,
-                        bool_binary_instr_positions.defined_value_ranges().front(),
-                        "ir::BoolBinaryInstr result does not have bool type");
+    issue_tracker().Add(
+        ir_issues::IssueKind::kBoolBinaryInstrResultDoesNotHaveBoolType,
+        ir_serialization::GetBoolBinaryInstrResultRange(bool_binary_instr_positions),
+        "ir::BoolBinaryInstr result does not have bool type");
   }
 }
 
@@ -484,18 +485,18 @@ void Checker::CheckIntUnaryInstr(
     const ir_serialization::InstrPositions& int_unary_instr_positions) {
   if (int_unary_instr->operand()->type()->type_kind() != ir::TypeKind::kInt) {
     issue_tracker().Add(ir_issues::IssueKind::kIntUnaryInstrOperandDoesNotHaveIntType,
-                        int_unary_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetIntUnaryInstrOperandRange(int_unary_instr_positions),
                         "ir::IntUnaryInstr operand does not have int type");
   }
   if (int_unary_instr->result()->type()->type_kind() != ir::TypeKind::kInt) {
     issue_tracker().Add(ir_issues::IssueKind::kIntUnaryInstrResultDoesNotHaveIntType,
-                        int_unary_instr_positions.defined_value_ranges().front(),
+                        ir_serialization::GetIntUnaryInstrResultRange(int_unary_instr_positions),
                         "ir::IntUnaryInstr result does not have int type");
   }
   if (int_unary_instr->result()->type() != int_unary_instr->operand()->type()) {
     issue_tracker().Add(ir_issues::IssueKind::kIntUnaryInstrResultAndOperandHaveDifferentTypes,
-                        {int_unary_instr_positions.defined_value_ranges().front(),
-                         int_unary_instr_positions.used_value_ranges().front()},
+                        {ir_serialization::GetIntUnaryInstrResultRange(int_unary_instr_positions),
+                         ir_serialization::GetIntUnaryInstrOperandRange(int_unary_instr_positions)},
                         "ir::IntUnaryInstr result and operand have different types");
   }
 }
@@ -510,19 +511,21 @@ void Checker::CheckIntCompareInstr(
     }
   };
   check_operand(int_compare_instr->operand_a().get(),
-                int_compare_instr_positions.used_value_ranges().at(0));
+                ir_serialization::GetIntCompareInstrOperandARange(int_compare_instr_positions));
   check_operand(int_compare_instr->operand_b().get(),
-                int_compare_instr_positions.used_value_ranges().at(1));
+                ir_serialization::GetIntCompareInstrOperandBRange(int_compare_instr_positions));
   if (int_compare_instr->operand_a()->type() != int_compare_instr->operand_b()->type()) {
-    issue_tracker().Add(ir_issues::IssueKind::kIntCompareInstrOperandsHaveDifferentTypes,
-                        {int_compare_instr_positions.used_value_ranges().at(0),
-                         int_compare_instr_positions.used_value_ranges().at(1)},
-                        "ir::IntCompareInstr operands have different types");
+    issue_tracker().Add(
+        ir_issues::IssueKind::kIntCompareInstrOperandsHaveDifferentTypes,
+        {ir_serialization::GetIntCompareInstrOperandARange(int_compare_instr_positions),
+         ir_serialization::GetIntCompareInstrOperandBRange(int_compare_instr_positions)},
+        "ir::IntCompareInstr operands have different types");
   }
   if (int_compare_instr->result()->type() != ir::bool_type()) {
-    issue_tracker().Add(ir_issues::IssueKind::kIntCompareInstrResultDoesNotHaveBoolType,
-                        int_compare_instr_positions.defined_value_ranges().front(),
-                        "ir::IntCompareInstr result does not have bool type");
+    issue_tracker().Add(
+        ir_issues::IssueKind::kIntCompareInstrResultDoesNotHaveBoolType,
+        ir_serialization::GetIntCompareInstrResultRange(int_compare_instr_positions),
+        "ir::IntCompareInstr result does not have bool type");
   }
 }
 
@@ -536,18 +539,18 @@ void Checker::CheckIntBinaryInstr(
     }
   };
   check_operand(int_binary_instr->operand_a().get(),
-                int_binary_instr_positions.used_value_ranges().at(0));
+                ir_serialization::GetIntBinaryInstrOperandARange(int_binary_instr_positions));
   check_operand(int_binary_instr->operand_b().get(),
-                int_binary_instr_positions.used_value_ranges().at(1));
+                ir_serialization::GetIntBinaryInstrOperandBRange(int_binary_instr_positions));
   if (int_binary_instr->result()->type()->type_kind() != ir::TypeKind::kInt) {
     issue_tracker().Add(ir_issues::IssueKind::kIntBinaryInstrResultDoesNotHaveIntType,
-                        int_binary_instr_positions.defined_value_ranges().front(),
+                        ir_serialization::GetIntBinaryInstrResultRange(int_binary_instr_positions),
                         "ir::IntBinaryInstr result does not have int type");
   }
   if (int_binary_instr->result()->type() != int_binary_instr->operand_a()->type() ||
       int_binary_instr->result()->type() != int_binary_instr->operand_b()->type()) {
     issue_tracker().Add(ir_issues::IssueKind::kIntBinaryInstrOperandsAndResultHaveDifferentTypes,
-                        {int_binary_instr_positions.defined_value_ranges().front(),
+                        {ir_serialization::GetIntBinaryInstrResultRange(int_binary_instr_positions),
                          int_binary_instr_positions.used_values_range()},
                         "ir::IntBinaryInstr operands and result have different types");
   }
@@ -563,18 +566,18 @@ void Checker::CheckIntShiftInstr(
     }
   };
   check_operand(int_shift_instr->shifted().get(),
-                int_shift_instr_positions.used_value_ranges().at(0));
+                ir_serialization::GetIntShiftInstrShiftedRange(int_shift_instr_positions));
   check_operand(int_shift_instr->offset().get(),
-                int_shift_instr_positions.used_value_ranges().at(1));
+                ir_serialization::GetIntShiftInstrOffsetRange(int_shift_instr_positions));
   if (int_shift_instr->result()->type()->type_kind() != ir::TypeKind::kInt) {
     issue_tracker().Add(ir_issues::IssueKind::kIntShiftInstrResultDoesNotHaveIntType,
-                        int_shift_instr_positions.defined_value_ranges().front(),
+                        ir_serialization::GetIntShiftInstrResultRange(int_shift_instr_positions),
                         "ir::IntShiftInstr result does not have int type");
   }
   if (int_shift_instr->result()->type() != int_shift_instr->shifted()->type()) {
     issue_tracker().Add(ir_issues::IssueKind::kIntShiftInstrShiftedAndResultHaveDifferentTypes,
-                        {int_shift_instr_positions.defined_value_ranges().front(),
-                         int_shift_instr_positions.used_value_ranges().at(0)},
+                        {ir_serialization::GetIntShiftInstrResultRange(int_shift_instr_positions),
+                         ir_serialization::GetIntShiftInstrShiftedRange(int_shift_instr_positions)},
                         "ir::IntShiftInstr shifted and result have different types");
   }
 }
@@ -583,19 +586,22 @@ void Checker::CheckPointerOffsetInstr(
     const ir::PointerOffsetInstr* pointer_offset_instr,
     const ir_serialization::InstrPositions& pointer_offset_instr_positions) {
   if (pointer_offset_instr->pointer()->type() != ir::pointer_type()) {
-    issue_tracker().Add(ir_issues::IssueKind::kPointerOffsetInstrPointerDoesNotHavePointerType,
-                        pointer_offset_instr_positions.used_value_ranges().at(0),
-                        "ir::PointerOffsetInstr pointer does not have pointer type");
+    issue_tracker().Add(
+        ir_issues::IssueKind::kPointerOffsetInstrPointerDoesNotHavePointerType,
+        ir_serialization::GetPointerOffsetInstrPointerRange(pointer_offset_instr_positions),
+        "ir::PointerOffsetInstr pointer does not have pointer type");
   }
   if (pointer_offset_instr->offset()->type() != ir::i64()) {
-    issue_tracker().Add(ir_issues::IssueKind::kPointerOffsetInstrOffsetDoesNotHaveI64Type,
-                        pointer_offset_instr_positions.used_value_ranges().at(1),
-                        "ir::PointerOffsetInstr offset does not have I64 type");
+    issue_tracker().Add(
+        ir_issues::IssueKind::kPointerOffsetInstrOffsetDoesNotHaveI64Type,
+        ir_serialization::GetPointerOffsetInstrOffsetRange(pointer_offset_instr_positions),
+        "ir::PointerOffsetInstr offset does not have I64 type");
   }
   if (pointer_offset_instr->result()->type() != ir::pointer_type()) {
-    issue_tracker().Add(ir_issues::IssueKind::kPointerOffsetInstrResultDoesNotHavePointerType,
-                        pointer_offset_instr_positions.defined_value_ranges().front(),
-                        "ir::PointerOffsetInstr result does not have pointer type");
+    issue_tracker().Add(
+        ir_issues::IssueKind::kPointerOffsetInstrResultDoesNotHavePointerType,
+        ir_serialization::GetPointerOffsetInstrResultRange(pointer_offset_instr_positions),
+        "ir::PointerOffsetInstr result does not have pointer type");
   }
 }
 
@@ -604,12 +610,12 @@ void Checker::CheckNilTestInstr(const ir::NilTestInstr* nil_test_instr,
   if (nil_test_instr->tested()->type() != ir::pointer_type() &&
       nil_test_instr->tested()->type() != ir::func_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kNilTestInstrTestedDoesNotHavePointerOrFuncType,
-                        nil_test_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetNilTestInstrTestedRange(nil_test_instr_positions),
                         "ir::NilTestInstr tested does not have pointer or func type");
   }
   if (nil_test_instr->result()->type() != ir::bool_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kNilTestInstrResultDoesNotHaveBoolType,
-                        nil_test_instr_positions.defined_value_ranges().front(),
+                        ir_serialization::GetNilTestInstrResultRange(nil_test_instr_positions),
                         "ir::NilTestInstr result does not have bool type");
   }
 }
@@ -618,12 +624,12 @@ void Checker::CheckMallocInstr(const ir::MallocInstr* malloc_instr,
                                const ir_serialization::InstrPositions& malloc_instr_positions) {
   if (malloc_instr->size()->type() != ir::i64()) {
     issue_tracker().Add(ir_issues::IssueKind::kMallocInstrSizeDoesNotHaveI64Type,
-                        malloc_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetMallocInstrSizeRange(malloc_instr_positions),
                         "ir::MallocInstr size does not have I64 type");
   }
   if (malloc_instr->result()->type() != ir::pointer_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kMallocInstrResultDoesNotHavePointerType,
-                        malloc_instr_positions.defined_value_ranges().front(),
+                        ir_serialization::GetMallocInstrResultRange(malloc_instr_positions),
                         "ir::MallocInstr result does not have pointer type");
   }
 }
@@ -632,7 +638,7 @@ void Checker::CheckLoadInstr(const ir::LoadInstr* load_instr,
                              const ir_serialization::InstrPositions& load_instr_positions) {
   if (load_instr->address()->type() != ir::pointer_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kLoadInstrAddressDoesNotHavePointerType,
-                        load_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetLoadInstrAddressRange(load_instr_positions),
                         "ir::LoadInstr address does not have pointer type");
   }
 }
@@ -641,7 +647,7 @@ void Checker::CheckStoreInstr(const ir::StoreInstr* store_instr,
                               const ir_serialization::InstrPositions& store_instr_positions) {
   if (store_instr->address()->type() != ir::pointer_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kStoreInstrAddressDoesNotHavePointerType,
-                        store_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetStoreInstrAddressRange(store_instr_positions),
                         "ir::StoreInstr address does not have pointer type");
   }
 }
@@ -650,7 +656,7 @@ void Checker::CheckFreeInstr(const ir::FreeInstr* free_instr,
                              const ir_serialization::InstrPositions& free_instr_positions) {
   if (free_instr->address()->type() != ir::pointer_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kFreeInstrAddressDoesNotHavePointerType,
-                        free_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetFreeInstrAddressRange(free_instr_positions),
                         "ir::FreeInstr address does not have pointer type");
   }
 }
@@ -718,19 +724,19 @@ void Checker::CheckSyscallInstr(const ir::SyscallInstr* syscall_instr,
                                 const ir_serialization::InstrPositions& syscall_instr_positions) {
   if (syscall_instr->result()->type() != ir::i64()) {
     issue_tracker().Add(ir_issues::IssueKind::kSyscallInstrResultDoesNotHaveI64Type,
-                        syscall_instr_positions.defined_value_ranges().front(),
+                        ir_serialization::GetSyscallInstrResultRange(syscall_instr_positions),
                         "ir::SyscallInstr result does not have I64 type");
   }
   if (syscall_instr->syscall_num()->type() != ir::i64()) {
     issue_tracker().Add(ir_issues::IssueKind::kSyscallInstrSyscallNumberDoesNotHaveI64Type,
-                        syscall_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetSyscallInstrNumberRange(syscall_instr_positions),
                         "ir::SyscallInstr syscall number does not have I64 type");
   }
   for (std::size_t i = 0; i < syscall_instr->args().size(); i++) {
     ir::Value* arg = syscall_instr->args().at(i).get();
     if (arg->type() != ir::i64()) {
       issue_tracker().Add(ir_issues::IssueKind::kSyscallInstrArgDoesNotHaveI64Type,
-                          syscall_instr_positions.used_value_ranges().at(i + 1),
+                          ir_serialization::GetSyscallInstrArgRange(i, syscall_instr_positions),
                           "ir::SyscallInstr arg does not have I64 type");
     }
   }
@@ -740,7 +746,7 @@ void Checker::CheckCallInstr(const ir::CallInstr* call_instr,
                              const ir_serialization::InstrPositions& call_instr_positions) {
   if (call_instr->func()->type() != ir::func_type()) {
     issue_tracker().Add(ir_issues::IssueKind::kCallInstrCalleeDoesNotHaveFuncType,
-                        call_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetCallInstrFuncRange(call_instr_positions),
                         "ir::CallInstr callee does not have func type");
   }
   if (call_instr->func()->kind() != ir::Value::Kind::kConstant) {
@@ -749,7 +755,7 @@ void Checker::CheckCallInstr(const ir::CallInstr* call_instr,
   ir::func_num_t callee_num = static_cast<ir::FuncConstant*>(call_instr->func().get())->value();
   if (!program_->HasFunc(callee_num)) {
     issue_tracker().Add(ir_issues::IssueKind::kCallInstrStaticCalleeDoesNotExist,
-                        call_instr_positions.used_value_ranges().front(),
+                        ir_serialization::GetCallInstrFuncRange(call_instr_positions),
                         "ir::CallInstr static callee func does not exist");
     return;
   }
@@ -767,7 +773,7 @@ void Checker::CheckCallInstr(const ir::CallInstr* call_instr,
       const ir::Type* expected_arg_type = callee->args().at(i)->type();
       if (!ir::IsEqual(actual_arg_type, expected_arg_type)) {
         issue_tracker().Add(ir_issues::IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature,
-                            {call_instr_positions.used_value_ranges().at(i + 1),
+                            {ir_serialization::GetCallInstrArgRange(i, call_instr_positions),
                              callee_positions.arg_ranges().at(i)},
                             "ir::CallInstr and static callee argument type are mismatched");
       }
@@ -784,7 +790,7 @@ void Checker::CheckCallInstr(const ir::CallInstr* call_instr,
       const ir::Type* expected_result_type = callee->result_types().at(i);
       if (!ir::IsEqual(actual_result_type, expected_result_type)) {
         issue_tracker().Add(ir_issues::IssueKind::kCallInstrDoesNotMatchStaticCalleeSignature,
-                            {call_instr_positions.defined_value_ranges().at(i),
+                            {ir_serialization::GetCallInstrResultRange(i, call_instr_positions),
                              callee_positions.result_ranges().at(i)},
                             "ir::CallInstr and static callee result type are mismatched");
       }
@@ -816,10 +822,10 @@ void Checker::CheckReturnInstr(const ir::ReturnInstr* return_instr,
     const ir::Type* actual_return_type = actual_return_value->type();
     const ir::Type* expected_return_type = func->result_types().at(i);
     if (!ir::IsEqual(actual_return_type, expected_return_type)) {
-      issue_tracker().Add(
-          ir_issues::IssueKind::kReturnInstrDoesNotMatchFuncSignature,
-          {return_instr_positions.used_value_ranges().at(i), func_positions.result_ranges().at(i)},
-          "ir::ReturnInstr arg and ir::Func result type are mismatched");
+      issue_tracker().Add(ir_issues::IssueKind::kReturnInstrDoesNotMatchFuncSignature,
+                          {ir_serialization::GetReturnInstrResultRange(i, return_instr_positions),
+                           func_positions.result_ranges().at(i)},
+                          "ir::ReturnInstr arg and ir::Func result type are mismatched");
     }
   }
 }

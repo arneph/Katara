@@ -95,6 +95,11 @@ class Computation : public Instr {
 
 class MovInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kOperandIndex = 0;
+
   MovInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> origin)
       : Computation(result), origin_(origin) {}
 
@@ -116,6 +121,9 @@ class MovInstr : public Computation {
 
 class PhiInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+
   PhiInstr(std::shared_ptr<Computed> result, std::vector<std::shared_ptr<InheritedValue>> args)
       : Computation(result), args_(args) {}
 
@@ -138,6 +146,11 @@ class PhiInstr : public Computation {
 
 class Conversion : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kOperandIndex = 0;
+
   Conversion(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
       : Computation(result), operand_(operand) {}
 
@@ -157,6 +170,11 @@ class Conversion : public Computation {
 
 class BoolNotInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kOperandIndex = 0;
+
   BoolNotInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> operand)
       : Computation(result), operand_(operand) {}
 
@@ -176,6 +194,12 @@ class BoolNotInstr : public Computation {
 
 class BoolBinaryInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kOperandAIndex = 0;
+  static constexpr std::size_t kOperandBIndex = 1;
+
   BoolBinaryInstr(std::shared_ptr<Computed> result, common::atomics::Bool::BinaryOp operation,
                   std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
       : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
@@ -206,6 +230,11 @@ class BoolBinaryInstr : public Computation {
 
 class IntUnaryInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kOperandIndex = 0;
+
   IntUnaryInstr(std::shared_ptr<Computed> result, common::atomics::Int::UnaryOp operation,
                 std::shared_ptr<Value> operand)
       : Computation(result), operation_(operation), operand_(operand) {}
@@ -230,6 +259,12 @@ class IntUnaryInstr : public Computation {
 
 class IntCompareInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kOperandAIndex = 0;
+  static constexpr std::size_t kOperandBIndex = 1;
+
   IntCompareInstr(std::shared_ptr<Computed> result, common::atomics::Int::CompareOp operation,
                   std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
       : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
@@ -260,6 +295,12 @@ class IntCompareInstr : public Computation {
 
 class IntBinaryInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kOperandAIndex = 0;
+  static constexpr std::size_t kOperandBIndex = 1;
+
   IntBinaryInstr(std::shared_ptr<Computed> result, common::atomics::Int::BinaryOp operation,
                  std::shared_ptr<Value> operand_a, std::shared_ptr<Value> operand_b)
       : Computation(result), operation_(operation), operand_a_(operand_a), operand_b_(operand_b) {}
@@ -290,6 +331,12 @@ class IntBinaryInstr : public Computation {
 
 class IntShiftInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kShiftedIndex = 0;
+  static constexpr std::size_t kOffsetIndex = 1;
+
   IntShiftInstr(std::shared_ptr<Computed> result, common::atomics::Int::ShiftOp operation,
                 std::shared_ptr<Value> shifted, std::shared_ptr<Value> offset)
       : Computation(result), operation_(operation), shifted_(shifted), offset_(offset) {}
@@ -318,6 +365,12 @@ class IntShiftInstr : public Computation {
 
 class PointerOffsetInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kPointerIndex = 0;
+  static constexpr std::size_t kOffsetIndex = 1;
+
   PointerOffsetInstr(std::shared_ptr<Computed> result, std::shared_ptr<Computed> pointer,
                      std::shared_ptr<Value> offset)
       : Computation(result), pointer_(pointer), offset_(offset) {}
@@ -342,6 +395,11 @@ class PointerOffsetInstr : public Computation {
 
 class NilTestInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kTestedIndex = 0;
+
   NilTestInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> tested)
       : Computation(result), tested_(tested) {}
 
@@ -361,6 +419,11 @@ class NilTestInstr : public Computation {
 
 class MallocInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kSizeIndex = 0;
+
   MallocInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> size)
       : Computation(result), size_(size) {}
 
@@ -380,6 +443,11 @@ class MallocInstr : public Computation {
 
 class LoadInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kAddressIndex = 0;
+
   LoadInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> address)
       : Computation(result), address_(address) {}
 
@@ -399,6 +467,10 @@ class LoadInstr : public Computation {
 
 class StoreInstr : public Instr {
  public:
+  // Operand indices in used values:
+  static constexpr std::size_t kAddressIndex = 0;
+  static constexpr std::size_t kValueIndex = 1;
+
   StoreInstr(std::shared_ptr<Value> address, std::shared_ptr<Value> value)
       : address_(address), value_(value) {}
 
@@ -423,6 +495,9 @@ class StoreInstr : public Instr {
 
 class FreeInstr : public Instr {
  public:
+  // Operand indices in used values:
+  static constexpr std::size_t kAddressIndex = 0;
+
   FreeInstr(std::shared_ptr<Value> address) : address_(address) {}
 
   std::shared_ptr<Value> address() const { return address_; }
@@ -466,6 +541,7 @@ class JumpInstr : public Instr {
 class JumpCondInstr : public Instr {
  public:
   // Operand indices in used values:
+  static constexpr std::size_t kConditionIndex = 0;
   static constexpr std::size_t kDestinationTrueIndex = 1;
   static constexpr std::size_t kDestinationFalseIndex = 2;
 
@@ -503,6 +579,11 @@ class JumpCondInstr : public Instr {
 
 class SyscallInstr : public Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kNumberIndex = 0;
+
   SyscallInstr(std::shared_ptr<Computed> result, std::shared_ptr<Value> syscall_num,
                std::vector<std::shared_ptr<Value>> args)
       : Computation(result), syscall_num_(syscall_num), args_(args) {}
@@ -527,6 +608,9 @@ class SyscallInstr : public Computation {
 
 class CallInstr : public Instr {
  public:
+  // Operand indices in used values:
+  static constexpr std::size_t kFuncIndex = 0;
+
   CallInstr(std::shared_ptr<Value> func, std::vector<std::shared_ptr<Computed>> results,
             std::vector<std::shared_ptr<Value>> args)
       : func_(func), results_(results), args_(args) {}
