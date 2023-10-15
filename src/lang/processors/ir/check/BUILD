@@ -18,6 +18,7 @@ cc_library(
         "//src/ir/check",
         "//src/ir/representation",
         "//src/ir/serialization",
+        "//src/lang/processors/ir/serialization:positions_util",
         "//src/lang/representation",
     ],
 )

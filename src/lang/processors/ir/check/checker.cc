@@ -11,6 +11,8 @@
 #include <sstream>
 
 #include "src/common/logging/logging.h"
+#include "src/ir/serialization/positions_util.h"
+#include "src/lang/processors/ir/serialization/positions_util.h"
 
 namespace lang::ir_check {
 
@@ -19,10 +21,9 @@ using ::ir_serialization::BlockPositions;
 using ::ir_serialization::FuncPositions;
 using ::ir_serialization::InstrPositions;
 
-void Checker::CheckInstr(const ir::Instr* instr,
-                         const ir_serialization::InstrPositions& instr_positions,
+void Checker::CheckInstr(const ir::Instr* instr, const InstrPositions& instr_positions,
                          const ir::Block* block, const ir::Func* func,
-                         const ir_serialization::FuncPositions& func_positions) {
+                         const FuncPositions& func_positions) {
   switch (instr->instr_kind()) {
     case ir::InstrKind::kLangPanic:
       break;
@@ -62,20 +63,23 @@ void Checker::CheckMakeSharedPointerInstr(
     const ir_ext::MakeSharedPointerInstr* make_shared_pointer_instr,
     const InstrPositions& make_shared_pointer_instr_positions) {
   if (make_shared_pointer_instr->pointer_type()->type_kind() != ir::TypeKind::kLangSharedPointer) {
-    issue_tracker().Add(IssueKind::kLangMakeSharedPointerInstrResultDoesNotHaveSharedPointerType,
-                        make_shared_pointer_instr_positions.defined_value_ranges().at(0),
-                        "lang::ir_ext::MakeSharedPointerInstr result does not have "
-                        "lang::ir_ext::SharedPointer type");
+    issue_tracker().Add(
+        IssueKind::kLangMakeSharedPointerInstrResultDoesNotHaveSharedPointerType,
+        ir_serialization::GetMakeSharedPointerInstrResultRange(make_shared_pointer_instr_positions),
+        "lang::ir_ext::MakeSharedPointerInstr result does not have "
+        "lang::ir_ext::SharedPointer type");
   } else if (!make_shared_pointer_instr->pointer_type()->is_strong()) {
-    issue_tracker().Add(IssueKind::kLangMakeSharedPointerInstrResultIsNotAStrongSharedPointer,
-                        make_shared_pointer_instr_positions.defined_value_ranges().at(0),
-                        "lang::ir_ext::MakeSharedPointerInstr result is not a strong "
-                        "lang::ir_ext::SharedPointer");
+    issue_tracker().Add(
+        IssueKind::kLangMakeSharedPointerInstrResultIsNotAStrongSharedPointer,
+        ir_serialization::GetMakeSharedPointerInstrResultRange(make_shared_pointer_instr_positions),
+        "lang::ir_ext::MakeSharedPointerInstr result is not a strong "
+        "lang::ir_ext::SharedPointer");
   }
   if (make_shared_pointer_instr->size()->type() != ir::i64()) {
-    issue_tracker().Add(IssueKind::kLangMakeSharedPointerInstrSizeDoesNotHaveI64Type,
-                        make_shared_pointer_instr_positions.used_value_ranges().at(0),
-                        "lang::ir_ext::MakeSharedPointerInstr size does not have I64 type");
+    issue_tracker().Add(
+        IssueKind::kLangMakeSharedPointerInstrSizeDoesNotHaveI64Type,
+        ir_serialization::GetMakeSharedPointerInstrSizeRange(make_shared_pointer_instr_positions),
+        "lang::ir_ext::MakeSharedPointerInstr size does not have I64 type");
   }
 }
 
@@ -85,25 +89,28 @@ void Checker::CheckCopySharedPointerInstr(
   bool pointers_have_issues = false;
   if (copy_shared_pointer_instr->result()->type()->type_kind() !=
       ir::TypeKind::kLangSharedPointer) {
-    issue_tracker().Add(IssueKind::kLangCopySharedPointerInstrResultDoesNotHaveSharedPointerType,
-                        copy_shared_pointer_instr_positions.defined_value_ranges().at(0),
-                        "lang::ir_ext::CopySharedPointerInstr result does not have "
-                        "lang::ir_ext::SharedPointer type");
+    issue_tracker().Add(
+        IssueKind::kLangCopySharedPointerInstrResultDoesNotHaveSharedPointerType,
+        ir_serialization::GetCopySharedPointerInstrResultRange(copy_shared_pointer_instr_positions),
+        "lang::ir_ext::CopySharedPointerInstr result does not have "
+        "lang::ir_ext::SharedPointer type");
     pointers_have_issues = true;
   }
   if (copy_shared_pointer_instr->copied_shared_pointer()->type()->type_kind() !=
       ir::TypeKind::kLangSharedPointer) {
-    issue_tracker().Add(IssueKind::kLangCopySharedPointerInstrCopiedDoesNotHaveSharedPointerType,
-                        copy_shared_pointer_instr_positions.used_value_ranges().at(0),
-                        "lang::ir_ext::CopySharedPointerInstr copied shared pointer does not have "
-                        "lang::ir_ext::SharedPointer type");
+    issue_tracker().Add(
+        IssueKind::kLangCopySharedPointerInstrCopiedDoesNotHaveSharedPointerType,
+        ir_serialization::GetCopySharedPointerInstrCopiedRange(copy_shared_pointer_instr_positions),
+        "lang::ir_ext::CopySharedPointerInstr copied shared pointer does not have "
+        "lang::ir_ext::SharedPointer type");
     pointers_have_issues = true;
   }
   if (copy_shared_pointer_instr->underlying_pointer_offset()->type() != ir::i64()) {
-    issue_tracker().Add(IssueKind::kLangCopySharedPointerInstrOffsetDoesNotHaveI64Type,
-                        copy_shared_pointer_instr_positions.used_value_ranges().at(1),
-                        "lang::ir_ext::CopySharedPointerInstr pointer offset does not have I64 "
-                        "type");
+    issue_tracker().Add(
+        IssueKind::kLangCopySharedPointerInstrOffsetDoesNotHaveI64Type,
+        ir_serialization::GetCopySharedPointerInstrOffsetRange(copy_shared_pointer_instr_positions),
+        "lang::ir_ext::CopySharedPointerInstr pointer offset does not have I64 "
+        "type");
   }
   if (pointers_have_issues) return;
   if (!ir::IsEqual(copy_shared_pointer_instr->copy_pointer_type()->element(),
@@ -142,15 +149,17 @@ void Checker::CheckMakeUniquePointerInstr(
     const ir_ext::MakeUniquePointerInstr* make_unique_pointer_instr,
     const InstrPositions& make_unique_pointer_instr_positions) {
   if (make_unique_pointer_instr->pointer_type()->type_kind() != ir::TypeKind::kLangUniquePointer) {
-    issue_tracker().Add(IssueKind::kLangMakeUniquePointerInstrResultDoesNotHaveUniquePointerType,
-                        make_unique_pointer_instr_positions.defined_value_ranges().at(0),
-                        "lang::ir_ext::MakeUniquePointerInstr result does not have "
-                        "lang::ir_ext::UniquePointer type");
+    issue_tracker().Add(
+        IssueKind::kLangMakeUniquePointerInstrResultDoesNotHaveUniquePointerType,
+        ir_serialization::GetMakeUniquePointerInstrResultRange(make_unique_pointer_instr_positions),
+        "lang::ir_ext::MakeUniquePointerInstr result does not have "
+        "lang::ir_ext::UniquePointer type");
   }
   if (make_unique_pointer_instr->size()->type() != ir::i64()) {
-    issue_tracker().Add(IssueKind::kLangMakeUniquePointerInstrSizeDoesNotHaveI64Type,
-                        make_unique_pointer_instr_positions.used_value_ranges().at(0),
-                        "lang::ir_ext::MakeUniquePointerInstr size does not have I64 type");
+    issue_tracker().Add(
+        IssueKind::kLangMakeUniquePointerInstrSizeDoesNotHaveI64Type,
+        ir_serialization::GetMakeUniquePointerInstrSizeRange(make_unique_pointer_instr_positions),
+        "lang::ir_ext::MakeUniquePointerInstr size does not have I64 type");
   }
 }
 
@@ -178,8 +187,8 @@ void Checker::CheckLoadInstr(const ir::LoadInstr* load_instr,
   auto smart_ptr = static_cast<const ir_ext::SmartPointer*>(load_instr->address()->type());
   if (!ir::IsEqual(load_instr->result()->type(), smart_ptr->element())) {
     issue_tracker().Add(IssueKind::kLangLoadFromSmartPointerHasMismatchedElementType,
-                        {load_instr_positions.defined_value_ranges().at(0),
-                         load_instr_positions.used_value_ranges().at(0)},
+                        {::ir_serialization::GetLoadInstrResultRange(load_instr_positions),
+                         ::ir_serialization::GetLoadInstrAddressRange(load_instr_positions)},
                         "ir::LoadInstr lang::ir_ext::SmartPointer does not match result type");
   }
 }
@@ -217,30 +226,34 @@ void Checker::CheckMovInstr(const ir::MovInstr* mov_instr,
 void Checker::CheckStringIndexInstr(const ir_ext::StringIndexInstr* string_index_instr,
                                     const InstrPositions& string_index_instr_positions) {
   if (string_index_instr->result()->type() != ir::i8()) {
-    issue_tracker().Add(IssueKind::kLangStringIndexInstrResultDoesNotHaveI8Type,
-                        string_index_instr_positions.defined_value_ranges().at(0),
-                        "lang::ir_ext::StringIndexInstr result does not have I8 type");
+    issue_tracker().Add(
+        IssueKind::kLangStringIndexInstrResultDoesNotHaveI8Type,
+        ir_serialization::GetStringIndexInstrResultRange(string_index_instr_positions),
+        "lang::ir_ext::StringIndexInstr result does not have I8 type");
   }
   if (string_index_instr->string_operand()->type() != lang::ir_ext::string()) {
-    issue_tracker().Add(IssueKind::kLangStringIndexInstrStringOperandDoesNotHaveStringType,
-                        string_index_instr_positions.used_value_ranges().at(0),
-                        "lang::ir_ext::StringIndexInstr string operand does not have "
-                        "lang::ir_ext::String type");
+    issue_tracker().Add(
+        IssueKind::kLangStringIndexInstrStringOperandDoesNotHaveStringType,
+        ir_serialization::GetStringIndexInstrStringOperandRange(string_index_instr_positions),
+        "lang::ir_ext::StringIndexInstr string operand does not have "
+        "lang::ir_ext::String type");
   }
   if (string_index_instr->index_operand()->type() != ir::i64()) {
-    issue_tracker().Add(IssueKind::kLangStringIndexInstrIndexOperandDoesNotHaveI64Type,
-                        string_index_instr_positions.used_value_ranges().at(1),
-                        "lang::ir_ext::StringIndexInstr index operand does not have I64 type");
+    issue_tracker().Add(
+        IssueKind::kLangStringIndexInstrIndexOperandDoesNotHaveI64Type,
+        ir_serialization::GetStringIndexInstrIndexOperandRange(string_index_instr_positions),
+        "lang::ir_ext::StringIndexInstr index operand does not have I64 type");
   }
 }
 
 void Checker::CheckStringConcatInstr(const ir_ext::StringConcatInstr* string_concat_instr,
                                      const InstrPositions& string_concat_instr_positions) {
   if (string_concat_instr->result()->type() != lang::ir_ext::string()) {
-    issue_tracker().Add(IssueKind::kLangStringConcatInstrResultDoesNotHaveStringType,
-                        string_concat_instr_positions.defined_value_ranges().at(0),
-                        "lang::ir_ext::StringConcatInstr result does not have "
-                        "lang::ir_ext::String type");
+    issue_tracker().Add(
+        IssueKind::kLangStringConcatInstrResultDoesNotHaveStringType,
+        ir_serialization::GetStringConcatInstrResultRange(string_concat_instr_positions),
+        "lang::ir_ext::StringConcatInstr result does not have "
+        "lang::ir_ext::String type");
   }
   if (string_concat_instr->operands().empty()) {
     issue_tracker().Add(IssueKind::kLangStringConcatInstrDoesNotHaveArguments,
@@ -250,10 +263,11 @@ void Checker::CheckStringConcatInstr(const ir_ext::StringConcatInstr* string_con
   for (std::size_t i = 0; i < string_concat_instr->operands().size(); i++) {
     const std::shared_ptr<ir::Value>& operand = string_concat_instr->operands().at(i);
     if (operand->type() != lang::ir_ext::string()) {
-      issue_tracker().Add(IssueKind::kLangStringConcatInstrOperandDoesNotHaveStringType,
-                          string_concat_instr_positions.used_value_ranges().at(i),
-                          "lang::ir_ext::StringConcatInstr operand does not have "
-                          "lang::ir_ext::String type");
+      issue_tracker().Add(
+          IssueKind::kLangStringConcatInstrOperandDoesNotHaveStringType,
+          ir_serialization::GetStringConcatInstrOperandRange(i, string_concat_instr_positions),
+          "lang::ir_ext::StringConcatInstr operand does not have "
+          "lang::ir_ext::String type");
     }
   }
 }

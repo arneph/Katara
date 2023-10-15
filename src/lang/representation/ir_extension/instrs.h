@@ -41,6 +41,11 @@ class PanicInstr : public ir::Instr {
 
 class MakeSharedPointerInstr : public ir::Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kSizeIndex = 0;
+
   explicit MakeSharedPointerInstr(std::shared_ptr<ir::Computed> result,
                                   std::shared_ptr<ir::Value> size)
       : ir::Computation(result), size_(size) {}
@@ -63,6 +68,12 @@ class MakeSharedPointerInstr : public ir::Computation {
 
 class CopySharedPointerInstr : public ir::Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kCopiedSharedPointerIndex = 0;
+  static constexpr std::size_t kPointerOffsetIndex = 1;
+
   CopySharedPointerInstr(std::shared_ptr<ir::Computed> result,
                          std::shared_ptr<ir::Computed> copied_shared_pointer,
                          std::shared_ptr<ir::Value> pointer_offset)
@@ -93,6 +104,9 @@ class CopySharedPointerInstr : public ir::Computation {
 
 class DeleteSharedPointerInstr : public ir::Instr {
  public:
+  // Operand indices in used values:
+  static constexpr std::size_t kDeletedSharedPointerIndex = 0;
+
   explicit DeleteSharedPointerInstr(std::shared_ptr<ir::Computed> deleted_shared_pointer)
       : deleted_shared_pointer_(deleted_shared_pointer) {}
 
@@ -117,6 +131,11 @@ class DeleteSharedPointerInstr : public ir::Instr {
 
 class MakeUniquePointerInstr : public ir::Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kSizeIndex = 0;
+
   explicit MakeUniquePointerInstr(std::shared_ptr<ir::Computed> result,
                                   std::shared_ptr<ir::Value> size)
       : ir::Computation(result), size_(size) {}
@@ -139,6 +158,9 @@ class MakeUniquePointerInstr : public ir::Computation {
 
 class DeleteUniquePointerInstr : public ir::Instr {
  public:
+  // Operand indices in used values:
+  static constexpr std::size_t kDeletedUniquePointerIndex = 0;
+
   explicit DeleteUniquePointerInstr(std::shared_ptr<ir::Computed> deleted_unique_pointer)
       : deleted_unique_pointer_(deleted_unique_pointer) {}
 
@@ -163,6 +185,12 @@ class DeleteUniquePointerInstr : public ir::Instr {
 
 class StringIndexInstr : public ir::Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+  // Operand indices in used values:
+  static constexpr std::size_t kStringOperandIndex = 0;
+  static constexpr std::size_t kIndexOperandIndex = 1;
+
   StringIndexInstr(std::shared_ptr<ir::Computed> result, std::shared_ptr<ir::Value> string_operand,
                    std::shared_ptr<ir::Value> index_operand)
       : ir::Computation(result), string_operand_(string_operand), index_operand_(index_operand) {}
@@ -186,6 +214,9 @@ class StringIndexInstr : public ir::Computation {
 
 class StringConcatInstr : public ir::Computation {
  public:
+  // Operand indices in defined values:
+  static constexpr std::size_t kResultIndex = 0;
+
   StringConcatInstr(std::shared_ptr<ir::Computed> result,
                     std::vector<std::shared_ptr<ir::Value>> operands)
       : ir::Computation(result), operands_(operands) {}

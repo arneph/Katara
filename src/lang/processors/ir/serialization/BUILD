@@ -3,6 +3,25 @@ load("@rules_fuzzing//fuzzing:cc_defs.bzl", "cc_fuzz_test")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
+    name = "positions_util",
+    srcs = [
+        "positions_util.cc",
+    ],
+    hdrs = [
+        "positions_util.h",
+    ],
+    copts = COPTS,
+    visibility = [
+        "//src/lang/processors/ir:__subpackages__",
+    ],
+    deps = [
+        "//src/common/positions",
+        "//src/ir/serialization",
+        "//src/lang/representation",
+    ],
+)
+
+cc_library(
     name = "type_parser",
     srcs = [
         "type_parser.cc",
