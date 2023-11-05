@@ -155,7 +155,7 @@ FuncArgsPositions PrintFuncArgsList(const ir::Func* func, Printer& printer) {
         printer.Write(", ");
       }
       if (ir::Computed* arg = func->args().at(i).get(); arg != nullptr) {
-        arg_ranges.push_back(printer.Write(arg->RefString()));
+        arg_ranges.push_back(printer.Write(arg->RefStringWithType()));
       } else {
         arg_ranges.push_back(printer.Write("NULL"));
       }
@@ -184,7 +184,7 @@ FuncResultsPositions PrintFuncResultsList(const ir::Func* func, Printer& printer
       if (const ir::Type* result_type = func->result_types().at(i); result_type != nullptr) {
         result_ranges.push_back(printer.Write(result_type->RefString()));
       } else {
-        result_ranges.push_back(printer.Write("NULL"));        
+        result_ranges.push_back(printer.Write("NULL"));
       }
     }
     printer.Write(")");
