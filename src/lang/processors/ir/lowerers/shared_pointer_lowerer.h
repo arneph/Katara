@@ -19,11 +19,12 @@
 #include "src/lang/representation/ir_extension/instrs.h"
 #include "src/lang/representation/ir_extension/types.h"
 #include "src/lang/representation/ir_extension/values.h"
+#include "src/lang/runtime/runtime.h"
 
 namespace lang {
 namespace ir_lowerers {
 
-void LowerSharedPointersInProgram(ir::Program* program);
+void LowerSharedPointersInProgram(ir::Program* program, runtime::RuntimeFuncs& runtime);
 
 }
 }  // namespace lang

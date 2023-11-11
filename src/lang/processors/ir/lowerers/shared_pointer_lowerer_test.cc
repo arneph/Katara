@@ -337,6 +337,8 @@ INSTANTIATE_TEST_SUITE_P(SharedPointerLowererTestInstance, SharedPointerLowererT
 TEST_P(SharedPointerLowererTest, LowersProgram) {
   std::unique_ptr<ir::Program> lowered_program =
       lang::ir_serialization::ParseProgramOrDie(GetParam().input_program);
+  lang::runtime::RuntimeFuncs runtime =
+      lang::runtime::AddRuntimeFuncsToProgram(lowered_program.get());
   lang::ir_check::CheckProgramOrDie(lowered_program.get());
 
   auto [expected_program, expected_program_positions] =
@@ -348,7 +350,7 @@ TEST_P(SharedPointerLowererTest, LowersProgram) {
               Each(Property(&ir_issues::Issue::kind,
                             ir_issues::IssueKind::kCallInstrStaticCalleeDoesNotExist)));
 
-  lang::ir_lowerers::LowerSharedPointersInProgram(lowered_program.get());
+  lang::ir_lowerers::LowerSharedPointersInProgram(lowered_program.get(), runtime);
   lang::ir_check::CheckProgramOrDie(lowered_program.get());
   for (ir::func_num_t func_num = 0; func_num < ir::func_num_t(expected_program->funcs().size());
        func_num++) {

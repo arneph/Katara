@@ -16,29 +16,36 @@ namespace lang {
 namespace ir_builder {
 
 using ::common::logging::fail;
+using ::lang::runtime::AddRuntimeFuncsToProgram;
+using ::lang::runtime::RuntimeFuncs;
 
-std::unique_ptr<ir::Program> IRBuilder::TranslateProgram(packages::Package* main_package,
-                                                         types::Info* type_info) {
-  auto prog = std::make_unique<ir::Program>();
-  auto builder = std::unique_ptr<IRBuilder>(new IRBuilder(type_info, prog));
+ProgramWithRuntime IRBuilder::TranslateProgram(packages::Package* main_package,
+                                               types::Info* type_info) {
+  auto program = std::make_unique<ir::Program>();
+  RuntimeFuncs runtime = AddRuntimeFuncsToProgram(program.get());
+  IRBuilder builder = IRBuilder(type_info, program.get(), runtime);
 
   for (auto [file_name, file] : main_package->ast_package()->files()) {
-    builder->PrepareDeclsInFile(file);
+    builder.PrepareDeclsInFile(file);
   }
   for (auto [file_name, file] : main_package->ast_package()->files()) {
-    builder->BuildDeclsInFile(file);
+    builder.BuildDeclsInFile(file);
   }
 
-  return prog;
+  return ProgramWithRuntime{
+      .program = std::move(program),
+      .runtime = runtime,
+  };
 }
 
-IRBuilder::IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program)
+IRBuilder::IRBuilder(types::Info* type_info, ir::Program* program, RuntimeFuncs& runtime)
     : type_info_(type_info),
       type_builder_(type_info, program),
       value_builder_(type_builder_),
       expr_builder_(type_info, type_builder_, value_builder_, funcs_),
       stmt_builder_(type_info, type_builder_, value_builder_, expr_builder_),
-      program_(program) {}
+      program_(program),
+      runtime_(runtime) {}
 
 void IRBuilder::PrepareDeclsInFile(ast::File* file) {
   for (auto decl : file->decls()) {

@@ -15,7 +15,7 @@ namespace ir_builder {
 
 using ::common::logging::fail;
 
-TypeBuilder::TypeBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program)
+TypeBuilder::TypeBuilder(types::Info* type_info, ir::Program* program)
     : type_info_(type_info), program_(program) {}
 
 const ir::Type* TypeBuilder::BuildType(types::Type* types_type) {

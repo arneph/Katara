@@ -19,6 +19,8 @@
 #include "src/lang/processors/packages/package.h"
 #include "src/lang/processors/packages/package_manager.h"
 
+namespace {
+
 struct IRBuilderTestParams {
   std::string input_lang_program;
   std::string expected_ir_program;
@@ -370,19 +372,23 @@ TEST_P(IRBuilderTest, BuildsIR) {
   EXPECT_TRUE(pkg->issue_tracker().issues().empty());
 
   // Build IR:
-  std::unique_ptr<ir::Program> actual_ir_program =
+  lang::ir_builder::ProgramWithRuntime program_with_runtime =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
+  ir::Program* actual_ir_program = program_with_runtime.program.get();
   EXPECT_TRUE(actual_ir_program != nullptr);
-  //  EXPECT_TRUE(false) << ir_serialization::Print(actual_ir_program.get());
-  lang::ir_check::CheckProgramOrDie(actual_ir_program.get());
+  lang::ir_check::CheckProgramOrDie(actual_ir_program);
 
   // Check IR is as expected:
-  std::unique_ptr<ir::Program> expected_ir_program =
-      lang::ir_serialization::ParseProgramOrDie(GetParam().expected_ir_program);
+  auto expected_ir_program = std::make_unique<ir::Program>();
+  lang::runtime::AddRuntimeFuncsToProgram(expected_ir_program.get());
+  lang::ir_serialization::ParseAdditionalFuncsForProgramOrDie(expected_ir_program.get(),
+                                                              GetParam().expected_ir_program);
   lang::ir_check::CheckProgramOrDie(expected_ir_program.get());
-  EXPECT_TRUE(ir::IsEqual(actual_ir_program.get(), expected_ir_program.get()))
+  EXPECT_TRUE(ir::IsEqual(actual_ir_program, expected_ir_program.get()))
       << "For Katara program:" << GetParam().input_lang_program
       << "expected different IR program:\n"
       << ir_serialization::PrintProgram(expected_ir_program.get()) << "\ngot:\n"
-      << ir_serialization::PrintProgram(actual_ir_program.get());
+      << ir_serialization::PrintProgram(actual_ir_program);
 }
+
+}  // namespace

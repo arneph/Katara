@@ -98,6 +98,7 @@ cc_library(
         "//src/lang/processors/packages:package",
         "//src/lang/processors/packages:package_manager",
         "//src/lang/representation",
+        "//src/lang/runtime",
     ],
 )
 

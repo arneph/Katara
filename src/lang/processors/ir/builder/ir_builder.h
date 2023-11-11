@@ -35,17 +35,23 @@
 #include "src/lang/representation/types/selection.h"
 #include "src/lang/representation/types/types.h"
 #include "src/lang/representation/types/types_util.h"
+#include "src/lang/runtime/runtime.h"
 
 namespace lang {
 namespace ir_builder {
 
+struct ProgramWithRuntime {
+  std::unique_ptr<ir::Program> program;
+  runtime::RuntimeFuncs runtime;
+};
+
 class IRBuilder {
  public:
-  static std::unique_ptr<ir::Program> TranslateProgram(packages::Package* main_package,
-                                                       types::Info* type_info);
+  static ProgramWithRuntime TranslateProgram(packages::Package* main_package,
+                                             types::Info* type_info);
 
  private:
-  IRBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& prog);
+  IRBuilder(types::Info* type_info, ir::Program* program, runtime::RuntimeFuncs& runtime);
 
   void PrepareDeclsInFile(ast::File* file);
   void PrepareFuncDecl(ast::FuncDecl* func_decl);
@@ -60,7 +66,8 @@ class IRBuilder {
   ValueBuilder value_builder_;
   ExprBuilder expr_builder_;
   StmtBuilder stmt_builder_;
-  std::unique_ptr<ir::Program>& program_;
+  ir::Program* program_;
+  runtime::RuntimeFuncs& runtime_;
   std::unordered_map<types::Func*, ir::Func*> funcs_;
 };
 

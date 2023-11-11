@@ -71,7 +71,12 @@ void GenerateIrDebugInfo(ir::Program* program, std::string iter, DebugHandler& d
   }
 }
 
-std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
+struct ProgramWithRuntime {
+  std::unique_ptr<ir::Program> program;
+  lang::runtime::RuntimeFuncs runtime;
+};
+
+std::variant<ProgramWithRuntime, ErrorCode> BuildIrProgram(
     std::vector<std::filesystem::path>& paths, DebugHandler& debug_handler, Context* ctx) {
   std::variant<LoadResult, ErrorCode> load_result_or_error = Load(paths, debug_handler, ctx);
   if (std::holds_alternative<ErrorCode>(load_result_or_error)) {
@@ -86,7 +91,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
     return kBuildErrorNoMainPackage;
   }
 
-  std::unique_ptr<ir::Program> program =
+  auto [program, runtime] =
       lang::ir_builder::IRBuilder::TranslateProgram(main_pkg, pkg_manager->type_info());
   if (program == nullptr) {
     return kBuildErrorTranslationToIRProgramFailed;
@@ -106,7 +111,7 @@ std::variant<std::unique_ptr<ir::Program>, ErrorCode> BuildIrProgram(
     }
   }
 
-  return program;
+  return ProgramWithRuntime{.program = std::move(program), .runtime = runtime};
 }
 
 void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Context* ctx) {
@@ -130,8 +135,9 @@ void OptimizeIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Con
   }
 }
 
-void LowerIrExtProgram(ir::Program* program, DebugHandler& debug_handler, Context* ctx) {
-  lang::ir_lowerers::LowerSharedPointersInProgram(program);
+void LowerIrExtProgram(ir::Program* program, lang::runtime::RuntimeFuncs& runtime,
+                       DebugHandler& debug_handler, Context* ctx) {
+  lang::ir_lowerers::LowerSharedPointersInProgram(program, runtime);
   lang::ir_lowerers::LowerUniquePointersInProgram(program);
   if (debug_handler.GenerateDebugInfo()) {
     GenerateIrDebugInfo(program, "lowered", debug_handler);
@@ -174,17 +180,18 @@ void OptimizeIrProgram(ir::Program* program, DebugHandler& debug_handler, Contex
 std::variant<std::unique_ptr<ir::Program>, ErrorCode> Build(
     std::vector<std::filesystem::path>& paths, BuildOptions& options, DebugHandler& debug_handler,
     Context* ctx) {
-  std::variant<std::unique_ptr<ir::Program>, ErrorCode> program_or_error =
+  std::variant<ProgramWithRuntime, ErrorCode> program_or_error =
       BuildIrProgram(paths, debug_handler, ctx);
   if (std::holds_alternative<ErrorCode>(program_or_error)) {
     return std::get<ErrorCode>(program_or_error);
   }
-  auto ir_program = std::get<std::unique_ptr<ir::Program>>(std::move(program_or_error));
+  auto ir_program_with_runtime = std::get<ProgramWithRuntime>(std::move(program_or_error));
+  auto& [ir_program, runtime] = ir_program_with_runtime;
 
   if (options.optimize_ir_ext) {
     OptimizeIrExtProgram(ir_program.get(), debug_handler, ctx);
   }
-  LowerIrExtProgram(ir_program.get(), debug_handler, ctx);
+  LowerIrExtProgram(ir_program.get(), runtime, debug_handler, ctx);
   if (options.optimize_ir) {
     OptimizeIrProgram(ir_program.get(), debug_handler, ctx);
   }

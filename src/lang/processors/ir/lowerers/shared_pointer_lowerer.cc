@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "src/lang/runtime/runtime.h"
 #include "src/lang/runtime/shared_pointer.h"
 
 namespace lang {
@@ -489,11 +490,9 @@ void LowerSharedPointersInFunc(ir::Program* program, ir::Func* func,
 
 }  // namespace
 
-void LowerSharedPointersInProgram(ir::Program* program) {
-  SharedPointerFuncs lowering_funcs = runtime::AddSharedPointerFuncsToProgram(program);
-
+void LowerSharedPointersInProgram(ir::Program* program, runtime::RuntimeFuncs& runtime) {
   for (auto& func : program->funcs()) {
-    LowerSharedPointersInFunc(program, func.get(), lowering_funcs);
+    LowerSharedPointersInFunc(program, func.get(), runtime.shared_pointer_funcs);
   }
 }
 

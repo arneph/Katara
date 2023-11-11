@@ -64,7 +64,7 @@ func main() int {
   EXPECT_TRUE(pkg->issue_tracker().issues().empty());
 
   // Generate IR:
-  std::unique_ptr<ir::Program> program =
+  auto [program, runtime] =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
   ::lang::ir_check::CheckProgramOrDie(program.get());
@@ -101,7 +101,7 @@ func main() int {
   EXPECT_TRUE(pkg->issue_tracker().issues().empty());
 
   // Generate IR:
-  std::unique_ptr<ir::Program> program =
+  auto [program, runtime] =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
   ::lang::ir_check::CheckProgramOrDie(program.get());
@@ -136,13 +136,13 @@ func main() int {
   EXPECT_TRUE(pkg->issue_tracker().issues().empty());
 
   // Generate IR:
-  std::unique_ptr<ir::Program> program =
+  auto [program, runtime] =
       lang::ir_builder::IRBuilder::TranslateProgram(pkg, pkg_manager.type_info());
   EXPECT_TRUE(program != nullptr);
   ::lang::ir_check::CheckProgramOrDie(program.get());
 
   // Lower IR:
-  lang::ir_lowerers::LowerSharedPointersInProgram(program.get());
+  lang::ir_lowerers::LowerSharedPointersInProgram(program.get(), runtime);
 
   // Interpret IR:
   ir_interpreter::Interpreter interpreter(program.get(), /*sanitize=*/true);

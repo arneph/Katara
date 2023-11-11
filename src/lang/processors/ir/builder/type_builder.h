@@ -29,7 +29,7 @@ namespace ir_builder {
 
 class TypeBuilder {
  public:
-  TypeBuilder(types::Info* type_info, std::unique_ptr<ir::Program>& program);
+  TypeBuilder(types::Info* type_info, ir::Program* program);
 
   const ir::Type* BuildType(types::Type* types_type);
   const ir::Type* BuildTypeForBasic(types::Basic* types_basic);
@@ -42,7 +42,7 @@ class TypeBuilder {
 
  private:
   types::Info* type_info_;
-  std::unique_ptr<ir::Program>& program_;
+  ir::Program* program_;
 
   std::unordered_map<const ir::Type*, const ir_ext::SharedPointer*>
       ir_element_type_to_ir_strong_pointer_lookup_;
