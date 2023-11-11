@@ -18,14 +18,14 @@
 namespace lang {
 namespace runtime {
 
-SharedPointerLoweringFuncs AddSharedPointerLoweringFuncsToProgram(ir::Program* program) {
+SharedPointerFuncs AddSharedPointerFuncsToProgram(ir::Program* program) {
   std::ifstream fstream("src/lang/runtime/shared_pointer.ir");
   std::stringstream sstream;
   sstream << fstream.rdbuf();
   ::ir_serialization::ProgramPositions discarded_program_positions;
   std::vector<ir::Func*> funcs = lang::ir_serialization::ParseAdditionalFuncsForProgramOrDie(
       program, discarded_program_positions, sstream.str());
-  return SharedPointerLoweringFuncs{
+  return SharedPointerFuncs{
       .make_shared_func_num = funcs.at(0)->number(),
       .strong_copy_shared_func_num = funcs.at(1)->number(),
       .weak_copy_shared_func_num = funcs.at(2)->number(),

@@ -23,7 +23,7 @@ namespace {
 
 TEST(SharedPointerImplTest, HandlesDeleteStrongNilPointer) {
   ir::Program program;
-  SharedPointerLoweringFuncs lowering_funcs = AddSharedPointerLoweringFuncsToProgram(&program);
+  SharedPointerFuncs lowering_funcs = AddSharedPointerFuncsToProgram(&program);
   ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(&program);
   fb.AddResultType(ir::i64());
   ir_builder::BlockBuilder bb = fb.AddEntryBlock();
@@ -42,7 +42,7 @@ TEST(SharedPointerImplTest, HandlesDeleteStrongNilPointer) {
 
 TEST(SharedPointerImplTest, HandlesDeleteWeakNilPointer) {
   ir::Program program;
-  SharedPointerLoweringFuncs lowering_funcs = AddSharedPointerLoweringFuncsToProgram(&program);
+  SharedPointerFuncs lowering_funcs = AddSharedPointerFuncsToProgram(&program);
   ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(&program);
   fb.AddResultType(ir::i64());
   ir_builder::BlockBuilder bb = fb.AddEntryBlock();

@@ -15,7 +15,7 @@
 namespace lang {
 namespace runtime {
 
-struct SharedPointerLoweringFuncs {
+struct SharedPointerFuncs {
   ir::func_num_t make_shared_func_num;
   ir::func_num_t strong_copy_shared_func_num;
   ir::func_num_t weak_copy_shared_func_num;
@@ -26,7 +26,7 @@ struct SharedPointerLoweringFuncs {
   ir::func_num_t validate_weak_shared_func_num;
 };
 
-SharedPointerLoweringFuncs AddSharedPointerLoweringFuncsToProgram(ir::Program* program);
+SharedPointerFuncs AddSharedPointerFuncsToProgram(ir::Program* program);
 
 }  // namespace runtime
 }  // namespace lang

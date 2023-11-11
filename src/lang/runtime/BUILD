@@ -35,6 +35,8 @@ cc_test(
 
 cc_library(
     name = "runtime",
+    srcs = ["runtime.cc"],
+    hdrs = ["runtime.h"],
     copts = COPTS,
     visibility = [
         "//visibility:public",
