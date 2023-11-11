@@ -111,7 +111,22 @@ INSTANTIATE_TEST_SUITE_P(InterpretTestInstance, InterpretTest,
                                      InterpretOptions{
                                          .sanitize = true,
                                      },
-                             }));
+                             }),
+                         [](const testing::TestParamInfo<Options>& info) {
+                           std::string name;
+                           if (info.param.build_options.optimize_ir_ext) {
+                             name += "OptIrExt";
+                           }
+                           if (info.param.build_options.optimize_ir) {
+                             if (!name.empty()) name += "_";
+                             name += "OptIr";
+                           }
+                           if (info.param.interpret_options.sanitize) {
+                             if (!name.empty()) name += "_";
+                             name += "Sanitize";
+                           }
+                           return (!name.empty()) ? name : "NoOptions";
+                         });
 
 TEST_P(InterpretTest, InterpretsSmallProgramCorrectly) {
   TestContext ctx;
