@@ -10,5 +10,6 @@ cc_library(
     deps = [
         "//src/lang/processors",
         "//src/lang/representation",
+        "//src/lang/runtime",
     ],
 )

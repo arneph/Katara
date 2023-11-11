@@ -31,6 +31,7 @@ cc_library(
     copts = COPTS,
     visibility = [
         "//src/lang/processors/ir:__subpackages__",
+        "//src/lang/runtime:__subpackages__",
     ],
     deps = [
         ":checker",
@@ -62,6 +63,7 @@ cc_library(
     visibility = [
         "//src/ir/interpreter:__subpackages__",
         "//src/lang/processors/ir:__subpackages__",
+        "//src/lang/runtime:__subpackages__",
     ],
     deps = [
         ":checker",

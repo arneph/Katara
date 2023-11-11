@@ -1,19 +1,19 @@
 //
-//  shared_pointer_impl.h
+//  shared_pointer.h
 //  Katara
 //
 //  Created by Arne Philipeit on 10/23/22.
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#ifndef ir_lowerers_shared_pointer_impl_h
-#define ir_lowerers_shared_pointer_impl_h
+#ifndef lang_runtime_shared_pointer_h
+#define lang_runtime_shared_pointer_h
 
 #include "src/ir/representation/num_types.h"
 #include "src/ir/representation/program.h"
 
 namespace lang {
-namespace ir_lowerers {
+namespace runtime {
 
 struct SharedPointerLoweringFuncs {
   ir::func_num_t make_shared_func_num;
@@ -28,7 +28,7 @@ struct SharedPointerLoweringFuncs {
 
 SharedPointerLoweringFuncs AddSharedPointerLoweringFuncsToProgram(ir::Program* program);
 
-}  // namespace ir_lowerers
+}  // namespace runtime
 }  // namespace lang
 
-#endif /* ir_lowerers_shared_pointer_impl_h */
+#endif /* lang_runtime_shared_pointer_h */

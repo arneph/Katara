@@ -1,12 +1,12 @@
 //
-//  shared_pointer_impl.cc
+//  shared_pointer.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 10/23/22.
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#include "shared_pointer_impl.h"
+#include "shared_pointer.h"
 
 #include <fstream>
 #include <sstream>
@@ -16,10 +16,10 @@
 #include "src/lang/processors/ir/serialization/parse.h"
 
 namespace lang {
-namespace ir_lowerers {
+namespace runtime {
 
 SharedPointerLoweringFuncs AddSharedPointerLoweringFuncsToProgram(ir::Program* program) {
-  std::ifstream fstream("src/lang/processors/ir/lowerers/shared_pointer_impl.ir");
+  std::ifstream fstream("src/lang/runtime/shared_pointer.ir");
   std::stringstream sstream;
   sstream << fstream.rdbuf();
   ::ir_serialization::ProgramPositions discarded_program_positions;
@@ -37,5 +37,5 @@ SharedPointerLoweringFuncs AddSharedPointerLoweringFuncsToProgram(ir::Program* p
   };
 }
 
-}  // namespace ir_lowerers
+}  // namespace runtime
 }  // namespace lang

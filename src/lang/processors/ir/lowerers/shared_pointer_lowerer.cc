@@ -13,13 +13,14 @@
 #include <unordered_map>
 #include <vector>
 
-#include "src/lang/processors/ir/lowerers/shared_pointer_impl.h"
+#include "src/lang/runtime/shared_pointer.h"
 
 namespace lang {
 namespace ir_lowerers {
 namespace {
 
 using ::common::atomics::Int;
+using ::lang::runtime::SharedPointerLoweringFuncs;
 
 struct DecomposedShared {
   std::shared_ptr<ir::Computed> control_block_pointer;
@@ -489,7 +490,8 @@ void LowerSharedPointersInFunc(ir::Program* program, ir::Func* func,
 }  // namespace
 
 void LowerSharedPointersInProgram(ir::Program* program) {
-  SharedPointerLoweringFuncs lowering_funcs = AddSharedPointerLoweringFuncsToProgram(program);
+  SharedPointerLoweringFuncs lowering_funcs =
+      runtime::AddSharedPointerLoweringFuncsToProgram(program);
 
   for (auto& func : program->funcs()) {
     LowerSharedPointersInFunc(program, func.get(), lowering_funcs);

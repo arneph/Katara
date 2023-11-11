@@ -1,12 +1,12 @@
 //
-//  shared_pointer_impl_test.cc
+//  shared_pointer_test.cc
 //  Katara
 //
 //  Created by Arne Philipeit on 10/23/22.
 //  Copyright © 2022 Arne Philipeit. All rights reserved.
 //
 
-#include "src/lang/processors/ir/lowerers/shared_pointer_impl.h"
+#include "src/lang/runtime/shared_pointer.h"
 
 #include <memory>
 
@@ -17,10 +17,13 @@
 #include "src/ir/interpreter/interpreter.h"
 #include "src/ir/representation/program.h"
 
+namespace lang {
+namespace runtime {
+namespace {
+
 TEST(SharedPointerImplTest, HandlesDeleteStrongNilPointer) {
   ir::Program program;
-  lang::ir_lowerers::SharedPointerLoweringFuncs lowering_funcs =
-      lang::ir_lowerers::AddSharedPointerLoweringFuncsToProgram(&program);
+  SharedPointerLoweringFuncs lowering_funcs = AddSharedPointerLoweringFuncsToProgram(&program);
   ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(&program);
   fb.AddResultType(ir::i64());
   ir_builder::BlockBuilder bb = fb.AddEntryBlock();
@@ -39,8 +42,7 @@ TEST(SharedPointerImplTest, HandlesDeleteStrongNilPointer) {
 
 TEST(SharedPointerImplTest, HandlesDeleteWeakNilPointer) {
   ir::Program program;
-  lang::ir_lowerers::SharedPointerLoweringFuncs lowering_funcs =
-      lang::ir_lowerers::AddSharedPointerLoweringFuncsToProgram(&program);
+  SharedPointerLoweringFuncs lowering_funcs = AddSharedPointerLoweringFuncsToProgram(&program);
   ir_builder::FuncBuilder fb = ir_builder::FuncBuilder::ForNewFuncInProgram(&program);
   fb.AddResultType(ir::i64());
   ir_builder::BlockBuilder bb = fb.AddEntryBlock();
@@ -56,3 +58,7 @@ TEST(SharedPointerImplTest, HandlesDeleteWeakNilPointer) {
 
   EXPECT_EQ(interpreter.exit_code(), 0);
 }
+
+}  // namespace
+}  // namespace runtime
+}  // namespace lang

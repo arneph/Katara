@@ -1,40 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_library")
 load("//src:katara.bzl", "COPTS")
-load("//src/lang/processors/ir:ir.bzl", "ir_ext_file_check")
-
-ir_ext_file_check(
-    name = "shared_pointer_impl_check",
-    src = ":shared_pointer_impl.ir",
-)
-
-cc_library(
-    name = "shared_pointer_impl",
-    srcs = ["shared_pointer_impl.cc"],
-    hdrs = ["shared_pointer_impl.h"],
-    copts = COPTS,
-    data = [":shared_pointer_impl.ir"],
-    visibility = [
-        "//visibility:private",
-    ],
-    deps = [
-        "//src/ir:ir_lib",
-        "//src/lang/processors/ir/serialization:parse",
-    ],
-)
-
-cc_test(
-    name = "shared_pointer_impl_test",
-    srcs = ["shared_pointer_impl_test.cc"],
-    copts = COPTS,
-    deps = [
-        ":shared_pointer_impl",
-        "//src/ir:ir_lib",
-        "//src/lang/processors/ir/check:check_test_util",
-        "//src/lang/processors/ir/serialization:parse",
-        "//src/lang/representation",
-        "@gtest//:gtest_main",
-    ],
-)
 
 cc_library(
     name = "shared_pointer_lowerer",
@@ -45,10 +10,10 @@ cc_library(
         "//visibility:public",
     ],
     deps = [
-        ":shared_pointer_impl",
         "//src/ir:ir_lib",
         "//src/lang/processors/ir/serialization:parse",
         "//src/lang/representation",
+        "//src/lang/runtime",
     ],
 )
 

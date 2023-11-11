@@ -19,6 +19,8 @@
 #include "src/lang/processors/ir/check/check_test_util.h"
 #include "src/lang/processors/ir/serialization/parse.h"
 
+namespace {
+
 using ::testing::Each;
 using ::testing::Property;
 
@@ -357,3 +359,5 @@ TEST_P(SharedPointerLowererTest, LowersProgram) {
         << ir_serialization::PrintFunc(lowered_program->GetFunc(func_num));
   }
 }
+
+}  // namespace
