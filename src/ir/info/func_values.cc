@@ -13,28 +13,32 @@
 namespace ir_info {
 
 std::unordered_set<ir::value_num_t> FuncValues::GetValuesWithType(const ir::Type* type) const {
-  auto it = values_with_type_.find(type);
-  if (it == values_with_type_.end()) {
-    return {};
+  if (auto it = values_with_type_.find(type); it != values_with_type_.end()) {
+    return it->second;
   }
-  return it->second;
+  return {};
 }
 
 std::unordered_set<ir::value_num_t> FuncValues::GetValuesWithTypeKind(
     ir::TypeKind type_kind) const {
-  auto it = values_with_type_kind_.find(type_kind);
-  if (it == values_with_type_kind_.end()) {
-    return {};
+  if (auto it = values_with_type_kind_.find(type_kind); it != values_with_type_kind_.end()) {
+    return it->second;
   }
-  return it->second;
+  return {};
 }
 
 ir::Instr* FuncValues::GetInstrDefiningValue(ir::value_num_t value) const {
-  return defining_instrs_.at(value);
+  if (auto it = defining_instrs_.find(value); it != defining_instrs_.end()) {
+    return it->second;
+  }
+  return nullptr;
 }
 
 std::unordered_set<ir::Instr*> FuncValues::GetInstrsUsingValue(ir::value_num_t value) const {
-  return using_instrs_.at(value);
+  if (auto it = using_instrs_.find(value); it != using_instrs_.end()) {
+    return it->second;
+  }
+  return {};
 }
 
 void FuncValues::AddValue(ir::Computed* value) {

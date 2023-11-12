@@ -1,4 +1,4 @@
-load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 load("//src:katara.bzl", "COPTS")
 
 cc_library(
@@ -52,6 +52,19 @@ cc_library(
     deps = [
         "//src/ir/info",
         "//src/ir/representation",
+    ],
+)
+
+cc_test(
+    name = "func_values_builder_test",
+    srcs = ["func_values_builder_test.cc"],
+    copts = COPTS,
+    deps = [
+        ":func_values_builder",
+        "//src/ir/info",
+        "//src/ir/representation",
+        "//src/ir/serialization",
+        "@gtest//:gtest_main",
     ],
 )
 
